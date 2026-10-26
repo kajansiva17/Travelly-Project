@@ -1,0 +1,25 @@
+﻿/* Global stylesheet entry. App.jsx explicitly imports this file, public.css,
+   auth.css, then responsive.css so Vite resolves each source file directly. */
+
+/* Page content determines the document height. Viewport units are a minimum,
+   never a limit on how far a page can scroll. */
+html {
+  height: auto;
+  max-height: none;
+  min-height: 100%;
+  /* Use the browser's document scroller, without creating an overflow box. */
+  overflow: visible;
+}
+
+body,
+#root,
+.public-page,
+.auth-page {
+  height: auto;
+  max-height: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Keep the viewport as the scroll container so descendant headers can stick.
+     Auto-height wrappers still expand to include every section and footer. */
+  overflow: visible;
+}

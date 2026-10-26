@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 376">
+  <!-- The login artwork has a different contour: centre notches and bottom
+       corner scallops. This mask follows that border without altering the PNG. -->
+  <path fill="none" stroke="white" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"
+    d="M36 15 H359 C368 15 374.5 22 374.5 31
+       V155 C354.5 156 354.5 190 374.5 191
+       V333 Q374.5 345 362 347 Q352 349 352 359
+       H44 Q41 359 40 354 Q38 349 29 347 Q20.5 345 20.5 334
+       V191 C40.5 190 40.5 156 20.5 155
+       V31 C20.5 22 27 15 36 15 Z"/>
+</svg>

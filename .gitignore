@@ -1,0 +1,21 @@
+# Local secrets and runtime state
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+.tools/
+tmp/
+*.log
+test-results/
+playwright-report/
+.DS_Store

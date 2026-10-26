@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 516 418">
+  <!-- The existing register artwork's border, in its original pixel coordinates.
+       White stroke / transparent fill keeps the mask off all ticket content. -->
+  <path fill="none" stroke="white" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"
+    d="M54 32 H460 C470 32 476 36 476 48 C476 60 484 68 495 69
+       V90 C487 91 487 103 495 104 V112 C487 113 487 125 495 125
+       V134 C485 134 485 147 495 147 V155 C486 155 486 168 495 169
+       V191 C471 191 471 231 495 231
+       V249 C486 249 486 260 495 261 V270 C486 270 486 282 495 282
+       V291 C486 291 486 303 495 303 V312 C487 312 487 324 495 325
+       V349 C481 349 476 364 476 376 C476 385 468 389 459 389
+       H55 C46 389 40 382 40 375 C40 363 33 350 21 349
+       V325 C30 325 30 313 21 313 V304 C30 304 30 292 21 292
+       V282 C30 282 30 271 21 271 V261 C30 261 30 249 21 249
+       V232 C45 231 45 191 21 191
+       V170 C30 170 30 156 21 156 V148 C30 148 30 135 21 135
+       V126 C30 126 30 113 21 113 V105 C30 105 30 92 21 92
+       V69 C33 68 40 56 40 47 C40 37 45 32 54 32 Z"/>
+</svg>

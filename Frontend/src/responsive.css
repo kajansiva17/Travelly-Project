@@ -1,0 +1,470 @@
+@media(min-width:1600px){.hero-copy{left:5%}.search-panel{margin-top:-130px}}
+@media(max-width:1200px){
+ .header-inner{gap:18px;padding-left:3%;padding-right:3%}.brand img{width:87px}.brand span{font-size:38px}.navigation{gap:20px;font-size:12px}.nav-cta{font-size:13px;padding:11px 16px}
+ .search-panel{margin-top:-100px}.search-panel form{gap:10px}.search-panel label{font-size:12px}.search-input{padding:0 9px;gap:7px}.search-input input,.search-input select{font-size:12px}.search-submit{font-size:14px;padding:13px}
+ .hero h1{font-size:4.8vw}.passenger-hero .hero-description{font-size:2.5vw}.owner-hero{min-height:345px}.owner-hero .hero-copy{width:53%;top:6%}.owner-hero h1{font-size:3.9vw}.owner-hero .hero-description{font-size:1.9vw}.hero-actions .button{font-size:14px;min-height:43px;padding:11px 16px}
+ .steps-panel{padding:18px}.steps-panel li{gap:12px}.steps-panel ol{gap:18px}.step-number{width:43px;height:43px;font-size:23px}.step-icon{width:35px;height:35px}.steps-panel h3{font-size:14px}.steps-panel p{font-size:13px}
+ .service-card{padding:16px 14px;gap:15px}.service-card>img{width:62px}.service-card h3{font-size:21px}.service-card p{font-size:14px}.benefit-card{padding:17px;gap:17px}.benefit-icon{width:58px;height:58px}.benefit-card h3{font-size:15px}.benefit-card p{font-size:14px}
+ .owner-content .section-heading p{font-size:18px}.owner-content .benefit-card{padding:13px 16px;gap:15px}.owner-final{padding:20px;gap:18px}.owner-final h2{font-size:22px}.owner-final p{font-size:12px}.owner-final .button{font-size:13px;min-height:42px}
+ .driver-steps{padding:20px 18px}.driver-steps>h2{font-size:22px}.driver-steps li{padding:0 17px;gap:7px}.driver-steps h3{font-size:14px}.driver-steps p{font-size:12px}.driver-hero h1{font-size:4.6vw}.driver-hero .hero-description{font-size:2.25vw}.story-copy{gap:8px}.story-copy h3{font-size:16px}.story-copy p{font-size:13px}.journey-grid h3{font-size:17px}
+ .auth-header .navigation{font-size:14px;gap:20px}.auth-header .brand img{width:94px}.auth-header .brand span{font-size:40px}.auth-form-panel{padding:40px 8%}.auth-heading h1{font-size:3.6vw;letter-spacing:-2px}.auth-heading h2{font-size:2.4vw}.auth-heading p{font-size:1.9vw}.auth-heading{margin-bottom:25px}.auth-field{margin-bottom:17px}.auth-input{min-height:60px;padding:0 16px;gap:15px}.embedded-field .auth-input{min-height:65px}.auth-input-content>label{font-size:16px}.auth-input-content>input{font-size:16px}.embedded-field .auth-input-content>input{font-size:14px}.terms-check{font-size:14px;gap:10px;margin-bottom:18px}.auth-submit{font-size:21px;min-height:55px}.auth-switch{font-size:13px}
+ .login-page .auth-form-panel{padding:60px 6.2%}.login-page .auth-heading h1{font-size:4.8vw;letter-spacing:-2.7px}.login-page .auth-heading h2{font-size:3vw}.login-page .auth-heading p{font-size:1.75vw}.login-options{font-size:14px;gap:10px}.login-page .auth-submit{min-height:61px;font-size:22px}.login-switch{font-size:16px}.auth-divider{margin:29px 0}
+}
+@media(max-width:940px){
+ .header-inner{min-height:72px;gap:13px}.brand img{width:77px}.brand span{font-size:34px}.navigation{gap:14px;font-size:11px}.nav-cta{font-size:12px;padding:10px 13px;min-height:40px}.language{gap:4px}.nav-divider{height:21px}
+ .search-panel{margin-top:-82px}.search-tabs{gap:25px}.search-tabs button{font-size:13px;padding:12px 5px}.search-panel form{grid-template-columns:1fr 1fr 1fr}.search-panel form>label:nth-of-type(4){grid-column:1/3}.search-submit{width:100%}.search-panel{padding:0 15px 13px}
+ .section-heading h2{font-size:30px}.section-heading p{font-size:18px}.section-link{font-size:14px;gap:9px}.card-copy h3{font-size:17px}.card-copy p{font-size:13px}.vehicle-grid{gap:10px}.service-card{gap:12px;padding:14px 12px}.service-card>img{width:50px}.service-card h3{font-size:19px}.service-card .section-link{font-size:13px}.service-card p{font-size:13px}.benefit-card{gap:12px;padding:14px}.benefit-icon{width:48px;height:48px}.benefit-icon svg{width:31px;height:31px}
+ .owner-hero{min-height:304px}.owner-hero .hero-description{font-size:1.9vw}.owner-hero .hero-copy{padding-bottom:5px}.steps-panel{padding:17px}.steps-panel li{gap:10px}.step-number{width:35px;height:35px;font-size:21px}.step-icon{width:29px;height:29px}.steps-panel h3{font-size:12px}.steps-panel p{font-size:12px}.owner-content .section-heading p{font-size:16px}.owner-content .benefit-card{padding:12px;gap:10px}.owner-content .benefit-icon{width:46px;height:46px}.owner-content .benefit-card h3{font-size:14px}.owner-content .benefit-card p{font-size:13px}.owner-final{grid-template-columns:1.4fr auto 1fr;padding:19px;gap:12px}.owner-final h2{font-size:20px}.owner-final .button{font-size:12px;padding:10px}
+ .driver-steps>h2{font-size:19px}.driver-steps{padding:20px 17px;margin-top:-32px;grid-template-columns:31% 69%}.driver-steps li{padding:0 17px}.driver-steps h3{font-size:13px}.driver-steps p{font-size:11px}.driver-hero .hero-actions{gap:10px}.driver-hero .hero-actions .button{font-size:12px;padding:10px 14px;min-height:39px}.driver-hero .hero-actions .outline{min-width:100px}.story-copy h3{font-size:14px}.story-copy p{font-size:12px}.story-copy>svg{width:26px;height:26px}.journey-grid h3{font-size:15px}.driver-content .benefit-card{padding:14px 12px;gap:13px}.driver-content .benefit-icon{width:42px;height:42px}.driver-content .benefit-card h3{font-size:14px}.driver-content .benefit-card p{font-size:12px}.driver-final h2{font-size:28px}.driver-final p{font-size:15px}.driver-final .button{font-size:14px}
+ .auth-header .navigation{gap:16px;font-size:12px}.auth-header .brand img{width:80px}.auth-header .brand span{font-size:35px}.auth-header .nav-icon{gap:7px}.auth-header .nav-icon svg{width:19px}.auth-heading h1{font-size:3.7vw}.auth-input{gap:13px;padding:0 13px}.auth-input>svg{width:21px}.auth-field{margin-bottom:15px}.embedded-field .auth-input{min-height:62px}.auth-input-content>label{font-size:14px}.embedded-field .auth-input-content>input{font-size:12px}.terms-check{font-size:12px}.terms-check input,.login-options input{width:19px;height:19px}.auth-switch{font-size:11px;gap:11px}.auth-submit{font-size:19px;min-height:51px}.login-page .auth-heading p{font-size:1.7vw}.auth-field>label{font-size:15px}.auth-input-content>input{font-size:14px}.login-options{font-size:12px}.login-options label{gap:7px}.login-switch{font-size:14px}.login-page .auth-submit{font-size:20px;min-height:56px}
+}
+@media(max-width:760px){
+ .header-inner,.auth-header .header-inner{padding:8px 5%;min-height:76px}.brand img,.auth-header .brand img{width:78px}.brand span,.auth-header .brand span{font-size:35px}.menu-toggle{display:grid;place-items:center}.navigation,.auth-header .navigation{display:none;position:absolute;top:100%;left:0;right:0;background:#fcf2e5;border-bottom:1px solid #e2c8ad;padding:18px 6%;box-shadow:0 12px 20px #4c1a1120;font-size:15px;white-space:normal}.navigation.open{display:flex;align-items:stretch;gap:7px;flex-direction:column}.navigation>a:not(.button){padding:12px 0}.navigation>a.active:after{width:35px}.navigation .language{padding:10px 0}.navigation .nav-divider{display:none}.navigation .nav-cta{align-self:flex-start;margin-top:5px;padding:12px 20px;font-size:15px}.navigation .nav-icon{padding:11px 0!important}.member-prompt{margin-top:15px;color:#98726b}
+ .page-content{padding:0 5%}.passenger-hero .hero-copy{top:9%;left:5%;width:63%}.passenger-hero h1{font-size:clamp(27px,5vw,38px);letter-spacing:-1.5px}.hero .eyebrow{font-size:10px;margin-bottom:7px}.passenger-hero .hero-description{font-size:clamp(14px,2.5vw,18px);margin-bottom:10px}.search-panel{margin-top:-15px;margin-bottom:25px}.search-panel form{grid-template-columns:1fr 1fr}.search-panel form>label:nth-of-type(4){grid-column:auto}.search-submit{grid-column:1/-1;margin-top:3px}.search-tabs{gap:15px;justify-content:space-between}.search-tabs button{font-size:12px;gap:7px;padding:14px 1px}.search-tabs svg{width:20px}.search-input{min-height:44px}.search-input input,.search-input select{font-size:12px;padding:12px 0}.group-trip{gap:8px;font-size:11px;flex-wrap:wrap}.group-trip a{gap:7px}.group-trip svg{width:18px}
+ .section-heading{align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:13px}.section-heading h2,.owner-content .section-heading h2{font-size:29px;letter-spacing:-1.25px}.section-heading p,.owner-content .section-heading p{font-size:16px;line-height:1.35;margin-top:4px}.section-link{font-size:13px;gap:8px}.section-heading>.section-link{margin-top:7px}.vehicle-grid{grid-template-columns:1fr 1fr;gap:12px}.card-copy{padding:9px 5px 10px}.card-copy h3{font-size:18px;letter-spacing:-.7px}.card-copy h3 svg{width:17px;height:17px}.card-copy p{font-size:13px;line-height:1.4}.service-grid{grid-template-columns:1fr}.service-card{padding:18px;gap:20px}.service-card>img{width:63px}.service-card h3{font-size:23px}.service-card p{font-size:15px;margin-bottom:11px}.service-card .section-link{font-size:15px}.content-section{margin-top:30px;margin-bottom:30px}
+ .benefit-grid{grid-template-columns:1fr}.benefit-card{padding:18px;gap:18px}.benefit-card h3{font-size:17px}.benefit-card p{font-size:15px;line-height:1.45}.benefit-icon{width:57px;height:57px}.benefit-icon svg{width:36px;height:36px}.confidence-grid{gap:20px}.confidence-grid .benefit-card h3{font-size:17px}.confidence-grid .benefit-card p{font-size:14px}.confidence-grid .benefit-icon{width:44px}.destination-grid{grid-template-columns:1fr;gap:15px}.destination-card{max-width:500px;width:100%;margin:auto}
+ .passenger-final>img{width:100%;height:auto}.passenger-final{background:#f9ecdb;padding-bottom:24px}.passenger-final h2.sr-only{position:static;clip:auto;width:auto;height:auto;white-space:normal;overflow:visible;font-size:27px;margin:20px 5% 14px;letter-spacing:-1px}.mobile-banner-action{display:inline-flex;margin-left:5%;position:relative;z-index:1}.banner-hit-area{bottom:auto;height:calc(100vw * 133 / 1020)}.site-footer{padding:21px 5%;align-items:flex-start;gap:15px;flex-wrap:wrap;font-size:11px}.footer-brand{font-size:26px}
+ .owner-hero,.driver-hero{min-height:0;display:flex;flex-direction:column;background:#fffdf8}.owner-hero .hero-copy,.driver-hero .hero-copy{position:static;order:0;width:100%;padding:30px 5% 12px;background:none}.owner-hero-art,.driver-hero-art{order:1;width:100%;padding:0;margin:0}.hero .eyebrow{font-size:12px}.owner-hero h1,.driver-hero h1{font-size:clamp(36px,6.5vw,49px);letter-spacing:-1.7px;line-height:1.04}.owner-hero .hero-description,.driver-hero .hero-description{font-size:18px;line-height:1.35;margin-bottom:20px}.hero-actions{gap:11px;margin-bottom:11px}.hero-actions .button,.driver-hero .hero-actions .button{font-size:14px;min-height:44px;padding:12px 16px}.hero-actions .outline,.driver-hero .hero-actions .outline{min-width:100px}.owner-content{margin-top:0}
+ .steps-panel,.driver-steps{margin-top:17px;padding:22px 19px;display:block;background:#fffaf3}.steps-panel ol,.driver-steps ol{display:grid;grid-template-columns:1fr;gap:22px}.steps-panel li,.driver-steps li{display:grid;grid-template-columns:37px 34px 1fr;align-items:center;gap:11px;border:0;padding:0}.steps-panel .step-number,.driver-steps .step-number{width:35px;height:35px;border:0;background:#f5e5d3;font-size:20px}.steps-panel .step-icon,.driver-steps .step-icon{width:30px;height:30px}.steps-panel li>div,.driver-steps li>div{grid-column:auto}.steps-panel h3,.driver-steps h3{font-size:15px;max-width:none;line-height:1.2}.steps-panel p,.driver-steps p{font-size:13px;line-height:1.4}.step-next{display:none}.driver-steps>h2{font-size:24px;margin-bottom:23px;padding:0}
+ .owner-content .content-section,.driver-content .content-section{margin-top:29px;margin-bottom:29px}.owner-content .benefit-card,.driver-content .benefit-card{padding:19px;gap:18px}.owner-content .benefit-card h3,.driver-content .benefit-card h3{font-size:17px}.owner-content .benefit-card p,.driver-content .benefit-card p{font-size:14px}.owner-content .benefit-icon{width:58px;height:58px}.owner-faq .faq-grid{grid-template-columns:1fr;gap:6px}.faq-grid{gap:6px}.faq-grid summary,.owner-faq summary{font-size:14px;line-height:1.4;padding:15px}.faq-grid details p{padding:0 15px 17px;font-size:14px}.faq-section .section-heading h2,.owner-faq .section-heading h2{font-size:28px}.owner-faq .section-heading p{font-size:15px}
+ .owner-final{margin:23px 5% 0;padding:24px;grid-template-columns:1fr;gap:20px}.owner-final h2{font-size:27px;line-height:1.1}.owner-final p{font-size:14px;line-height:1.45}.owner-final .button{justify-self:start;font-size:14px;padding:13px 17px}.owner-final-image{margin-top:2px}.story-grid{grid-template-columns:1fr;gap:17px}.story-copy{padding:14px 12px 18px;gap:12px}.story-copy>svg{width:31px;height:31px}.story-copy h3,.journey-grid h3{font-size:20px;margin-bottom:8px}.story-copy p,.journey-grid p{font-size:15px;line-height:1.45}.journey-grid .card-copy{padding:14px 12px 17px}.driver-final{grid-template-columns:1fr;padding:28px 5%;gap:24px}.driver-final h2{font-size:30px}.driver-final p{font-size:16px}.driver-final .button{font-size:15px}
+ .auth-layout,.login-page .auth-layout{display:flex;flex-direction:column;min-height:calc(100svh - 76px)}.auth-brand-panel{min-height:0;padding:16px 8%;order:1}.journey-pass,.login-page .journey-pass{width:100%;max-width:530px}.auth-form-panel,.login-page .auth-form-panel{padding:34px 7% 40px;order:0}.auth-form-inner{max-width:510px}.auth-heading{margin-bottom:28px}.auth-heading h1{font-size:clamp(33px,7vw,45px);letter-spacing:-1.8px;white-space:normal}.auth-heading h2{font-size:clamp(22px,4.5vw,30px);letter-spacing:-1px;margin-top:6px;margin-bottom:15px}.auth-heading p{font-size:19px;letter-spacing:-.3px}.auth-input{min-height:61px;gap:16px;padding:0 15px}.embedded-field .auth-input{min-height:70px}.auth-input-content>label{font-size:16px;margin-top:12px}.embedded-field .auth-input-content>input{font-size:14px;padding:3px 0 11px}.auth-input-content>input{font-size:16px}.auth-input>svg{width:24px}.auth-field{margin-bottom:19px}.auth-field small{font-size:11px}.terms-check{font-size:13px;gap:10px;align-items:flex-start;margin:7px 0 23px;line-height:1.6}.terms-check input{margin-top:1px;width:21px;height:21px}.auth-submit{min-height:58px;font-size:21px}.auth-switch{font-size:13px;gap:11px;white-space:normal;text-align:center;margin-top:26px}
+ .login-page .auth-heading{text-align:center;margin-bottom:32px}.login-page .auth-heading h1{font-size:clamp(41px,8vw,54px);letter-spacing:-2px}.login-page .auth-heading h2{font-size:30px;letter-spacing:-1px;margin-top:9px}.login-page .auth-heading p{font-size:16px;letter-spacing:-.4px;white-space:normal;line-height:1.5}.auth-field>label{font-size:16px;margin-bottom:10px}.login-options{font-size:13px;margin:25px 0;gap:12px}.login-options label{gap:9px}.login-options input{width:21px;height:21px}.login-page .auth-submit{min-height:61px;font-size:23px}.auth-divider{margin:28px 0;font-size:16px}.login-switch{font-size:16px;line-height:1.7;display:block}.login-switch a{margin-left:7px}
+ .account-main{padding:38px 6%}.account-heading{align-items:flex-start}.account-heading h1{font-size:31px}.secondary{font-size:12px;padding:11px;white-space:nowrap}.account-heading .intro{font-size:14px}.profile-card{padding:19px;gap:13px}.avatar{width:45px;height:45px;font-size:22px}.profile-card h2{font-size:18px}.profile-card p{font-size:13px}.badge{display:none}.verification-note{padding:20px;font-size:14px}.verification-note p{font-size:13px}.roles-heading h2{font-size:26px}.roles-heading p{font-size:14px}.role-grid{grid-template-columns:1fr}.role-card{padding:22px}
+}
+@media(max-width:375px){.brand span{font-size:32px}.brand img{width:70px}.hero .eyebrow{font-size:11px}.passenger-hero .hero-copy{top:7%}.passenger-hero h1{font-size:25px}.passenger-hero .hero-description{font-size:12px}.search-tabs button{font-size:11px;gap:5px}.search-tabs{gap:10px}.search-tabs svg{width:17px}.group-trip{font-size:10px}.group-trip a{gap:5px}.card-copy h3{font-size:16px}.card-copy p{font-size:12px}.section-heading h2{font-size:27px}.auth-form-panel,.login-page .auth-form-panel{padding-left:6%;padding-right:6%}.auth-heading h1{font-size:31px}.auth-switch{font-size:12px}.login-options{font-size:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition:none!important}}
+/* Match the compact header and search proportions of the supplied blueprints. */
+@media(min-width:761px){
+ .header-inner{min-height:68px;padding-top:5px;padding-bottom:5px}.brand img{width:84px}.auth-header .brand img{width:95px}.auth-header .header-inner{min-height:80px;padding-top:8px;padding-bottom:8px}
+ .owner-hero{min-height:375px}.steps-panel h3{font-size:14px}.steps-panel{padding-top:20px;padding-bottom:20px}.driver-steps h3{font-size:16px}
+ .search-tabs button{padding-top:11px;padding-bottom:10px}.search-tabs{margin-bottom:10px}.search-panel{padding-bottom:13px;margin-bottom:20px;background:#fffffffc}.search-input{min-height:42px}.search-input input,.search-input select{padding-top:10px;padding-bottom:10px}.group-trip{margin-top:10px}.search-submit{min-height:44px}.passenger-content>.content-section{margin-top:20px}
+ .owner-content .benefit-card p{font-size:14px}.driver-final{padding-top:18px;padding-bottom:18px}
+}
+@media(min-width:941px) and (max-width:1200px){.brand img{width:80px}.search-panel{margin-top:-120px}.owner-hero{min-height:330px}}
+@media(min-width:761px) and (max-width:940px){.header-inner{min-height:62px}.brand img{width:72px}.owner-hero{min-height:300px}.driver-steps h3{font-size:13px}.owner-final-copy{padding:7px 20px;gap:16px}}
+.auth-road{top:0;bottom:auto;height:auto;object-fit:contain}.auth-brand-panel{background:#fcf3e6}
+@media(max-width:1200px){.owner-final{padding:0}.owner-final-copy{gap:20px}.owner-final h2{font-size:22px}.owner-final p{font-size:12px}}
+@media(max-width:940px){.owner-final h2{font-size:19px}.owner-final .button{font-size:12px}}
+@media(max-width:760px){.owner-final{padding:0;margin:23px 5% 0}.owner-final-copy{position:static;display:flex;flex-direction:column;align-items:flex-start;padding:24px;gap:20px;background:#faeee1}.owner-final h2{font-size:27px}.owner-final p{font-size:14px}.owner-final .button{font-size:14px}.owner-final>img{width:100%;height:auto}.auth-brand-panel .auth-road{height:auto;width:100%;top:0}.driver-final>img{width:100%;height:auto}}
+@media(min-width:761px){.owner-hero .eyebrow{font-size:17px}.owner-hero h1{font-size:clamp(33px,3.6vw,53px)}.owner-hero .hero-description{font-size:clamp(16px,1.6vw,23px);line-height:1.15;margin-bottom:18px}.owner-hero .hero-actions .button{min-height:44px;padding-top:11px;padding-bottom:11px}}
+@media(max-width:760px){.passenger-hero{display:flex;flex-direction:column;background:#fffaf2}.passenger-hero .hero-copy{position:static;width:100%;padding:27px 5% 15px;order:0}.passenger-hero-image{order:1}.passenger-hero h1{font-size:clamp(31px,8.5vw,43px);line-height:1.05;letter-spacing:-1.6px}.passenger-hero .hero-description{font-size:18px;line-height:1.4;margin-bottom:0}.passenger-content .search-panel{margin-top:14px}.owner-final{display:flex;flex-direction:column}.owner-final-copy{order:0;width:100%}.owner-final>picture{order:1;width:100%}}
+@media(min-width:761px) and (max-width:800px){
+ .menu-toggle{display:grid;place-items:center}.navigation,.auth-header .navigation{display:none;position:absolute;top:100%;left:0;right:0;background:#fcf2e5;border-bottom:1px solid #e2c8ad;padding:18px 6%;box-shadow:0 12px 20px #4c1a1120;font-size:15px;white-space:normal}.navigation.open{display:flex;align-items:stretch;gap:7px;flex-direction:column}.navigation>a:not(.button){padding:12px 0}.navigation .nav-divider{display:none}.navigation .language{padding:10px 0}.navigation .nav-cta{align-self:flex-start;margin-top:5px;padding:12px 20px;font-size:15px}.navigation .nav-icon{padding:11px 0!important}.member-prompt{margin-top:15px}.owner-hero,.driver-hero{min-height:340px}
+}
+
+/* Compact mobile photo: crop excess sky/foreground while keeping the
+   vehicle row in view. Tablet and desktop keep their original treatment. */
+@media (max-width: 767px) {
+  .passenger-page .passenger-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fffaf2;
+  }
+
+  .passenger-page .passenger-hero-picture {
+    order: 1;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .passenger-page .passenger-hero-image {
+    display: block;
+    order: 1;
+    width: 100%;
+    height: clamp(280px, 55vw, 340px);
+    margin: 0;
+    padding: 0;
+    object-fit: cover;
+    object-position: center 75%;
+  }
+
+  .passenger-page .passenger-hero .hero-copy {
+    position: static;
+    order: 0;
+    top: auto;
+    left: auto;
+    width: 100%;
+    padding: 28px 6% 20px;
+    background: #fffaf2;
+  }
+
+  .passenger-page .passenger-hero h1 {
+    font-size: clamp(32px, 7.5vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -1.6px;
+  }
+
+  .passenger-page .passenger-hero .hero-description {
+    font-size: 18px;
+    line-height: 1.4;
+    margin-bottom: 0;
+  }
+
+  .passenger-page .passenger-content > .search-panel {
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 767px) {
+  .driver-page .driver-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .driver-page .driver-hero .hero-copy {
+    position: static;
+    order: 0;
+    top: auto;
+    left: auto;
+    width: 100%;
+    padding: 28px 5% 22px;
+    background: none;
+  }
+
+  .driver-page .driver-hero .hero-actions {
+    margin-bottom: 0;
+  }
+
+  .driver-page .driver-hero-art {
+    order: 1;
+    width: 100%;
+    height: clamp(240px, 55vw, 310px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .driver-page .driver-hero-art img {
+    display: block;
+    /* Clip the source's baked-in text at the left edge, never the face. */
+    width: 106%;
+    max-width: none;
+    height: 100%;
+    margin-left: -6%;
+    object-fit: cover;
+    object-position: right 45%;
+  }
+}
+
+/* Keep the complete journey pass directly beneath the header on phones.
+   The form follows in normal document flow; neither panel is height-clipped. */
+@media (max-width: 767px) {
+  .auth-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Keep every content wrapper in the document scroll chain. overflow:auto on
+     these nested panels creates scroll containers even with height:auto. */
+  .public-page > main,
+  .public-page .page-content,
+  .auth-page .auth-layout,
+  .auth-page .auth-form-panel,
+  .auth-page .auth-form-inner,
+  .auth-page form {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .auth-page .auth-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: auto;
+  }
+
+  .auth-page .auth-brand-panel {
+    display: grid;
+    order: 0;
+    flex: none;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    padding: 18px 5% 22px;
+    overflow: visible;
+  }
+
+  .auth-page .journey-pass {
+    display: block;
+    width: 100%;
+    max-width: 530px;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  .auth-page .auth-form-panel {
+    order: 1;
+    flex: none;
+    width: 100%;
+    padding: 32px 7% 40px;
+  }
+
+  .auth-page .auth-form-inner {
+    max-width: 510px;
+  }
+
+  .auth-page .auth-heading h1 {
+    font-size: clamp(33px, 7vw, 45px);
+    white-space: normal;
+  }
+
+  .auth-page .auth-heading h2 {
+    font-size: clamp(22px, 4.5vw, 30px);
+  }
+
+  .auth-page .auth-heading p {
+    font-size: 19px;
+    white-space: normal;
+  }
+
+  .auth-page .auth-input {
+    min-height: 64px;
+  }
+
+  .auth-page .auth-input-content > input {
+    font-size: 16px;
+  }
+
+  .auth-page .visibility,
+  .auth-page .menu-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .auth-page .terms-check,
+  .auth-page .login-options > label,
+  .auth-page .login-options > .inline-link {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .auth-page .auth-submit {
+    min-height: 60px;
+  }
+
+  .auth-page.login-page .auth-heading h1 {
+    font-size: clamp(41px, 8vw, 54px);
+  }
+
+  .auth-page.login-page .auth-heading h2 {
+    font-size: 30px;
+  }
+
+  .auth-page.login-page .auth-heading p {
+    font-size: 16px;
+  }
+}
+
+
+/* Desktop auth uses reading-sized type and a bounded form width. Keep content
+   in normal flow so errors and browser zoom can still expand the page. */
+@media (min-width: 768px) {
+  .auth-page .auth-layout {
+    min-height: calc(100vh - 81px);
+    min-height: calc(100dvh - 81px);
+  }
+
+  .auth-page .auth-brand-panel {
+    min-height: 0;
+    padding: 24px;
+  }
+
+  .auth-page .auth-road {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .auth-page .journey-pass {
+    width: auto;
+    height: auto;
+    max-width: min(100%, 520px);
+    max-height: calc(100dvh - 129px);
+    object-fit: contain;
+  }
+
+  .auth-page .auth-form-panel {
+    padding: 28px clamp(24px, 4vw, 64px);
+  }
+
+  .auth-page .auth-form-inner {
+    max-width: 440px;
+  }
+
+  .auth-page .auth-heading {
+    margin-bottom: 20px;
+  }
+
+  .auth-page .auth-heading h1 {
+    font-size: clamp(30px, 2.5vw, 38px);
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+    white-space: normal;
+  }
+
+  .auth-page .auth-heading h2 {
+    font-size: 24px;
+    letter-spacing: -.6px;
+    margin-bottom: 8px;
+  }
+
+  .auth-page .auth-heading p {
+    font-size: 16px;
+    letter-spacing: 0;
+    white-space: normal;
+  }
+
+  .auth-page .auth-field {
+    margin-bottom: 14px;
+  }
+
+  .auth-page .auth-field > label {
+    font-size: 14px;
+    margin-bottom: 7px;
+  }
+
+  .auth-page .auth-input {
+    min-height: 52px;
+    padding: 0 14px;
+    gap: 12px;
+  }
+
+  .auth-page .embedded-field .auth-input {
+    min-height: 56px;
+  }
+
+  .auth-page .auth-input > svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .auth-page .auth-input-content > input {
+    font-size: 15px;
+    padding: 12px 0;
+  }
+
+  .auth-page .auth-input-content > label {
+    font-size: 13px;
+    margin-top: 7px;
+  }
+
+  .auth-page .embedded-field .auth-input-content > input {
+    font-size: 14px;
+    padding: 1px 0 7px;
+  }
+
+  .auth-page .terms-check,
+  .auth-page .login-options {
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  .auth-page .terms-check {
+    margin: 2px 0 16px;
+  }
+
+  .auth-page .terms-check input,
+  .auth-page .login-options input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .auth-page .login-options {
+    margin: 18px 0;
+  }
+
+  .auth-page .auth-submit {
+    min-height: 48px;
+    font-size: 17px;
+    padding: 11px 20px;
+  }
+
+  .auth-page .auth-switch {
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+    margin-top: 18px;
+  }
+
+  .auth-page .auth-divider {
+    font-size: 14px;
+    margin: 20px 0;
+  }
+
+  .auth-page .login-switch {
+    margin-top: 0;
+  }
+}
+
+/* Short laptop windows (including a docked DevTools panel) still show the
+   complete initial form; extra validation messages can scroll naturally. */
+@media (min-width: 768px) and (max-height: 660px) {
+  .auth-page .auth-form-panel { padding-top: 8px; padding-bottom: 8px; }
+  .auth-page .auth-heading { margin-bottom: 8px; }
+  .auth-page .auth-heading h1 { font-size: 28px; margin-bottom: 2px; }
+  .auth-page .auth-heading h2 { font-size: 20px; margin-bottom: 6px; }
+  .auth-page .auth-heading p { font-size: 14px; }
+  .auth-page .auth-field { margin-bottom: 8px; }
+  .auth-page .auth-input,
+  .auth-page .embedded-field .auth-input { min-height: 48px; }
+  .auth-page .auth-input-content > label { font-size: 12px; margin-top: 5px; }
+  .auth-page .embedded-field .auth-input-content > input { padding: 0 0 5px; }
+  .auth-page .auth-field small { margin-top: 4px; }
+  .auth-page .terms-check { font-size: 12px; margin: 0 0 8px; }
+  .auth-page .login-options { margin: 12px 0; }
+  .auth-page .auth-submit { min-height: 44px; font-size: 16px; margin-top: 0; padding-top: 10px; padding-bottom: 10px; }
+  .auth-page .auth-switch { font-size: 12px; margin-top: 12px; }
+  .auth-page .auth-divider { margin: 14px 0; }
+  .auth-page .login-switch { margin-top: 0; }
+}
+
+/* Fit the layered brand into the existing header's content height. These
+   dimensions describe the composition, never the proportions of its assets. */
+.site-header .brand .brand-mark {
+  width: 112px;
+  height: 56px;
+}
+
+.site-header.auth-header .brand .brand-mark {
+  width: 124px;
+  height: 64px;
+}
+
+.site-header .brand .brand-mark .brand-vehicles {
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
+@media (min-width: 941px) and (max-width: 1200px) {
+  .site-header:not(.auth-header) .brand .brand-mark { width: 104px; height: 54px; }
+}
+
+@media (min-width: 768px) and (max-width: 940px) {
+  .site-header:not(.auth-header) .brand .brand-mark { width: 94px; height: 48px; }
+}
+
+@media (max-width: 767px) {
+  .site-header .brand .brand-mark,
+  .site-header.auth-header .brand .brand-mark { width: 108px; height: 56px; }
+}
+
+@media (max-width: 375px) {
+  .site-header .brand .brand-mark,
+  .site-header.auth-header .brand .brand-mark { width: 96px; height: 50px; }
+}
+
+@media (max-width: 350px) {
+  .site-header .brand .brand-mark,
+  .site-header.auth-header .brand .brand-mark { width: 86px; height: 48px; }
+}
