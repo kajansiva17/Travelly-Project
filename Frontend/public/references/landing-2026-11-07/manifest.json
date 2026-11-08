@@ -1,0 +1,32 @@
+[
+  {
+    "page": "home",
+    "source_filename": "Refined Coastal Travel Vehicle Lineup.png",
+    "reference": "home-reference.png",
+    "sha256": "79644ffa61ea662dc87a9f92a305cca1179c5c9fb5bddb19daadaa0d1868df06",
+    "dimensions": [
+      948,
+      1659
+    ]
+  },
+  {
+    "page": "driver",
+    "source_filename": "Travelly driver landing page in Sri Lanka.png",
+    "reference": "driver-reference.png",
+    "sha256": "733256156c5d3fa59528c6478a024e630be76dac8f2b0a3ce73925fec97086ae",
+    "dimensions": [
+      948,
+      1659
+    ]
+  },
+  {
+    "page": "owner",
+    "source_filename": "Travelly scheduled tickets landing page.png",
+    "reference": "owner-reference.png",
+    "sha256": "28e514e3d0a56804c92ebfd48c8d985e226a891c3b5417805f59823e83e5c833",
+    "dimensions": [
+      948,
+      1659
+    ]
+  }
+]

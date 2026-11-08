@@ -33,6 +33,7 @@ test('real API: validation, capture, verification, login, recovery and new-passw
   await expect(page.locator('#password-error')).toContainText('whitespace')
   await page.getByLabel('Email address', { exact: true }).fill(`  ${email.toUpperCase()}  `)
   await page.getByLabel('Password', { exact: true }).fill('BrowserTravelly1!')
+  if(await page.getByLabel('Confirm password',{exact:true}).isVisible())await page.getByLabel('Confirm password',{exact:true}).fill('BrowserTravelly1!')
   await page.screenshot({ path: info.outputPath('register.png'), fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
@@ -75,7 +76,9 @@ test('legacy account keeps old password login and gets verification path', async
 
 test('login layout, Google configuration fallback and expired-link guidance', async ({ page }, info) => {
   await page.goto('/login')
-  await expect(page.getByText('Google sign-in is not configured yet.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeDisabled()
+  await expect(page.getByText('Google sign-in will be available soon.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Retry Google sign-in' })).toHaveCount(0)
   await page.screenshot({ path: info.outputPath('login.png'), fullPage: true })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.goto('/verify-email#token=' + 'x'.repeat(43))

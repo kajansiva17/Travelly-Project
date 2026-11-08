@@ -1,0 +1,486 @@
+[
+  {
+    "asset": "logo-standard.png",
+    "reference": "home",
+    "crop": [
+      43,
+      10,
+      240,
+      53
+    ],
+    "kind": "supplied logo artwork crop"
+  },
+  {
+    "asset": "logo-driver.png",
+    "reference": "driver",
+    "crop": [
+      43,
+      9,
+      228,
+      52
+    ],
+    "kind": "supplied logo artwork crop"
+  },
+  {
+    "asset": "home-hire.png",
+    "reference": "home",
+    "crop": [
+      37,
+      577,
+      320,
+      721
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-tickets.png",
+    "reference": "home",
+    "crop": [
+      335,
+      577,
+      614,
+      721
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-rentals.png",
+    "reference": "home",
+    "crop": [
+      629,
+      577,
+      913,
+      721
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-airport.png",
+    "reference": "home",
+    "crop": [
+      38,
+      862,
+      248,
+      973
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-local.png",
+    "reference": "home",
+    "crop": [
+      263,
+      862,
+      470,
+      973
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-long-distance.png",
+    "reference": "home",
+    "crop": [
+      484,
+      862,
+      691,
+      973
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-multi-day.png",
+    "reference": "home",
+    "crop": [
+      706,
+      862,
+      913,
+      973
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-assignments.png",
+    "reference": "driver",
+    "crop": [
+      40,
+      476,
+      228,
+      592
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-routes.png",
+    "reference": "driver",
+    "crop": [
+      483,
+      476,
+      681,
+      592
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-expenses.png",
+    "reference": "driver",
+    "crop": [
+      40,
+      609,
+      227,
+      725
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-payments.png",
+    "reference": "driver",
+    "crop": [
+      483,
+      609,
+      681,
+      725
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-before.png",
+    "reference": "driver",
+    "crop": [
+      40,
+      803,
+      319,
+      934
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-during.png",
+    "reference": "driver",
+    "crop": [
+      335,
+      803,
+      614,
+      934
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-after.png",
+    "reference": "driver",
+    "crop": [
+      630,
+      803,
+      909,
+      934
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-vehicles.png",
+    "reference": "owner",
+    "crop": [
+      38,
+      452,
+      246,
+      583
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-bookings.png",
+    "reference": "owner",
+    "crop": [
+      262,
+      452,
+      468,
+      583
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-drivers.png",
+    "reference": "owner",
+    "crop": [
+      483,
+      452,
+      689,
+      583
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-maintenance.png",
+    "reference": "owner",
+    "crop": [
+      705,
+      452,
+      912,
+      583
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hire.png",
+    "reference": "owner",
+    "crop": [
+      38,
+      739,
+      319,
+      870
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-tickets.png",
+    "reference": "owner",
+    "crop": [
+      335,
+      739,
+      614,
+      870
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-rentals.png",
+    "reference": "owner",
+    "crop": [
+      630,
+      739,
+      911,
+      870
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-hero-region-0.png",
+    "reference": "home",
+    "crop": [
+      520,
+      60,
+      948,
+      374
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-hero-region-1.png",
+    "reference": "home",
+    "crop": [
+      430,
+      211,
+      948,
+      258
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-hero-region-2.png",
+    "reference": "home",
+    "crop": [
+      376,
+      258,
+      948,
+      374
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-hero-region-3.png",
+    "reference": "home",
+    "crop": [
+      0,
+      292,
+      376,
+      374
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-hero-region-4.png",
+    "reference": "home",
+    "crop": [
+      0,
+      60,
+      520,
+      88
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-garden-left.png",
+    "reference": "home",
+    "crop": [
+      0,
+      1240,
+      82,
+      1603
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "home-garden-right.png",
+    "reference": "home",
+    "crop": [
+      868,
+      1240,
+      948,
+      1603
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-hero-region-0.png",
+    "reference": "driver",
+    "crop": [
+      445,
+      60,
+      948,
+      425
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-hero-region-1.png",
+    "reference": "driver",
+    "crop": [
+      0,
+      345,
+      445,
+      425
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-hero-region-2.png",
+    "reference": "driver",
+    "crop": [
+      0,
+      60,
+      44,
+      345
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-hero-region-3.png",
+    "reference": "driver",
+    "crop": [
+      44,
+      60,
+      445,
+      89
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-garden-left.png",
+    "reference": "driver",
+    "crop": [
+      0,
+      1240,
+      82,
+      1603
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "driver-garden-right.png",
+    "reference": "driver",
+    "crop": [
+      868,
+      1240,
+      948,
+      1603
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-0.png",
+    "reference": "owner",
+    "crop": [
+      425,
+      60,
+      948,
+      319
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-1.png",
+    "reference": "owner",
+    "crop": [
+      475,
+      319,
+      948,
+      392
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-2.png",
+    "reference": "owner",
+    "crop": [
+      0,
+      344,
+      475,
+      392
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-3.png",
+    "reference": "owner",
+    "crop": [
+      349,
+      177,
+      425,
+      272
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-4.png",
+    "reference": "owner",
+    "crop": [
+      404,
+      272,
+      425,
+      319
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-hero-region-5.png",
+    "reference": "owner",
+    "crop": [
+      0,
+      60,
+      425,
+      89
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-garden-left.png",
+    "reference": "owner",
+    "crop": [
+      0,
+      1240,
+      82,
+      1603
+    ],
+    "kind": "clean photo crop"
+  },
+  {
+    "asset": "owner-garden-right.png",
+    "reference": "owner",
+    "crop": [
+      868,
+      1240,
+      948,
+      1603
+    ],
+    "kind": "clean photo crop"
+  }
+]

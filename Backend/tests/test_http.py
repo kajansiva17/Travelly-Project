@@ -1,9 +1,9 @@
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from app.config import get_settings
+from app.core.config import get_settings
 from app.main import create_app
-from app.sessions import SessionStore
+from app.core.sessions import SessionStore
 
 
 @pytest.fixture

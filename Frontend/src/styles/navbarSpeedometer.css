@@ -1,0 +1,89 @@
+.site-header .brand.travelly-brand .brand-mark {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 171;
+  /* Preserve the supplied navy pixels while separating them from dark glass. */
+  filter: drop-shadow(0 0 .65px #ffffffef) drop-shadow(0 0 2px #e7f4ffb8);
+}
+
+.site-header .brand.travelly-brand .brand-wordmark-art {
+  position: absolute;
+  left: 32%;
+  top: 0;
+  z-index: 1;
+  display: block;
+  width: 68%;
+  height: 100%;
+  max-height: 54px;
+  object-fit: contain;
+  object-position: left center;
+  clip-path: none;
+}
+
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 0;
+  display: block;
+  width: 36%;
+  height: auto;
+  aspect-ratio: 1774 / 887;
+  overflow: visible;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer-dial {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle {
+  position: absolute;
+  z-index: 1;
+  top: 43.60%;
+  left: 32.22%;
+  display: block;
+  width: 46.9%;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  transform-box: border-box;
+  /* Source hub is (560.5, 774) in the 1536 x 1024 needle artwork. */
+  transform-origin: 36.4908854167% 75.5859375%;
+  transform: rotate(-132deg);
+  animation: none;
+}
+
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-hub {
+  position: absolute;
+  z-index: 2;
+  left: 49.3236%;
+  top: 90.8681%;
+  display: block;
+  /* Keep the original silver/red center cap stationary above the needle. */
+  width: 7.6334635417%;
+  height: auto;
+  aspect-ratio: 1;
+  overflow: hidden;
+  clip-path: circle(50%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle {
+    animation: none;
+    transform: rotate(-132deg) !important;
+  }
+}

@@ -1,10 +1,59 @@
-# Travelly - Auth and Admin Application Review
+# Travelly - Auth, Admin Review and long-distance pricing
 
-Travelly's first runnable milestone uses FastAPI, SQLAlchemy, Alembic, Pydantic and PostgreSQL, with a React + Vite JavaScript/JSX frontend. The current migration creates `users`, `user_roles`, `vehicles` and `documents`, all from the approved twenty-table design. The latter two are private-evidence dependencies, not a vehicle operations module. Alembic also maintains its infrastructure `alembic_version` record. No SQLite, booking, fleet, ticket, payment, IVR, subscription or other later-module implementation is included.
+Travelly uses FastAPI, SQLAlchemy, Alembic, Pydantic and PostgreSQL, with a React + Vite JavaScript/JSX frontend. Thirteen of the approved twenty application tables are migrated. Vehicle/Owner first delivery now adds fleet drafts/facts/evidence, bounded Admin review, photo moderation, explicit publication/retirement and optional preferred Driver. Reusable Long-distance pricing, Passenger acceptance and booking/assignment safeguards are preserved. Calendar/block writes, ticketing, payments and trip completion/tracking remain later. No new table is added by the fleet delivery.
 
-Current Admin Review setup, restricted writer/provisioning/recovery and deployment checks: [Backend/ADMIN_REVIEW.md](Backend/ADMIN_REVIEW.md). The dated validation notes below describe the earlier Auth baseline; the current application-table inventory is four.
+Current Admin Review setup, restricted writer/provisioning/recovery and deployment checks: [Backend/ADMIN_REVIEW.md](Backend/ADMIN_REVIEW.md). Pricing contract, setup and validation: [27 October pricing report](docs/validation/long-distance-pricing-2026-10-27.md). The dated validation notes below describe the earlier Auth baseline.
 
 Current authentication rules and endpoints: [Auth extension contract](docs/03-API/03E-TRAVELLY-AUTH-EXTENSION.md). Provider setup, migration details and current test results: [26 October auth validation](docs/validation/auth-update-2026-10-26.md).
+
+## Project layout
+
+```text
+Travelly/
+├── Backend/
+│   ├── app/
+│   │   ├── api/routers/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── dependencies/
+│   │   └── main.py
+│   ├── tests/
+│   └── scripts/
+├── Frontend/
+│   ├── public/images/travelly/
+│   │   ├── branding/
+│   │   ├── heroes/
+│   │   ├── vehicles/
+│   │   ├── icons/
+│   │   └── destinations/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── passenger/
+│   │   │   ├── owner/
+│   │   │   ├── driver/
+│   │   │   ├── admin/
+│   │   │   └── booking/
+│   │   ├── services/
+│   │   ├── context/
+│   │   ├── hooks/
+│   │   ├── routes/
+│   │   ├── styles/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── tests/
+├── docs/
+└── README.md
+```
+
+Configuration, migrations, fonts, additional existing image categories and local tools remain alongside these directories. API entry point remains `app.main:app`. Operator commands now use `app.services.review_operator` and `app.services.review_writer`. Shared Owner/Driver/Admin dashboards remain in `Frontend/src/components/RoleDashboards.jsx`; dedicated Driver features belong in `features/driver`. Asset metadata is in `Frontend/src/assets/travelly`.
+
+See the [folder reorganization report](docs/validation/folder-structure-2026-11-05.md) for file moves and validation.
 
 ## Requirements
 
@@ -12,7 +61,7 @@ Current authentication rules and endpoints: [Auth extension contract](docs/03-AP
 - PostgreSQL 16, database **travelly_dev**, application role **travelly_app**. Configuration rejects another database/user or SQLite.
 - Redis 7+ for persistent session/revocation/rotation/rate-limit infrastructure. No session application table or in-memory production fallback.
 
-The database owner must grant travelly_app CONNECT and CREATE on travelly_dev and USAGE/CREATE on the public schema. CITEXT is a trusted extension; an administrator can preinstall it with `CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public` if application extension creation is restricted. Do not give the application superuser privileges. No PostgreSQL administrator credentials belong in application configuration.
+The database owner must grant travelly_app CONNECT and CREATE on travelly_dev and USAGE/CREATE on the public schema. CITEXT is a trusted extension; an administrator can preinstall it with `CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public` if application extension creation is restricted. PostGIS must also be installed by the database administrator for the planned route geometry types before migration 0006. Do not give the application superuser privileges. No PostgreSQL administrator credentials belong in application configuration.
 
 ## Local setup (PowerShell, from D:\Travelly)
 
@@ -37,6 +86,14 @@ This workspace's Windows development Redis, when downloaded, is under ignored `.
 ```powershell
 & .\.tools\redis\Redis-8.10.2-Windows-x64-cygwin\redis-server.exe /cygdrive/d/Travelly/.tools/redis-dev.conf --dir /cygdrive/d/Travelly/.tools/redis-data
 ```
+
+For a hidden background start with a readiness check, run this from a normal PowerShell terminal at the project root before using login:
+
+```powershell
+.\.venv\Scripts\python.exe Backend\scripts\start_local_redis.py
+```
+
+The helper uses the existing configuration and persistent data, and does nothing if Redis is already ready. If login shows **The service is temporarily unavailable**, check Redis as well as the API and PostgreSQL. Authentication deliberately returns `503 AUTH_DEPENDENCY_UNAVAILABLE` when its session/rate-limit store is unavailable. `GOOGLE_NOT_CONFIGURED` is a separate provider setup state; password login remains available once dependencies are healthy.
 
 If the local PostgreSQL log reports `Role "travelly_app" does not exist`, run this once in your own terminal:
 
@@ -81,7 +138,23 @@ Contact verification is independent from Passenger membership. New password acco
 
 Access JWTs last at most 15 minutes; refresh JWTs use a different signing secret and audience, are accepted only by refresh/logout, and retain a seven-day absolute session lifetime. Only SHA256 refresh digests/session identifiers are stored in Redis. Redis atomically compares/replaces the current digest; stale signed refresh reuse revokes that sid. Database account/role state and authentication version are checked on protected reads, not trusted from JWT role claims. Logout invalidates that sid's access/refresh credentials. Verified-email password recovery uses single-use, expiring links and revokes all previous sessions without changing Google identity or roles. Client refresh requests are serialized. Tokens live only in browser memory: reloading/closing the page requires sign-in again. Remember me stores only the identifier.
 
-The frontend now follows the supplied Passenger, Owner, Driver, Register and Login visual blueprints in Frontend/design-reference. It uses the supplied public/images assets intact, a cream/deep-burgundy/warm-neutral palette, responsive React layouts and the existing account/role-application integration. These are public informational pages; no later-module backend was added. See Frontend/README.md for routes, asset handling and the 25 October frontend verification results.
+The frontend uses the scenic navy/royal-blue and coral theme across public pages, authentication, role dashboards and operational forms. Responsive production artwork is served from `Frontend/public/images/travelly`; reference mockups are excluded. See [Frontend setup and routes](Frontend/README.md) and the [30 October redesign report](docs/validation/visual-redesign-2026-10-30.md) for current behavior and verification.
+
+## Long-distance pricing setup
+
+The [owner addendum audit](docs/validation/pricing-addendum-audit-2026-10-27.md) records fixed-first one-way pricing, explicit departure applicability and departure-change consent. An Admin must explicitly set `service_types.settings.pricing_scope` to LONG_DISTANCE through service creation or the versioned pricing-scope endpoint; no existing catalogue is classified by its name. Local/Airport/Event numeric pricing and Local actual-waiting/comparison remain future scope.
+
+Run migrations through `0006_private_hire_pricing`. Existing Auth accounts are retained. Configure server-only `ROUTING_API_KEY` for openrouteservice geocoding/directions; `.env.example` contains an empty placeholder, and this task does not change an existing `.env`. Missing routing or incomplete coverage yields an honest unavailable/quote state, never a fabricated fare. Directions/geocoding must be verified with the deployment's actual provider account before rollout.
+
+Use the existing restricted Admin setup, then configure an active PRIVATE_HIRE catalogue entry and reviewed licence compatibility/routing profiles through [03F](docs/03-API/03F-TRAVELLY-REUSABLE-RATE-CONTRACT.md). Each actual vehicle needs approved current registration, insurance, revenue licence, case-specific authorization and reviewed conditional evidence/category. The approved Owner needs verified email and explicitly publishes with an approved exterior photo. No live sample vehicles/rates/exemptions/matrix are inserted. Fleet onboarding uses `/owner/vehicles`; Admin uses `/admin/vehicles`, under [03G](docs/03-API/03G-TRAVELLY-VEHICLE-OWNER-CONTRACT.md).
+
+## Vehicle media and review setup
+
+Configure `VEHICLE_PHOTO_ROOT` as a separate external directory (not this repository, a webroot, or nested in the private document/journal roots). Run the existing restricted `python -m app.services.review_operator init` to provision its ACLs along with existing infrastructure; repeated initialization does not replace integrity keys/journal. Restart writer and API together so the bounded vehicle-feedback RPC is available. Never grant the web identity general journal/key access. Photos are normalized JPEG derivatives and served through current vehicle/photo eligibility checks, not a static mount.
+
+Current delivery and exact tests: [Vehicle validation report](docs/validation/vehicle-owner-first-delivery-2026-10-27.md). The owner approved separate Admin description moderation: ordinary edits retain vehicle verification, and only approved text is public. Vehicle availability calendars were delivered on 28 October under [contract 09](docs/04-MODULE-CONTRACTS/09-VEHICLE-AVAILABILITY-CALENDAR.md); no hard-delete/self-transfer endpoint exists. Production identity separation, storage monitoring/retained-orphan maintenance and backup/restore checks remain required in Backend/ADMIN_REVIEW.md.
+
+Owners open `/owner/rates`; Passengers use `/hire` and `/bookings`. Quotes use the same structured rate form, saving route-specific reusable rules. Future matches calculate their own totals; accepted bookings preserve agreed price/rules despite later rate edits. Notifications in this slice are in-app. Cancellation of funded/confirmed/protected journeys requires the separate approved financial workflow.
 
 ## Verification
 
@@ -107,4 +180,8 @@ The earlier connection blocker was a missing PostgreSQL travelly_app login; prov
 
 The configured database already contains PostGIS's extension-owned spatial_ref_sys table. It is infrastructure, not a Travelly application table. Alembic compares the application schema while excluding tables PostgreSQL identifies as extension-owned, so it does not propose dropping shared extension infrastructure. The final catalogue check confirms exactly users/user_roles as application tables, plus Alembic metadata and that pre-existing PostGIS table. The backend test suite has one non-failing upstream TestClient/httpx deprecation warning.
 
-Source authority: docs/00-READ-FIRST/00-TRAVELLY-BACKEND-BUILD-READINESS.md, 01-TRAVELLY-NBP-FINAL-DECISIONS.md and 02-TRAVELLY-AUTH-MILESTONE-CONTRACT.md. The 24 October 2026 implementation amendment records the user's explicit JWT-refresh and role-application scope update; source PDFs remain unchanged. The other eighteen application tables are not migrated.
+Source authority for that historical baseline: docs/00-READ-FIRST/00-TRAVELLY-BACKEND-BUILD-READINESS.md, 01-TRAVELLY-NBP-FINAL-DECISIONS.md and 02-TRAVELLY-AUTH-MILESTONE-CONTRACT.md. The 24 October 2026 amendment records the user's explicit JWT-refresh and role-application scope update; source PDFs remain unchanged. At that milestone the other eighteen application tables were not migrated; the current inventory and pricing report are linked above.
+
+## Vehicle Availability Calendar ? 28 October 2026
+
+Approved VM-D14/D15 is implemented using existing vehicle_records and shared VM-D13 occupancy checks. See [contract 09](docs/04-MODULE-CONTRACTS/09-VEHICLE-AVAILABILITY-CALENDAR.md), [delivery verification](docs/validation/vehicle-availability-calendar-2026-10-28.md) and the [outstanding deployment checklist](docs/validation/outstanding-deployment-checklist.md). No new migration/table; migration head remains 0006. Prior Vehicle/Owner, Auth and Account/Profile work remains intact.

@@ -1,0 +1,242 @@
+[
+  {
+    "file": "driver/card-after-trip.png",
+    "zip_entry": "travelly-assets/driver/card-after-trip.png",
+    "sha256": "317c84a00c4d4842becb2836de9693deb295803988da1151d58a0d8b88b70f87"
+  },
+  {
+    "file": "driver/card-assigned-trips.png",
+    "zip_entry": "travelly-assets/driver/card-assigned-trips.png",
+    "sha256": "9ffe0a9a88a892e675bc18527aba1001fa160e2e4d3b3fa498787821c3d40c1c"
+  },
+  {
+    "file": "driver/card-before-pickup.png",
+    "zip_entry": "travelly-assets/driver/card-before-pickup.png",
+    "sha256": "6553bff36075d1640a09bcd7ec4856b94c41dd2b7a4b00dc56e3444c8c572577"
+  },
+  {
+    "file": "driver/card-during-trip.png",
+    "zip_entry": "travelly-assets/driver/card-during-trip.png",
+    "sha256": "5bc4f0b94b50e22ffeb8b66e6b52f80a1379be1487f63dabec0d95304b891a5b"
+  },
+  {
+    "file": "driver/card-payment-records.png",
+    "zip_entry": "travelly-assets/driver/card-payment-records.png",
+    "sha256": "04b15aa55d2950a7f07f6a370a5c3e544f039f2fca44f57b779619da765bb7bc"
+  },
+  {
+    "file": "driver/card-trip-expenses.png",
+    "zip_entry": "travelly-assets/driver/card-trip-expenses.png",
+    "sha256": "50d3817f5fc2b4fa1d6983664326c8b5e8b614c19a7e64f94df99ce8324b28bd"
+  },
+  {
+    "file": "driver/card-trip-routes.png",
+    "zip_entry": "travelly-assets/driver/card-trip-routes.png",
+    "sha256": "3b562faf829a63acef1acd0690362a0155ba7cc996a47f3c5f0cf6b28c23cc5c"
+  },
+  {
+    "file": "driver/hero-tea-country-driver.png",
+    "zip_entry": "travelly-assets/driver/hero-tea-country-driver.png",
+    "sha256": "c6eb293cbf9d58b110c91fe8bf4c7752feab9de98fd6d79d33ede4980d0f84f8"
+  },
+  {
+    "file": "driver/responsive/card-after-trip-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-after-trip-768w.png",
+    "sha256": "dda39677bae52b97e2cb57ccec9bfb85c5aeda1a06da5109588476bfd0307d8f"
+  },
+  {
+    "file": "driver/responsive/card-assigned-trips-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-assigned-trips-768w.png",
+    "sha256": "35ca96305ecab8d64555e5baeeb5888a3d09bff20d975d32b034a6fc122a3785"
+  },
+  {
+    "file": "driver/responsive/card-before-pickup-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-before-pickup-768w.png",
+    "sha256": "65285d4ebe2e70df9343fae45f8347b9ea669adc5adca97e85db4104e0ce5547"
+  },
+  {
+    "file": "driver/responsive/card-during-trip-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-during-trip-768w.png",
+    "sha256": "3694a542f0df9ceb51fb0ebdd0c845f6f3091014bb3c8fffbb64df3a3efc06fb"
+  },
+  {
+    "file": "driver/responsive/card-payment-records-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-payment-records-768w.png",
+    "sha256": "06971232004254cfdd7cc66d72845543a7e3d501d36b77ceb1c4e81a2fc5cb28"
+  },
+  {
+    "file": "driver/responsive/card-trip-expenses-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-trip-expenses-768w.png",
+    "sha256": "bedf0b153d705244602c2388335cf8e8368a2f7f0cf40694aab178e66fae0821"
+  },
+  {
+    "file": "driver/responsive/card-trip-routes-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/card-trip-routes-768w.png",
+    "sha256": "a1dcf9f7b20a55e5c378a0c66c59424b471a4485d29646491380be9c54ab7b59"
+  },
+  {
+    "file": "driver/responsive/hero-tea-country-driver-768w.png",
+    "zip_entry": "travelly-assets/driver/responsive/hero-tea-country-driver-768w.png",
+    "sha256": "b4083cc7e90360b2e42fc79a48d534378df3cee0d4762ec60909c72842e00176"
+  },
+  {
+    "file": "home/card-airport-pickup.png",
+    "zip_entry": "travelly-assets/home/card-airport-pickup.png",
+    "sha256": "93bef216b15f6ad5b07c34b5e6c310072c3ed5b8890b5be00f2a34760635ef92"
+  },
+  {
+    "file": "home/card-bus-van-tickets.png",
+    "zip_entry": "travelly-assets/home/card-bus-van-tickets.png",
+    "sha256": "96a74399901fe592f59bf0d9b8d2384ff9b9c6ea0350358fed54c7889121e238"
+  },
+  {
+    "file": "home/card-local-ride.png",
+    "zip_entry": "travelly-assets/home/card-local-ride.png",
+    "sha256": "c5d03a71c0d3575394435695843e7a9cff13f2e7326dfd3c213a7410f50df3b5"
+  },
+  {
+    "file": "home/card-long-distance-route.png",
+    "zip_entry": "travelly-assets/home/card-long-distance-route.png",
+    "sha256": "4db3c3fd5cb8aeb21dfe4fc9d4ce9cf8b795a5123e1cad2affd299ec92834b86"
+  },
+  {
+    "file": "home/card-multi-day-journey.png",
+    "zip_entry": "travelly-assets/home/card-multi-day-journey.png",
+    "sha256": "567b24fc96f1fbcbbeb2109232d1f142728c9a88f0cea481f29aebbf0cfc06b8"
+  },
+  {
+    "file": "home/card-rental-key-handover.png",
+    "zip_entry": "travelly-assets/home/card-rental-key-handover.png",
+    "sha256": "49393d7ac892b90b7a374247b610c0b254738003ce33479e3ee383ecd568100c"
+  },
+  {
+    "file": "home/card-vehicle-hire-family.png",
+    "zip_entry": "travelly-assets/home/card-vehicle-hire-family.png",
+    "sha256": "04127aac50c74c0568f3711ad802c0fe45624705226c73dcb6ddf661a818eb96"
+  },
+  {
+    "file": "home/hero-coastal-vehicle-lineup.png",
+    "zip_entry": "travelly-assets/home/hero-coastal-vehicle-lineup.png",
+    "sha256": "1df7495f1424b7624cc85ebaea1f6fbefe65de6f3ab879c0a1149c47368093df"
+  },
+  {
+    "file": "home/responsive/card-airport-pickup-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-airport-pickup-768w.png",
+    "sha256": "0b9315bfdbb1b8d3773a0841bc4a41bda0fc93e1772b9ab176ef1dd7ce2ff9fb"
+  },
+  {
+    "file": "home/responsive/card-bus-van-tickets-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-bus-van-tickets-768w.png",
+    "sha256": "502b7229207f0d982fce55273da780ae0fd144ccd4124c177e866e1f4fd893ad"
+  },
+  {
+    "file": "home/responsive/card-local-ride-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-local-ride-768w.png",
+    "sha256": "1967bf5ac63e447a7f003935aa8d016021ed75f49fa6593e62fc8c9320132457"
+  },
+  {
+    "file": "home/responsive/card-long-distance-route-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-long-distance-route-768w.png",
+    "sha256": "bb2279397a7501e3ce37470eec0b7316f1711ae4e3ddb6832b3c5be3ba2c2e57"
+  },
+  {
+    "file": "home/responsive/card-multi-day-journey-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-multi-day-journey-768w.png",
+    "sha256": "6aa901c436f4df6b7c6a738273738bcef64530c0e305de8ce09720085884ce9d"
+  },
+  {
+    "file": "home/responsive/card-rental-key-handover-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-rental-key-handover-768w.png",
+    "sha256": "995954ecafdc7b87e45e483b3dc816e09c1363adfce8e37f669b0f1489c25835"
+  },
+  {
+    "file": "home/responsive/card-vehicle-hire-family-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/card-vehicle-hire-family-768w.png",
+    "sha256": "154960aa9989d4e1159bc307be528975a7ca27ce6191dc20f7169bb20376de28"
+  },
+  {
+    "file": "home/responsive/hero-coastal-vehicle-lineup-768w.png",
+    "zip_entry": "travelly-assets/home/responsive/hero-coastal-vehicle-lineup-768w.png",
+    "sha256": "fe11c531bd626a1575ab783e46527c85ea0c96f87ab5d7e3c8281b7c18c08c58"
+  },
+  {
+    "file": "owner/card-assign-drivers.png",
+    "zip_entry": "travelly-assets/owner/card-assign-drivers.png",
+    "sha256": "d2147c257dde8481e61b5ef7786f6b6c6715dc7a55431fbabbc551a0965ccf10"
+  },
+  {
+    "file": "owner/card-list-vehicles.png",
+    "zip_entry": "travelly-assets/owner/card-list-vehicles.png",
+    "sha256": "a21ef016ad2d88d5e43619285acd50ca9495796da7b3e1c6fbdcea6d3e227ad9"
+  },
+  {
+    "file": "owner/card-manage-bookings.png",
+    "zip_entry": "travelly-assets/owner/card-manage-bookings.png",
+    "sha256": "dbb3027042a3bb4f3361875a61b89197e70e6a2a1ff417864739448875a9c981"
+  },
+  {
+    "file": "owner/card-rental-van.png",
+    "zip_entry": "travelly-assets/owner/card-rental-van.png",
+    "sha256": "62cb1f10b594802640789f5bb2ef457aaf8f888d503b801b200ddc4876e852f0"
+  },
+  {
+    "file": "owner/card-scheduled-tickets-interior.png",
+    "zip_entry": "travelly-assets/owner/card-scheduled-tickets-interior.png",
+    "sha256": "45f91d954679d581b6698ec8354bd1aa1a58dc240915fcfb140129c248a10029"
+  },
+  {
+    "file": "owner/card-track-maintenance.png",
+    "zip_entry": "travelly-assets/owner/card-track-maintenance.png",
+    "sha256": "e32849f40539f0cfb29f68a661bdc4560ae7749a2d01f9d3140731961c248bcc"
+  },
+  {
+    "file": "owner/card-vehicle-hire-bus.png",
+    "zip_entry": "travelly-assets/owner/card-vehicle-hire-bus.png",
+    "sha256": "3a428ca1fc53e40feb5c27174b7c1d0f400004fc64f35a3f4251d79cfd55abcc"
+  },
+  {
+    "file": "owner/hero-fleet-depot.png",
+    "zip_entry": "travelly-assets/owner/hero-fleet-depot.png",
+    "sha256": "fd81b8d038f4a3b550dff41e81c2258ba132620b7b598f6a905de3001e858315"
+  },
+  {
+    "file": "owner/responsive/card-assign-drivers-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-assign-drivers-768w.png",
+    "sha256": "e89a7b1badfcac912f98ecf9501c5a87972ba552d6bd4909760d9b7668ddbe9c"
+  },
+  {
+    "file": "owner/responsive/card-list-vehicles-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-list-vehicles-768w.png",
+    "sha256": "6aa9cbec4d4633ad12ddde7687dcb83c4f53a4a608598214c0d87d125bb514d0"
+  },
+  {
+    "file": "owner/responsive/card-manage-bookings-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-manage-bookings-768w.png",
+    "sha256": "c86ab681f5fec697beb62c6dff18fd68a545085b6a1f37f96800d85cae458c35"
+  },
+  {
+    "file": "owner/responsive/card-rental-van-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-rental-van-768w.png",
+    "sha256": "d7270d64d1e2d108a386d2c67570ce4396184ba746488c50446a19c88ad2c3b0"
+  },
+  {
+    "file": "owner/responsive/card-scheduled-tickets-interior-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-scheduled-tickets-interior-768w.png",
+    "sha256": "4f17c1ed774527ddf4d6804cc07d23671c2d240cd06a189904b227c12003397a"
+  },
+  {
+    "file": "owner/responsive/card-track-maintenance-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-track-maintenance-768w.png",
+    "sha256": "183b5ba970657e794854b52b10eead39f689614c84773eed0a3845f3ef64cda7"
+  },
+  {
+    "file": "owner/responsive/card-vehicle-hire-bus-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/card-vehicle-hire-bus-768w.png",
+    "sha256": "ec330e41e8ee628f39dcb1efb13dad2141f16e3981f795e4f936043e8a6816bc"
+  },
+  {
+    "file": "owner/responsive/hero-fleet-depot-768w.png",
+    "zip_entry": "travelly-assets/owner/responsive/hero-fleet-depot-768w.png",
+    "sha256": "9fac6af53f8249890f85def51e331ee07577f80f1a31a19813d78698647a7862"
+  }
+]

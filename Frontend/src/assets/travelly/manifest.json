@@ -1,0 +1,530 @@
+{
+  "branding/shared-logo.png": [
+    {
+      "src": "/images/travelly/branding/shared-logo-480.webp",
+      "width": 480,
+      "height": 86,
+      "bytes": 20804
+    },
+    {
+      "src": "/images/travelly/branding/shared-logo-960.webp",
+      "width": 960,
+      "height": 171,
+      "bytes": 53024
+    }
+  ],
+  "destinations/destination-ella.png": [
+    {
+      "src": "/images/travelly/destinations/destination-ella-480.webp",
+      "width": 480,
+      "height": 320,
+      "bytes": 67900
+    },
+    {
+      "src": "/images/travelly/destinations/destination-ella-960.webp",
+      "width": 960,
+      "height": 640,
+      "bytes": 235486
+    }
+  ],
+  "destinations/destination-galle.png": [
+    {
+      "src": "/images/travelly/destinations/destination-galle-480.webp",
+      "width": 480,
+      "height": 320,
+      "bytes": 49808
+    },
+    {
+      "src": "/images/travelly/destinations/destination-galle-960.webp",
+      "width": 960,
+      "height": 640,
+      "bytes": 176714
+    }
+  ],
+  "destinations/destination-kandy.png": [
+    {
+      "src": "/images/travelly/destinations/destination-kandy-480.webp",
+      "width": 480,
+      "height": 320,
+      "bytes": 42724
+    },
+    {
+      "src": "/images/travelly/destinations/destination-kandy-960.webp",
+      "width": 960,
+      "height": 640,
+      "bytes": 137744
+    }
+  ],
+  "heroes/cta-landscape.png": [
+    {
+      "src": "/images/travelly/heroes/cta-landscape-768.webp",
+      "width": 768,
+      "height": 256,
+      "bytes": 34880
+    },
+    {
+      "src": "/images/travelly/heroes/cta-landscape-1280.webp",
+      "width": 1280,
+      "height": 427,
+      "bytes": 80998
+    },
+    {
+      "src": "/images/travelly/heroes/cta-landscape-1920.webp",
+      "width": 1920,
+      "height": 640,
+      "bytes": 145378
+    }
+  ],
+  "heroes/driver-hero.png": [
+    {
+      "src": "/images/travelly/heroes/driver-hero-768.webp",
+      "width": 768,
+      "height": 432,
+      "bytes": 79728
+    },
+    {
+      "src": "/images/travelly/heroes/driver-hero-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 168188
+    },
+    {
+      "src": "/images/travelly/heroes/driver-hero-1920.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 242944
+    }
+  ],
+  "heroes/owner-hero.png": [
+    {
+      "src": "/images/travelly/heroes/owner-hero-768.webp",
+      "width": 768,
+      "height": 432,
+      "bytes": 93636
+    },
+    {
+      "src": "/images/travelly/heroes/owner-hero-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 221112
+    },
+    {
+      "src": "/images/travelly/heroes/owner-hero-1920.webp",
+      "width": 1672,
+      "height": 941,
+      "bytes": 327256
+    }
+  ],
+  "heroes/passenger-hero.png": [
+    {
+      "src": "/images/travelly/heroes/passenger-hero-768.webp",
+      "width": 768,
+      "height": 432,
+      "bytes": 95654
+    },
+    {
+      "src": "/images/travelly/heroes/passenger-hero-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 222662
+    },
+    {
+      "src": "/images/travelly/heroes/passenger-hero-1920.webp",
+      "width": 1672,
+      "height": 940,
+      "bytes": 331020
+    }
+  ],
+  "icons/approved-driver.png": [
+    {
+      "src": "/images/travelly/icons/approved-driver-320.webp",
+      "width": 320,
+      "height": 210,
+      "bytes": 16980
+    },
+    {
+      "src": "/images/travelly/icons/approved-driver-640.webp",
+      "width": 640,
+      "height": 420,
+      "bytes": 42466
+    }
+  ],
+  "icons/assignment-accept-decline.png": [
+    {
+      "src": "/images/travelly/icons/assignment-accept-decline-320.webp",
+      "width": 320,
+      "height": 171,
+      "bytes": 9222
+    },
+    {
+      "src": "/images/travelly/icons/assignment-accept-decline-640.webp",
+      "width": 640,
+      "height": 341,
+      "bytes": 21380
+    }
+  ],
+  "icons/assignment-review.png": [
+    {
+      "src": "/images/travelly/icons/assignment-review-320.webp",
+      "width": 320,
+      "height": 334,
+      "bytes": 20296
+    },
+    {
+      "src": "/images/travelly/icons/assignment-review-640.webp",
+      "width": 640,
+      "height": 668,
+      "bytes": 49496
+    }
+  ],
+  "icons/assignments.png": [
+    {
+      "src": "/images/travelly/icons/assignments-320.webp",
+      "width": 320,
+      "height": 214,
+      "bytes": 15124
+    },
+    {
+      "src": "/images/travelly/icons/assignments-640.webp",
+      "width": 640,
+      "height": 428,
+      "bytes": 34032
+    }
+  ],
+  "icons/availability.png": [
+    {
+      "src": "/images/travelly/icons/availability-320.webp",
+      "width": 320,
+      "height": 285,
+      "bytes": 21892
+    },
+    {
+      "src": "/images/travelly/icons/availability-640.webp",
+      "width": 640,
+      "height": 569,
+      "bytes": 51784
+    }
+  ],
+  "icons/bookings-calendar.png": [
+    {
+      "src": "/images/travelly/icons/bookings-calendar-320.webp",
+      "width": 320,
+      "height": 208,
+      "bytes": 12904
+    },
+    {
+      "src": "/images/travelly/icons/bookings-calendar-640.webp",
+      "width": 640,
+      "height": 416,
+      "bytes": 29908
+    }
+  ],
+  "icons/documents.png": [
+    {
+      "src": "/images/travelly/icons/documents-320.webp",
+      "width": 320,
+      "height": 326,
+      "bytes": 12432
+    },
+    {
+      "src": "/images/travelly/icons/documents-640.webp",
+      "width": 640,
+      "height": 651,
+      "bytes": 30164
+    }
+  ],
+  "icons/owner-self-drive.png": [
+    {
+      "src": "/images/travelly/icons/owner-self-drive-320.webp",
+      "width": 320,
+      "height": 284,
+      "bytes": 15250
+    },
+    {
+      "src": "/images/travelly/icons/owner-self-drive-640.webp",
+      "width": 640,
+      "height": 568,
+      "bytes": 36478
+    }
+  ],
+  "icons/service-hire.png": [
+    {
+      "src": "/images/travelly/icons/service-hire-320.webp",
+      "width": 320,
+      "height": 328,
+      "bytes": 27612
+    },
+    {
+      "src": "/images/travelly/icons/service-hire-640.webp",
+      "width": 640,
+      "height": 656,
+      "bytes": 71746
+    }
+  ],
+  "icons/service-rentals.png": [
+    {
+      "src": "/images/travelly/icons/service-rentals-320.webp",
+      "width": 320,
+      "height": 218,
+      "bytes": 15210
+    },
+    {
+      "src": "/images/travelly/icons/service-rentals-640.webp",
+      "width": 640,
+      "height": 436,
+      "bytes": 37354
+    }
+  ],
+  "icons/service-tickets.png": [
+    {
+      "src": "/images/travelly/icons/service-tickets-320.webp",
+      "width": 320,
+      "height": 208,
+      "bytes": 13696
+    },
+    {
+      "src": "/images/travelly/icons/service-tickets-640.webp",
+      "width": 640,
+      "height": 416,
+      "bytes": 32280
+    }
+  ],
+  "icons/shared-check.png": [
+    {
+      "src": "/images/travelly/icons/shared-check-320.webp",
+      "width": 320,
+      "height": 315,
+      "bytes": 27296
+    },
+    {
+      "src": "/images/travelly/icons/shared-check-640.webp",
+      "width": 640,
+      "height": 631,
+      "bytes": 70924
+    }
+  ],
+  "icons/shared-document.png": [
+    {
+      "src": "/images/travelly/icons/shared-document-320.webp",
+      "width": 320,
+      "height": 346,
+      "bytes": 13858
+    },
+    {
+      "src": "/images/travelly/icons/shared-document-640.webp",
+      "width": 640,
+      "height": 691,
+      "bytes": 34798
+    }
+  ],
+  "icons/shared-edit.png": [
+    {
+      "src": "/images/travelly/icons/shared-edit-320.webp",
+      "width": 320,
+      "height": 313,
+      "bytes": 11536
+    },
+    {
+      "src": "/images/travelly/icons/shared-edit-640.webp",
+      "width": 640,
+      "height": 627,
+      "bytes": 28386
+    }
+  ],
+  "icons/shared-folder.png": [
+    {
+      "src": "/images/travelly/icons/shared-folder-320.webp",
+      "width": 320,
+      "height": 211,
+      "bytes": 9824
+    },
+    {
+      "src": "/images/travelly/icons/shared-folder-640.webp",
+      "width": 640,
+      "height": 422,
+      "bytes": 22522
+    }
+  ],
+  "icons/shared-location.png": [
+    {
+      "src": "/images/travelly/icons/shared-location-320.webp",
+      "width": 320,
+      "height": 363,
+      "bytes": 21318
+    },
+    {
+      "src": "/images/travelly/icons/shared-location-640.webp",
+      "width": 640,
+      "height": 727,
+      "bytes": 55000
+    }
+  ],
+  "icons/shared-notification.png": [
+    {
+      "src": "/images/travelly/icons/shared-notification-320.webp",
+      "width": 320,
+      "height": 329,
+      "bytes": 17576
+    },
+    {
+      "src": "/images/travelly/icons/shared-notification-640.webp",
+      "width": 640,
+      "height": 657,
+      "bytes": 41552
+    }
+  ],
+  "icons/shared-payment.png": [
+    {
+      "src": "/images/travelly/icons/shared-payment-320.webp",
+      "width": 320,
+      "height": 237,
+      "bytes": 13378
+    },
+    {
+      "src": "/images/travelly/icons/shared-payment-640.webp",
+      "width": 640,
+      "height": 475,
+      "bytes": 32290
+    }
+  ],
+  "icons/shared-profile.png": [
+    {
+      "src": "/images/travelly/icons/shared-profile-320.webp",
+      "width": 320,
+      "height": 287,
+      "bytes": 10524
+    },
+    {
+      "src": "/images/travelly/icons/shared-profile-640.webp",
+      "width": 640,
+      "height": 573,
+      "bytes": 24428
+    }
+  ],
+  "icons/shared-search.png": [
+    {
+      "src": "/images/travelly/icons/shared-search-320.webp",
+      "width": 320,
+      "height": 293,
+      "bytes": 17606
+    },
+    {
+      "src": "/images/travelly/icons/shared-search-640.webp",
+      "width": 640,
+      "height": 585,
+      "bytes": 43092
+    }
+  ],
+  "icons/shared-shield.png": [
+    {
+      "src": "/images/travelly/icons/shared-shield-320.webp",
+      "width": 320,
+      "height": 308,
+      "bytes": 18638
+    },
+    {
+      "src": "/images/travelly/icons/shared-shield-640.webp",
+      "width": 640,
+      "height": 616,
+      "bytes": 45082
+    }
+  ],
+  "icons/trip-route.png": [
+    {
+      "src": "/images/travelly/icons/trip-route-320.webp",
+      "width": 320,
+      "height": 211,
+      "bytes": 19540
+    },
+    {
+      "src": "/images/travelly/icons/trip-route-640.webp",
+      "width": 640,
+      "height": 421,
+      "bytes": 55448
+    }
+  ],
+  "illustrations/driver-workspace-preview.png": [
+    {
+      "src": "/images/travelly/illustrations/driver-workspace-preview-320.webp",
+      "width": 320,
+      "height": 160,
+      "bytes": 4718
+    },
+    {
+      "src": "/images/travelly/illustrations/driver-workspace-preview-640.webp",
+      "width": 640,
+      "height": 320,
+      "bytes": 10708
+    }
+  ],
+  "vehicles/fleet.png": [
+    {
+      "src": "/images/travelly/vehicles/fleet-400.webp",
+      "width": 400,
+      "height": 211,
+      "bytes": 25652
+    },
+    {
+      "src": "/images/travelly/vehicles/fleet-800.webp",
+      "width": 800,
+      "height": 422,
+      "bytes": 69840
+    }
+  ],
+  "vehicles/vehicle-bus.png": [
+    {
+      "src": "/images/travelly/vehicles/vehicle-bus-400.webp",
+      "width": 400,
+      "height": 212,
+      "bytes": 24294
+    },
+    {
+      "src": "/images/travelly/vehicles/vehicle-bus-800.webp",
+      "width": 800,
+      "height": 423,
+      "bytes": 65462
+    }
+  ],
+  "vehicles/vehicle-car.png": [
+    {
+      "src": "/images/travelly/vehicles/vehicle-car-400.webp",
+      "width": 400,
+      "height": 222,
+      "bytes": 21222
+    },
+    {
+      "src": "/images/travelly/vehicles/vehicle-car-800.webp",
+      "width": 800,
+      "height": 445,
+      "bytes": 55872
+    }
+  ],
+  "vehicles/vehicle-tuk-tuk.png": [
+    {
+      "src": "/images/travelly/vehicles/vehicle-tuk-tuk-400.webp",
+      "width": 400,
+      "height": 262,
+      "bytes": 25984
+    },
+    {
+      "src": "/images/travelly/vehicles/vehicle-tuk-tuk-800.webp",
+      "width": 800,
+      "height": 524,
+      "bytes": 73850
+    }
+  ],
+  "vehicles/vehicle-van.png": [
+    {
+      "src": "/images/travelly/vehicles/vehicle-van-400.webp",
+      "width": 400,
+      "height": 243,
+      "bytes": 25398
+    },
+    {
+      "src": "/images/travelly/vehicles/vehicle-van-800.webp",
+      "width": 800,
+      "height": 485,
+      "bytes": 68432
+    }
+  ]
+}

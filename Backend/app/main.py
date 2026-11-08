@@ -11,18 +11,24 @@ from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
-from .api import router
-from .config import get_settings
-from .database import make_engine, session_factory
-from .errors import ApiError
-from .sessions import SessionStore
-from .schemas import MIN_PASSWORD_LENGTH, password_requirements
-from .auth_extension import router as auth_extension_router
-from .auth_services import AuthState, Mailer, GoogleIdentity
-from .review_api import router as review_router
-from .review_audit import AuditJournal
-from .private_documents import PrivateDocuments, MAX_MULTIPART
-from .private_infrastructure import file_lock
+from app.api.routers.api import router
+from app.core.config import get_settings
+from app.dependencies.database import make_engine, session_factory
+from app.core.errors import ApiError
+from app.core.sessions import SessionStore
+from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
+from app.api.routers.auth_extension import router as auth_extension_router
+from app.services.auth_services import AuthState, Mailer, GoogleIdentity
+from app.api.routers.review_api import router as review_router
+from app.services.review_audit import AuditJournal
+from app.services.private_documents import PrivateDocuments, MAX_MULTIPART
+from app.core.private_infrastructure import file_lock
+from app.api.routers.rate_api import router as rate_router
+from app.services.rate_locations import RateLocations
+from app.api.routers.hire_api import router as hire_router
+from app.services.hire_routing import HireRouting
+from app.api.routers.vehicle_api import router as vehicle_router
+from app.services.vehicle_media import VehiclePhotos
 from starlette.concurrency import run_in_threadpool
 
 logger = logging.getLogger('travelly')
@@ -65,6 +71,7 @@ def create_app(settings=None, engine=None, store=None):
 
     app = FastAPI(title='Travelly API', version='1.0.0', lifespan=lifespan, swagger_ui_parameters={'persistAuthorization': False})
     app.state.settings = settings
+    app.state.vehicle_photos = VehiclePhotos(settings)
     app.state.engine = engine or make_engine(settings.database_url)
     app.state.sessions = session_factory(app.state.engine)
     app.state.store = store or SessionStore(settings.redis_url)
@@ -73,6 +80,8 @@ def create_app(settings=None, engine=None, store=None):
     app.state.google = GoogleIdentity(settings.google_client_id)
     app.state.audit = AuditJournal(settings, app.state.engine)
     app.state.documents = PrivateDocuments(settings)
+    app.state.rate_locations = RateLocations(settings)
+    app.state.hire_routing = HireRouting(settings, app.state.rate_locations)
 
     @app.exception_handler(ApiError)
     async def api_error(request, exc):
@@ -84,6 +93,9 @@ def create_app(settings=None, engine=None, store=None):
         fields = []
         for error in exc.errors():
             message = 'Invalid or unsupported value.'
+            if request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/bookings/', '/api/v1/search/')):
+                if error['type'] == 'missing': message = 'This field is required.'
+                elif error['type'] == 'value_error': message = str(error.get('ctx', {}).get('error', 'Enter a valid value.'))
             if request.url.path in ('/api/v1/auth/register', '/api/v1/auth/password/reset') and error['loc'] == ('body', 'password'):
                 if error['type'] == 'string_too_short':
                     message = f'Use at least {MIN_PASSWORD_LENGTH} characters.'
@@ -117,21 +129,25 @@ def create_app(settings=None, engine=None, store=None):
                     limit, seconds = (30, 900)
                 group = 'profile' if request.url.path in ('/api/v1/users/me', '/api/v1/users/me/roles') else name
                 review_path = request.url.path.startswith(('/api/v1/admin/', '/api/v1/documents'))
-                multipart = request.url.path == '/api/v1/documents' and request.method == 'POST'
+                multipart = request.method == 'POST' and (request.url.path == '/api/v1/documents' or (request.url.path.startswith('/api/v1/vehicles/') and name=='photos'))
                 if review_path:
                     group, limit, seconds = ('files', 100, 60) if name == 'file' else ('review', 100, 60) if request.method == 'PATCH' else ('upload', 30, 900) if multipart else ('metadata', 300, 60)
                 app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
-                query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests')
+                query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles')
+                if request.method == 'GET' and request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/admin/vehicles/')) and request.url.path.endswith('/calendar'):
+                    query_route = True
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
-                if request.method in ('POST', 'PATCH'):
+                if request.method in ('POST', 'PATCH', 'PUT'):
                     media = 'multipart/form-data' if multipart else 'application/json'
                     if request.headers.get('content-type', '').split(';')[0].lower() != media:
                         raise ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Use ' + media + '.')
                     chunks, length = [], 0
                     async for chunk in request.stream():
                         length += len(chunk)
-                        if length > (MAX_MULTIPART if multipart else 8192):
+                        rate_body = ('/vehicles/' in request.url.path and request.url.path.endswith(('/services', '/services/preview'))) or request.url.path.startswith(('/api/v1/bookings/', '/api/v1/search/'))
+                        profile_body = request.method == 'PATCH' and request.url.path == '/api/v1/users/me'
+                        if length > (MAX_MULTIPART if multipart else 1_410_000 if profile_body else 65536 if rate_body else 8192):
                             raise ApiError(413, 'REQUEST_TOO_LARGE', 'Request exceeds the permitted size.')
                         chunks.append(chunk)
                     raw = b''.join(chunks)
@@ -173,6 +189,11 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(router)
     app.include_router(auth_extension_router)
     app.include_router(review_router)
+    app.include_router(rate_router)
+    app.include_router(hire_router)
+    app.include_router(vehicle_router)
+    from app.api.routers.calendar_api import router as calendar_router
+    app.include_router(calendar_router)
     def contracted_openapi():
         if app.openapi_schema:
             return app.openapi_schema
@@ -187,7 +208,7 @@ def create_app(settings=None, engine=None, store=None):
     app.openapi = contracted_openapi
     # CORS wraps error responses too; cross-origin clients can read safe 401/429/503 details.
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
-                       allow_methods=['GET', 'POST', 'PATCH', 'OPTIONS'], allow_headers=['Authorization', 'Content-Type'],
+                       allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'], allow_headers=['Authorization', 'Content-Type'],
                        expose_headers=['Retry-After', 'X-Request-ID'])
     return app
 

@@ -8,10 +8,10 @@ import pytest
 from PIL import Image
 from sqlalchemy import select, text, inspect
 from app.models import User, UserRole
-from app.review_models import Document, Vehicle
-from app.review_operator import provision
-from app.private_documents import safe_filename, MAX_FILE, MAX_MULTIPART
-from app.errors import ApiError
+from app.models.review_models import Document, Vehicle
+from app.services.review_operator import provision
+from app.services.private_documents import safe_filename, MAX_FILE, MAX_MULTIPART
+from app.core.errors import ApiError
 from conftest import signed_in, bearer
 
 
@@ -121,12 +121,11 @@ def test_owner_approval_driver_rejection_suspension_and_workspace(client, review
 def test_driver_licence_issuer_expiry_and_identity_alternative(client, review_case):
     c = review_case; role = c['roles']['DRIVER']
     verified(client, c, 'PASSPORT', expiry_date='2030-12-31')
-    verified(client, c, 'DRIVING_LICENCE', issuing_country='GB', expiry_date='2030-12-31')
-    assert role_review(client, c, role, 'APPROVED').status_code == 409
-    verified(client, c, 'DRIVING_LICENCE', issuing_country='LK')
-    assert role_review(client, c, role, 'APPROVED').status_code == 409
-    verified(client, c, 'DRIVING_LICENCE', issuing_country='LK', expiry_date='2020-01-01')
-    assert role_review(client, c, role, 'APPROVED').status_code == 409
+    for metadata in ({'issuing_country':'GB','expiry_date':'2030-12-31'}, {'issuing_country':'LK'}, {'issuing_country':'LK','expiry_date':'2020-01-01'}):
+        doc=doc_review(client,c,upload(client,c,'DRIVING_LICENCE',**metadata).json(),'UNDER_REVIEW')
+        denied=client.patch('/api/v1/admin/documents/'+doc['id']+'/review',headers=c['admin'],json={'decision':'APPROVED','version':doc['version']})
+        assert denied.status_code==422 and denied.json()['code']=='INVALID_DRIVING_LICENCE_EVIDENCE'
+        assert role_review(client,c,role,'APPROVED').status_code==409
     verified(client, c, 'DRIVING_LICENCE', issuing_country='LK', expiry_date='2030-12-31')
     assert role_review(client, c, role, 'APPROVED').status_code == 200
 
@@ -245,7 +244,7 @@ def test_upload_invalid_content_parts_sizes_and_orphan_cleanup(client, review_ca
     storage = client.app.state.documents
     orphan = storage.root() / uuid4().hex; orphan.write_bytes(b'unreferenced')
     staging = storage.root() / (uuid4().hex + '.staging'); staging.write_bytes(b'crashed upload')
-    from app.private_infrastructure import file_lock
+    from app.core.private_infrastructure import file_lock
     with file_lock(storage.root() / 'upload.lock'), client.app.state.sessions() as db: storage.recover(db)
     assert not orphan.exists() and not staging.exists()
     assert client.get(good.json()['secure_file_url'], headers=c['owner']).status_code == 200
@@ -318,8 +317,8 @@ def test_review_rate_limits_unauthorized_decisions_and_protected_vehicle_owner(c
 
 
 def test_controlled_admin_revocation_and_live_openapi_contract(client, review_case):
-    from app.review_operator import revoke
-    from app.review_audit import FileAuditJournal
+    from app.services.review_operator import revoke
+    from app.services.review_audit import FileAuditJournal
     from pathlib import Path
     c = review_case
     with client.app.state.sessions() as db:

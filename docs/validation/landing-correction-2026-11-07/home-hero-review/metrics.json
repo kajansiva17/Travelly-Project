@@ -1,0 +1,554 @@
+[
+  {
+    "role": "home",
+    "route": "/",
+    "name": "reference",
+    "width": 948,
+    "height": 1659,
+    "dpr": 1,
+    "file": "home-reference.png",
+    "viewport": [
+      948,
+      1659
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 1659
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 1659
+    },
+    "copy": {
+      "x": 37.90625,
+      "y": 121,
+      "w": 470,
+      "h": 192.6875
+    },
+    "content": {
+      "x": 37.921875,
+      "y": 1659,
+      "w": 872.15625,
+      "h": 1755.859375
+    },
+    "footer": {
+      "x": 0,
+      "y": 3470.859375,
+      "w": 948,
+      "h": 88
+    }
+  },
+  {
+    "role": "owner",
+    "route": "/for-owners",
+    "name": "reference",
+    "width": 948,
+    "height": 1659,
+    "dpr": 1,
+    "file": "owner-reference.png",
+    "viewport": [
+      948,
+      1659
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 530.875
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 530.875
+    },
+    "copy": {
+      "x": 37.90625,
+      "y": 121,
+      "w": 470,
+      "h": 252.515625
+    },
+    "content": {
+      "x": 37.921875,
+      "y": 530.875,
+      "w": 872.15625,
+      "h": 1843.03125
+    },
+    "footer": {
+      "x": 0,
+      "y": 2429.90625,
+      "w": 948,
+      "h": 88
+    }
+  },
+  {
+    "role": "driver",
+    "route": "/drive-with-us",
+    "name": "reference",
+    "width": 948,
+    "height": 1659,
+    "dpr": 1,
+    "file": "driver-reference.png",
+    "viewport": [
+      948,
+      1659
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 530.875
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 948,
+      "h": 530.875
+    },
+    "copy": {
+      "x": 37.90625,
+      "y": 121,
+      "w": 470,
+      "h": 250.9375
+    },
+    "content": {
+      "x": 37.921875,
+      "y": 530.875,
+      "w": 872.15625,
+      "h": 1860.59375
+    },
+    "footer": {
+      "x": 0,
+      "y": 2447.46875,
+      "w": 948,
+      "h": 88
+    }
+  },
+  {
+    "role": "home",
+    "route": "/",
+    "name": "desktop-display150",
+    "width": 1260,
+    "height": 588,
+    "dpr": 1.5,
+    "file": "home-desktop-display150.png",
+    "viewport": [
+      1260,
+      588
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 588
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 588
+    },
+    "copy": {
+      "x": 48,
+      "y": 121,
+      "w": 470,
+      "h": 192.6875
+    },
+    "content": {
+      "x": 48,
+      "y": 588,
+      "w": 1164,
+      "h": 1929.390625
+    },
+    "footer": {
+      "x": 0,
+      "y": 2573.390625,
+      "w": 1260,
+      "h": 88
+    }
+  },
+  {
+    "role": "owner",
+    "route": "/for-owners",
+    "name": "desktop-display150",
+    "width": 1260,
+    "height": 588,
+    "dpr": 1.5,
+    "file": "owner-desktop-display150.png",
+    "viewport": [
+      1260,
+      588
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 520
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 520
+    },
+    "copy": {
+      "x": 48,
+      "y": 121,
+      "w": 470,
+      "h": 252.515625
+    },
+    "content": {
+      "x": 48,
+      "y": 520,
+      "w": 1164,
+      "h": 2026.140625
+    },
+    "footer": {
+      "x": 0,
+      "y": 2602.140625,
+      "w": 1260,
+      "h": 88
+    }
+  },
+  {
+    "role": "driver",
+    "route": "/drive-with-us",
+    "name": "desktop-display150",
+    "width": 1260,
+    "height": 588,
+    "dpr": 1.5,
+    "file": "driver-desktop-display150.png",
+    "viewport": [
+      1260,
+      588
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 520
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1260,
+      "h": 520
+    },
+    "copy": {
+      "x": 48,
+      "y": 121,
+      "w": 470,
+      "h": 250.9375
+    },
+    "content": {
+      "x": 48,
+      "y": 520,
+      "w": 1164,
+      "h": 2081.875
+    },
+    "footer": {
+      "x": 0,
+      "y": 2657.875,
+      "w": 1260,
+      "h": 88
+    }
+  },
+  {
+    "role": "home",
+    "route": "/",
+    "name": "wide-desktop",
+    "width": 1880,
+    "height": 900,
+    "dpr": 1,
+    "file": "home-wide-desktop.png",
+    "viewport": [
+      1880,
+      900
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 900
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 900
+    },
+    "copy": {
+      "x": 280,
+      "y": 121,
+      "w": 470,
+      "h": 192.6875
+    },
+    "content": {
+      "x": 280,
+      "y": 900,
+      "w": 1320,
+      "h": 2027.59375
+    },
+    "footer": {
+      "x": 0,
+      "y": 2983.59375,
+      "w": 1880,
+      "h": 88
+    }
+  },
+  {
+    "role": "owner",
+    "route": "/for-owners",
+    "name": "wide-desktop",
+    "width": 1880,
+    "height": 900,
+    "dpr": 1,
+    "file": "owner-wide-desktop.png",
+    "viewport": [
+      1880,
+      900
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 648
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 648
+    },
+    "copy": {
+      "x": 280,
+      "y": 121,
+      "w": 470,
+      "h": 252.515625
+    },
+    "content": {
+      "x": 280,
+      "y": 648,
+      "w": 1320,
+      "h": 2132.234375
+    },
+    "footer": {
+      "x": 0,
+      "y": 2836.234375,
+      "w": 1880,
+      "h": 88
+    }
+  },
+  {
+    "role": "driver",
+    "route": "/drive-with-us",
+    "name": "wide-desktop",
+    "width": 1880,
+    "height": 900,
+    "dpr": 1,
+    "file": "driver-wide-desktop.png",
+    "viewport": [
+      1880,
+      900
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 648
+    },
+    "art": {
+      "x": 0,
+      "y": 0,
+      "w": 1880,
+      "h": 648
+    },
+    "copy": {
+      "x": 280,
+      "y": 121,
+      "w": 470,
+      "h": 250.9375
+    },
+    "content": {
+      "x": 280,
+      "y": 648,
+      "w": 1320,
+      "h": 2195.4375
+    },
+    "footer": {
+      "x": 0,
+      "y": 2899.4375,
+      "w": 1880,
+      "h": 88
+    }
+  },
+  {
+    "role": "home",
+    "route": "/",
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "file": "home-mobile.png",
+    "viewport": [
+      390,
+      844
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 867.484375
+    },
+    "art": {
+      "x": 0,
+      "y": 371.484375,
+      "w": 390,
+      "h": 230
+    },
+    "copy": {
+      "x": 20,
+      "y": 108,
+      "w": 350,
+      "h": 239.484375
+    },
+    "content": {
+      "x": 20,
+      "y": 867.484375,
+      "w": 350,
+      "h": 2801.4375
+    },
+    "footer": {
+      "x": 0,
+      "y": 3704.921875,
+      "w": 390,
+      "h": 140
+    }
+  },
+  {
+    "role": "owner",
+    "route": "/for-owners",
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "file": "owner-mobile.png",
+    "viewport": [
+      390,
+      844
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 661.578125
+    },
+    "art": {
+      "x": 0,
+      "y": 407.578125,
+      "w": 390,
+      "h": 230
+    },
+    "copy": {
+      "x": 20,
+      "y": 108,
+      "w": 350,
+      "h": 275.578125
+    },
+    "content": {
+      "x": 20,
+      "y": 661.578125,
+      "w": 350,
+      "h": 3067.046875
+    },
+    "footer": {
+      "x": 0,
+      "y": 3764.625,
+      "w": 390,
+      "h": 140
+    }
+  },
+  {
+    "role": "driver",
+    "route": "/drive-with-us",
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "file": "driver-mobile.png",
+    "viewport": [
+      390,
+      844
+    ],
+    "zoom": "1",
+    "visualScale": 1,
+    "overflow": false,
+    "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 677.375
+    },
+    "art": {
+      "x": 0,
+      "y": 423.375,
+      "w": 390,
+      "h": 230
+    },
+    "copy": {
+      "x": 20,
+      "y": 108,
+      "w": 350,
+      "h": 291.375
+    },
+    "content": {
+      "x": 20,
+      "y": 677.375,
+      "w": 350,
+      "h": 3663.609375
+    },
+    "footer": {
+      "x": 0,
+      "y": 4376.984375,
+      "w": 390,
+      "h": 140
+    }
+  }
+]

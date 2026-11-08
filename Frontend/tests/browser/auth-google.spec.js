@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { translate } from '../../src/i18n/language.js'
 
 async function setup(page, { mode = 'completion', authoritative = true } = {}) {
   const requests = []
@@ -26,10 +27,63 @@ async function setup(page, { mode = 'completion', authoritative = true } = {}) {
   return requests
 }
 
+for (const start of ['/login', '/register']) test(`unconfigured Google on ${start} is disabled while email/password remains usable`, async ({ page }) => {
+  const requests = await setup(page)
+  let googleLibraryRequests = 0
+  page.on('request', request => { if (request.url() === 'https://accounts.google.com/gsi/client') googleLibraryRequests++ })
+  await page.route('**/api/v1/auth/google/challenge', route => route.fulfill({ status: 503, json: { code: 'GOOGLE_NOT_CONFIGURED', message: 'Google sign-in is not configured yet. Use email and password for now.' } }))
+  await page.route('**/api/v1/auth/register', route => route.fulfill({ status: 201, json: { status: 'verification_required', verification_ticket: 'v'.repeat(43), email_delivery: 'captured', message: 'Development email captured locally.' } }))
+  for (const width of [360, 768, 1366]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto(start)
+    const button = page.getByRole('button', { name: 'Continue with Google', exact: true })
+    await expect(button).toBeVisible()
+    await expect(button).toBeDisabled()
+    await expect(button).toHaveAccessibleDescription('Google sign-in will be available soon.')
+    await expect(button.locator('svg')).toHaveAttribute('aria-hidden', 'true')
+    await expect(page.getByText('Google sign-in is not configured yet.', { exact: false })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Retry Google sign-in' })).toHaveCount(0)
+    await button.focus()
+    await expect(button).not.toBeFocused()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.locator('.google-sign-in').screenshot({ path: test.info().outputPath(`google-unavailable-${width}.png`) })
+  }
+  expect(googleLibraryRequests).toBe(0)
+  expect(requests.filter(r => r.path === '/api/v1/auth/google')).toHaveLength(0)
+  await page.getByLabel('Email address', { exact: true }).fill('member@example.com')
+  await page.getByLabel('Password', { exact: true }).fill('TravellyStrong1!')
+  if(await page.getByLabel('Confirm password',{exact:true}).isVisible())await page.getByLabel('Confirm password',{exact:true}).fill('TravellyStrong1!')
+  if (start === '/register') {
+    await page.getByLabel('Full name', { exact: true }).fill('Test Passenger')
+    await page.getByLabel('Mobile number', { exact: true }).fill('771234567')
+    await page.locator('[name="accept_terms"]').check()
+  }
+  const submit = page.getByRole('button', { name: start === '/register' ? 'Create account' : 'Log in', exact: true })
+  await expect(submit).toBeEnabled()
+  await submit.focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(start === '/register' ? /\/check-email$/ : /\/dashboard$/)
+})
+
+test('temporary Google failure remains retryable', async ({ page }) => {
+  await setup(page)
+  let attempts = 0
+  await page.route('**/api/v1/auth/google/challenge', route => route.fulfill(++attempts === 1
+    ? { status: 503, json: { code: 'GOOGLE_UNAVAILABLE', message: 'Google sign-in is temporarily unavailable. Please try again.' } }
+    : { json: { client_id: 'test-client', nonce: 'n'.repeat(43), challenge: 'c'.repeat(43) } }))
+  await page.goto('/login')
+  await expect(page.getByText('Google sign-in is temporarily unavailable. Please try again.')).toBeVisible()
+  await expect(page.getByText('Google sign-in will be available soon.')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Retry Google sign-in' }).click()
+  await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Retry Google sign-in' })).toHaveCount(0)
+})
+
 for (const start of ['/login', '/register']) test(`Google on ${start} requires completion and terms before account creation`, async ({ page }) => {
   const requests = await setup(page)
   await page.goto(start)
-  await page.getByRole('button', { name: 'Continue with Google', exact: true }).click()
+  await page.getByRole('button', { name: 'Continue with Google', exact: true }).focus()
+  await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/google-complete$/)
   expect(requests.filter(r => r.path.endsWith('/google/complete'))).toHaveLength(0)
   await page.getByRole('button', { name: 'Create Passenger account' }).click()
@@ -84,4 +138,51 @@ test('Profile linking needs current method and explicit confirmation', async ({ 
   await expect(page.getByText('Google: Connected to this Travelly account')).toBeVisible()
   const link = requests.find(r => r.path === '/api/v1/users/me/google')
   expect(link.data.confirm).toBe(true); expect(link.data.current_password).toBe('existing password')
+})
+
+for(const code of ['ta','si']) test(`${code} Google library failure retains its icon, translated retry and entered form values`,async({page})=>{
+  await page.addInitScript(code=>localStorage.setItem('travelly-language',code),code)
+  await setup(page)
+  await page.route('https://accounts.google.com/gsi/client',route=>route.abort('failed'))
+  await page.goto('/login')
+  const message='Google sign-in could not load. Try again or use email and password.'
+  await expect(page.locator('.google-sign-in [role=status]')).toHaveText(translate(message,code))
+  await expect(page.locator('.google-button-icon')).toBeVisible()
+  await page.locator('#identifier').fill('retained@example.com');await page.locator('#password').fill('retained-password')
+  await page.unroute('https://accounts.google.com/gsi/client')
+  await page.route('https://accounts.google.com/gsi/client',route=>route.fulfill({contentType:'application/javascript',body:`window.google={accounts:{id:{initialize(c){this.config=c},renderButton(host,options){window.gisLocale=options.locale;const b=document.createElement('button');b.textContent='Continue with Google';host.appendChild(b)}}}}`}))
+  await page.getByRole('button',{name:translate('Retry Google sign-in',code)}).click()
+  await expect(page.getByRole('button',{name:'Continue with Google',exact:true})).toBeEnabled()
+  await expect.poll(()=>page.evaluate(()=>window.gisLocale)).toBe(code)
+  await expect(page.locator('#identifier')).toHaveValue('retained@example.com')
+  await expect(page.locator('#password')).toHaveValue('retained-password')
+})
+
+test('repeated provider callbacks submit a credential once',async({page})=>{
+  const requests=await setup(page)
+  await page.goto('/login');await expect(page.getByRole('button',{name:'Continue with Google',exact:true})).toBeEnabled()
+  await page.evaluate(()=>{
+    const callback=window.google.accounts.id.config.callback
+    callback({credential:'test-google-credential'});callback({credential:'test-google-credential'})
+  })
+  await expect(page).toHaveURL(/\/google-complete$/)
+  expect(requests.filter(r=>r.path==='/api/v1/auth/google')).toHaveLength(1)
+})
+
+test('Google receives only the public origin and leaving auth restores no-referrer',async({page})=>{
+  await setup(page)
+  let googleReferrer
+  await page.route('https://accounts.google.com/gsi/referrer-fixture',async route=>{
+    googleReferrer=(await route.request().allHeaders()).referer
+    await route.fulfill({contentType:'text/html',body:'<!doctype html><title>Anonymous policy fixture</title>'})
+  })
+  await page.route('https://accounts.google.com/gsi/client',route=>route.fulfill({contentType:'application/javascript',body:`window.google={accounts:{id:{initialize(){},renderButton(host){window.googleHostWidth=host.getBoundingClientRect().width;const b=document.createElement('button');b.textContent='Continue with Google';host.appendChild(b);const frame=document.createElement('iframe');frame.src='https://accounts.google.com/gsi/referrer-fixture';host.appendChild(frame)}}}}`}))
+  await page.goto('/login?journey=OWNER&private_fixture=must-not-leak#private-fragment')
+  await expect.poll(()=>googleReferrer).toBe(new URL(page.url()).origin+'/')
+  expect(await page.evaluate(()=>window.googleHostWidth)).toBeGreaterThan(0)
+  expect(googleReferrer).not.toContain('private_fixture')
+  expect(googleReferrer).not.toContain('/login')
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content','strict-origin')
+  await page.evaluate(()=>{history.pushState({},'','/');dispatchEvent(new PopStateEvent('popstate'))})
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content','no-referrer')
 })

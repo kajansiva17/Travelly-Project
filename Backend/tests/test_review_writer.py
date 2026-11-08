@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from uuid import uuid4, UUID
 from sqlalchemy import text
-from app.review_audit import AuditJournal
+from app.services.review_audit import AuditJournal
 from app.models import UserRole
 from test_admin_review import review_case, role_review
 
@@ -22,10 +22,10 @@ def test_isolated_writer_acknowledges_without_runtime_history_access(client, rev
            'REVIEW_AUDIT_ROOT': str(settings.review_audit_root), 'REVIEW_DATABASE_IDENTITY': settings.review_database_identity, 'TEST_SCHEMA': schema}
     script = '''
 import os
-from app.config import get_settings
-from app.database import make_engine
-from app.review_audit import FileAuditJournal
-from app.review_writer import serve
+from app.core.config import get_settings
+from app.dependencies.database import make_engine
+from app.services.review_audit import FileAuditJournal
+from app.services.review_writer import serve
 s=get_settings();e=make_engine(s.database_url,connect_args={'options':'-csearch_path='+os.environ['TEST_SCHEMA']+',public'})
 serve(s,FileAuditJournal(s,e))
 '''

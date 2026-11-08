@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy import select, text
 from app.models import User, UserRole
 from app.schemas import RegisterRequest, email_address
-from app.security import hasher
+from app.core.security import hasher
 from conftest import signed_in, bearer, captured_token
 
 
@@ -49,6 +49,58 @@ def test_registration_verification_and_atomic_replay(client, passenger):
     assert profile['phone_verified_at'] is None and profile['approved_roles'] == ['PASSENGER']
 
 
+@pytest.mark.parametrize('journey', ['PASSENGER', 'OWNER', 'DRIVER'])
+def test_verification_continuation_binds_journey_and_issues_only_passenger_session(client, passenger, journey):
+    registered=client.post('/api/v1/auth/register',json={**passenger,'journey':journey})
+    assert registered.status_code==201,registered.text
+    token=captured_token(client)
+    assert client.post('/api/v1/auth/email/verify',json={'token':token,'journey':'ADMIN'}).status_code==422
+    verified=client.post('/api/v1/auth/email/verify',json={'token':token})
+    assert verified.status_code==200,verified.text
+    result=verified.json();assert result['journey']==journey and result['verified_user_id']==registered.json()['id']
+    assert verified.headers['cache-control']=='no-store'
+    profile=client.get('/api/v1/users/me',headers=bearer(result))
+    assert profile.status_code==200 and profile.json()['approved_roles']==['PASSENGER']
+    assert client.get('/api/v1/admin/role-requests',headers=bearer(result)).status_code==403
+    assert client.post('/api/v1/auth/email/verify',json={'token':token}).status_code==400
+
+
+@pytest.mark.parametrize('status', ['APPROVED','PENDING'])
+def test_verification_session_keeps_existing_role_state(client, passenger, status):
+    registration=client.post('/api/v1/auth/register',json={**passenger,'journey':'OWNER'}).json()
+    with client.app.state.sessions() as db:
+        user=db.get(User,UUID(registration['id']))
+        db.add(UserRole(user_id=user.id,role_code='OWNER',approval_status=status,approved_by=user.id if status=='APPROVED' else None,approved_at=datetime.now(timezone.utc) if status=='APPROVED' else None))
+        db.commit()
+    result=client.post('/api/v1/auth/email/verify',json={'token':captured_token(client)}).json()
+    roles=client.get('/api/v1/users/me/roles',headers=bearer(result)).json()['items']
+    assert next(row for row in roles if row['role_code']=='OWNER')['approval_status']==status
+
+
+def test_verification_resend_preserves_server_bound_journey(client, passenger):
+    registration=client.post('/api/v1/auth/register',json={**passenger,'journey':'DRIVER'}).json()
+    previous=captured_token(client)
+    from app.core.security import digest
+    client.app.state.store.client.delete(client.app.state.store.key('limit:'+digest('email-minute:verify:'+registration['id'])))
+    assert client.post('/api/v1/auth/email/resend',json={'ticket':registration['verification_ticket']}).status_code==200
+    current=captured_token(client)
+    assert client.post('/api/v1/auth/email/verify',json={'token':previous}).status_code==400
+    result=client.post('/api/v1/auth/email/verify',json={'token':current}).json()
+    assert result['journey']=='DRIVER' and 'access_token' in result
+
+
+def test_verified_password_login_can_request_matching_resend(client, passenger):
+    registration=client.post('/api/v1/auth/register',json=passenger).json()
+    previous=captured_token(client)
+    pending=client.post('/api/v1/auth/login',json={'identifier':passenger['email'],'password':passenger['password'],'journey':'OWNER'}).json()
+    from app.core.security import digest
+    client.app.state.store.client.delete(client.app.state.store.key('limit:'+digest('email-minute:verify:'+registration['id'])))
+    assert client.post('/api/v1/auth/email/resend',json={'ticket':pending['verification_ticket']}).status_code==200
+    assert client.post('/api/v1/auth/email/verify',json={'token':previous}).status_code==400
+    result=client.post('/api/v1/auth/email/verify',json={'token':captured_token(client)}).json()
+    assert result['journey']=='OWNER' and 'access_token' in result
+
+
 def test_expired_links_resend_and_delivery_failure(client, passenger, monkeypatch):
     result = client.post('/api/v1/auth/register', json=passenger).json()
     token = captured_token(client)
@@ -57,7 +109,7 @@ def test_expired_links_resend_and_delivery_failure(client, passenger, monkeypatc
     assert client.post('/api/v1/auth/email/verify', json={'token': token}).status_code == 400
     assert client.post('/api/v1/auth/email/resend', json={'ticket': result['verification_ticket']}).status_code == 429
     # Expire only the isolated test's per-user cooldown, not global session/other-user state.
-    from app.security import digest
+    from app.core.security import digest
     store.client.delete(store.key('limit:' + digest('email-minute:verify:' + result['id'])))
     monkeypatch.setattr(client.app.state.mailer, 'send', lambda *args: 'failed')
     failed = client.post('/api/v1/auth/email/resend', json={'ticket': result['verification_ticket']})
@@ -95,7 +147,8 @@ def test_old_password_and_unverified_account_remain_usable(client):
     assert profile['id'] == uid and profile['email_verified_at'] is None
     sent = client.post('/api/v1/users/me/email-verification', json={}, headers=bearer(result.json()))
     assert sent.json()['email_delivery'] == 'captured'
-    assert client.post('/api/v1/auth/email/verify', json={'token': captured_token(client)}).status_code == 200
+    verified = client.post('/api/v1/auth/email/verify', json={'token': captured_token(client)})
+    assert verified.status_code == 200 and 'access_token' not in verified.json()
 
 
 def test_recovery_is_generic_and_revokes_all_sessions_without_changing_roles(client, passenger):
@@ -136,12 +189,13 @@ def signing_key():
 @pytest.fixture
 def google(client, monkeypatch, signing_key):
     monkeypatch.setattr(client.app.state.google.keys, 'get_signing_key_from_jwt', lambda _: SimpleNamespace(key=signing_key.public_key()))
-    def credential(email='new@gmail.com', *, headers=None, **overrides):
+    def credential(email='new@gmail.com', *, headers=None, omit_claims=(), **overrides):
         path = '/api/v1/users/me/google/challenge' if headers else '/api/v1/auth/google/challenge'
         challenge = client.post(path, json={}, headers=headers).json()
         claims = {'iss': 'https://accounts.google.com', 'aud': client.app.state.settings.google_client_id,
             'sub': 'google-subject-1', 'iat': int(time.time()), 'exp': int(time.time()) + 300,
             'nonce': challenge['nonce'], 'email': email, 'email_verified': True, 'name': 'Google Passenger', **overrides}
+        for claim in omit_claims: claims.pop(claim, None)
         return {'credential': jwt.encode(claims, signing_key, algorithm='RS256', headers={'kid': 'test-key'}), 'challenge': challenge['challenge']}
     return credential
 
@@ -149,6 +203,15 @@ def google(client, monkeypatch, signing_key):
 @pytest.mark.parametrize('claims', [{'iss': 'https://attacker.example'}, {'aud': 'wrong-client'}, {'exp': 1}, {'nonce': 'wrong'}, {'sub': ''}, {'azp': 'wrong'}])
 def test_google_token_claim_rejections(client, google, claims):
     assert client.post('/api/v1/auth/google', json=google(**claims)).status_code == 401
+
+
+@pytest.mark.parametrize('claim', ['missing', 'string', 'integer'])
+def test_google_email_verified_claim_is_required_and_boolean(client, google, claim):
+    if claim == 'missing':
+        data = google(omit_claims=('email_verified',))
+    else:
+        data = google(email_verified='true' if claim == 'string' else 1)
+    assert client.post('/api/v1/auth/google', json=data).status_code == 401
 
 
 def test_google_signature_and_replay_rejected(client, google):
@@ -209,8 +272,8 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
     from pathlib import Path
     from alembic import command
     from alembic.config import Config
-    from app.config import get_settings
-    from app.database import make_engine
+    from app.core.config import get_settings
+    from app.dependencies.database import make_engine
     settings = get_settings()
     schema = 'travelly_test_' + uuid4().hex
     control = make_engine(settings.database_url)
@@ -234,7 +297,7 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
             connection.execute(text("INSERT INTO users (public_user_reference, full_name, email, password_hash) VALUES (:ref, 'New Passenger', 'new@example.com', :password)"), {'ref': 'USR-' + uuid4().hex[:16].upper(), 'password': encoded})
             assert connection.scalar(text("SELECT email_login_required FROM users WHERE email = 'new@example.com'")) is True
             tables = set(connection.scalars(text('SELECT tablename FROM pg_tables WHERE schemaname = :schema'), {'schema': schema}))
-            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'alembic_version'}
+            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'alembic_version'}
     finally:
         engine.dispose()
         with control.begin() as connection:
@@ -245,16 +308,16 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
 @pytest.mark.parametrize('status,payload,outcome', [(201, {'messageId': 'test-id'}, 'provider_accepted'), (201, {}, 'failed'), (402, {}, 'daily_limit'), (429, {}, 'daily_limit'), (500, {}, 'failed')])
 def test_brevo_response_and_quota_are_honest_without_sending_mail(monkeypatch, status, payload, outcome):
     import httpx
-    from app.auth_services import Mailer
-    from app.config import get_settings
-    from app.errors import ApiError
+    from app.services.auth_services import Mailer
+    from app.core.config import get_settings
+    from app.core.errors import ApiError
     settings = get_settings().model_copy(update={'mail_backend': 'brevo', 'brevo_api_key': 'test-placeholder', 'mail_from_email': 'sender@travelly.test'})
     calls = []
     def post(url, **kwargs):
         calls.append(url)
         assert kwargs['json']['to'] == [{'email': 'recipient@example.com'}]
         return httpx.Response(status, json=payload)
-    monkeypatch.setattr('app.auth_services.httpx.post', post)
+    monkeypatch.setattr('app.services.auth_services.httpx.post', post)
     store = SimpleNamespace(rate=lambda *args: None)
     mailer = Mailer(settings, store)
     assert mailer.send('recipient@example.com', 'opaque-test-token', 'verify') == outcome
@@ -267,7 +330,7 @@ def test_brevo_response_and_quota_are_honest_without_sending_mail(monkeypatch, s
 
 def test_touch_preserves_database_timestamp_order():
     from datetime import timedelta
-    from app.api import touch
+    from app.api.routers.api import touch
     future = datetime.now(timezone.utc) + timedelta(seconds=1)
     row = SimpleNamespace(created_at=future, updated_at=future, version=1)
     touch(row)

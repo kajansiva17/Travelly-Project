@@ -1,0 +1,110 @@
+body .auth-page .journey-pass-frame,
+body .auth-page.login-page .journey-pass-frame {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 600px);
+  max-width: 600px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+  animation: none;
+  transform: none;
+  filter: none;
+}
+
+body .auth-page .journey-pass-frame::before {
+  content: none;
+  animation: none;
+}
+
+body .auth-page .journey-pass-card-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 0;
+  filter: drop-shadow(0 0 7px rgb(0 174 255 / 48%))
+    drop-shadow(0 12px 20px rgb(0 12 38 / 38%));
+}
+
+body .auth-page .journey-pass-frame::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.72;
+  background: conic-gradient(
+    from var(--journey-pass-glint-angle, 0deg),
+    transparent 0deg 318deg,
+    rgb(82 222 255 / 18%) 329deg,
+    rgb(224 251 255 / 94%) 340deg,
+    rgb(57 201 255 / 66%) 348deg,
+    transparent 358deg
+  );
+  -webkit-mask-image:
+    url('/images/travelly/auth/journey-pass-card.png'),
+    url('/images/travelly/auth/journey-pass-card.png');
+  -webkit-mask-position: center, center;
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-size:
+    calc(100% - 14px) calc(100% - 14px),
+    100% 100%;
+  -webkit-mask-composite: xor;
+  mask-image:
+    url('/images/travelly/auth/journey-pass-card.png'),
+    url('/images/travelly/auth/journey-pass-card.png');
+  mask-position: center, center;
+  mask-mode: alpha, alpha;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size:
+    calc(100% - 14px) calc(100% - 14px),
+    100% 100%;
+  mask-composite: exclude;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body .auth-page .journey-pass-card-image {
+    animation: journey-pass-glow-pulse 11s ease-in-out infinite;
+  }
+
+  body .auth-page .journey-pass-frame::after {
+    animation: journey-pass-border-glint 10s linear infinite;
+  }
+}
+
+@property --journey-pass-glint-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes journey-pass-glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 7px rgb(0 174 255 / 48%))
+      drop-shadow(0 12px 20px rgb(0 12 38 / 38%));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgb(0 190 255 / 60%))
+      drop-shadow(0 13px 22px rgb(0 12 38 / 40%));
+  }
+}
+
+@keyframes journey-pass-border-glint {
+  to {
+    --journey-pass-glint-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .auth-page .journey-pass-card-image {
+    animation: none;
+  }
+
+  body .auth-page .journey-pass-frame::after {
+    animation: none;
+    opacity: 0;
+  }
+}

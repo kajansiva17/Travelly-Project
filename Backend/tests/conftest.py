@@ -8,10 +8,10 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import text
-from app.config import get_settings
-from app.database import make_engine
+from app.core.config import get_settings
+from app.dependencies.database import make_engine
 from app.main import create_app
-from app.sessions import SessionStore
+from app.core.sessions import SessionStore
 
 
 @pytest.fixture(scope='session')
@@ -40,8 +40,9 @@ def postgres_engine():
 
 @pytest.fixture
 def client(postgres_engine, tmp_path):
-    from app.review_operator import initialize
+    from app.services.review_operator import initialize
     settings = get_settings().model_copy(update={'private_document_root': tmp_path / 'private-documents',
+        'vehicle_photo_root':tmp_path / 'vehicle-photos',
         'review_audit_root': tmp_path / 'audit', 'review_database_identity': str(uuid4()),
         'review_audit_endpoint': None, 'review_audit_auth_file': None,
         'mail_backend': 'capture', 'mail_capture_dir': tmp_path / 'mail',

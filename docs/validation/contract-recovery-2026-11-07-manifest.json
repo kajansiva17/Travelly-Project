@@ -1,0 +1,157 @@
+{
+  "recovered_on": "2026-11-07",
+  "git_source": "bf566265aef5e73c313521dde66b06d71ac7fb52",
+  "page_source": ".tools/context-intake-2026-11-05/pages.json",
+  "page_source_sha256": "84d6bfae4a42d0d5a507d21cc041239cdd78ea3b2e8a283a21d76fa7f348c1e9",
+  "files": [
+    {
+      "path": "docs/00-READ-FIRST/00-TRAVELLY-BACKEND-BUILD-READINESS.md",
+      "pages": [
+        3,
+        7
+      ],
+      "sha256": "8afae92dded3e41231d33e08c3c689df941ef6cd5408e86079c10845c4cabcce",
+      "body_sha256": "e30048fd65051a05838de91c4a526057f267893ee539f29e8db521645553e344",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/00-READ-FIRST/01-TRAVELLY-NBP-FINAL-DECISIONS.md",
+      "pages": [
+        8,
+        25
+      ],
+      "sha256": "ccd632213af758de47e9357598ee0fdf898f2a8641b9f4b0593d5a93c172b6c8",
+      "body_sha256": "373152c370d6274898106ed481e08ce8c3beba6488f7d80caa96e75f46cfcbc9",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/02-DATABASE/02C-TRAVELLY-PHYSICAL-DATA-DICTIONARY.md",
+      "pages": [
+        106,
+        141
+      ],
+      "sha256": "350db854598d090b40416726f0c683567e09bbbd72097ec342bd2056563b6c66",
+      "body_sha256": "23991ee29f82191f5c5efa25d9192504e0380c82fffdaa0fcbe63c7d6f0da6b0",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/03-API/03D-TRAVELLY-ADMIN-REVIEW-API-CONTRACT.md",
+      "pages": [
+        220,
+        223
+      ],
+      "sha256": "a8331944f38894fc57ee59e8ba0ae9d48a171ebb1a9e849251943b0192d1d69c",
+      "body_sha256": "6d0396db0fc11a17d34e4d941300ef641621702aa8426035ec258882f0a1c70c",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/03-API/03F-TRAVELLY-REUSABLE-RATE-CONTRACT.md",
+      "pages": [
+        227,
+        231
+      ],
+      "sha256": "ef5698f03450f6f16a17041aed52b20dd96009c1d5792fb4cba0076ab58c6195",
+      "body_sha256": "87613154269293cefd0fc5d80bb5945852f407f7cadf52e23daea38fd412cf66",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/03-API/03G-TRAVELLY-VEHICLE-OWNER-CONTRACT.md",
+      "pages": [
+        232,
+        233
+      ],
+      "sha256": "9a9a7611cee521ee8acfc89cc8a10872f1a74bade722cc31891e7d43f6d5369d",
+      "body_sha256": "8dcf4ed9a31c7185064e45f3932706de8a65ae0b158c94bfd2a3ca46ffaa384c",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/04-MODULE-CONTRACTS/06-VEHICLE-OWNER-BUSINESS-DECISION-GATE.md",
+      "pages": [
+        274,
+        280
+      ],
+      "sha256": "b8d368e5174b95f0471be12aa542f7835528e53447ee687cf7eacf095953155e",
+      "body_sha256": "8743767a3b320112e06d8c4295577e4de183e89a92ee3627890a760222982e84",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/04-MODULE-CONTRACTS/07-LONG-DISTANCE-PRICING-AND-REUSABLE-RATES.md",
+      "pages": [
+        281,
+        285
+      ],
+      "sha256": "1ad1d48bf5193a0ea8a23e42c120f1d91ccec56b89c848ef67f5b0e85ea4b889",
+      "body_sha256": "76e13a9dbceca608ce35ba4df4eb869b895e3a542c8d50dd247d9d0d22cb548e",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/04-MODULE-CONTRACTS/08-VEHICLE-OWNER-FIRST-DELIVERY.md",
+      "pages": [
+        286,
+        287
+      ],
+      "sha256": "2383b98d8485f45cd0f564d41c10359097ce36c3fee4d4606a6165233d7644d1",
+      "body_sha256": "c556ec45408fe08dbb22de3e40fe9aca84f10d5bc9e5052446d5b86845aa98ab",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/04-MODULE-CONTRACTS/09-VEHICLE-AVAILABILITY-CALENDAR.md",
+      "pages": [
+        288,
+        289
+      ],
+      "sha256": "62382e26ae0f19408b6c9b0bb106ede03ed589cc392bdb762db6766aa60c91df",
+      "body_sha256": "075ad1b36196f53399034ffe3a2c5d34febf77e8527e7abc9af5ba0fdf648178",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/validation/long-distance-pricing-2026-10-27.md",
+      "pages": [
+        315,
+        317
+      ],
+      "sha256": "a375fafa11cc5c170cf0a23447681b48cff913a75761faa142d9b763b8a139d2",
+      "body_sha256": "c166664d1db11e110d8e84992d8aea12a0577b1663f3e78d75905e64625e2c80",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/validation/outstanding-deployment-checklist.md",
+      "pages": [
+        321,
+        321
+      ],
+      "sha256": "362125f005a745e74c3d3018405a1188800b45f216e192dd3635f9012e854cb1",
+      "body_sha256": "a28c9ec890a0216aa37a410198b9c38b0ceea3c4b8cf5a5790b748e01c9d8c68",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/validation/vehicle-availability-calendar-2026-10-28.md",
+      "pages": [
+        345,
+        347
+      ],
+      "sha256": "6e8666008e181a3b0cf1a6ff0cbe32353c3cf95dd5fc1535fc24dcf356b8987a",
+      "body_sha256": "ccf93a4393e2f354dbf263dc43f9375a42f6a9dc2d2855bbdd8c4b4f7dc9d473",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/validation/vehicle-owner-first-delivery-2026-10-27.md",
+      "pages": [
+        348,
+        350
+      ],
+      "sha256": "bc9472caaae9380d720aa9305e6c3ef3ae9ad749181426f48622eac8e4a03799",
+      "body_sha256": "2d05f7b1cac218c9e4708a1e80e769fd3e1897940d5d8a3ccd60ae89d79bdf35",
+      "mode": "page-text; original Markdown unavailable"
+    },
+    {
+      "path": "docs/03-API/03C-TRAVELLY-ADMIN-REVIEW-OPENAPI.json",
+      "pages": [
+        175,
+        219
+      ],
+      "sha256": "9767637e4247ceb1de0af1d0075d43029f34546be0277f356585d4adebd141d1",
+      "mode": "exact Git HEAD blob; matches compiled source ignoring whitespace"
+    }
+  ]
+}

@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import delete, select
 
-from app.api import require_role
-from app.errors import ApiError
+from app.api.routers.api import require_role
+from app.core.errors import ApiError
 from app.models import User, UserRole
 from conftest import bearer, signed_in
 

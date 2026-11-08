@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { documentCountries, documentTypes, ownershipGuidance, validateDocumentUpload, MAX_DOCUMENT_BYTES } from '../src/documentUpload.js'
+import { documentCountries, documentTypes, ownershipGuidance, validateDocumentUpload, MAX_DOCUMENT_BYTES } from '../src/services/documentUpload.js'
 
 function body(kind = 'NIC', values = {}, file = new File(['image'], 'document.png', { type: 'image/png' })) {
   const form = new FormData()

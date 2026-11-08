@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { roleActions, documentActions, needsReason, decisionPayload, mayReview } from '../src/reviewRules.js'
+import { roleActions, documentActions, needsReason, decisionPayload, mayReview } from '../src/features/admin/reviewRules.js'
 
 test('review navigation requires a currently eligible approved Admin', () => {
   assert.equal(mayReview({ account_status: 'PENDING_VERIFICATION', approved_roles: ['PASSENGER', 'ADMIN'] }), true)

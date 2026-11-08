@@ -11,12 +11,12 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
 import uvicorn
-from app.config import get_settings
-from app.database import make_engine, session_factory
+from app.core.config import get_settings
+from app.dependencies.database import make_engine, session_factory
 from app.main import create_app
 from app.models import User, UserRole
-from app.security import hasher
-from app.sessions import SessionStore
+from app.core.security import hasher
+from app.core.sessions import SessionStore
 
 root = Path(__file__).resolve().parents[2]
 settings = get_settings().model_copy(update={'review_audit_root': None, 'private_document_root': None,

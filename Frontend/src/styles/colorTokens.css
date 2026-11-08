@@ -1,0 +1,6 @@
+/* Find a ride's original red (#d32c50). Define its channels only once so solid
+   accents and translucent button backgrounds cannot use different base reds. */
+:root {
+  --primary-red-rgb: 211 44 80;
+  --primary-red: rgb(var(--primary-red-rgb));
+}

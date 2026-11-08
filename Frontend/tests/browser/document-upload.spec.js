@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test'
 
+test.setTimeout(60000)
+
 const uid = 'b59140a1-f9fb-4a37-9717-f97fc3e64f73'
 const types = ['NIC', 'PASSPORT', 'DRIVING_LICENCE', 'VEHICLE_REGISTRATION', 'OWNER_AUTHORISATION']
 // Isolated component captures omit unrelated sticky navigation; layout checks run unmodified.
 const captureStyle = '.site-header, .site-header *, .skip-link { visibility: hidden !important; }'
 const png = { name: 'evidence.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') }
 
-async function setup(page) {
+async function setup(page, flow = 'owner') {
   const uploads = []
   const user = { id: uid, full_name: 'Document Applicant', public_user_reference: 'USR-1234567890123456', email: 'applicant@example.com', account_status: 'PENDING_VERIFICATION', approved_roles: ['PASSENGER'] }
   await page.route('**/api/v1/**', async route => {
@@ -26,8 +28,8 @@ async function setup(page) {
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   // Client-side navigation preserves the memory-only session.
-  await page.evaluate(() => { history.pushState({}, '', '/account'); dispatchEvent(new PopStateEvent('popstate')) })
-  await expect(page.getByRole('heading', { name: 'Your private application documents' })).toBeVisible()
+  await page.evaluate(flow => { history.pushState({}, '', '/account?documents='+flow); dispatchEvent(new PopStateEvent('popstate')) }, flow)
+  await expect(page.getByRole('heading', { name: flow === 'owner' ? 'Owner application documents' : 'Driver application documents', exact: true })).toBeVisible()
   return { uploads, form: page.getByRole('form', { name: 'Private document upload' }) }
 }
 
@@ -39,6 +41,8 @@ for (const ownership of ['SELF', 'INDIVIDUAL', 'COMPANY']) {
     await expect(guide).toContainText(ownership === 'SELF' ? 'showing you as the registered owner' : ownership === 'COMPANY' ? 'no company account is needed' : 'authorization from that registered individual')
     await expect(page.locator('.vehicle-registration-note')).toContainText('does not replace its registration')
     for (const type of types) {
+      await page.evaluate(flow=>{history.pushState({},'',`/${flow}/onboarding`);dispatchEvent(new PopStateEvent('popstate'))},type==='DRIVING_LICENCE'?'driver':'owner');await expect(page.getByRole('heading',{name:type==='DRIVING_LICENCE'?'Driver application documents':'Owner application documents',exact:true})).toBeVisible()
+      if (type !== 'DRIVING_LICENCE') await page.getByLabel('Whose name is on the vehicle registration?').selectOption(ownership)
       await form.getByLabel('Document type').selectOption(type)
       await expect(form.locator('.document-requirement')).toHaveText(type === 'OWNER_AUTHORISATION' && ownership === 'SELF' ? 'Optional' : 'Required for your case')
       await expect(form.locator('[name="number"]')).toHaveAttribute('aria-describedby', 'upload-number-hint')
@@ -73,7 +77,7 @@ for (const ownership of ['SELF', 'INDIVIDUAL', 'COMPANY']) {
 }
 
 for (const type of types) test(`${type}: submit without unprinted numbers or dates`, async ({ page }) => {
-  const { form, uploads } = await setup(page)
+  const { form, uploads } = await setup(page, type === 'DRIVING_LICENCE' ? 'driver' : 'owner')
   await form.getByLabel('Document type').selectOption(type)
   await form.getByLabel('Document file').setInputFiles(png)
   await form.getByRole('button', { name: 'Submit private document' }).click()

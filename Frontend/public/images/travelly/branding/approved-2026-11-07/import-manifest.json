@@ -1,0 +1,37 @@
+[
+  {
+    "file": "meter-dial.png",
+    "source": "travelly-meter-gauge-transparent.png",
+    "sha256": "03954c8524c67148d8a8d8c6994c69a812346ca040d0343e5af58275562227f8"
+  },
+  {
+    "file": "meter-needle.png",
+    "source": "nav-speedometer-needle.png",
+    "sha256": "782438e96cc315892ad21ad8b0b95e8e98b1904219c901a40d94082590ca0398"
+  },
+  {
+    "file": "wordmark.png",
+    "source": "travelly-wordmark-clean-transparent.png",
+    "sha256": "59d7cf170276d8a1adfa5a06214a7fbe36c50461647ff842ce406e20d2fadd3f"
+  },
+  {
+    "file": "standard-logo.png",
+    "source": "travelly-logo-002155-transparent.png",
+    "sha256": "c2a7da5eea6f6784757429e94128ccdff8ef283b617c9792f986ac0f606d0268"
+  },
+  {
+    "file": "owners-icon.png",
+    "source": "travelly-navbar-owners-car.png",
+    "sha256": "0b2a8424c69bb28fa395048871769fb7c7a1ae8e1ff7520e49859457f5b845ea"
+  },
+  {
+    "file": "drivers-icon.png",
+    "source": "travelly-navbar-drivers-steering-wheel.png",
+    "sha256": "d7b117b1cbd66cbbd469c503c489583c2d57ac63b208d11b1a953cddd324bd39"
+  },
+  {
+    "file": "driver-logo.png",
+    "source": "travelly-public-driver-transparent.png",
+    "sha256": "17f652040b880ecb7aa6f02776e1d52b2faf445d1d4b6955c2d5da0748dd45e9"
+  }
+]

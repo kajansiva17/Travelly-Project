@@ -3,10 +3,10 @@ from uuid import uuid4
 import jwt
 import pytest
 from pydantic import ValidationError
-from app.config import Settings, get_settings
-from app.errors import ApiError
+from app.core.config import Settings, get_settings
+from app.core.errors import ApiError
 from app.schemas import RegisterRequest, phone_number
-from app.security import hasher, verify_password, issue_tokens, decode_token
+from app.core.security import hasher, verify_password, issue_tokens, decode_token
 
 
 def test_password_hash_salt_and_parameters():

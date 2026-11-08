@@ -1,0 +1,55 @@
+.workspace-shell[data-workspace="admin"] a.admin-profile-link {
+  display:flex;align-items:center;gap:10px;color:#f5f8ff;text-decoration:none;min-width:0;
+}
+.admin-profile-link .dashboard-avatar {flex-shrink:0;overflow:hidden;}
+.admin-profile-link .dashboard-avatar img {width:100%;height:100%;object-fit:cover;}
+.admin-profile-link:focus-visible {outline:2px solid #84cfff;outline-offset:5px;border-radius:8px;}
+body .workspace-shell[data-workspace="admin"] .admin-profile-main {
+  width:min(100%,720px);margin:0 auto;padding:clamp(24px,4vh,44px) 24px 32px;
+}
+.admin-profile-heading {margin-bottom:22px;}
+.admin-profile-heading h1 {margin:6px 0 8px;font-size:30px;letter-spacing:-.7px;line-height:1.15;}
+.admin-profile-heading p {margin:0;color:#afc7e4;font-size:14px;}
+.admin-profile-card {padding:28px;border:1px solid #2d6799;border-radius:20px;background:linear-gradient(140deg,#0b2b50,#072142);box-shadow:0 12px 36px #00112b30;}
+.admin-profile-photo {display:flex;align-items:center;gap:20px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid #80b9eb30;}
+.admin-profile-avatar {display:grid;place-items:center;flex-shrink:0;width:86px;height:86px;border:2px solid #81c2f55c;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#cb2453,#9e1d43);font-size:32px;font-weight:700;color:white;}
+.admin-profile-avatar img {width:100%;height:100%;object-fit:cover;}
+.admin-profile-photo h2 {margin:0 0 6px;font-size:16px;}
+.admin-profile-photo p {margin:0 0 12px;font-size:12px;color:#afc7e4;}
+.admin-photo-actions {display:flex;align-items:center;flex-wrap:wrap;gap:16px;}
+.admin-photo-actions .button {min-height:36px;padding:8px 12px;font-size:12px;}
+body .admin-profile-text-button {padding:4px 0;border:0;background:transparent;color:#9dd3ff;font-size:13px;font-weight:600;cursor:pointer;min-height:32px;}
+.admin-profile-text-button:hover {text-decoration:underline;text-underline-offset:3px;}
+.admin-profile-text-button:focus-visible {outline:2px solid #84cfff;outline-offset:3px;}
+.admin-profile-fields {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px 24px;margin:0;padding:0;border:0;min-width:0;}
+.admin-profile-field {min-width:0;}
+.admin-profile-label {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;margin:0 0 6px;color:#b7cce5;font-size:12px;font-weight:600;}
+.admin-profile-label label {margin:0;}
+body .admin-profile-field input {display:block;width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #5084b4;border-radius:9px;background:#031b36;color:#f5f8ff;font:inherit;font-size:14px;}
+body .admin-profile-field input[readonly] {border-color:transparent;background:#0c305324;}
+.admin-profile-field input:focus-visible {outline:2px solid #84cfff;outline-offset:2px;}
+.admin-profile-value {display:flex;align-items:center;min-height:44px;margin:0;padding:10px 0;color:#f5f8ff;font-size:14px;overflow-wrap:anywhere;}
+.admin-role-badge {display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid #ba355d66;border-radius:20px;background:#a6193d22;color:#ffdce7;font-size:12px;}
+.admin-profile-footer {display:flex;justify-content:flex-end;gap:12px;margin-top:26px;padding-top:20px;border-top:1px solid #80b9eb30;}
+.admin-profile-footer .button {min-height:42px;padding:10px 18px;font-size:13px;}
+body .admin-profile-save {border:1px solid #f26988;background:linear-gradient(135deg,#dd2855,#b71d44);color:white;box-shadow:0 3px 12px #e5265030;}
+.admin-profile-success {color:#b1e8d3;font-size:13px;}
+@media(max-width:767px){
+  body .workspace-shell[data-workspace="admin"] .admin-profile-main {padding:24px 16px;}
+  .admin-profile-card {padding:20px;}
+  .admin-profile-fields {grid-template-columns:minmax(0,1fr);gap:16px;}
+  .admin-profile-photo {gap:14px;align-items:flex-start;}
+  .admin-profile-avatar {width:68px;height:68px;}
+  .admin-photo-actions {gap:6px 12px;}
+  .admin-profile-footer .button {flex:1;padding-inline:10px;}
+  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name {display:grid;max-width:100px;min-width:0;}
+  .admin-profile-link .workspace-profile-name strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name strong {font-size:10px;}
+  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name small {font-size:9px;}
+  .workspace-shell[data-workspace="admin"] a.admin-profile-link {gap:6px;}
+  .workspace-shell[data-workspace="admin"] .admin-profile-link .dashboard-avatar {width:28px;height:28px;}
+}
+@media(max-width:380px){
+  .workspace-shell[data-workspace="admin"] .workspace-topbar .site-header .brand.travelly-brand {width:112px;}
+  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name {max-width:70px;}
+}

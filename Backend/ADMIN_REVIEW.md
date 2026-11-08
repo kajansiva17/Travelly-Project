@@ -1,6 +1,8 @@
 # Admin Application Review operations
 
-This is the bounded Owner/Driver application review module. Passenger remains permanent/default. There is no general Admin dashboard, public Admin signup, company account, vehicle workflow, IVR or promotion engine.
+This documents the bounded Owner/Driver application review baseline. Passenger remains permanent/default. The subsequent first vehicle delivery is governed by contracts 08/03G and the [vehicle validation report](../docs/validation/vehicle-owner-first-delivery-2026-10-27.md). There is no general Admin dashboard, public Admin signup, company account, IVR or promotion engine.
+
+Vehicle delivery extends the isolated writer with one database-scoped projection of registration lock/latest own vehicle decision; full journal history remains unavailable to the web adapter. It also provisions optional separately configured VEHICLE_PHOTO_ROOT through the existing init operation. Deploy matching writer/API code; there is no direct-file history fallback. Existing Auth/application/document review transitions and private file rules remain unchanged. Dated baseline counts/results below are historical; current schema remains thirteen planned application tables at revision 0006, with no fleet migration.
 
 ## Local setup
 
@@ -8,8 +10,8 @@ Use PostgreSQL `travelly_dev` / `travelly_app` and the existing Redis session se
 
 ```powershell
 ..\.venv\Scripts\python.exe -m alembic upgrade head
-..\.venv\Scripts\python.exe -m app.review_operator init --operator YOUR_OPERATOR_ID --confirm-environment development
-..\.venv\Scripts\python.exe -m app.review_writer
+..\.venv\Scripts\python.exe -m app.services.review_operator init --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_writer
 ```
 
 Run the writer in its own service/terminal; run Uvicorn separately. `.env.example` lists the private paths, IPC endpoint and independent database/restore identity. Initialization never overwrites an existing integrity key, IPC key or journal. Do not store private bytes/keys under this repository or a webroot. Windows development directories are restricted to the local operator. The backend never statically mounts them.
@@ -21,7 +23,7 @@ The named pipe uses authenticated, bounded JSON messages; no TCP listener or pic
 An account must already exist through normal registration and retain APPROVED Passenger membership. No account is automatically promoted by server startup. Obtain the exact user UUID through the authorized own-profile API or restricted database operator tooling, then run offline:
 
 ```powershell
-..\.venv\Scripts\python.exe -m app.review_operator provision-admin --user-id EXISTING_USER_UUID --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_operator provision-admin --user-id EXISTING_USER_UUID --operator YOUR_OPERATOR_ID --confirm-environment development
 ```
 
 Repeated provisioning reports the existing membership without reinstating or overwriting it. The initial bootstrap permits `approved_by = NULL` under the Auth contract; operator identity/time/full transition are durably journaled. The same login remains in use; after sign-in/profile refresh, an approved Admin sees an explicit **Application review** link. Login still lands at `/dashboard`. The review routes are `/admin/applications` and `/admin/applications/{role_id}`.
@@ -29,7 +31,7 @@ Repeated provisioning reports the existing membership without reinstating or ove
 Restricted operator revocation preserves Passenger and uses the existing SUSPENDED role state:
 
 ```powershell
-..\.venv\Scripts\python.exe -m app.review_operator revoke-admin --user-id EXISTING_USER_UUID --reason "Applicant-visible reason" --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_operator revoke-admin --user-id EXISTING_USER_UUID --reason "Applicant-visible reason" --operator YOUR_OPERATOR_ID --confirm-environment development
 ```
 
 Production uses the corresponding restricted operator job, explicit `--confirm-environment production`, restricted credentials and independently verified target. Never expose these commands through HTTP, a frontend control or a signup payload. Runtime authorization reads current account/session/ADMIN membership on every request, so cached tokens cannot retain revoked review authority.
@@ -67,9 +69,9 @@ Decisions acquire the cross-worker OS coordination lock through the writer, rech
 - Startup and the 30-second recovery worker reconcile pending intents. A writer/client crash releases the OS lock. Restricted recovery can also run explicitly:
 
 ```powershell
-..\.venv\Scripts\python.exe -m app.review_operator recover --operator YOUR_OPERATOR_ID --confirm-environment development
-..\.venv\Scripts\python.exe -m app.review_operator orphans --operator YOUR_OPERATOR_ID --confirm-environment development
-..\.venv\Scripts\python.exe -m app.review_operator history --target-id ROLE_OR_DOCUMENT_UUID --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_operator recover --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_operator orphans --operator YOUR_OPERATOR_ID --confirm-environment development
+..\.venv\Scripts\python.exe -m app.services.review_operator history --target-id ROLE_OR_DOCUMENT_UUID --operator YOUR_OPERATOR_ID --confirm-environment development
 ```
 
 History output contains committed projections only; scoped operator reads are themselves audited. Do not send full reasons to ordinary logs. Torn/corrupt/reordered records are preserved and fail closed. Repair is restricted forensic maintenance, never silent truncation/deletion. Account for every intent with database/WAL/backup evidence before archiving a damaged segment and establishing verified continuity.
@@ -119,23 +121,23 @@ Non-failing warnings: upstream TestClient/httpx deprecation; existing main front
 ### Created files
 
 - `Backend/alembic/versions/0003_review_documents.py`
-- `Backend/app/review_models.py`
-- `Backend/app/private_infrastructure.py`
-- `Backend/app/private_documents.py`
-- `Backend/app/validate_document.py`
-- `Backend/app/review_audit.py`
-- `Backend/app/review_writer.py`
-- `Backend/app/review_operator.py`
-- `Backend/app/review_api.py`
+- `Backend/app/models/review_models.py`
+- `Backend/app/core/private_infrastructure.py`
+- `Backend/app/services/private_documents.py`
+- `Backend/app/services/validate_document.py`
+- `Backend/app/services/review_audit.py`
+- `Backend/app/services/review_writer.py`
+- `Backend/app/services/review_operator.py`
+- `Backend/app/api/routers/review_api.py`
 - `Backend/tests/test_admin_review.py`
 - `Backend/tests/test_review_recovery.py`
 - `Backend/tests/test_review_writer.py`
 - `Backend/ADMIN_REVIEW.md`
-- `Frontend/src/AdminApplications.jsx`
-- `Frontend/src/OwnDocuments.jsx`
-- `Frontend/src/PrivateDocumentPreview.jsx`
-- `Frontend/src/reviewRules.js`
-- `Frontend/src/review.css`
+- `Frontend/src/features/admin/AdminApplications.jsx`
+- `Frontend/src/components/OwnDocuments.jsx`
+- `Frontend/src/components/PrivateDocumentPreview.jsx`
+- `Frontend/src/features/admin/reviewRules.js`
+- `Frontend/src/styles/review.css`
 - `Frontend/playwright.config.js`
 - `Frontend/tests/reviewRules.test.js`
 - `Frontend/tests/browser/admin-review.spec.js`
@@ -152,10 +154,10 @@ Non-failing warnings: upstream TestClient/httpx deprecation; existing main front
 - `Backend/tests/conftest.py` — isolated private roots/journal fixtures.
 - `Backend/tests/test_auth.py` — approved four-table inventory expectation; existing Auth behavior tests retained.
 - `Frontend/src/App.jsx` — approved Admin routes, isolated route state and added review stylesheet.
-- `Frontend/src/api.js` — authenticated multipart/binary requests, preserving token refresh/session behavior.
-- `Frontend/src/PassengerDashboard.jsx` — approved-Admin entry link and accurate document availability text.
-- `Frontend/src/RoleApplicationCard.jsx` — link to existing private profile/evidence flow.
-- `Frontend/src/AccountPage.jsx` — own private evidence component.
+- `Frontend/src/services/api.js` — authenticated multipart/binary requests, preserving token refresh/session behavior.
+- `Frontend/src/features/passenger/PassengerDashboard.jsx` — approved-Admin entry link and accurate document availability text.
+- `Frontend/src/features/auth/RoleApplicationCard.jsx` — link to existing private profile/evidence flow.
+- `Frontend/src/pages/AccountPage.jsx` — own private evidence component.
 - `Frontend/package.json`, `Frontend/package-lock.json` — Playwright browser test runner/script.
 - `README.md` — current module/table inventory and operator guide link.
 

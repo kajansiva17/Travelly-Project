@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { emailError, passwordErrors } from '../src/authValidation.js'
+import { emailError, passwordErrors } from '../src/features/auth/authValidation.js'
 
 for (const value of ['1john@gmail.com', 'john+travel@gmail.com', ' First.Last@Example.COM ']) test(`email accepts ${value}`, () => assert.equal(emailError(value), ''))
 for (const value of ['.john@example.com', 'john.@example.com', 'jo..hn@example.com', 'john@localhost', 'john @example.com', 'john@example.invalid', 'john@@example.com', 'john@']) test(`email rejects ${value}`, () => assert.ok(emailError(value)))

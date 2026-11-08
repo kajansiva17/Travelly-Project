@@ -1,10 +1,12 @@
 from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import text
-from app.config import get_settings
-from app.database import make_engine
+from app.core.config import get_settings
+from app.dependencies.database import make_engine
 from app.models import Base
-from app import review_models  # register only the two approved dependency tables
+import app.models.review_models as review_models  # register only the two approved dependency tables
+import app.models.rate_models as rate_models  # register the two already-planned service/rate tables
+import app.models.hire_models as hire_models  # register only the approved private-hire FK slice
 
 config = context.config
 if config.config_file_name:

@@ -10,8 +10,8 @@ import pytest
 from starlette.datastructures import UploadFile, Headers
 from sqlalchemy import text, select
 from app.models import UserRole
-from app.errors import ApiError
-from app.private_documents import MAX_FILE, MAX_MULTIPART
+from app.core.errors import ApiError
+from app.services.private_documents import MAX_FILE, MAX_MULTIPART
 from test_admin_review import review_case, png, upload, role_review
 
 
@@ -23,11 +23,11 @@ def test_process_exit_at_commit_boundaries(client, review_case, phase, expected)
 import os
 from uuid import UUID
 from sqlalchemy import select
-from app.config import get_settings
-from app.database import make_engine, session_factory
-from app.review_audit import AuditJournal, decision_evidence
+from app.core.config import get_settings
+from app.dependencies.database import make_engine, session_factory
+from app.services.review_audit import AuditJournal, decision_evidence
 from app.models import UserRole
-from app.api import touch
+from app.api.routers.api import touch
 s=get_settings(); e=make_engine(s.database_url,connect_args={'options':'-csearch_path='+os.environ['TEST_SCHEMA']+',public'})
 j=AuditJournal(s,e); original=j.append; phase=os.environ['TEST_PHASE']
 def append(event):
@@ -62,7 +62,7 @@ def test_uncertain_intent_fsync_rolls_back_then_reconciles_aborted(client, revie
     original = os.fsync
     def fail(fd): raise OSError('injected uncertain durable acknowledgement')
     with monkeypatch.context() as patch:
-        patch.setattr('app.review_audit.os.fsync', fail)
+        patch.setattr('app.services.review_audit.os.fsync', fail)
         result = role_review(client, c, c['roles']['OWNER'], 'REJECTED', 'No committed change.')
         assert result.status_code == 503
     with journal.coordinated(): pass
@@ -117,7 +117,7 @@ def test_exact_file_and_multipart_byte_boundaries_and_false_content_length(clien
 def test_missing_referenced_file_and_symlink_escape_fail_closed(client, review_case, tmp_path):
     c = review_case; result = upload(client, c); assert result.status_code == 201
     with client.app.state.sessions() as db:
-        from app.review_models import Document
+        from app.models.review_models import Document
         doc = db.get(Document, UUID(result.json()['id']))
         file = client.app.state.documents.path(doc.storage_key)
     file.unlink()
@@ -137,7 +137,7 @@ def test_missing_referenced_file_and_symlink_escape_fail_closed(client, review_c
 
 
 def test_upload_unknown_transaction_retains_bytes_until_abort_is_proven(client, review_case):
-    from app.private_infrastructure import file_lock
+    from app.core.private_infrastructure import file_lock
     c = review_case; storage = client.app.state.documents
     key = uuid4().hex; storage.path(key).write_bytes(png())
     with client.app.state.sessions() as upload_db:
@@ -166,5 +166,5 @@ def test_valid_pdf_jpeg_encrypted_pdf_and_missing_validator(client, review_case,
     assert client.post('/api/v1/documents', data=fields, files={'file': ('encrypted.pdf', encrypted.getvalue(), 'application/pdf')}, headers=c['owner']).status_code == 422
     class MissingValidator:
         returncode = 2
-    monkeypatch.setattr('app.private_documents.subprocess.run', lambda *a, **k: MissingValidator())
+    monkeypatch.setattr('app.services.private_documents.subprocess.run', lambda *a, **k: MissingValidator())
     assert upload(client, c).status_code == 503

@@ -2,7 +2,7 @@
 from uuid import uuid4
 import pytest
 from pydantic import ValidationError
-from app.review_api import UploadMetadata, upload_metadata_error
+from app.api.routers.review_api import UploadMetadata, upload_metadata_error
 from conftest import signed_in, bearer
 
 TYPES = ('NIC', 'PASSPORT', 'DRIVING_LICENCE', 'VEHICLE_REGISTRATION', 'OWNER_AUTHORISATION')

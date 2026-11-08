@@ -1,0 +1,50 @@
+/* One persistent column for operational workspaces. All labels remain complete. */
+body .workspace-shell {--workspace-sidebar-width:clamp(240px,16vw,270px);}
+body .workspace-shell .workspace-sidebar-link {white-space:nowrap;}
+body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-wrap:normal;word-break:normal;flex:1;min-width:0;}
+@media(min-width:768px) {
+ body .workspace-shell[data-workspace] {display:grid;grid-template-columns:var(--workspace-sidebar-width) minmax(0,1fr);grid-template-rows:auto 1fr;align-items:start;}
+ body .workspace-shell[data-workspace] .workspace-topbar {grid-column:1/-1;grid-row:1;position:sticky;top:0;}
+ body .workspace-shell[data-workspace] .workspace-layout {display:contents;}
+ body .workspace-shell[data-workspace] .workspace-content {grid-column:2;grid-row:2;width:100%;min-width:0;}
+ body .workspace-shell[data-workspace] .workspace-sidebar {
+  --sidebar-row:min(54px,calc((100dvh - var(--workspace-header-height) - 34px) / var(--workspace-nav-count)));
+  display:flex;position:fixed;left:0;top:var(--workspace-header-height);width:var(--workspace-sidebar-width);
+  height:calc(100dvh - var(--workspace-header-height));padding:18px 8px 8px;box-sizing:border-box;
+  background:linear-gradient(180deg,#002454e8,#001b3ed4);border-right:1px solid #188aff88;overflow:visible;
+ }
+ body .workspace-shell[data-workspace] .workspace-sidebar-title {display:none;}
+ body .workspace-shell[data-workspace] .workspace-sidebar-links {display:flex;flex-direction:column;gap:0;min-height:0;overflow:visible;}
+ body .workspace-shell[data-workspace] .workspace-sidebar-main {display:flex;flex-direction:column;flex:none;overflow:visible;padding:0;}
+ body .workspace-shell[data-workspace] .workspace-sidebar-bottom {display:flex;flex-direction:column;flex:none;margin-top:auto;padding-top:6px;}
+ body .workspace-shell[data-workspace] .workspace-sidebar .workspace-sidebar-link {
+  flex:none;height:var(--sidebar-row);min-height:0;margin:0;padding:0 8px;gap:10px;
+  font-size:clamp(10px,min(1vw,calc(var(--sidebar-row) * .55)),14px);line-height:1.1;
+ }
+ body .workspace-shell[data-workspace] .workspace-sidebar .workspace-sidebar-link svg {width:min(24px,calc(var(--sidebar-row) * .72));height:min(24px,calc(var(--sidebar-row) * .72));}
+ body .workspace-shell[data-workspace] .workspace-menu-toggle {display:none;}
+}
+@media(min-width:768px) and (max-width:1099px) {
+ body .workspace-shell {--workspace-sidebar-width:224px;}
+ body .workspace-shell .workspace-sidebar .workspace-sidebar-link {font-size:11px;}
+ body .workspace-shell .workspace-metrics {grid-template-columns:repeat(2,minmax(0,1fr));}
+ body .workspace-shell .reference-owner-grid {grid-template-columns:1fr;grid-template-areas:'fleet' 'activity' 'personal' 'bookings' 'calendar' 'actions';}
+ body .workspace-shell .reference-admin-grid {grid-template-columns:1fr;grid-template-areas:'map' 'health' 'pending' 'alerts' 'actions' 'bookings';}
+ body .workspace-shell .reference-driver-grid {grid-template-columns:1fr;}
+ body .workspace-shell .reference-driver-grid>div,body .workspace-shell .ref-driver-assignment {grid-column:1;}
+ body .workspace-shell .ref-driver-actions {grid-template-columns:1fr;}
+}
+@media(max-width:767px) {
+ body .workspace-shell[data-workspace] {display:block;}
+ body .workspace-shell[data-workspace] .workspace-layout {display:block;}
+ body .workspace-shell[data-workspace] .workspace-sidebar {display:none;}
+ body .workspace-shell[data-workspace] .workspace-menu-toggle {display:inline-flex;}
+}
+/* The phone menu also remains one column, including short landscape windows. */
+body .workspace-shell[data-workspace] .workspace-drawer {width:min(92vw,310px);max-width:310px;overflow:visible;}
+body .workspace-shell[data-workspace] .workspace-drawer-panel {--sidebar-row:min(44px,calc((100dvh - 84px) / var(--workspace-nav-count)));padding:8px 10px;height:100dvh;min-height:0;}
+body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-links {gap:0;}
+body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-main {display:flex;flex-direction:column;flex:none;padding:0;gap:0;}
+body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-bottom {display:flex;flex-direction:column;margin-top:auto;gap:0;padding-top:4px;}
+body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-link {height:var(--sidebar-row);min-height:0;flex:none;padding:0 8px;margin:0;gap:8px;font-size:clamp(10px,calc(var(--sidebar-row) * .55),12px);line-height:1.1;}
+body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-link svg {width:min(20px,calc(var(--sidebar-row) * .72));height:min(20px,calc(var(--sidebar-row) * .72));}

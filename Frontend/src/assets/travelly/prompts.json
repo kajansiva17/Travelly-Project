@@ -1,0 +1,146 @@
+[
+  {
+    "file": "heroes/passenger-hero.png",
+    "prompt": "Recreate ONLY the passenger hero background from the reference as standalone wide 16:9 PNG artwork. Cinematic blue twilight Sri Lankan hills, lake, Sigiriya-inspired rock, rail bridge, winding road and white coach, van, sedan and tuk-tuk across lower right. Dark quiet negative space on left for future HTML heading. REMOVE ALL text, logos, navbar, buttons, UI panels, cards, booking form. High quality detailed artwork, matching reference composition and colors."
+  },
+  {
+    "file": "heroes/owner-hero.png",
+    "prompt": "Standalone PNG asset recreation from attached Travelly owner page reference. Wide 16:9 cinematic Sri Lankan blue dusk hero, friendly adult owner white shirt beside white van and coach on RIGHT, empty dark landscape LEFT. Recreate hero photo only. Match reference navy/coral/pearl palette, proportions and premium style. Output exactly ONE asset, NOT a website, collage, grid or contact sheet. Opaque scenic/photo background. No UI, headings, buttons, labels, text, watermark or brand lettering unless specifically requested."
+  },
+  {
+    "file": "heroes/driver-hero.png",
+    "prompt": "Standalone PNG asset recreation from attached Travelly driver page reference. Wide 16:9 cinematic Sri Lankan blue dusk hero, adult driver navy shirt holding phone beside white van on RIGHT, dark empty winding-road landscape LEFT. Recreate hero photo only. Match reference navy/coral/pearl palette, proportions and premium style. Output exactly ONE asset, NOT a website, collage, grid or contact sheet. Opaque scenic/photo background. No UI, headings, buttons, labels, text, watermark or brand lettering unless specifically requested."
+  },
+  {
+    "file": "icons/service-hire.png",
+    "prompt": "Standalone PNG asset recreation from attached Travelly passenger page reference. Isolate and recreate the sculptural navy and coral steering wheel with curved route arrow from the Vehicle hire service card. Match reference navy/coral/pearl palette, proportions and premium style. Output exactly ONE asset, NOT a website, collage, grid or contact sheet. Real transparent alpha background, centered, full silhouette with small padding, no background rectangle or glow. No UI, headings, buttons, labels, text, watermark or brand lettering unless specifically requested."
+  },
+  {
+    "file": "icons/service-tickets.png",
+    "prompt": "Standalone PNG asset recreation from attached Travelly passenger page reference. Isolate and recreate pearl perforated tickets with coral seat pictogram from Tickets service card. Match reference navy/coral/pearl palette, proportions and premium style. Output exactly ONE asset, NOT a website, collage, grid or contact sheet. Real transparent alpha background, centered, full silhouette with small padding, no background rectangle or glow. No UI, headings, buttons, labels, text, watermark or brand lettering unless specifically requested."
+  },
+  {
+    "file": "icons/service-rentals.png",
+    "prompt": "Standalone PNG asset recreation from attached Travelly passenger page reference. Isolate and recreate navy car key with metallic blade and coral circular duration arrow from Rentals service card. Match reference navy/coral/pearl palette, proportions and premium style. Output exactly ONE asset, NOT a website, collage, grid or contact sheet. Real transparent alpha background, centered, full silhouette with small padding, no background rectangle or glow. No UI, headings, buttons, labels, text, watermark or brand lettering unless specifically requested."
+  },
+  {
+    "file": "vehicles/vehicle-van.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated white passenger van three-quarter front view, like Van category image. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "vehicles/vehicle-car.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated white sedan three-quarter front view, like the Car category image. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "vehicles/vehicle-bus.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated white coach bus three-quarter front view, like Bus category image. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "destinations/destination-kandy.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Landscape 3:2 destination photo of Kandy lake and lakeside temple at blue twilight, scenic reflections, no text. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Scenic photo only. No text, branding, UI or watermark."
+  },
+  {
+    "file": "destinations/destination-ella.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Landscape 3:2 destination photo of Ella Nine Arch Bridge and blue train amid green tea-country hills, no text. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Scenic photo only. No text, branding, UI or watermark."
+  },
+  {
+    "file": "vehicles/vehicle-tuk-tuk.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated red and black Sri Lankan tuk-tuk three-quarter front view. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "destinations/destination-galle.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Landscape 3:2 destination photo Galle lighthouse, fort ramparts and coastal palms at sunset, no text. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Scenic photo only. No text, branding, UI or watermark."
+  },
+  {
+    "file": "vehicles/fleet.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated miniature white coach, passenger van and sedan fleet grouped together, polished 3D illustration from Manage vehicles card. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "icons/bookings-calendar.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated coral and pearl calendar with checkmarks and small navy booking checklist, sculptural 3D icon. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "icons/approved-driver.png",
+    "prompt": "Standalone PNG asset from attached Travelly page style reference. Isolated navy coral steering wheel and coral circular check badge, sculptural 3D icon. Premium navy/coral/pearl palette. Exactly ONE asset, no collage or website. Transparent alpha background, full silhouette centered with padding. No text, branding, UI or watermark."
+  },
+  {
+    "file": "icons/assignment-review.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated navy smartphone displaying an abstract trip list and coral location marker, no readable words, reproduce first trip-workflow illustration. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/shared-check.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral outlined circle containing checkmark, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/trip-route.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated miniature winding navy road through blue hills with two coral location markers and subtle tropical trees, recreate third trip-workflow illustration. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/documents.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated pearl document with navy horizontal strokes and coral shield check badge, sculptural 3D icon. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/shared-search.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral magnifying glass icon, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/assignment-accept-decline.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated 3D hand pressing green check button next to red cross button on navy panel, recreate accept-or-decline workflow illustration. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/availability.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral pearl calendar with navy coral clock in front, sculptural 3D icon from availability card. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/assignments.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated sculptural navy winding route with two coral location pins and circular check badge from assignments card. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/shared-profile.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral person bust profile icon, simple premium dimensional style. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/owner-self-drive.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated small coral person bust combined with steering wheel pictogram, premium simple icon. Premium navy/coral/pearl palette. Exactly ONE centered asset, no website/collage. Real transparent background with clean edges and small padding; no backdrop, no halo. No text or watermark."
+  },
+  {
+    "file": "icons/shared-folder.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral folder with a small pearl document, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-shield.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated navy shield with coral checkmark, simple premium dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-location.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral location pin outline, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-document.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral document outline with three lines, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-payment.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral payment card outline, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-notification.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral notification bell outline, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "icons/shared-edit.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Isolated coral pencil over small document outline, premium simple dimensional style. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "branding/shared-logo.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Recreate ONLY complete navbar Travelly logo lockup: speedometer icon plus italic Travelly wordmark and small VEHICLES TICKETS RENTALS subtitle. White and coral wordmark for dark background. No navbar. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Real transparent alpha background, clean edges, centered with padding, no halo. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "illustrations/driver-workspace-preview.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Recreate only small driver workspace illustration with navy sidebar, pearl availability calendar and upcoming assignment cards. Keep labels Availability, Assignments, Trip details, Documents. Clean separate illustration without surrounding website or scenery. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Opaque background. No extra text or watermark; only text explicitly requested above."
+  },
+  {
+    "file": "heroes/cta-landscape.png",
+    "prompt": "Standalone PNG asset from Travelly page style reference. Wide 3:1 cinematic Sri Lankan blue dusk hills, coral sunset sky, dark palm silhouettes, no people or vehicles. Recreate bottom call-to-action background only. Premium navy/coral/pearl palette. Exactly ONE asset, no collage. Opaque background. No extra text or watermark; only text explicitly requested above."
+  }
+]

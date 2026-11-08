@@ -1,0 +1,72 @@
+/* Shared navbar identity. Source artwork and all navigation states are retained. */
+@font-face {
+  font-family: 'Travelly Wordmark';
+  src: url('/fonts/dm-serif-travelly.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Reserve the complete stack before images or the small wordmark font load. */
+.site-header .header-inner {
+  min-height: 82px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.site-header.auth-header .header-inner { min-height: 84px; }
+
+.site-header .brand.travelly-brand {
+  --brand-art-width: clamp(104px, 8vw, 116px);
+  width: calc(var(--brand-art-width) + 12px);
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+.site-header .brand.travelly-brand .brand-mark {
+  width: var(--brand-art-width);
+  height: calc(var(--brand-art-width) * .42);
+}
+/* Transparent source margins: fleet ink ends near y=702 of 823. Move the
+   complete image down by that transparent tail; do not crop or edit its pixels. */
+.site-header .brand.travelly-brand .brand-mark .brand-vehicles { bottom: calc(var(--brand-art-width) * -.064); }
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer { left: 12%; top: -3px; width: 76%; }
+.site-header .brand.travelly-brand .brand-wordmark {
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: -2px;
+  text-align: center;
+  font-family: 'Travelly Wordmark', Georgia, 'Times New Roman', serif;
+  font-size: 28px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: -.45px;
+}
+
+/* The existing multi-role Passenger links need the existing menu layout on
+   tablets too; keep the desktop link order and every account action intact. */
+@media (min-width: 801px) and (max-width: 1279px) {
+  .dashboard-page .site-header .menu-toggle { display: grid; place-items: center; }
+  .dashboard-page .site-header .navigation {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fcf2e5;
+    border-bottom: 1px solid #e2c8ad;
+    padding: 18px 6%;
+    box-shadow: 0 12px 20px #4c1a1120;
+    font-size: 15px;
+    white-space: normal;
+  }
+  .dashboard-page .site-header .navigation.open { display: flex; align-items: stretch; gap: 7px; flex-direction: column; }
+  .dashboard-page .site-header .navigation > a:not(.button) { padding: 12px 0; }
+  .dashboard-page .site-header .dashboard-profile-menu { max-width: none; }
+  .dashboard-page .site-header .dashboard-profile-dropdown { position: static; margin-top: 9px; box-shadow: none; min-width: 0; }
+  .dashboard-page .site-header .dashboard-signout { align-self: flex-start; }
+}
+@media (max-width: 1279px) {
+  .dashboard-page .site-header .navigation { max-height: calc(100dvh - 86px); overflow-y: auto; }
+}

@@ -5,6 +5,7 @@ const now = '2026-10-26T06:00:00Z'
 const uid = '12222222-2222-4222-8222-222222222222', rid = '32222222-2222-4222-8222-222222222222', did = '42222222-2222-4222-8222-222222222222'
 async function setup(page, { admin = true, status = 'PENDING', fail = false } = {}) {
   const roles = [{ id: 'passenger', role_code: 'PASSENGER', approval_status: 'APPROVED' }]
+  if(admin)roles.push({id:'admin',role_code:'ADMIN',approval_status:'APPROVED'})
   const user = { id: uid, full_name: 'Review Operator', display_name: null, public_user_reference: 'USR-0000000000000001', email: 'review@example.com', phone_e164: null, account_status: 'PENDING_VERIFICATION', email_verified_at: null, phone_verified_at: null, approved_roles: admin ? ['PASSENGER', 'ADMIN'] : ['PASSENGER'] }
   let application = { id: rid, role_code: 'OWNER', approval_status: status, requested_at: now, version: 1, approved_at: status === 'APPROVED' ? now : null, approved_by: null, rejection_reason: null, suspended_at: null, suspension_reason: null, updated_at: now, updated_by: null }
   let doc = { id: did, user_id: uid, vehicle_id: null, document_type: 'NIC', issuing_country: null, issue_date: null, expiry_date: null, status: 'UNDER_REVIEW', submitted_at: now, verified_at: null, rejection_reason: null, superseded_document_id: null, version: 2 }
@@ -35,19 +36,21 @@ async function setup(page, { admin = true, status = 'PENDING', fail = false } = 
   await page.getByLabel('Password', { exact: true }).fill('a private test passphrase')
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByRole('heading', { name: 'Hello, Review Operator.' })).toBeVisible()
+  if(!admin)await expect(page.locator('.passenger-dashboard h1')).toBeVisible()
   if (admin) {
-    if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) await page.getByRole('button', { name: 'Open navigation' }).click()
-    await page.getByRole('link', { name: 'Application review', exact: true }).click()
+    await page.evaluate(()=>{history.pushState({},'', '/admin/dashboard');dispatchEvent(new PopStateEvent('popstate'))})
+    await expect(page.getByRole('heading',{name:/^Good (morning|afternoon|evening), Review$/})).toBeVisible()
+    if(await page.getByRole('button',{name:'Open workspace navigation',exact:true}).isVisible())await page.getByRole('button',{name:'Open workspace navigation',exact:true}).click()
+    await page.getByRole('navigation',{name:'Super Admin sidebar',exact:true}).filter({visible:true}).getByRole('link',{name:'Users & Roles',exact:true}).click()
   }
   return { mutations, files }
 }
 
 test('anonymous and non-Admin route access never exposes a queue', async ({ page }) => {
-  await page.goto('/admin/applications'); await expect(page).toHaveURL(/\/login$/)
+  await page.goto('/admin/applications'); await expect(page).toHaveURL(/\/login\?workspace=admin$/)
   await setup(page, { admin: false })
   await page.evaluate(() => { history.pushState({}, '', '/admin/applications'); dispatchEvent(new PopStateEvent('popstate')) })
-  await expect(page.getByRole('heading', { name: 'Review access denied' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Workspace access denied' })).toBeVisible()
   await expect(page.getByText('Real Contract Applicant')).toHaveCount(0)
 })
 
@@ -60,7 +63,7 @@ test('real queue layout, protected preview and footer remain usable', async ({ p
   expect(c.files[0].authorization).toBe('Bearer test-access')
   await page.locator('footer').scrollIntoViewIfNeeded(); await expect(page.locator('footer')).toBeInViewport()
   expect(await page.evaluate(() => document.scrollingElement.scrollWidth <= innerWidth)).toBe(true)
-  expect(await page.locator('.site-header').evaluate(el => getComputedStyle(el).position)).toBe('sticky')
+  expect(await page.locator('.workspace-topbar').evaluate(el => getComputedStyle(el).position)).toBe('sticky')
   await page.screenshot({ path: test.info().outputPath('review-detail.png'), fullPage: true })
 })
 
@@ -73,7 +76,7 @@ test('reject requires a visible full reason and explicit confirmation', async ({
   await page.getByRole('button', { name: 'Review confirmation' }).click()
   expect(c.mutations).toHaveLength(0)
   await page.getByRole('button', { name: 'Confirm decision' }).click()
-  await expect(page.getByText('Decision saved.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Application rejected. The applicant can see your reason in their application status.', { exact: true })).toBeVisible()
   expect(c.mutations).toEqual([{ decision: 'REJECTED', version: 1, reason: 'Please supply readable ownership evidence.' }])
   await expect(page.getByRole('button', { name: 'Approve Owner' })).toHaveCount(0)
 })
@@ -174,9 +177,30 @@ test('applicant uploads private evidence through existing profile without changi
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], page: 1, page_size: 20, total: 0, has_next: false }) })
   })
   await page.evaluate(() => { history.pushState({}, '', '/account'); dispatchEvent(new PopStateEvent('popstate')) })
-  await expect(page.getByRole('heading', { name: 'Your private application documents' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your private documents', exact: true })).toBeVisible()
   await page.getByLabel('Document file', { exact: false }).setInputFiles({ name: 'identity.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64') })
   await page.getByRole('button', { name: 'Submit private document', exact: true }).click()
   await expect(page.getByText('Your private document was submitted for review.', { exact: false })).toBeVisible()
   expect(uploads[0]).toContain('multipart/form-data; boundary=')
+})
+
+
+test('refresh of a resubmitted review clears the prior rejection success notice',async({page})=>{
+ await setup(page)
+ await page.getByRole('link',{name:'Review application',exact:true}).click()
+ await page.getByRole('button',{name:'Reject Owner',exact:true}).click()
+ await page.getByLabel('Applicant-visible reason').fill('Correct the evidence.')
+ await page.getByRole('button',{name:'Review confirmation',exact:true}).click()
+ await page.getByRole('button',{name:'Confirm decision',exact:true}).click()
+ const oldNotice=page.getByRole('status').filter({hasText:'Application rejected.'})
+ await expect(oldNotice).toBeVisible()
+ await page.route('**/api/v1/admin/role-requests/'+rid,route=>route.fulfill({json:{application:{id:rid,role_code:'OWNER',approval_status:'PENDING',version:3},applicant:{full_name:'Real Contract Applicant'},documents:[],approval_readiness:{ready:false,requirements:[]}}}))
+ const refresh=page.getByRole('button',{name:'Refresh application',exact:true})
+ await refresh.click()
+ await expect(page.locator('.dashboard-role-status')).toHaveText('Pending Review')
+ await expect(oldNotice).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'Approve Owner',exact:true})).toBeDisabled()
+ await expect(page.getByRole('button',{name:'Reject Owner',exact:true})).toBeEnabled()
+ await refresh.hover()
+ expect(await refresh.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain('linear-gradient')
 })

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { phoneCountries, registrationPhone } from '../src/registrationPhone.js'
+import { phoneCountries, registrationPhone } from '../src/features/auth/registrationPhone.js'
 
 test('country metadata supports Sri Lanka, foreign regions and shared calling codes', () => {
   assert.equal(phoneCountries.find(c => c.code === 'LK').callingCode, '94')

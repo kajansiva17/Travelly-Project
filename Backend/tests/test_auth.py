@@ -4,10 +4,10 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select, text, inspect
 from sqlalchemy.exc import IntegrityError
-from app.api import require_role
-from app.errors import ApiError
+from app.api.routers.api import require_role
+from app.core.errors import ApiError
 from app.models import User, UserRole
-from app.security import decode_token
+from app.core.security import decode_token
 from conftest import signed_in, bearer, captured_token
 
 
@@ -174,7 +174,7 @@ def test_schema_has_only_auth_tables_and_enforces_constraints(client):
     engine=client.app.state.engine
     with engine.connect() as c:
         schema=c.scalar(text('select current_schema()'))
-    assert set(inspect(engine).get_table_names(schema=schema))=={'users','user_roles','vehicles','documents','alembic_version'}
+    assert set(inspect(engine).get_table_names(schema=schema))=={'users','user_roles','vehicles','documents','service_types','vehicle_services','routes','route_stops','scheduled_trips','bookings','trips','vehicle_records','notifications','alembic_version'}
     with client.app.state.sessions() as db:
         db.add(User(public_user_reference='USR-0123456789ABCDEF',full_name='No contact',password_hash='hash'))
         with pytest.raises(IntegrityError):db.commit()

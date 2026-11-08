@@ -1,0 +1,19 @@
+import {test,expect} from '@playwright/test'
+import fs from 'node:fs'
+const fixture=JSON.parse(fs.readFileSync(new URL('../../../.tools/pricing-browser-fixture.json',import.meta.url),'utf8'))
+async function menu(page){const toggle=page.getByRole('button',{name:'Open navigation',exact:true});if(await toggle.isVisible())await toggle.click()}
+async function visit(page,path){await page.evaluate(path=>{history.pushState({},'',path);dispatchEvent(new PopStateEvent('popstate'))},path)}
+test('real API account navigation, contextual evidence, upload and sign out',async({page},info)=>{
+ const mobile=info.project.name==='mobile',name=mobile?'Browser Pricing Owner':'Browser Pricing Passenger'
+ await page.goto('/account');await expect(page).toHaveURL(/\/login$/)
+ await page.getByLabel('Email address',{exact:true}).fill(mobile?'pricing-owner@example.com':'pricing-passenger@example.com');await page.getByLabel('Password',{exact:true}).fill('BrowserTravelly1!');await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page.getByRole('heading',{name:`Hello, ${name}.`,exact:true})).toBeVisible()
+ await menu(page);await page.locator('.dashboard-profile-menu summary').click();await page.getByRole('link',{name:'Your profile',exact:true}).click();await expect(page.getByRole('heading',{name:'Your private documents',exact:true})).toBeVisible();await expect(page.getByLabel('Whose name is on the vehicle registration?',{exact:false})).toHaveCount(0)
+ await menu(page);await expect(page.getByRole('link',{name:'Log in',exact:true})).toHaveCount(0);await page.getByRole('link',{name:'Home',exact:true}).click();await expect(page).toHaveURL(/\/$/);await menu(page);await page.getByRole('link',{name:'Passenger dashboard',exact:true}).click();await expect(page.getByRole('heading',{name:`Hello, ${name}.`,exact:true})).toBeVisible()
+ await visit(page,'/login');await expect(page).toHaveURL(/\/dashboard$/);await visit(page,'/account');await expect(page.getByRole('heading',{name:'Your private documents',exact:true})).toBeVisible()
+ const flows=page.getByRole('navigation',{name:'Document flows'});await flows.getByRole('link',{name:'Owner application documents',exact:true}).click();await expect(page.getByLabel('Whose name is on the vehicle registration?',{exact:false})).toBeVisible();await expect(page.getByRole('option',{name:'Driving licence',exact:true})).toHaveCount(0)
+ await flows.getByRole('link',{name:'Driver application documents',exact:true}).click();await expect(page.getByLabel('Whose name is on the vehicle registration?',{exact:false})).toHaveCount(0);await expect(page.getByRole('option',{name:'Driving licence',exact:true})).toHaveCount(1)
+ await flows.getByRole('link',{name:'Shared identity documents',exact:true}).click();await expect(page.getByRole('heading',{name:'Your private documents',exact:true})).toBeVisible();await page.getByLabel('Document file',{exact:false}).setInputFiles(fixture.image_path);await page.getByRole('button',{name:'Submit private document',exact:true}).click();await expect(page.getByText('Your private document was submitted for review.',{exact:false})).toBeVisible();await expect(page.getByRole('button',{name:'View private document',exact:true}).first()).toBeVisible()
+ const previous=page.getByRole('button',{name:'Previous',exact:true});await expect(previous).toBeDisabled();expect(await previous.evaluate(el=>getComputedStyle(el).cursor)).toBe('not-allowed');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.locator('.document-checklist').screenshot({path:info.outputPath('shared-identity.png'),style:'.site-header,.site-header *,.skip-link{visibility:hidden!important}'})
+ await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/\/login$/);await visit(page,'/account');await expect(page).toHaveURL(/\/login$/)
+})
