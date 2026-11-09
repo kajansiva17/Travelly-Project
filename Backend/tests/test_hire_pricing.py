@@ -496,7 +496,7 @@ def test_admin_reviewed_matrix_and_licence_categories_are_not_owner_editable(cli
     created=client.post('/api/v1/admin/service-types',headers=bearer(tokens),json={'code':'TEST_'+uuid4().hex[:10].upper(),'name':'Reviewed private-hire catalogue','default_pricing_basis':'DISTANCE','is_active':True,'pricing_scope':'LONG_DISTANCE'})
     assert created.status_code==201,created.text
     scope_path=f"/api/v1/admin/service-types/{created.json()['id']}/pricing-scope"
-    scope={'expected_version':created.json()['version'],'pricing_scope':'LOCAL'}
+    scope={'expected_version':created.json()['version'],'pricing_scope':'UNSPECIFIED'}
     assert client.patch(scope_path,headers=bearer(c.owner),json=scope).status_code==403
     classified=client.patch(scope_path,headers=bearer(tokens),json=scope)
     assert classified.status_code==200,classified.text

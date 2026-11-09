@@ -45,7 +45,10 @@ def test_fixed_first_then_distance_then_quote_and_no_duration_switch(client, hir
     assert c.create(c.itinerary(('A', 'C')))['proposal'] == {}
     searched = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': inside,
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
-    assert searched.status_code == 200 and searched.json()['items'][0]['price']['total'] == '1500.00'
+    assert searched.status_code == 200 and 'price' not in searched.json()['items'][0]
+    quoted = client.post(f"/api/v1/search/vehicles/{searched.json()['items'][0]['id']}/quote", json={'service_type_id': str(c.service_id), 'itinerary': inside,
+        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
+    assert quoted.status_code == 200 and quoted.json()['price']['total'] == '1500.00'
 
 
 @pytest.mark.parametrize('reverse_fare', ['1500', '1750'])
@@ -70,7 +73,7 @@ def test_fixed_inclusions_extras_disclosed_and_rate_edit_preserves_acceptance(cl
     assert c.create()['proposal']['quote']['calculation']['total'] == '1700.00'
 
 
-@pytest.mark.parametrize('scope', [None, 'LOCAL', 'AIRPORT', 'EVENT', 'UNSPECIFIED'])
+@pytest.mark.parametrize('scope', [None, 'EVENT', 'UNSPECIFIED'])
 def test_non_long_distance_scopes_never_inherit_the_formula(client, hire_setup, scope):
     c = hire_setup; accepted = accept(client, c, c.create())
     with client.app.state.sessions() as db:
