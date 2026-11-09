@@ -32,3 +32,11 @@ _None found (or no workspace open)._
 _None found._
 
 <!-- cloude-code-toolbox:mcp-skills-awareness-end -->
+
+## UI revamp rules
+- Work ONLY inside Frontend/. Never edit backend code.
+- Do NOT change API paths, request/response field names, api() call logic, auth/token handling, or routing logic.
+- Change only presentation: JSX markup/classes, CSS, layout components, styling.
+- Target design reference: - Design references: Frontend/design-reference/ (see REFERENCE_MAP.md). Only source of truth.
+- Remove the old blue form theme completely; do not leave old styles as fallback.
+- Prefer shared components/styles over per-page duplicate CSS.
