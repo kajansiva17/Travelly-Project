@@ -14,7 +14,7 @@ export default function AppSidebar({ role, info, authorized, pathname, search, m
   // Travel & Booking lives in the shared bottom block for every role.
   const main = menu.filter(item => !item.bottom && item.path !== travelPath)
   const bottom = menu.filter(item => item.bottom)
-  const travelActive = pathname.startsWith(info.prefix + '/personal/') || (role === 'PASSENGER' && pathname.startsWith('/travel/'))
+  const travelActive = pathname.startsWith(info.prefix + '/personal/') || (role === 'PASSENGER' && (pathname.startsWith('/travel/') || pathname === '/hire' || pathname.startsWith('/vehicles/')))
   const link = item => {
     const active = menuActive(item, pathname, search)
     return <Link key={item.label} to={item.path} className={'app-sidebar-link' + (active ? ' is-active' : '')} aria-current={active ? 'page' : undefined}>
