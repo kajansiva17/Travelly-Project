@@ -30,6 +30,7 @@ import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
 import OwnerFinanceOverview from './features/owner/OwnerFinanceOverview'
 import DriverTicketBoarding from './features/driver/DriverTicketBoarding'
 import AdminTicketAudit from './features/admin/AdminTicketAudit'
+import AdminRoutes from './features/admin/AdminRoutes'
 import AdminOversight from './features/admin/AdminOversight'
 import TripOperationPage from './features/booking/TripOperationPage'
 import TripFinancePage from './features/booking/TripFinancePage'
@@ -205,6 +206,7 @@ export default function App() {
             <Route path="/admin/documents" element={<AdminDocuments/>}/>
             <Route path="/admin/services-routes" element={<AdminServiceCatalogue/>}/>
             <Route path="/admin/services-routes/tickets" element={<AdminTicketAudit/>}/>
+            <Route path="/admin/services-routes/routes" element={<AdminRoutes/>}/>
             <Route path="/admin/bookings" element={<AdminWorkflowPage kind="bookings"/>}/>
             <Route path="/admin/oversight" element={<AdminOversight/>}/>
             <Route path="/admin/rentals" element={<RentalRoleUi role="ADMIN"/>}/>

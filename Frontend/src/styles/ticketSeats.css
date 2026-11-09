@@ -1,0 +1,14 @@
+.seat-map{display:flex;flex-wrap:wrap;gap:24px;margin:12px 0}
+.seat-deck-title{font-weight:600;margin:0 0 6px}
+.seat-grid-map{display:grid;gap:8px;padding:14px;border:1px solid rgba(0,0,0,.15);border-radius:18px 18px 10px 10px;background:rgba(255,255,255,.55)}
+.seat-map .seat{height:44px;min-width:44px;border-radius:10px;border:1px solid rgba(0,0,0,.25);background:#fff;font-weight:600;cursor:pointer}
+.seat-map .seat:disabled{cursor:not-allowed;opacity:.55}
+.seat-map .seat.selected{background:#d71920;color:#fff;border-color:#d71920}
+.seat-map .seat.crew{background:#eee;opacity:1}
+.seat-map .seat.not-sold{background:repeating-linear-gradient(45deg,#f3f3f3,#f3f3f3 6px,#e4e4e4 6px,#e4e4e4 12px)}
+.seat-map .seat.held{background:#fff3cd}
+.seat-map .seat.booked{background:#d9d9d9;text-decoration:line-through}
+.seat-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.9rem;margin:6px 0}
+.layout-rows{display:grid;gap:8px;margin:10px 0}
+.layout-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.layout-row input[type=number]{width:80px}

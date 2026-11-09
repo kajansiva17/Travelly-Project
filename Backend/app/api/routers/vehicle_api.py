@@ -141,7 +141,7 @@ def edit_vehicle(vehicle_id:UUID,body:VehiclePatch,request:Request,user=Depends(
                 raise ApiError(409,'REGISTRATION_LOCKED','Registration cannot be changed after first submission. Request an Admin correction.')
         merged={**facts(row),**values}
         try:validated=VehicleFacts.model_validate(merged)
-        except ValidationError:raise ApiError(422,'VEHICLE_FACTS_INVALID','Check factual values and choose power/fuel together. Do not guess missing facts.') from None
+        except ValidationError as exc:raise ApiError(422,'VEHICLE_FACTS_INVALID','Check factual values and choose power/fuel together. Do not guess missing facts.',[{'field':str(e['loc'][-1]) if e['loc'] else 'power_type','message':e['msg']} for e in exc.errors()]) from None
         validate_public_facts(merged,registration if registration is not None else str(row.registration_number))
         changed={key for key,value in values.items() if value!=facts(row).get(key)}
         if MATERIAL & changed:

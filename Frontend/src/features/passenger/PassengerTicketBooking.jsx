@@ -1,12 +1,55 @@
-import React,{useEffect,useState} from 'react'
-import {api,publicRead} from '../../services/api'
+import React,{useState} from 'react'
+import {publicRead} from '../../services/api'
 import {TravellyGlassPanel,TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
 import {ErrorNotice,Header} from '../../components/components'
+import SeatMap from '../../components/SeatMap'
 
-export default function PassengerTicketBooking(){const [query,setQuery]=useState({route:'',date:'',travellers:1,type:'',luggage:'',ac:''}),[items,setItems]=useState(null),[departure,setDeparture]=useState(null),[seats,setSeats]=useState([]),[selected,setSelected]=useState([]),[hold,setHold]=useState(null),[error,setError]=useState(null)
- useEffect(()=>{if(!hold?.expires_at||hold.boarding_pin)return;const id=setInterval(()=>setHold(x=>x&&({...x,remaining:Math.max(0,new Date(x.expires_at)-Date.now())})),1000);return()=>clearInterval(id)},[hold])
- async function search(e){e.preventDefault();setError(null);try{setItems(await publicRead(`/ticket-departures?route=${encodeURIComponent(query.route)}&date=${query.date}&vehicle_type=${query.type}&air_conditioned=${query.ac}`))}catch(e){setError(e)}}
- async function choose(d){try{setDeparture(d);setSelected([]);setHold(null);setSeats((await publicRead(`/ticket-departures/${d.id}/seats`)).items)}catch(e){setError(e)}}
- async function reserve(){try{const result=await api(`/ticket-departures/${departure.id}/holds`,{method:'POST',body:JSON.stringify({seat_numbers:selected})});setHold({...result,remaining:new Date(result.expires_at)-Date.now()})}catch(e){setError(e)}}
- async function pay(){try{setHold(await api(`/ticket-holds/${hold.id}/sandbox-confirmation`,{method:'POST',body:JSON.stringify({status:'SUCCEEDED'})}))}catch(e){setError(e)}}
- return <><Header/><main className="passenger-booking-flow" id="main"><header className="passenger-booking-heading"><p>Travel & Booking</p><h1>Find a scheduled ticket</h1><span>Choose a departure before seeing its fare or selecting numbered seats.</span></header><ErrorNotice error={error}/><TravellyGlassPanel><form className="passenger-detail-grid" onSubmit={search}><input required placeholder="Route or destination" value={query.route} onChange={e=>setQuery({...query,route:e.target.value})}/><input required type="date" value={query.date} onChange={e=>setQuery({...query,date:e.target.value})}/><input min="1" type="number" aria-label="Travellers" value={query.travellers} onChange={e=>setQuery({...query,travellers:e.target.value})}/><select value={query.type} onChange={e=>setQuery({...query,type:e.target.value})}><option value="">Bus or Van</option><option value="BUS">Bus</option><option value="VAN">Van</option></select><select value={query.ac} onChange={e=>setQuery({...query,ac:e.target.value})}><option value="">AC optional</option><option value="true">Air conditioned</option><option value="false">Non-AC</option></select><input placeholder="Luggage needs (optional)" value={query.luggage} onChange={e=>setQuery({...query,luggage:e.target.value})}/><button className="button">Search departures</button></form>{items?.items?.length===0&&<TravellyState title="No matching departures">No published Bus or Van departure matches these requirements.</TravellyState>}{items?.items?.map(d=><article className="travelly-vehicle-card" key={d.id}><div><h3>{d.route}</h3><p>{new Date(d.departure_at).toLocaleString()} · {d.vehicle_type} · {d.air_conditioned?'AC':'Non-AC'} · {d.available_seats} seats available</p></div><button className="button" onClick={()=>choose(d)}>Select departure</button></article>)}{departure&&<section className="passenger-quote"><h2>Select numbered seats</h2><p>Fare is shown after a departure is selected. <TravellyStatusChip tone="success">Available</TravellyStatusChip> <TravellyStatusChip tone="warning">Held</TravellyStatusChip> <TravellyStatusChip>Reserved</TravellyStatusChip></p><div className="seat-grid">{seats.map(s=><button type="button" disabled={s.status!=='AVAILABLE'} className={selected.includes(s.seat_number)?'selected':''} key={s.seat_number} onClick={()=>setSelected(selected.includes(s.seat_number)?selected.filter(x=>x!==s.seat_number):[...selected,s.seat_number])}>{s.seat_number}</button>)}</div><button className="button" disabled={!selected.length||hold} onClick={reserve}>Hold selected seats for 5 minutes</button></section>}{hold?.expires_at&&hold.remaining!==undefined&&!hold.boarding_pin&&<section className="passenger-quote"><h2>Five-minute seat hold</h2><p>{hold.seats?.join(', ')} · expires in {Math.max(0,Math.ceil(hold.remaining/1000))} seconds</p><p>Fare total: LKR {hold.quote?.total}</p><button className="button" disabled={hold.remaining<=0} onClick={pay}>Confirm sandbox payment</button></section>}{hold?.boarding_pin&&<TravellyState title="Ticket reserved">Reference {hold.reference}; seats {hold.seats.join(', ')}. Your boarding PIN is {hold.boarding_pin}. Keep it private.</TravellyState>}</TravellyGlassPanel></main></>}
+export default function PassengerTicketBooking(){
+  const [query,setQuery]=useState({origin:'',destination:'',date:'',travellers:1}),[items,setItems]=useState(null),[departure,setDeparture]=useState(null),
+    [seats,setSeats]=useState([]),[selected,setSelected]=useState([]),[error,setError]=useState(null)
+  async function search(e){
+    e.preventDefault();setError(null);setDeparture(null);setSeats([]);setSelected([])
+    const params=new URLSearchParams({min_seats:String(Math.max(1,Number(query.travellers)||1))})
+    if(query.origin.trim())params.set('origin',query.origin.trim())
+    if(query.destination.trim())params.set('destination',query.destination.trim())
+    if(query.date)params.set('date',query.date)
+    try{setItems(await publicRead(`/scheduled-trips?${params}`))}catch(e){setError(e)}
+  }
+  async function choose(d){
+    setError(null);setSelected([])
+    try{const [detail,map]=await Promise.all([publicRead(`/scheduled-trips/${d.id}`),publicRead(`/scheduled-trips/${d.id}/seats`)]);setDeparture({...detail,currency:map.currency});setSeats(map.seats)}catch(e){setError(e)}
+  }
+  const toggle=s=>setSelected(selected.includes(s.code)?selected.filter(x=>x!==s.code):[...selected,s.code])
+  const total=seats.filter(s=>selected.includes(s.code)).reduce((sum,s)=>sum+Number(s.fare),0)
+  const travellers=Math.max(1,Number(query.travellers)||1)
+  const mapSeats=seats.map(s=>({...s,bookable:true}))
+  return <><Header/><main className="passenger-booking-flow" id="main">
+    <header className="passenger-booking-heading"><p>Travel &amp; Booking</p><h1>Find a scheduled ticket</h1>
+      <span>Choose a departure before seeing its fare or selecting numbered seats.</span></header>
+    <ErrorNotice error={error}/>
+    <TravellyGlassPanel>
+      <form className="passenger-detail-grid" onSubmit={search}>
+        <input placeholder="From" value={query.origin} onChange={e=>setQuery({...query,origin:e.target.value})}/>
+        <input placeholder="To" value={query.destination} onChange={e=>setQuery({...query,destination:e.target.value})}/>
+        <input type="date" value={query.date} onChange={e=>setQuery({...query,date:e.target.value})}/>
+        <input min="1" max="100" type="number" aria-label="Travellers" value={query.travellers} onChange={e=>setQuery({...query,travellers:e.target.value})}/>
+        <button className="button">Search departures</button>
+      </form>
+      {items?.items?.length===0&&<TravellyState title="No matching departures">No published departure matches these requirements.</TravellyState>}
+      {items?.items?.map(d=><article className="travelly-vehicle-card" key={d.id}><div>
+        <h3>{d.route.route_name}</h3>
+        <p>{new Date(d.departure_at).toLocaleString()} · {d.vehicle.make} {d.vehicle.model}{d.vehicle.air_conditioned?' · AC':''} · {d.available_seats} seats available</p></div>
+        <button className="button" onClick={()=>choose(d)}>Select departure</button></article>)}
+      {departure&&<section className="passenger-quote">
+        <h2>Select numbered seats</h2>
+        <p>{departure.route.origin_name} → {departure.route.destination_name} · {new Date(departure.departure_at).toLocaleString()} · fare per seat {departure.currency} {departure.fare_per_seat}</p>
+        <div className="seat-legend"><span>□ Available</span><span>■ Selected</span><span>▨ Not for sale</span><span>▭ Held / booked</span></div>
+        <SeatMap seats={mapSeats} selected={selected} onToggle={toggle} label="Choose seats"/>
+        <p>Selected: {selected.length?selected.join(', '):'none'}{selected.length>0&&<> · Total {departure.currency} {total.toFixed(2)}</>}</p>
+        {selected.length>0&&selected.length!==travellers&&<p>You searched for {travellers} traveller{travellers>1?'s':''}; select {travellers} seat{travellers>1?'s':''}.</p>}
+        <TravellyStatusChip tone="warning">Coming soon</TravellyStatusChip>
+        <p>Holding seats and paying for a ticket is not available yet. Nothing has been reserved.</p>
+        <button className="button" disabled>Hold selected seats</button>
+      </section>}
+    </TravellyGlassPanel></main></>
+}

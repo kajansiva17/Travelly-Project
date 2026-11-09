@@ -1,5 +1,12 @@
-import React,{useEffect,useState} from 'react'
-import {api} from '../../services/api'
-import {Header,ErrorNotice} from '../../components/components'
-import {TravellyGlassPanel,TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
-export default function AdminTicketAudit(){const [items,setItems]=useState(null),[error,setError]=useState(null);useEffect(()=>{api('/admin/ticket-audit').then(x=>setItems(x.items||[])).catch(setError)},[]);return <><Header/><main className="role-dashboard" id="main"><div className="workspace-heading"><p className="section-kicker">ADMIN · SERVICES & ROUTES</p><h1>Ticket audit</h1><p>Read-only departure, seat-hold, reservation and boarding audit metadata. Credentials and private contact details are not exposed.</p></div><ErrorNotice error={error}/><TravellyGlassPanel>{items===null?<TravellyState kind="loading" title="Loading ticket audit"/>:items.length?items.map(x=><article className="travelly-vehicle-card" key={x.id}><div><h3>{x.route}</h3><p>{new Date(x.departure_at).toLocaleString()}</p><TravellyStatusChip tone={x.status==='PUBLISHED'?'success':'warning'}>{x.status}</TravellyStatusChip><p>Seats: {Object.entries(x.seat_totals).map(([s,n])=>`${s}: ${n}`).join(' · ')}</p><p>Holds: {x.holds.length}; reservations: {x.reservations.length}</p><ul>{x.reservations.map(r=><li key={r.reference}>{r.reference} · {r.payment_status} · {r.boarding_status}{r.cancelled_at?' · cancellation recorded':''}</li>)}</ul></div></article>):<TravellyState title="No ticket audit data">No scheduled ticket departures are available.</TravellyState>}</TravellyGlassPanel></main></>}
+import React from 'react'
+import {Header} from '../../components/components'
+import {TravellyGlassPanel,TravellyState} from '../../components/TravellyVisualFoundation'
+
+// The ticket audit needs bookings and holds, which are not available yet. Show an honest state, never fake data.
+export default function AdminTicketAudit(){
+  return <><Header/><main className="role-dashboard" id="main">
+    <div className="workspace-heading"><p className="section-kicker">ADMIN · SERVICES &amp; ROUTES</p><h1>Ticket audit</h1>
+      <p>Read-only departure, seat-hold, booking and boarding audit metadata will appear here. Credentials and private contact details are never exposed.</p></div>
+    <TravellyGlassPanel><TravellyState title="Not available yet">Ticket audit opens once Passengers can book seats. No ticket activity exists to review.</TravellyState></TravellyGlassPanel>
+  </main></>
+}

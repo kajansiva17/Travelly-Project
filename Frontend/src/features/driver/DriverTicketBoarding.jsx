@@ -1,5 +1,12 @@
-import React,{useEffect,useState} from 'react'
-import {api} from '../../services/api'
-import {Header,ErrorNotice} from '../../components/components'
+import React from 'react'
+import {Header} from '../../components/components'
 import {TravellyGlassPanel,TravellyState} from '../../components/TravellyVisualFoundation'
-export default function DriverTicketBoarding(){const [items,setItems]=useState(null),[reference,setReference]=useState(''),[credential,setCredential]=useState(''),[error,setError]=useState(null),[result,setResult]=useState(null);useEffect(()=>{api('/drivers/me/ticket-departures').then(x=>setItems(x.items||[])).catch(setError)},[]);async function verify(e){e.preventDefault();setError(null);try{setResult(await api(`/ticket-reservations/${reference}/boarding-verification`,{method:'POST',body:JSON.stringify({pin:credential,qr_token:credential})}))}catch(e){setError(e)}}return <><Header/><main className="role-dashboard" id="main"><div className="workspace-heading"><p className="section-kicker">DRIVER · ASSIGNED DEPARTURES</p><h1>Ticket boarding</h1><p>Only the assigned Driver or Owner-driver can verify a Passenger credential.</p></div><ErrorNotice error={error}/><TravellyGlassPanel>{items===null?<TravellyState kind="loading" title="Loading assigned departures"/>:<>{items.map(x=><article className="travelly-vehicle-card" key={x.id}><h3>{x.route}</h3><p>{new Date(x.departure_at).toLocaleString()} · {x.vehicle_type}</p></article>)}<form className="passenger-detail-grid" onSubmit={verify}><input required placeholder="Ticket reference" value={reference} onChange={e=>setReference(e.target.value)}/><input required placeholder="QR scan value or PIN" value={credential} onChange={e=>setCredential(e.target.value)}/><button className="button">Verify boarding</button></form>{result&&<TravellyState title="Boarding verified">{result.reference} is boarded.</TravellyState>}</>}</TravellyGlassPanel></main></>}
+
+// Boarding verification needs ticket bookings, which are not available yet. Show an honest state, never fake data.
+export default function DriverTicketBoarding(){
+  return <><Header/><main className="role-dashboard" id="main">
+    <div className="workspace-heading"><p className="section-kicker">DRIVER · ASSIGNED DEPARTURES</p><h1>Ticket boarding</h1>
+      <p>Only the assigned Driver or Owner-driver will verify Passenger credentials here.</p></div>
+    <TravellyGlassPanel><TravellyState title="Not available yet">Ticket boarding opens once Passengers can book seats. There is nothing to verify right now.</TravellyState></TravellyGlassPanel>
+  </main></>
+}
