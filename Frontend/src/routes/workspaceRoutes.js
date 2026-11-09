@@ -13,23 +13,21 @@ export function loginDestination(user,roles,journey){
 }
 export function accountPath(role,documents){const q=new URLSearchParams({workspace:role.toLowerCase()});if(documents)q.set('documents',documents);return '/account?'+q}
 export function withWorkspace(path,role){const [url,hash]=path.split('#'),[base,search]=url.split('?'),q=new URLSearchParams(search);q.set('workspace',role.toLowerCase());return base+'?'+q+(hash?'#'+hash:'')}
-export function personalHirePath(role){return workspaceRoles[role].prefix+'/personal/hire'}
+export function personalHirePath(role){return role==='PASSENGER'?'/travel/book/service':workspaceRoles[role].prefix+'/personal/hire'}
 export function personalBookingsPath(role){return workspaceRoles[role].prefix+'/personal/bookings'}
 export function personalBookingPath(role,bookingId){return personalBookingsPath(role)+'/'+bookingId}
 export function personalVehiclePath(role,vehicleId){return workspaceRoles[role].prefix+'/personal/vehicles/'+vehicleId}
 export function requestedWorkspace(search){const code=new URLSearchParams(search).get('workspace')?.toUpperCase();return workspaceRoles[code]?code:'PASSENGER'}
 export function workspaceMenu(role){
- if(role==='PASSENGER')return []
  const p=workspaceRoles[role].prefix
- const bottom=[item('Profile',accountPath(role),'user',{bottom:true}),item('Settings',p+'/settings','settings',{bottom:true})]
+ const bottom=[item('Settings',p+'/settings','settings',{bottom:true}),item('Profile',accountPath(role),'user',{bottom:true})]
  const menus={
-  PASSENGER:[],
-  OWNER:[item('Dashboard','/owner/dashboard'),item('My Vehicles','/owner/vehicles','car'),item('Services','/owner/rates','settings'),item('Ticket Departures',p+'/ticket-departures','ticket'),item('Seat Inventory',p+'/seat-inventory','seat'),item('Driver Assignments',p+'/assignments','users'),item('Bookings',p+'/bookings','calendar'),item('Documents',accountPath(role,'owner'),'document'),item('Earnings',p+'/earnings','wallet'),item('Reels & Promotions',p+'/reels','video'),item('Reviews',p+'/reviews','star'),item('Reports',p+'/reports','chart')],
-  DRIVER:[item('Dashboard',p+'/dashboard'),item('Assignments',p+'/assignments','calendar'),item('Operate Trip',p+'/operate-trip','car'),item('Road Alerts',p+'/road-alerts','alert'),item('My Reels',p+'/reels','video'),item('Feed',p+'/feed','globe'),item('Earnings',p+'/earnings','wallet'),item('Availability',p+'/availability','clock'),item('Trip History',p+'/trip-history','clock'),item('Support',p+'/support','headset')],
-  ADMIN:[item('Dashboard',p+'/dashboard'),item('Users & Roles','/admin/applications','users'),item('Documents',p+'/documents','document'),item('Vehicles','/admin/vehicles','car'),item('Services & Routes',p+'/services-routes','route'),item('Bookings',p+'/bookings','calendar'),item('Payments',p+'/payments','wallet'),item('Social & Reviews',p+'/social-reviews','star'),item('Road Alerts',p+'/road-alerts','alert'),item('Manual Fulfilment',p+'/manual-fulfilment','headset'),item('Reports',p+'/reports','chart')]
+  PASSENGER:[item('Overview','/dashboard'),item('My Trips','/bookings','calendar'),item('Bookings','/passenger/bookings','ticket'),item('Saved Places',p+'/saved-places','heart'),item('Payments',p+'/payments','wallet'),item('Support',p+'/support','headset')],
+  OWNER:[item('Overview','/owner/dashboard'),item('Fleet','/owner/vehicles','car'),item('Bookings',p+'/bookings','calendar'),item('Operations',p+'/operations','watch'),item('Finance',p+'/earnings','wallet'),item('More',p+'/support','spark'),item('Travel & Booking',personalHirePath('OWNER'),'home')],
+  DRIVER:[item('Overview',p+'/dashboard'),item('My Assignments',p+'/assignments','calendar'),item('Operate Trip',p+'/operate-trip','car'),item('My Trips',p+'/trip-history','calendar'),item('Availability',p+'/availability','clock'),item('Earnings',p+'/earnings','wallet'),item('Trip History',p+'/trip-history','clock'),item('Road Alerts',p+'/road-alerts','alert'),item('Support',p+'/support','headset')],
+  ADMIN:[item('Overview',p+'/dashboard'),item('Users & Roles','/admin/applications','users'),item('Documents',p+'/documents','document'),item('Vehicles','/admin/vehicles','car'),item('Services & Routes',p+'/services-routes','route'),item('Bookings',p+'/bookings','calendar'),item('Payments',p+'/payments','wallet'),item('Reviews',p+'/social-reviews','star'),item('Road Alerts',p+'/road-alerts','alert'),item('Manual Fulfilment',p+'/manual-fulfilment','headset'),item('Reports',p+'/reports','chart')]
  }
- const personal=['OWNER','DRIVER'].includes(role)?[item('Book a ride for myself',personalHirePath(role),'car'),item('My personal trips',personalBookingsPath(role),'calendar')]:[]
- return [...menus[role],...personal,...(role==='ADMIN'?[bottom[1],bottom[0]]:bottom)]
+ return [...menus[role],...bottom]
 }
 export function menuActive(item,pathname,search){
  const [path,query]=item.path.split('?')

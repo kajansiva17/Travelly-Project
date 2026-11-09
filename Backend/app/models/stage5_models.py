@@ -1,0 +1,8 @@
+from app.models import Base
+from sqlalchemy import Table,Column,String,Text,Integer,DateTime,ForeignKey,text
+from sqlalchemy.dialects.postgresql import UUID
+def common():return [Column('id',UUID(as_uuid=True),primary_key=True,server_default=text('gen_random_uuid()')),Column('created_at',DateTime(timezone=True),server_default=text('now()')),Column('updated_at',DateTime(timezone=True),server_default=text('now()')),Column('created_by',UUID(as_uuid=True),ForeignKey('users.id')),Column('updated_by',UUID(as_uuid=True),ForeignKey('users.id')),Column('version',Integer,server_default='1')]
+vehicle_type_catalog_table=Table('vehicle_type_catalog',Base.metadata,*common(),Column('code',String(40)),Column('display_name',String(100)),Column('status',String(12)),Column('requested_by_user_id',UUID(as_uuid=True),ForeignKey('users.id')),Column('reviewed_by_user_id',UUID(as_uuid=True),ForeignKey('users.id')),Column('reviewed_at',DateTime(timezone=True)),Column('review_reason',Text))
+admin_manual_fulfilment_events_table=Table('admin_manual_fulfilment_events',Base.metadata,*common(),Column('booking_id',UUID(as_uuid=True),ForeignKey('bookings.id')),Column('trip_id',UUID(as_uuid=True),ForeignKey('trips.id')),Column('vehicle_id',UUID(as_uuid=True),ForeignKey('vehicles.id')),Column('event_type',String(32)),Column('summary',String(300)),Column('details',Text),Column('status',String(16)),Column('closed_by_user_id',UUID(as_uuid=True),ForeignKey('users.id')),Column('closed_at',DateTime(timezone=True)))
+class VehicleTypeCatalog(Base):__table__=vehicle_type_catalog_table
+class AdminManualFulfilmentEvent(Base):__table__=admin_manual_fulfilment_events_table

@@ -17,6 +17,8 @@ class Itinerary(RateModel):
     method: Literal['DISTANCE', 'DAY_HIRE']
     stops: list[Stop] = Field(min_length=2, max_length=12)
     service_hours: list[Amount] = Field(min_length=1, max_length=30)
+    flight_number: str | None = Field(default=None, max_length=24, pattern=r'^[A-Za-z0-9 -]+$')
+    return_start_at: AwareDatetime | None = None
 
     @model_validator(mode='after')
     def coherent(self):
@@ -26,10 +28,19 @@ class Itinerary(RateModel):
             raise ValueError('Overnight rest requires a multi-day booking.')
         if self.stops[0].overnight_rest or self.stops[-1].overnight_rest:
             raise ValueError('Overnight rest belongs at an intermediate stop.')
+        if self.direction == 'RETURN' and self.return_start_at is not None and self.return_start_at <= self.start_at:
+            raise ValueError('Return pickup must be after the outbound pickup.')
+        if self.direction == 'ONE_WAY' and self.return_start_at is not None:
+            raise ValueError('A return pickup belongs only to a return journey.')
         return self
 
     def requested_end(self):
-        return self.start_at + timedelta(hours=24 * (len(self.service_hours) - 1) + float(self.service_hours[-1]))
+        duration = timedelta(hours=24 * (len(self.service_hours) - 1) + float(self.service_hours[-1]))
+        return (self.return_start_at + duration) if self.return_start_at else self.start_at + duration
+
+    def availability_intervals(self):
+        duration = timedelta(hours=24 * (len(self.service_hours) - 1) + float(self.service_hours[-1]))
+        return [(self.start_at, self.start_at + duration)] + ([(self.return_start_at, self.return_start_at + duration)] if self.return_start_at else [])
 
 
 class HireRequest(RateModel):
@@ -68,6 +79,11 @@ class ServiceCreate(RateModel):
     default_pricing_basis: Literal['DISTANCE', 'TIME', 'FIXED', 'OWNER_QUOTE']
     is_active: bool = Field(strict=True)
     pricing_scope: Literal['LONG_DISTANCE', 'LOCAL', 'AIRPORT', 'EVENT', 'UNSPECIFIED']
+
+
+class ServiceCatalogueUpdate(Version):
+    pricing_scope: Literal['LONG_DISTANCE', 'LOCAL', 'AIRPORT', 'EVENT']
+    status: Literal['DRAFT', 'ACTIVE', 'INACTIVE', 'NEEDS_REVIEW']
 
 
 class QuoteBody(Version):

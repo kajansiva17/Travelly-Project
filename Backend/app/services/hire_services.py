@@ -11,7 +11,7 @@ from app.models.review_models import Document, Vehicle
 from app.models.rate_models import VehicleService, ServiceType
 from app.models.hire_models import Booking, Trip, VehicleRecord, ScheduledTrip, Notification
 from app.schemas.rate_schemas import RateRule, covered, departure_applies
-from app.services.pricing_scope import require_long_distance
+from app.services.pricing_scope import require_supported_private_hire
 from app.services.rate_calculation import calculate
 from app.core.errors import ApiError
 from app.api.routers.api import allowed_account, touch
@@ -124,7 +124,7 @@ def matching_rules(rules, itinerary, geometry=None):
 
 
 def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
-    require_long_distance(service)
+    scope = require_supported_private_hire(service)
     measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
     candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
     if len(candidates) != 1:
@@ -137,9 +137,13 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     end = itinerary.requested_end()
     if result['reserved_service_hours']:
         end = itinerary.start_at + timedelta(hours=24 * (len(itinerary.service_hours)-1) + float(Decimal(result['reserved_service_hours'][-1])))
+    # A return has a second, separately checked interval.  The booking still
+    # retains the full enclosing reservation so acceptance and later operator
+    # assignment cannot release the vehicle between its two travel intervals.
+    end = max(end, itinerary.requested_end())
     if not agreed_rule and rule.effective_until and (end - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until:
         raise ApiError(409, 'QUOTE_REQUIRED', 'The saved rate does not cover the complete reserved interval. Request an Owner quote.')
-    return {'calculation': result, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
+    return {'calculation': {**result, 'service_scope': scope}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
             'measurement': {'source': measurement['source'], 'usage': measurement['usage'].model_dump(mode='json')},
             'reserved_end_at': end.isoformat()}
 

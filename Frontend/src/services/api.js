@@ -14,11 +14,31 @@ export function clearSession() { credentials = null; authFlow = null; generation
 export function hasSession() { return Boolean(credentials) }
 
 async function send(path, options = {}, accessToken) {
-  const response = await fetch(`${base}/api/v1${path}`, {
-    ...options,
-    headers: { ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...options.headers },
-  })
+  const { timeoutMs = 20_000, signal: callerSignal, ...requestOptions } = options
+  const controller = new AbortController()
+  const abortForCaller = () => controller.abort(callerSignal?.reason)
+  if (callerSignal?.aborted) abortForCaller()
+  else callerSignal?.addEventListener('abort', abortForCaller, { once: true })
+  const timeout = setTimeout(() => controller.abort('timeout'), timeoutMs)
+  let response
+  try {
+    response = await fetch(`${base}/api/v1${path}`, {
+      ...requestOptions,
+      signal: controller.signal,
+      headers: { ...(requestOptions.body && !(requestOptions.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...requestOptions.headers },
+    })
+  } catch (error) {
+    if (controller.signal.aborted && !callerSignal?.aborted) {
+      const timeoutError = new Error('Travelly is taking too long to respond. Please try again.')
+      timeoutError.code = 'API_TIMEOUT'
+      throw timeoutError
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+    callerSignal?.removeEventListener('abort', abortForCaller)
+  }
   const data = response.ok && options.binary ? await response.blob() : response.status === 204 ? null : await response.json().catch(() => ({}))
   if (!response.ok) {
     const error = new Error(data.message || 'Unable to complete your request. Please try again.')

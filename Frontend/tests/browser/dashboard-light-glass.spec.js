@@ -30,7 +30,7 @@ for (const [width, height] of [[1600, 900], [1024, 900], [390, 844], [320, 640]]
       for (const card of cards) {
         expect(card.left).toBeGreaterThanOrEqual(-1)
         expect(card.right).toBeLessThanOrEqual(width + 1)
-        expect(card.color).toBe('rgb(7, 22, 69)')
+        expect(card.color).toBe(role === 'admin' ? 'rgb(11, 23, 69)' : 'rgb(10, 23, 69)')
         expect(card.background).toContain('gradient')
       }
       for (let i = 0; i < cards.length; i++) for (const b of cards.slice(i + 1)) {
@@ -47,6 +47,11 @@ for (const [width, height] of [[1600, 900], [1024, 900], [390, 844], [320, 640]]
         expect(await root.locator('.search-submit').evaluate(el => getComputedStyle(el).backgroundImage)).toContain('rgb(255, 119, 126)')
       } else {
         await expect(root.locator('.workspace-metric').first()).toBeVisible()
+        if (role === 'admin') {
+          await expect(root.locator('.ref-admin-ai')).toBeVisible()
+          await expect(root.locator('.ref-admin-ai button')).toHaveCount(2)
+          await expect(root.locator('.ref-admin-ai button').first()).toBeDisabled()
+        }
       }
     }
   })
@@ -76,5 +81,41 @@ test('all dashboard profiles use supplied account image and retain initials fall
     await expect(page.locator(role === 'passenger' ? '.reference-passenger h1' : `.reference-${role} h1`)).toBeVisible()
     await expect(page.locator('.dashboard-avatar')).toHaveText('T')
     await expect(page.locator('.dashboard-avatar img')).toHaveCount(0)
+  }
+})
+
+test('nested workspace routes retain the approved light-glass shell', async ({ page }) => {
+  test.setTimeout(90000)
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await setup(page)
+  await page.route('**/api/v1/users/me', r => r.fulfill({ json: { id: '12222222-2222-4222-8222-222222222222', full_name: 'Test User', account_status: 'ACTIVE', email_verified_at: '2026-01-01T00:00:00Z', approved_roles: ['PASSENGER', 'OWNER', 'DRIVER', 'ADMIN'] } }))
+  await page.route('**/api/v1/admin/role-requests**', r => r.fulfill({ json: { items: [], total: 0, page: 1, has_next: false } }))
+  await page.route('**/api/v1/bookings**', r => r.fulfill({ json: { items: [] } }))
+
+  for (const route of ['/admin/applications', '/owner/settings', '/driver/assignments']) {
+    await visit(page, route)
+    const shell = page.locator('.workspace-shell')
+    await expect(shell).toBeVisible()
+    const colors = await shell.evaluate(element => {
+      const header = element.querySelector('.workspace-topbar .header-inner')
+      const sidebar = element.querySelector('.workspace-sidebar')
+      return {
+        shell: getComputedStyle(element).backgroundImage,
+        header: getComputedStyle(header).backgroundImage,
+        headerColor: getComputedStyle(header).color,
+        sidebar: getComputedStyle(sidebar).backgroundImage,
+      }
+    })
+    expect(colors.shell).toContain('travelly-dashboard-sigiriya-background.png')
+    expect(colors.header).toContain('gradient')
+    expect(['rgb(11, 23, 69)', 'rgb(10, 23, 69)', 'rgb(7, 22, 69)']).toContain(colors.headerColor)
+    expect(colors.sidebar).toContain(route.startsWith('/admin/') || route.startsWith('/owner/') || route.startsWith('/driver/') ? 'rgba(40, 75, 58' : 'rgba(45, 78, 87')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1366)
+    if (route === '/admin/applications') {
+      const panel = page.locator('.review-panel')
+      await expect(panel).toBeVisible()
+      expect(await panel.evaluate(element => getComputedStyle(element).color)).toBe('rgb(11, 23, 69)')
+      expect(await panel.evaluate(element => getComputedStyle(element).backgroundImage)).toContain('gradient')
+    }
   }
 })

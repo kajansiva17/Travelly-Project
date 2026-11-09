@@ -1,4 +1,64 @@
 {
+  "Overview": {
+    "ta": "மேலோட்டம்",
+    "si": "දළ විශ්ලේෂණය"
+  },
+  "My Trips": {
+    "ta": "என் பயணங்கள்",
+    "si": "මගේ ගමන්"
+  },
+  "Saved Places": {
+    "ta": "சேமித்த இடங்கள்",
+    "si": "සුරැකි ස්ථාන"
+  },
+  "My Assignments": {
+    "ta": "என் ஒதுக்கீடுகள்",
+    "si": "මගේ පැවරුම්"
+  },
+  "My Fleet": {
+    "ta": "என் வாகனப் படை",
+    "si": "මගේ රථ සමූහය"
+  },
+  "Departures": {
+    "ta": "புறப்பாடுகள்",
+    "si": "පිටත්වීම්"
+  },
+  "Drivers": {
+    "ta": "ஓட்டுநர்கள்",
+    "si": "රියදුරන්"
+  },
+  "Operations": {
+    "ta": "செயல்பாடுகள்",
+    "si": "මෙහෙයුම්"
+  },
+  "AI assistance is not available yet.": {
+    "ta": "AI உதவி இன்னும் கிடைக்கவில்லை.",
+    "si": "AI සහාය තවම ලබා ගත නොහැක."
+  },
+  "Ask about bookings, vehicles or reports.": {
+    "ta": "முன்பதிவுகள், வாகனங்கள் அல்லது அறிக்கைகள் பற்றி கேளுங்கள்.",
+    "si": "වෙන් කිරීම්, වාහන හෝ වාර්තා ගැන අසන්න."
+  },
+  "Chat": {
+    "ta": "அரட்டை",
+    "si": "කතාබස්"
+  },
+  "Speak": {
+    "ta": "பேசுங்கள்",
+    "si": "කතා කරන්න"
+  },
+  "Travelly AI assistant unavailable": {
+    "ta": "Travelly AI உதவியாளர் கிடைக்கவில்லை",
+    "si": "Travelly AI සහායකයා ලබා ගත නොහැක"
+  },
+  "Travelly AI": {
+    "ta": "Travelly AI",
+    "si": "Travelly AI"
+  },
+  "Vehicle submission": {
+    "ta": "வாகனச் சமர்ப்பிப்பு",
+    "si": "වාහන ඉදිරිපත් කිරීම"
+  },
   "&verification_status=": {
     "ta": "&verification_status=",
     "si": "&verification_status="

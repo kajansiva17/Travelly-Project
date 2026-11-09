@@ -11,7 +11,7 @@ from app.models.review_models import Vehicle
 from app.models.rate_models import ServiceType, VehicleService
 from app.schemas.rate_schemas import RateConfiguration, ExamplePreview
 from app.services.rate_calculation import calculate
-from app.services.pricing_scope import long_distance, require_long_distance
+from app.services.pricing_scope import private_hire_scope, require_supported_private_hire
 
 router = APIRouter(prefix='/api/v1', tags=['Vehicle rates'])
 
@@ -30,7 +30,27 @@ def owned(db, request, user, vehicle_id, lock=False):
 
 def summary(row):
     return {'service_type_id': str(row.service_type_id), 'version': row.version, 'enabled': row.is_enabled,
-            'currency': row.currency, 'rules': row.owner_terms.get('rate_rules', [])}
+            'currency': row.currency, 'rules': row.owner_terms.get('rate_rules', []), 'event_packages': row.owner_terms.get('event_packages', [])}
+
+
+def catalogue_status(service):
+    if service.settings.get('catalogue_status') in ('DRAFT', 'NEEDS_REVIEW'):
+        return service.settings['catalogue_status']
+    if not private_hire_scope(service):
+        return 'DRAFT'
+    return 'ACTIVE' if service.is_active else 'INACTIVE'
+
+
+def readiness(service, vehicle, row):
+    missing = []
+    if catalogue_status(service) != 'ACTIVE': missing.append('Admin service activation')
+    if vehicle.verification_status != 'APPROVED': missing.append('Approved vehicle verification')
+    if vehicle.availability_status != 'ACTIVE': missing.append('Active vehicle availability')
+    if not vehicle.is_published: missing.append('Published eligible vehicle')
+    if not row or not row.is_enabled: missing.append('Enabled service rate')
+    configured = row.owner_terms.get('event_packages') if private_hire_scope(service) == 'EVENT' and row else row.owner_terms.get('rate_rules') if row else None
+    if not configured: missing.append('At least one complete Event package' if private_hire_scope(service) == 'EVENT' else 'At least one complete rate rule')
+    return missing
 
 
 @router.get('/locations')
@@ -46,7 +66,7 @@ def locations(request: Request):
 @router.get('/service-types')
 def service_types(db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).where(ServiceType.is_active.is_(True), ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.display_order, ServiceType.id).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': 'LONG_DISTANCE'} for r in rows if long_distance(r)]}
+    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r)} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE')]}
 
 
 @router.get('/owners/me/vehicles')
@@ -60,6 +80,27 @@ def own_vehicles(request: Request, user=Depends(current), db: Session = Depends(
     total=db.scalar(select(func.count()).select_from(q.subquery()))
     rows=db.scalars(q.order_by(Vehicle.created_at,Vehicle.id).offset((page-1)*size).limit(size)).all()
     return page_result([summary(r) for r in rows],page,size,total)
+
+
+@router.get('/owners/me/service-readiness')
+def owner_service_readiness(request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    require_role(db, user, 'OWNER')
+    vehicles = db.scalars(select(Vehicle).where(Vehicle.owner_user_id == user.id).order_by(Vehicle.created_at, Vehicle.id).limit(100)).all()
+    services = db.scalars(select(ServiceType).where(ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.display_order, ServiceType.id).limit(100)).all()
+    supported = [service for service in services if private_hire_scope(service) in ('AIRPORT', 'LOCAL', 'LONG_DISTANCE', 'EVENT')]
+    rows = db.scalars(select(VehicleService).where(VehicleService.vehicle_id.in_([vehicle.id for vehicle in vehicles]) if vehicles else False)).all() if vehicles else []
+    by_pair = {(row.vehicle_id, row.service_type_id): row for row in rows}
+    items = []
+    for vehicle in vehicles:
+        entries = []
+        for service in supported:
+            row = by_pair.get((vehicle.id, service.id)); missing = readiness(service, vehicle, row)
+            entries.append({'service_type_id': str(service.id), 'name': service.name, 'pricing_scope': private_hire_scope(service),
+                'admin_status': catalogue_status(service), 'enabled': bool(row and row.is_enabled), 'rate_version': row.version if row else None,
+                'rate_rule_count': len((row.owner_terms.get('event_packages') if private_hire_scope(service) == 'EVENT' else row.owner_terms.get('rate_rules', []))) if row else 0, 'missing': missing, 'ready': not missing})
+        items.append({'vehicle_id': str(vehicle.id), 'vehicle_label': vehicle.public_vehicle_reference, 'vehicle_status': vehicle.verification_status,
+            'availability_status': vehicle.availability_status, 'published': vehicle.is_published, 'services': entries})
+    return {'items': items}
 
 
 @router.get('/vehicles/{vehicle_id}/services')
@@ -81,14 +122,14 @@ def persist_rates(vehicle_id, body, request, user, db):
     service = db.get(ServiceType, body.service_type_id)
     if not service or service.category != 'PRIVATE_HIRE' or not service.is_active:
         raise ApiError(422, 'SERVICE_UNAVAILABLE', 'Choose an active private-hire service.')
-    require_long_distance(service)
+    scope = require_supported_private_hire(service)
     for rule in body.rules:
         for place in rule.coverage.places or []:
             request.app.state.rate_locations.verify(place)
     row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vehicle_id, VehicleService.service_type_id == body.service_type_id).with_for_update())
     if body.expected_version != (row.version if row else 0):
         raise ApiError(409, 'VERSION_CONFLICT', 'Rates changed. Reload the saved rates before editing again.')
-    terms = {**(row.owner_terms if row else {}), 'schema_version': 1, 'policy': 'TRAVELLY_LD_2026_10_27', 'rate_rules': [r.model_dump(mode='json') for r in body.rules]}
+    terms = {**(row.owner_terms if row else {}), 'schema_version': 2, 'service_scope': scope, 'policy': 'TRAVELLY_PRIVATE_HIRE_2026_11_08', 'rate_rules': [r.model_dump(mode='json') for r in body.rules]}
     basis = {'DISTANCE': 'DISTANCE', 'DAY_HIRE': 'TIME', 'FIXED_ROUTE': 'FIXED'}
     methods = {r.method for r in body.rules}
     # A collection may contain different conditional methods; the canonical rules

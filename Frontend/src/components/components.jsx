@@ -53,6 +53,8 @@ export function Icon({ name, size = 22, ...props }) {
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4M12 2V1"/></>,
     watch: <><circle cx="6" cy="16" r="4"/><circle cx="18" cy="16" r="4"/><path d="m2 15 2-10h4l2 10m4 0 2-10h4l2 10M8 8h8M10 12h4"/></>,
     signal: <><circle cx="12" cy="12" r="2" /><path d="M7 7a7 7 0 0 0 0 10m10-10a7 7 0 0 1 0 10M3 3a13 13 0 0 0 0 18M21 3a13 13 0 0 1 0 18" /></>,
+    chat: <><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></>,
+    mic: <><rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>
 }
@@ -188,10 +190,6 @@ export function ButtonLink({ to, children, outline = false, arrow = false, class
   const {pathname}=useLocation()
   const destination=to||(pathname==='/for-owners'?'/owner/onboarding':pathname==='/drive-with-us'?'/driver/onboarding':'/register')
   return <Link to={destination} className={`button ${outline ? 'outline' : ''} ${className}`} {...props}>{children}{arrow && <Icon name="arrow" size={20}/>}</Link>
-}
-
-export function SectionHeading({ title, subtitle, link, to = '/register', id }) {
-  return <div className="section-heading" id={id}><div><h2>{t(title)}</h2>{subtitle && <p>{t(subtitle)}</p>}</div>{link && <Link className="section-link" to={to}>{t(link)}<Icon name="arrow"/></Link>}</div>
 }
 
 export function Footer() {

@@ -18,10 +18,10 @@ from app.api.routers.rate_api import persist_rates
 from app.schemas.rate_schemas import RateRule
 from app.models.hire_models import Booking, Trip, Notification
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
-    ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, Publication, ServiceCreate, PricingScope)
+    ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
 from app.services.hire_services import (digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
     price, saved_rules, booking_summary, notify, audited, matches, matching_rules)
-from app.services.pricing_scope import require_long_distance
+from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
 
@@ -31,12 +31,36 @@ router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 def missing(): return ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
 
 
+def catalogue_status(service):
+    configured = service.settings.get('catalogue_status')
+    if configured in ('DRAFT', 'NEEDS_REVIEW'):
+        return configured
+    if not private_hire_scope(service):
+        return 'DRAFT'
+    return 'ACTIVE' if service.is_active else 'INACTIVE'
+
+
+def ready_vehicle_service(service, vehicle, row):
+    configured = row.owner_terms.get('event_packages') if private_hire_scope(service) == 'EVENT' and row else row.owner_terms.get('rate_rules') if row else None
+    return bool(service.is_active and catalogue_status(service) == 'ACTIVE' and row and row.is_enabled
+        and configured and vehicle.verification_status == 'APPROVED'
+        and vehicle.availability_status == 'ACTIVE' and vehicle.is_published)
+
+
 def service_for(db, sid, new_offer=True):
     service = db.get(ServiceType, sid)
     if not service or service.category != 'PRIVATE_HIRE' or (new_offer and not service.is_active):
         raise ApiError(409, 'SERVICE_UNAVAILABLE', 'The private-hire service is unavailable.')
-    if new_offer: require_long_distance(service)
+    if new_offer: require_supported_private_hire(service)
     return service
+
+
+def validate_service_itinerary(service, itinerary):
+    scope = private_hire_scope(service)
+    if scope == 'AIRPORT' and itinerary.direction == 'RETURN' and itinerary.return_start_at is None:
+        raise ApiError(422, 'RETURN_INTERVAL_REQUIRED', 'Airport return journeys require a verified return pickup date and time.')
+    if scope != 'AIRPORT' and itinerary.flight_number is not None:
+        raise ApiError(422, 'FLIGHT_DETAILS_UNAVAILABLE', 'Flight details are available only for Airport hire.')
 
 
 def visible_booking(db, bid, user, *, owner=False, passenger=False):
@@ -78,7 +102,8 @@ def offer(request, db, vehicle, service, itinerary, *, rules=None):
     row, configured = saved_rules(db, vehicle.id, service.id)
     snapshot = price(request, service, vehicle, itinerary, configured if rules is None else rules)
     snapshot['rate_version'] = row.version if row else None
-    no_conflict(db, vehicle.id, itinerary.start_at, datetime.fromisoformat(snapshot['reserved_end_at']))
+    for start, end in itinerary.availability_intervals():
+        no_conflict(db, vehicle.id, start, end)
     snapshot['digest'] = digest(snapshot)
     return snapshot
 
@@ -121,6 +146,7 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
+    validate_service_itinerary(service, body.itinerary)
     items = []
     rows = db.scalars(select(Vehicle).where(Vehicle.is_published.is_(True)).order_by(Vehicle.id).limit(100)).all()
     unavailable = False
@@ -129,7 +155,9 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
         try:
             usable_capacity(vehicle, body)
             snapshot = offer(request, db, vehicle, service, body.itinerary)
-            items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': snapshot['calculation'], 'reserved_end_at': snapshot['reserved_end_at']})
+            # Matching only establishes eligibility. A price is deliberately
+            # withheld until the Passenger selects one specific vehicle.
+            items.append(safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)))
         except ApiError as exc:
             if exc.status == 503: unavailable = True
             if exc.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
@@ -139,7 +167,24 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
         raise incomplete()
     if unavailable and not items:
         raise ApiError(503, 'TRIP_PRICING_UNAVAILABLE', 'Trusted route pricing is temporarily unavailable. Browse vehicles for an Owner quote.')
-    return {'items': items, 'message': 'Only complete matching rates with checked availability are priced. Browse vehicles to request a quote for other eligible vehicles.'}
+    return {'items': items, 'message': 'Only vehicles with an active approved service rate and checked availability are shown. Select one vehicle to reveal its quote.'}
+
+
+@router.post('/search/vehicles/{vehicle_id}/quote')
+def selected_vehicle_quote(vehicle_id: UUID, body: SearchRequest, request: Request, db: Session = Depends(get_db)):
+    """Calculate a fresh, non-binding quote only after vehicle selection."""
+    if body.itinerary.start_at <= datetime.now(timezone.utc):
+        raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
+    service = service_for(db, body.service_type_id)
+    validate_service_itinerary(service, body.itinerary)
+    vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.is_published.is_(True)))
+    if not vehicle:
+        raise ApiError(404, 'VEHICLE_NOT_FOUND', 'The selected published vehicle is unavailable.')
+    usable_capacity(vehicle, body)
+    snapshot = offer(request, db, vehicle, service, body.itinerary)
+    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': snapshot['calculation'],
+            'reserved_end_at': snapshot['reserved_end_at'], 'quote_digest': snapshot['digest'],
+            'rate_version': snapshot['rate_version'], 'message': 'This is a fresh quote. The accepted booking preserves this selected rate-rule version and calculation snapshot.'}
 
 
 @router.post('/bookings/private-hires', status_code=201)
@@ -164,14 +209,15 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
                 raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'The request identifier belongs to a different request.')
             return booking_summary(existing)
         eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); usable_capacity(vehicle, body)
-        service = service_for(db, body.service_type_id)
+        service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary)
         snapshot = None
         for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
         try: snapshot = offer(request, db, vehicle, service, body.itinerary)
         except ApiError as exc:
             if exc.code not in ('QUOTE_REQUIRED', 'ROUTING_PROFILE_REQUIRED', 'ROUTING_UNAVAILABLE', 'ROUTING_NOT_CONFIGURED'): raise
         if snapshot is None:
-            no_conflict(db, vehicle.id, body.itinerary.start_at, body.itinerary.requested_end())
+            for start, end in body.itinerary.availability_intervals():
+                no_conflict(db, vehicle.id, start, end)
         row = Booking(booking_reference='BKG-' + secrets.token_hex(10).upper(), passenger_user_id=user.id, booking_type='PRIVATE_HIRE',
             service_type_id=service.id, requested_owner_user_id=vehicle.owner_user_id, owner_user_id=vehicle.owner_user_id,
             vehicle_id=vehicle.id, origin_text=body.itinerary.stops[0].place.label, destination_text=body.itinerary.stops[-1].place.label,
@@ -436,7 +482,7 @@ def apply_change(db, request, row, vehicle, user, *, manual=False):
     try:
         # Serialize across ALL accepted trips of the same Driver as well as the vehicle.
         db.scalars(select(User).where(User.id == trip.driver_user_id).with_for_update()).all()
-        require_long_distance(service_for(db, row.service_type_id, False))
+        require_supported_private_hire(service_for(db, row.service_type_id, False))
         eligible_vehicle(db, vehicle, at=start); eligible_vehicle(db, vehicle, at=end)
         compatible_driver(db, db.get(User, trip.driver_user_id), vehicle, service_for(db, row.service_type_id, False), end)
         no_conflict(db, vehicle.id, start, end, exclude=row.id, driver_id=trip.driver_user_id)
@@ -575,8 +621,43 @@ def publish_vehicle(vehicle_id: UUID, body: Publication, request: Request, user=
 @router.get('/admin/service-types')
 def admin_services(user=Depends(admin), db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).where(ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.code).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'code': r.code, 'name': r.name, 'is_active': r.is_active,
-        'version': r.version, 'default_pricing_basis': r.default_pricing_basis, 'settings': r.settings} for r in rows]}
+    vehicles = db.scalars(select(Vehicle).order_by(Vehicle.id).limit(1000)).all()
+    services = db.scalars(select(VehicleService).order_by(VehicleService.id).limit(5000)).all()
+    by_service = {}
+    for service_row in services:
+        by_service.setdefault(service_row.service_type_id, {})[service_row.vehicle_id] = service_row
+    items = []
+    for row in rows:
+        scope = private_hire_scope(row)
+        if scope not in ('AIRPORT', 'LOCAL', 'LONG_DISTANCE', 'EVENT'):
+            continue
+        ready = [vehicle for vehicle in vehicles if ready_vehicle_service(row, vehicle, by_service.get(row.id, {}).get(vehicle.id))]
+        items.append({'id': str(row.id), 'code': row.code, 'name': row.name, 'is_active': row.is_active,
+            'version': row.version, 'default_pricing_basis': row.default_pricing_basis, 'pricing_scope': scope,
+            'status': catalogue_status(row), 'ready_vehicle_count': len(ready),
+            'ready_owner_count': len({vehicle.owner_user_id for vehicle in ready}),
+            'ready_vehicles': [{'vehicle_reference': vehicle.public_vehicle_reference,
+                'owner_reference': db.get(User, vehicle.owner_user_id).public_user_reference} for vehicle in ready[:100]]})
+    return {'items': items}
+
+
+@router.patch('/admin/service-types/{service_id}/catalogue')
+def update_service_catalogue(service_id: UUID, body: ServiceCatalogueUpdate, request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id)
+        row = db.scalar(select(ServiceType).where(ServiceType.id == service_id, ServiceType.category == 'PRIVATE_HIRE').with_for_update().execution_options(populate_existing=True))
+        if not row:
+            raise ApiError(404, 'SERVICE_NOT_FOUND', 'Private-hire service not found.')
+        if row.version != body.expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'Service configuration changed. Reload before saving.')
+        before, old_status, old_scope = row.version, catalogue_status(row), private_hire_scope(row)
+        row.settings = {**row.settings, 'pricing_scope': body.pricing_scope, 'catalogue_status': body.status}
+        row.is_active = body.status == 'ACTIVE'
+        touch(row); row.updated_by = user.id
+        request.app.state.audit.commit(db, actor=user.id, target={'resource': 'service_types', 'id': str(row.id)}, previous_status=old_status,
+            new_status=body.status, previous_version=before, new_version=row.version, full_reason=None,
+            previous_decision_evidence={'pricing_scope': old_scope}, trace_id=request.state.trace_id)
+    return {'id': str(row.id), 'version': row.version, 'pricing_scope': body.pricing_scope, 'status': body.status, 'is_active': row.is_active}
 
 
 @router.patch('/admin/service-types/{service_id}/pricing-scope')

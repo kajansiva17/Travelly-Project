@@ -1,11 +1,12 @@
-/* Light reference finish, confined to the four dashboard overview routes. */
-body .workspace-shell:has(.dashboard-overview),
+/* Approved light-glass workspace theme. Forms keep their current component
+   structure until their separate visual references are supplied. */
+body .workspace-shell[data-workspace],
 body .passenger-customer-shell {
   --dash-ink:#071645;--dash-muted:#30466a;--dash-red:#ed1524;
   background:linear-gradient(120deg,#d9eaf8bc,#daeef28a),url('/images/travelly/heroes/passenger-hero-1920.webp') center top / cover fixed #b9d6eb;
   color:var(--dash-ink);
 }
-body .workspace-shell:has(.dashboard-overview) .workspace-topbar .header-inner,
+body .workspace-shell .workspace-topbar .header-inner,
 body .passenger-customer-shell>.site-header .header-inner {
   border:1px solid #fffffff2;border-radius:30px;
   background:linear-gradient(110deg,#ffffffd9,#dbeaffb5);
@@ -14,55 +15,55 @@ body .passenger-customer-shell>.site-header .header-inner {
 }
 body .passenger-customer-shell>.site-header {padding:10px 4%;background:transparent;border:0}
 body .passenger-customer-shell>.site-header .header-inner {max-width:none;min-height:62px;padding:7px 20px}
-body .workspace-shell:has(.dashboard-overview) .workspace-topbar .header-inner :is(a,button,summary),
+body .workspace-shell .workspace-topbar .header-inner :is(a,button,summary),
 body .passenger-customer-shell>.site-header .header-inner :is(a,button,summary) {color:#071645}
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .site-header .language,
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .site-header .language select,
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .workspace-profile-name small {color:#233e65}
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .dashboard-avatar {overflow:hidden;background:#dceafa;color:#071645}
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .dashboard-avatar img {width:100%;height:100%;object-fit:cover;border-radius:50%}
-body .workspace-shell:has(.dashboard-overview) .workspace-sidebar {
+body :is(.workspace-shell,.passenger-customer-shell) .site-header .language,
+body :is(.workspace-shell,.passenger-customer-shell) .site-header .language select,
+body :is(.workspace-shell,.passenger-customer-shell) .workspace-profile-name small {color:#233e65}
+body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar {overflow:hidden;background:#dceafa;color:#071645}
+body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar img {width:100%;height:100%;object-fit:cover;border-radius:50%}
+body .workspace-shell[data-workspace] .workspace-sidebar {
   background:linear-gradient(155deg,#2d4e57b8,#476b4fa8);border:1px solid #ffffffc7;
   border-radius:0 22px 22px 0;box-shadow:inset 0 1px 8px #fff9,0 8px 22px #34516b38;backdrop-filter:blur(18px);
 }
-body .workspace-shell:has(.dashboard-overview) .workspace-sidebar-link {color:#fff;border-radius:18px}
-body .workspace-shell:has(.dashboard-overview) .workspace-sidebar-link.active {color:#fff;background:linear-gradient(#ff6a72,#ff1320 55%,#dc0012);border-color:#fff9;box-shadow:inset 0 1px 7px #fff9,0 5px 12px #a9002455}
-body .workspace-shell:has(.dashboard-overview) .workspace-sidebar-link:hover:not(.active) {background:#fff4;color:#fff}
-body .workspace-shell:has(.dashboard-overview) .overview-banner :is(h1,p),
+body .workspace-shell[data-workspace] .workspace-sidebar-link {color:#fff;border-radius:18px}
+body .workspace-shell[data-workspace] .workspace-sidebar-link.active {color:#fff;background:linear-gradient(#ff6a72,#ff1320 55%,#dc0012);border-color:#fff9;box-shadow:inset 0 1px 7px #fff9,0 5px 12px #a9002455}
+body .workspace-shell[data-workspace] .workspace-sidebar-link:hover:not(.active) {background:#fff4;color:#fff}
+body .workspace-shell .overview-banner :is(h1,p),
 body .reference-passenger .passenger-welcome :is(h1,p) {color:#071645;text-shadow:0 1px 8px #ffffffc9}
-body .workspace-shell:has(.dashboard-overview) .reference-availability {color:#19335b;background:#f3f9ffcd;border-color:#fff}
+body .workspace-shell .reference-availability {color:#19335b;background:#f3f9ffcd;border-color:#fff}
 body .passenger-customer-shell .customer-content {max-width:none;padding:0}
 body .passenger-customer-shell .reference-passenger {background:transparent;color:#071645}
 body .reference-passenger .passenger-welcome {background:transparent}
 body .reference-passenger .passenger-welcome:after {display:none}
 
-body .workspace-shell:has(.dashboard-overview) :is(.dashboard-overview .workspace-card,.workspace-metric),
+body .workspace-shell :is(.workspace-card,.workspace-metric),
 body .reference-passenger :is(.workspace-card,.search-panel) {
   color:#071645;border:1px solid #ffffffed;border-radius:20px;
   background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
   box-shadow:inset 0 1px 10px #fff,0 8px 22px #27496d38;
   backdrop-filter:blur(17px);
 }
-body .workspace-shell:has(.dashboard-overview) .dashboard-overview .workspace-card {padding:16px}
-body .workspace-shell:has(.dashboard-overview) .workspace-metric {padding:14px;min-height:102px}
-body .workspace-shell:has(.dashboard-overview) .workspace-metric strong,
-body .workspace-shell:has(.dashboard-overview) .workspace-metric span:not(.workspace-metric-icon),
-body .workspace-shell:has(.dashboard-overview) .workspace-metric small {color:#071645}
-body .workspace-shell:has(.dashboard-overview) .workspace-metric-icon {color:#fff;border:1px solid #fff9;background:linear-gradient(#4dccff,#0074e8);box-shadow:inset 0 2px 7px #fff9,0 4px 10px #2774ac50}
-body .workspace-shell:has(.dashboard-overview) .workspace-metric:nth-child(even) .workspace-metric-icon {background:linear-gradient(#ff7379,#ef0016)}
-body .workspace-shell:has(.dashboard-overview) .metric-signal {display:none}
-body :is(.dashboard-overview,.reference-passenger) :is(h1,h2,h3,h4,strong,figcaption,li,th,td) {color:#071645}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-card p,.workspace-note,.workspace-card-heading>div>p,.workspace-record div>span,.fleet-preview-card>span,.pipeline-row,.pipeline-row>strong,.pipeline-row>span,.reference-route li small,.passenger-quick .workspace-quick-actions small) {color:#30466a}
-body :is(.dashboard-overview,.reference-passenger) .workspace-card-heading h2>svg {color:#ed1524}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-card-heading>a,.button.outline) {color:#102250;background:linear-gradient(#fff,#dceaf6);border:1px solid #fff;box-shadow:0 3px 8px #486b8b2e}
-body :is(.dashboard-overview,.reference-passenger) .button:not(.outline) {color:#fff;background:linear-gradient(#ff777e,#f00017 56%,#cc0013);border-color:#fff;box-shadow:inset 0 1px 5px #fff8,0 4px 10px #e80b2455}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-quick-actions a,.admin-quick-links a,.admin-operations nav a,.fleet-preview-card,.reference-detail-line) {color:#071645;background:linear-gradient(125deg,#ffffffcf,#e2eef7b8);border:1px solid #fff;border-radius:13px;box-shadow:0 4px 10px #365b7924}
-body .workspace-shell:has(.dashboard-overview) .dashboard-overview :is(.workspace-quick-actions a:nth-child(4n+1),.reference-personal .workspace-quick-actions a) {color:#071645;background:linear-gradient(125deg,#ffffffed,#e2eef7e0);border-color:#fff}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-quick-actions a>svg,.admin-quick-links a>svg,.admin-operations nav a>svg) {color:#ef1d2b}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-record-icon,.reference-orb) {color:#eb1a2a;background:linear-gradient(#fff,#dbeaf7);border:1px solid #fff;box-shadow:0 4px 10px #50718b36}
-body :is(.dashboard-overview,.reference-passenger) :is(.workspace-empty,.reference-unavailable,.reference-unavailable strong,.workspace-loading,.admin-summary) {color:#243d62}
-body :is(.dashboard-overview,.reference-passenger) .workspace-badge {color:#163656;background:#dcebf8;border-color:#abc9df}
-body :is(.dashboard-overview,.reference-passenger) .workspace-badge.positive {color:#07523e;background:#b4ead0;border-color:#82d6b2}
+body .workspace-shell .workspace-card {padding:16px}
+body .workspace-shell .workspace-metric {padding:14px;min-height:102px}
+body .workspace-shell .workspace-metric strong,
+body .workspace-shell .workspace-metric span:not(.workspace-metric-icon),
+body .workspace-shell .workspace-metric small {color:#071645}
+body .workspace-shell .workspace-metric-icon {color:#fff;border:1px solid #fff9;background:linear-gradient(#4dccff,#0074e8);box-shadow:inset 0 2px 7px #fff9,0 4px 10px #2774ac50}
+body .workspace-shell .workspace-metric:nth-child(even) .workspace-metric-icon {background:linear-gradient(#ff7379,#ef0016)}
+body .workspace-shell .metric-signal {display:none}
+body :is(.workspace-shell,.reference-passenger) :is(h1,h2,h3,h4,strong,figcaption,li,th,td) {color:#071645}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-card p,.workspace-note,.workspace-card-heading>div>p,.workspace-record div>span,.fleet-preview-card>span,.pipeline-row,.pipeline-row>strong,.pipeline-row>span,.reference-route li small,.passenger-quick .workspace-quick-actions small) {color:#30466a}
+body :is(.workspace-shell,.reference-passenger) .workspace-card-heading h2>svg {color:#ed1524}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-card-heading>a,.button.outline) {color:#102250;background:linear-gradient(#fff,#dceaf6);border:1px solid #fff;box-shadow:0 3px 8px #486b8b2e}
+body :is(.workspace-shell,.reference-passenger) .button:not(.outline) {color:#fff;background:linear-gradient(#ff777e,#f00017 56%,#cc0013);border-color:#fff;box-shadow:inset 0 1px 5px #fff8,0 4px 10px #e80b2455}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-quick-actions a,.admin-quick-links a,.admin-operations nav a,.fleet-preview-card,.reference-detail-line) {color:#071645;background:linear-gradient(125deg,#ffffffcf,#e2eef7b8);border:1px solid #fff;border-radius:13px;box-shadow:0 4px 10px #365b7924}
+body .workspace-shell :is(.workspace-quick-actions a:nth-child(4n+1),.reference-personal .workspace-quick-actions a) {color:#071645;background:linear-gradient(125deg,#ffffffed,#e2eef7e0);border-color:#fff}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-quick-actions a>svg,.admin-quick-links a>svg,.admin-operations nav a>svg) {color:#ef1d2b}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-record-icon,.reference-orb) {color:#eb1a2a;background:linear-gradient(#fff,#dbeaf7);border:1px solid #fff;box-shadow:0 4px 10px #50718b36}
+body :is(.workspace-shell,.reference-passenger) :is(.workspace-empty,.reference-unavailable,.reference-unavailable strong,.workspace-loading,.admin-summary) {color:#243d62}
+body :is(.workspace-shell,.reference-passenger) .workspace-badge {color:#163656;background:#dcebf8;border-color:#abc9df}
+body :is(.workspace-shell,.reference-passenger) .workspace-badge.positive {color:#07523e;background:#b4ead0;border-color:#82d6b2}
 body .dashboard-overview .workspace-select select {background:#f3f8fd;color:#071645;border-color:#abc5da}
 body .dashboard-overview .reference-booking-table th {color:#071645;background:#d5e5f1}
 body .dashboard-overview .reference-booking-table td {color:#14294c;border-color:#a9bfd3}
@@ -74,9 +75,9 @@ body .reference-passenger .reference-trip-image {display:flex;justify-content:ce
 body .dashboard-overview .reference-platform-map>div {background:#f3f9ffdc;color:#071645;border-color:#fff}
 body .dashboard-overview .reference-platform-map>small {color:#fff;text-shadow:0 1px 3px #001}
 body .dashboard-overview .reference-route {grid-template-columns:1fr;min-height:0}
-body .workspace-shell:has(.dashboard-overview) .ref-admin-actions {align-self:start}
-body .workspace-shell:has(.dashboard-overview) .ref-driver-route {align-self:stretch}
-body .workspace-shell:has(.dashboard-overview) .ref-driver-route>.workspace-card {height:100%}
+body .workspace-shell .ref-admin-actions {align-self:start}
+body .workspace-shell .ref-driver-route {align-self:stretch}
+body .workspace-shell .ref-driver-route>.workspace-card {height:100%}
 body .dashboard-overview .pipeline-columns .pipeline-row>strong {color:#071645}
 body .reference-passenger .search-panel {padding:12px 15px}
 body .reference-passenger .search-tabs button {color:#071645;background:linear-gradient(#fff,#dceaf5);border-color:#fff;border-radius:22px}
@@ -91,24 +92,37 @@ body .reference-passenger .search-input svg {color:#087cc2}
 body .reference-passenger .search-assurance {color:#152c55}
 body .reference-passenger .passenger-verification {color:#071645;background:#e6f7f2e8;border-color:#fff}
 body .reference-passenger .passenger-verification p {color:#30466a}
-body .workspace-shell:has(.dashboard-overview) .dashboard-profile-dropdown,
+body .workspace-shell .workspace-content :is(.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.auth-flow-panel,.profile-card) {
+ color:#071645;border:1px solid #ffffffed;border-radius:20px;
+ background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
+ box-shadow:inset 0 1px 10px #fff,0 8px 22px #27496d38;backdrop-filter:blur(17px)
+}
+body .workspace-shell .workspace-content :is(.dashboard-main,.owner-rates-page,.account-main,.vehicle-workspace) {color:#071645}
+body .workspace-shell .workspace-content :is(.dashboard-main,.owner-rates-page,.account-main,.vehicle-workspace) p {color:#30466a}
+body .workspace-shell .workspace-content :is(.dashboard-kicker,.section-kicker) {color:#d90f20}
+body .workspace-shell .review-queue-row {border-color:#9fb9cd}
+body .workspace-shell .review-identity dt {color:#46617e}
+body .workspace-shell .application-readiness {color:#071645;background:#e5f0f8d9;border-color:#fff}
+body .workspace-shell .application-readiness li span {color:#30466a}
+body .workspace-shell .review-reason {color:#5e2730;background:#ffe8e8}
+body .workspace-shell .dashboard-profile-dropdown,
 body .passenger-customer-shell .dashboard-profile-dropdown {background:#f4f9ff;color:#071645;border:1px solid #b0c7da}
-body :is(.workspace-shell:has(.dashboard-overview),.passenger-customer-shell) .dashboard-profile-dropdown :is(a,button) {color:#071645}
+body :is(.workspace-shell,.passenger-customer-shell) .dashboard-profile-dropdown :is(a,button) {color:#071645}
 body .reference-passenger .reference-help {position:static;display:flex;margin:16px 0 0 auto}
 @media(max-width:767px){
- body .workspace-shell:has(.dashboard-overview) .workspace-menu-toggle,
+ body .workspace-shell .workspace-menu-toggle,
  body .passenger-customer-shell .menu-toggle {color:#071645;background:#e7f3fd;border:1px solid #fff}
  body .passenger-customer-shell>.site-header {padding:8px}
  body .passenger-customer-shell>.site-header .header-inner {padding:8px 12px;min-height:62px}
- body .workspace-shell:has(.dashboard-overview) .dashboard-overview .workspace-card {padding:14px}
- body .workspace-shell:has(.dashboard-overview) .workspace-metric {min-height:110px;padding:10px}
+ body .workspace-shell .workspace-card {padding:14px}
+ body .workspace-shell .workspace-metric {min-height:110px;padding:10px}
  body .reference-passenger .search-panel {padding:10px}
 }
 @media(max-width:420px){
- body .workspace-shell:has(.dashboard-overview) .workspace-topbar .brand.travelly-brand {width:112px}
- body .workspace-shell:has(.dashboard-overview) .workspace-header .navigation {gap:4px}
- body .workspace-shell:has(.dashboard-overview) .workspace-header .language {gap:2px}
- body .workspace-shell:has(.dashboard-overview) .workspace-header .language select {max-width:66px;font-size:11px}
- body .workspace-shell:has(.dashboard-overview) .workspace-profile summary {gap:1px}
- body .workspace-shell:has(.dashboard-overview) .workspace-profile summary>svg {width:12px;height:12px}
+ body .workspace-shell .workspace-topbar .brand.travelly-brand {width:112px}
+ body .workspace-shell .workspace-header .navigation {gap:4px}
+ body .workspace-shell .workspace-header .language {gap:2px}
+ body .workspace-shell .workspace-header .language select {max-width:66px;font-size:11px}
+ body .workspace-shell .workspace-profile summary {gap:1px}
+ body .workspace-shell .workspace-profile summary>svg {width:12px;height:12px}
 }

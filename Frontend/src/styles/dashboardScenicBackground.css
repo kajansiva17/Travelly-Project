@@ -1,0 +1,32 @@
+/* One approved scenic canvas for every operational dashboard. The PNG keeps
+   Sigiriya high and slightly right, preserves the left-edge trees and leaves
+   the lake reflection visible below translucent workspace surfaces. */
+:root { --dashboard-scenic:url('/images/travelly/heroes/travelly-dashboard-sigiriya-background.png'); }
+
+body:has(.workspace-shell[data-workspace]),
+body:has(.passenger-customer-shell) {
+  background:linear-gradient(116deg,rgb(225 244 237 / .26),rgb(255 240 207 / .16)),var(--dashboard-scenic) center 47% / cover fixed #b7d7c8;
+}
+
+body .workspace-shell[data-workspace],
+body .passenger-customer-shell {
+  background:linear-gradient(116deg,rgb(225 244 237 / .26),rgb(255 240 207 / .16)),var(--dashboard-scenic) center 47% / cover fixed #b7d7c8;
+}
+
+@media (min-width:768px) {
+  body .workspace-shell[data-workspace] {grid-template-rows:auto minmax(calc(100dvh - var(--workspace-header-height)),auto);}
+}
+
+@media (max-width:1023px) {
+  body:has(.workspace-shell[data-workspace]),
+  body:has(.passenger-customer-shell),
+  body .workspace-shell[data-workspace],
+  body .passenger-customer-shell {background-position:center 44%;}
+}
+
+@media (max-width:767px) {
+  body:has(.workspace-shell[data-workspace]),
+  body:has(.passenger-customer-shell),
+  body .workspace-shell[data-workspace],
+  body .passenger-customer-shell {background-attachment:scroll;background-position:54% top;}
+}

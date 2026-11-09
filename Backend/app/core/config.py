@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
     private_document_root: Path | None = None
+    operational_media_root: Path | None = None
     vehicle_photo_root: Path | None = None
     review_audit_root: Path | None = None
     review_database_identity: str | None = None
