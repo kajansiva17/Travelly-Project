@@ -3,7 +3,7 @@ import React,{useCallback,useEffect,useRef,useState} from 'react'
 import {Link,Navigate,Outlet,useLocation,useNavigate} from 'react-router-dom'
 import {api,logout} from '../services/api'
 import {Header,Icon,ErrorNotice,useSession} from './components'
-import DashboardAvatar from './DashboardAvatar'
+import {NavbarBell,NavbarProfile,NavbarReels} from './AppNavbar'
 import {WorkspaceContext} from '../context/workspaceContext'
 import {accountPath,personalHirePath,eligibleWorkspaces,menuActive,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
 import {journeyLink} from '../features/auth/onboardingJourney'
@@ -13,7 +13,7 @@ export default function WorkspaceShell({role:fixedRole}){
  const role=fixedRole||requestedWorkspace(location.search)
  const [access,setAccess]=useState({loading:true,user:null,roles:[],error:null})
  const [busy,setBusy]=useState(false),[logoutError,setLogoutError]=useState(null)
- const stamp=useRef(0),dialog=useRef(null),trigger=useRef(null),header=useRef(null),shell=useRef(null),account=useRef(null)
+ const stamp=useRef(0),dialog=useRef(null),trigger=useRef(null),header=useRef(null),shell=useRef(null)
  const refreshAccess=useCallback(async({quiet=false}={})=>{
   const id=++stamp.current
   if(!quiet)setAccess({loading:true,user:null,roles:[],error:null})
@@ -31,7 +31,7 @@ export default function WorkspaceShell({role:fixedRole}){
   window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh)
   return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh)}
  },[signedIn,refreshAccess])
- useEffect(()=>{dialog.current?.close();account.current?.removeAttribute('open')},[location.key])
+ useEffect(()=>{dialog.current?.close()},[location.key])
  useEffect(()=>{
   if(!header.current)return
   const observer=new ResizeObserver(()=>shell.current?.style.setProperty('--workspace-header-height',header.current.getBoundingClientRect().height+'px'))
@@ -64,8 +64,8 @@ export default function WorkspaceShell({role:fixedRole}){
     {[false,true].map(bottom=><div className={bottom?'workspace-sidebar-bottom':'workspace-sidebar-main'} key={String(bottom)}>
      {authorized&&workspaceMenu(role).filter(item=>Boolean(item.bottom)===bottom).map(item=><Link key={item.label} to={item.path} className={menuActive(item,location.pathname,location.search)?'workspace-sidebar-link active':'workspace-sidebar-link'} aria-current={menuActive(item,location.pathname,location.search)?'page':undefined}><Icon name={item.icon} size={20}/><span>{t(item.label)}</span></Link>)}
      {bottom&&role!=='OWNER'&&<Link className={'workspace-sidebar-link'+(location.pathname.startsWith(info.prefix+'/personal/')?' active':'')} aria-current={location.pathname.startsWith(info.prefix+'/personal/')?'page':undefined} to={personalHirePath(role)}><Icon name="home" size={20}/><span>{t('Travel & Booking')}</span></Link>}
-     {bottom&&role!=='OWNER'&&<button className="workspace-sidebar-link" disabled={busy} onClick={signOut}><Icon name="exit" size={20}/><span>{busy?t('Signing out...'):t('Logout')}</span></button>}
-     {bottom&&role!=='OWNER'&&mobile&&<ErrorNotice error={logoutError}/>}</div>)}
+     {bottom&&<button className="workspace-sidebar-link" disabled={busy} onClick={signOut}><Icon name="exit" size={20}/><span>{busy?t('Signing out...'):t('Logout')}</span></button>}
+     {bottom&&mobile&&<ErrorNotice error={logoutError}/>}</div>)}
    </nav>
   </>
  }
@@ -78,10 +78,9 @@ export default function WorkspaceShell({role:fixedRole}){
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>
-      <span className="workspace-reels" aria-label={t('Travel Reels unavailable')}><Icon name="video" size={22}/><span>{t('Travel Reels')}</span></span>
-      <Link className="admin-notifications" to={notificationPath} aria-label={t(notificationLabel)}><Icon name="bell" size={25}/></Link>
-      {role==='ADMIN'?<Link className="workspace-profile admin-profile-link" to={accountPath(role)} aria-label={t('{name}, Super Admin profile',{name:access.user.full_name})}><DashboardAvatar name={access.user.full_name} url={access.user.profile_image_url}/><span className="workspace-profile-name"><strong>{access.user.full_name}</strong><small>{t('Super Admin')}</small></span></Link>:<details className="dashboard-profile-menu workspace-profile" ref={account} onKeyDown={event=>{if(event.key==='Escape'){account.current.open=false;account.current.querySelector('summary').focus()}}}><summary aria-label={t('{value0}, {value1} workspace',{value0:access.user.display_name||access.user.full_name,value1:t(info.label)})}><DashboardAvatar name={access.user.display_name||access.user.full_name} url={access.user.profile_image_url}/><span className="workspace-profile-name"><strong>{access.user.display_name||access.user.full_name}</strong><small>{t(info.label)}</small></span><Icon name="chevron" size={17}/></summary><div className="dashboard-profile-dropdown"><Link to={accountPath(role)}><Icon name="user" size={18}/>{t(' Your profile')}</Link><Link to={workspaceRoles[role].prefix+'/settings'}><Icon name="settings" size={18}/>{t(' Account settings')}</Link><button className="inline-link" disabled={busy} onClick={signOut}>{t('Sign out')}</button></div></details>}
-      {role!=='ADMIN'&&<button className="button outline dashboard-signout" disabled={busy} onClick={signOut}><Icon name="exit" size={18}/>{t(' Sign out')}</button>}
+      <NavbarReels/>
+      <NavbarBell to={notificationPath} label={t(notificationLabel)}/>
+      <NavbarProfile user={access.user} roleLabel={t(info.label)} profileTo={accountPath(role)}/>
      </>:<Link to="/">{t('Travel & booking')}</Link>}
     </Header>
    </div>

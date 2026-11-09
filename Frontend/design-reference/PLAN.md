@@ -56,4 +56,5 @@ Paths are relative to `Frontend/design-reference/`.
 - [x] Audit, `DESIGN-SPEC.md`, this plan
 - [x] Phase 1 — `src/styles/ui-theme.css` (tokens + scenic background), imported last in `App.jsx`
 - [x] Phase 2 — `src/components/ui/*` + `src/styles/ui-kit.css`; dev gallery at `/__ui-kit`
-- [ ] Phases 3-7
+- [x] Phase 3 — `components/AppNavbar.jsx` + `styles/app-navbar.css`; `Header`, `WorkspaceShell` and landing header use the single owner-style pill (bell badge not added: no notification-count API)
+- [ ] Phases 4-7

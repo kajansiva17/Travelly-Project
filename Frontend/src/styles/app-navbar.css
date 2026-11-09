@@ -1,0 +1,63 @@
+/* Single Travelly navbar (owner design, see design-reference/DESIGN-SPEC.md §4).
+   One floating white-glass pill on every page: login, register, landing and all
+   four workspaces. `.app-navbar` is set by Header (components.jsx) and by the
+   landing header. Repeated class names raise specificity above the older
+   per-role header skins, which Phase 7 deletes. Imported last in App.jsx. */
+
+/* Outer wrapper: transparent, the pill floats with a small margin. */
+html body header.app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) {
+  position: relative; background: transparent; border: 0; box-shadow: none;
+  padding: 12px clamp(12px, 2.4vw, 40px) 0;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html body .workspace-shell .workspace-topbar { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* The pill itself. */
+html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner,
+html body header.lr-header.app-navbar.app-navbar.app-navbar {
+  background: linear-gradient(110deg, rgb(255 255 255 / .9), rgb(219 234 255 / .74));
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-radius-navbar);
+  box-shadow: var(--ui-shadow-card);
+  -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur);
+  color: var(--ui-ink);
+}
+html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner {
+  max-width: none; width: 100%; min-height: 64px; margin: 0;
+  padding: 6px clamp(14px, 2vw, 26px); gap: 18px;
+}
+html body header.lr-header.app-navbar.app-navbar.app-navbar { min-height: 64px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { flex: 0 0 auto; }
+
+/* Right-hand items: navy text and icons, no per-role colours. */
+html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation { display: flex; align-items: center; gap: clamp(12px, 1.6vw, 22px); margin-left: auto; font-size: 15px; font-weight: 600; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar :is(.navigation > a:not(.button), .text-button, .language, .language select, .member-prompt) { color: var(--ui-ink); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation svg { color: var(--ui-ink); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .language { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { background: transparent; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .language option { background: #fff; color: var(--ui-ink); }
+
+/* Login / register: Back to Home | Help | EN, thin dividers between items. */
+html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation > :is(.nav-icon, .language) + :is(.nav-icon, .language) {
+  border-left: 1px solid rgb(18 21 82 / .18); padding-left: clamp(12px, 1.6vw, 22px);
+}
+
+/* Travel Reels: red icon in a rounded white square. */
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: inline-flex; align-items: center; gap: 8px; color: var(--ui-ink); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > svg { box-sizing: content-box; padding: 5px; border-radius: 9px; background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-red-text); }
+
+/* Notifications and account. */
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; color: var(--ui-ink); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .dashboard-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; background: #dceafa; color: var(--ui-ink); box-shadow: 0 2px 8px rgb(40 80 120 / .2); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name { display: grid; line-height: 1.2; text-align: left; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name strong { font-size: 14px; font-weight: 700; color: var(--ui-ink); }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name small { font-size: 12px; font-weight: 500; color: var(--ui-muted); }
+/* Landing: same pill and shared logo; its own links keep their layout. */
+html body header.lr-header.app-navbar.app-navbar.app-navbar .brand.travelly-brand { margin: 0; }
+html body header.lr-header.app-navbar.app-navbar.app-navbar { padding-block: 4px; }
+
+@media (max-width: 767px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) { padding: 8px 8px 0; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner { min-height: 56px; padding: 6px 12px; gap: 10px; }
+}

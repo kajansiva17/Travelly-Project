@@ -71,6 +71,7 @@ import './styles/dashboardScenicBackground.css'
 import './styles/travellyVisualFoundation.css'
 import './styles/ui-theme.css'
 import './styles/ui-kit.css'
+import './styles/app-navbar.css'
 import './styles/passengerBookingFlow.css'
 
 function AdminApplicationRoute() {
