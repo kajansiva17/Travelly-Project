@@ -2,7 +2,7 @@ import { t } from '../i18n/language.js'
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorNotice, Icon } from './components'
-import { menuActive, personalHirePath, workspaceMenu } from '../routes/workspaceRoutes'
+import { activeMenuItem, personalHirePath, workspaceMenu } from '../routes/workspaceRoutes'
 
 /* Single white-glass sidebar for all four roles (skin: styles/app-sidebar.css).
    Layout: the menu list scrolls; the bottom block (Settings, Profile,
@@ -15,8 +15,9 @@ export default function AppSidebar({ role, info, authorized, pathname, search, m
   const main = menu.filter(item => !item.bottom && item.path !== travelPath)
   const bottom = menu.filter(item => item.bottom)
   const travelActive = pathname.startsWith(info.prefix + '/personal/') || (role === 'PASSENGER' && (pathname.startsWith('/travel/') || pathname === '/hire' || pathname.startsWith('/vehicles/')))
+  const current = activeMenuItem([...main, ...bottom], pathname, search)
   const link = item => {
-    const active = menuActive(item, pathname, search)
+    const active = item === current
     return <Link key={item.label} to={item.path} className={'app-sidebar-link' + (active ? ' is-active' : '')} aria-current={active ? 'page' : undefined}>
       <Icon name={item.icon} size={20}/><span>{t(item.label)}</span>
     </Link>

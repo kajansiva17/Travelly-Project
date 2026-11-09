@@ -1,3 +1,4 @@
+import { t } from '../../../i18n/language.js'
 import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from '../../../components/components'
@@ -55,7 +56,7 @@ export function SegmentedChoice({ legend, name, value, options, onChange }) {
 /* Back (secondary) on the left, primary action on the right. */
 export function FlowActions({ back, children }) {
   return <div className="flow-actions">
-    {back ? <Link className="ui-button ui-button-secondary" to={back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>Back</span></Link> : <span/>}
+    {back ? <Link className="ui-button ui-button-secondary" to={back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>{t("Back")}</span></Link> : <span/>}
     {children}
   </div>
 }
@@ -73,7 +74,7 @@ export function TripSummary({ title = 'Trip summary', image, rows = [], empty = 
 /* Vehicle card used for matching results and the selected vehicle. */
 export function FlowVehicleCard({ vehicle, title, specs = [], chips, action, selected = false }) {
   return <article className={`flow-vehicle ui-card${selected ? ' is-selected' : ''}`}>
-    <div className="flow-vehicle-photo">{vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>Selected</span>}</div>
+    <div className="flow-vehicle-photo">{vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
     <div className="flow-vehicle-info">
       <h3>{title}</h3>
       <ul>{specs.filter(Boolean).map(spec => <li key={spec.label}><Icon name={spec.icon || 'check'} size={17} aria-hidden="true"/><span>{spec.label}</span></li>)}</ul>
@@ -88,7 +89,7 @@ export function FlowEstimate({ title = 'Trip estimate (LKR)', price }) {
   if (!price) return null
   return <section className="flow-estimate ui-card"><h2><Icon name="wallet" size={22} aria-hidden="true"/>{title}</h2>
     <dl>{(price.breakdown || []).map(row => <div key={row.code}><dt>{row.label}</dt><dd>{row.kind === 'CREDIT' ? '−' : ''}{row.amount}</dd></div>)}</dl>
-    <p className="flow-estimate-total"><span>Total estimate</span><strong>LKR {price.total}</strong></p>
+    <p className="flow-estimate-total"><span>{t("Total estimate")}</span><strong>{t("LKR")} {price.total}</strong></p>
     {(price.exclusions || []).map(text => <p key={text} className="flow-note">{text}</p>)}
   </section>
 }
@@ -142,7 +143,7 @@ export function checkPane(pane) {
 /* Back on the left, optional extra actions, Next on the right (not shown on the last step). */
 export function WizardNav({ w, onNext, extra, nextLabel = 'Next' }) {
   return <div className="flow-actions">
-    {w.step > (w.min ?? 0) ? <button type="button" className="ui-button ui-button-secondary" onClick={w.back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>Back</span></button> : <span/>}
+    {w.step > (w.min ?? 0) ? <button type="button" className="ui-button ui-button-secondary" onClick={w.back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>{t("Back")}</span></button> : <span/>}
     {extra}
     {w.step < w.count - 1 && <button type="button" className="ui-button ui-button-primary" onClick={onNext || w.forward}><span>{nextLabel}</span><Icon name="arrow" size={18} aria-hidden="true"/></button>}
   </div>

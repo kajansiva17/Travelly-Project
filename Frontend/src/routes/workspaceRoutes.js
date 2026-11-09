@@ -35,3 +35,9 @@ export function menuActive(item,pathname,search){
  if(path.endsWith('/dashboard')||path==='/dashboard')return pathname===path
  return pathname===path||pathname.startsWith(path+'/')
 }
+/* Only one sidebar entry is current: the most specific matching path (the later entry wins a tie). */
+export function activeMenuItem(items,pathname,search){
+ let best=null,length=-1
+ for(const item of items){if(!menuActive(item,pathname,search))continue;const size=item.path.split('?')[0].length;if(size>=length){best=item;length=size}}
+ return best
+}
