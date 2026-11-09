@@ -1,0 +1,75 @@
+/* Single white-glass sidebar and sticky navbar band (DESIGN-SPEC §5).
+   AppSidebar renders only `app-sidebar*` classes, so the older per-role
+   `.workspace-sidebar*` skins no longer apply to it (Phase 7 deletes them).
+   Imported last in App.jsx. */
+
+html body .workspace-shell[data-workspace] { --workspace-sidebar-width: clamp(204px, 15vw, 232px); }
+
+/* Navbar area: sticky, above all content, with its own frosted background
+   and a gap below the pill, so scrolling content never shows above it. */
+html body .workspace-shell[data-workspace] .workspace-topbar {
+  position: sticky; top: 0; z-index: 100;
+  padding-bottom: 10px;
+  background: var(--ui-topbar-band);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* Sidebar panel: exactly the visible height under the navbar. */
+html body .workspace-shell[data-workspace] .app-sidebar {
+  --app-row: 40px; --app-font: 15px; --app-icon: 20px;
+  grid-column: 1; grid-row: 2; align-self: start;
+  position: sticky; top: var(--workspace-header-height, 90px);
+  box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  height: calc(100dvh - var(--workspace-header-height, 90px) - 12px);
+  margin: 0 12px 12px 12px; padding: 12px 10px;
+  background: var(--ui-sidebar-glass); color: var(--ui-sidebar-text);
+  border: 1px solid var(--ui-glass-border); border-radius: var(--ui-radius-sidebar);
+  box-shadow: var(--ui-shadow-card);
+  -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur);
+}
+
+/* Navigation: the menu scrolls, the bottom block never leaves the screen. */
+.app-sidebar-nav { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; gap: 8px; }
+.app-sidebar-menu {
+  display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-right: 2px;
+}
+.app-sidebar-bottom {
+  display: flex; flex-direction: column; gap: 2px; flex: none;
+  padding-top: 8px; border-top: 1px solid rgb(18 21 82 / .14);
+}
+
+.app-sidebar-link {
+  display: flex; align-items: center; gap: 12px; flex: none;
+  box-sizing: border-box; width: 100%; min-height: var(--app-row, 40px); padding: 0 12px;
+  border: 1px solid transparent; border-radius: 14px; background: transparent;
+  color: var(--ui-sidebar-text); font: inherit; font-size: var(--app-font, 15px); font-weight: 600; line-height: 1.1;
+  text-align: left; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+.app-sidebar-link > svg { width: var(--app-icon, 20px); height: var(--app-icon, 20px); flex: none; }
+.app-sidebar-link > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app-sidebar-link:hover:not(.is-active):not(:disabled) { background: rgb(255 255 255 / .92); border-color: var(--ui-glass-border); box-shadow: 0 2px 8px rgb(40 80 120 / .12); }
+.app-sidebar-link:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.app-sidebar-link:disabled { opacity: .6; cursor: progress; }
+.app-sidebar-link.is-active {
+  background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55);
+  box-shadow: inset 0 1px 6px rgb(255 255 255 / .5), 0 5px 12px rgb(217 15 10 / .3);
+}
+.app-sidebar-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; padding: 2px 6px 10px; color: var(--ui-ink); font-size: 16px; }
+
+/* Compact spacing as the window gets shorter (also what browser zoom causes). */
+@media (max-height: 820px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 36px; --app-font: 14px; --app-icon: 19px; } }
+@media (max-height: 700px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 32px; --app-font: 13px; --app-icon: 18px; } html body .workspace-shell[data-workspace] .app-sidebar { padding-block: 8px; } }
+@media (max-height: 560px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 30px; --app-font: 12.5px; --app-icon: 17px; } }
+
+/* Phones: the sidebar becomes the slide-in drawer with the same content. */
+@media (max-width: 767px) {
+  html body .workspace-shell[data-workspace] .app-sidebar { display: none; }
+}
+html body .workspace-shell[data-workspace] .workspace-drawer { background: rgb(240 246 250 / .97); border-right: 1px solid var(--ui-glass-border); }
+html body .workspace-shell[data-workspace] .workspace-drawer-panel {
+  --app-row: 40px; --app-font: 15px; --app-icon: 20px;
+  display: flex; flex-direction: column; box-sizing: border-box; height: 100dvh; min-height: 0; padding: 12px;
+  background: var(--ui-sidebar-glass); color: var(--ui-sidebar-text);
+}

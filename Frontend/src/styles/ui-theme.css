@@ -30,6 +30,7 @@
   --ui-blur: blur(18px) saturate(1.2);
   --ui-sidebar-glass: rgb(255 255 255 / .78);
   --ui-sidebar-text: var(--ui-ink);
+  --ui-topbar-band: linear-gradient(180deg, rgb(236 245 248 / .94), rgb(236 245 248 / .78));
 
   /* Inputs */
   --ui-input-bg: #edf3f9;

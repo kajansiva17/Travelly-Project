@@ -25,6 +25,7 @@ export function Icon({ name, size = 22, ...props }) {
     alert: <><path d="m12 2 11 20H1ZM12 8v6m0 4h.01"/></>,
     clock: <><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 3"/></>,
     arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,
+    plane: <path d="M21 3 3 10l7 3 3 7ZM10 13l11-10"/>,
     chevron: <path d="m7 10 5 5 5-5" />,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>,
     lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" /></>,

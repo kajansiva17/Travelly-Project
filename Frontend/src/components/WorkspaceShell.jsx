@@ -4,6 +4,7 @@ import {Link,Navigate,Outlet,useLocation,useNavigate} from 'react-router-dom'
 import {api,logout} from '../services/api'
 import {Header,Icon,ErrorNotice,useSession} from './components'
 import {NavbarBell,NavbarProfile,NavbarReels} from './AppNavbar'
+import AppSidebar from './AppSidebar'
 import {WorkspaceContext} from '../context/workspaceContext'
 import {accountPath,personalHirePath,eligibleWorkspaces,menuActive,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
 import {journeyLink} from '../features/auth/onboardingJourney'
@@ -54,21 +55,7 @@ export default function WorkspaceShell({role:fixedRole}){
  }
  function openSidebar(){dialog.current?.showModal()}
  if(!signedIn)return <Navigate to={journeyLink('/login',role)} replace/>
- function Sidebar({mobile=false}){
-  return <>
-   <div className="workspace-sidebar-title">
-    <div><span className="section-kicker">{t('YOUR WORKSPACE')}</span><strong>{t(info.label)}</strong></div>
-    {mobile&&<button className="workspace-icon-button" aria-label={t('Close workspace navigation')} onClick={()=>dialog.current.close()}><Icon name="close"/></button>}
-   </div>
-   <nav aria-label={t('{value0} sidebar',{value0:t(info.label)})} className="workspace-sidebar-links">
-    {[false,true].map(bottom=><div className={bottom?'workspace-sidebar-bottom':'workspace-sidebar-main'} key={String(bottom)}>
-     {authorized&&workspaceMenu(role).filter(item=>Boolean(item.bottom)===bottom).map(item=><Link key={item.label} to={item.path} className={menuActive(item,location.pathname,location.search)?'workspace-sidebar-link active':'workspace-sidebar-link'} aria-current={menuActive(item,location.pathname,location.search)?'page':undefined}><Icon name={item.icon} size={20}/><span>{t(item.label)}</span></Link>)}
-     {bottom&&role!=='OWNER'&&<Link className={'workspace-sidebar-link'+(location.pathname.startsWith(info.prefix+'/personal/')?' active':'')} aria-current={location.pathname.startsWith(info.prefix+'/personal/')?'page':undefined} to={personalHirePath(role)}><Icon name="home" size={20}/><span>{t('Travel & Booking')}</span></Link>}
-     {bottom&&<button className="workspace-sidebar-link" disabled={busy} onClick={signOut}><Icon name="exit" size={20}/><span>{busy?t('Signing out...'):t('Logout')}</span></button>}
-     {bottom&&mobile&&<ErrorNotice error={logoutError}/>}</div>)}
-   </nav>
-  </>
- }
+ const sidebar=mobile=><AppSidebar role={role} info={info} authorized={authorized} pathname={location.pathname} search={location.search} mobile={mobile} busy={busy} onSignOut={signOut} logoutError={logoutError} onClose={()=>dialog.current?.close()}/>
  const updateProfile=user=>setAccess(current=>({...current,user}))
  const value={role,updateProfile,user:access.user,roles:access.roles,allowed,refreshAccess,openSidebar,sidebarTrigger:trigger,signOut,busy}
  const notificationPath=role==='ADMIN'?'/admin/manual-fulfilment':role==='OWNER'?'/owner/bookings':role==='DRIVER'?'/driver/assignments':'/bookings'
@@ -85,10 +72,10 @@ export default function WorkspaceShell({role:fixedRole}){
     </Header>
    </div>
    <div className="workspace-layout">
-    <aside className="workspace-sidebar"><Sidebar/></aside>
+    <aside className="app-sidebar" aria-label={t('{value0} navigation',{value0:t(info.label)})}>{sidebar(false)}</aside>
     <div className="workspace-content"><ErrorNotice error={logoutError}/>{access.loading?<main id="main" className="workspace-state" role="status"><span className="spinner"/>{t(' Loading your ')}{t(info.label)}{t(' workspace...')}</main>:access.error?<main id="main" className="workspace-state"><h1>{t('Workspace unavailable')}</h1><ErrorNotice error={access.error}/><button className="button" onClick={refreshAccess}>{t('Try again')}</button></main>:!authorized?<main id="main" className="workspace-state"><Icon name="shield" size={36}/><h1>{t('Workspace access denied')}</h1><p>{t('A current approved ')}{t(info.label)}{t(' membership is required. Navigation does not grant access.')}</p><Link className="button" to="/">{t('Return to booking home')}</Link></main>:<Outlet key={role+access.user.id}/>}</div>
    </div>
-   <dialog id="workspace-navigation-drawer" ref={dialog} className="workspace-drawer" aria-label={t('{value0} navigation drawer',{value0:t(info.label)})} onClick={event=>{if(event.target===dialog.current)dialog.current.close()}} onClose={()=>trigger.current?.focus()}><div className="workspace-drawer-panel"><Sidebar mobile/></div></dialog>
+   <dialog id="workspace-navigation-drawer" ref={dialog} className="workspace-drawer" aria-label={t('{value0} navigation drawer',{value0:t(info.label)})} onClick={event=>{if(event.target===dialog.current)dialog.current.close()}} onClose={()=>trigger.current?.focus()}><div className="workspace-drawer-panel">{sidebar(true)}</div></dialog>
   </div>
  </WorkspaceContext.Provider>
 }

@@ -57,4 +57,5 @@ Paths are relative to `Frontend/design-reference/`.
 - [x] Phase 1 — `src/styles/ui-theme.css` (tokens + scenic background), imported last in `App.jsx`
 - [x] Phase 2 — `src/components/ui/*` + `src/styles/ui-kit.css`; dev gallery at `/__ui-kit`
 - [x] Phase 3 — `components/AppNavbar.jsx` + `styles/app-navbar.css`; `Header`, `WorkspaceShell` and landing header use the single owner-style pill (bell badge not added: no notification-count API)
-- [ ] Phases 4-7
+- [x] Phase 4 — `components/AppSidebar.jsx` + `styles/app-sidebar.css`: white glass, menu scrolls, bottom block pinned (Settings, Profile, Travel & Booking, Logout) for all roles; navbar band sticky. Menu data in `workspaceRoutes.js` unchanged (owner has 6 items vs 13 in reference: decide in Phase 6c)
+- [ ] Phases 5-7
