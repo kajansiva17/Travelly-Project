@@ -1,0 +1,273 @@
+/* Travel & Booking flow (Phase 6b): shared layout for the passenger wizard
+   (/travel/book/*) and the owner / driver / admin personal booking page.
+   Matches design-reference/screens/passenger P01-01..04, P02-01..04, P03-01..04.
+   Built on --ui-* tokens and the kit (GlassCard `.ui-card`, Stepper, Tabs, ServiceTile).
+   Imported last in App.jsx. */
+
+html body .flow-page {
+  display: flex; flex-direction: column; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 8px clamp(12px, 2.4vw, 28px) 40px;
+  color: var(--ui-ink); background: transparent;
+}
+html body .flow-page > * { margin-top: 0; margin-bottom: 0; min-width: 0; }
+html body .flow-heading { margin: 0; font-size: clamp(28px, 3vw, 38px); font-weight: 800; line-height: 1.15; color: var(--ui-ink); text-shadow: 0 1px 8px rgb(255 255 255 / .7); letter-spacing: -.01em; }
+
+/* Stepper pill. */
+html body .flow-stepper { padding: 12px clamp(12px, 3vw, 36px); border-radius: 22px; }
+html body .flow-stepper .ui-stepper { max-width: 980px; margin: 0 auto; }
+
+/* Main card + Trip summary. */
+html body .flow-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+html body .flow-body.has-summary { grid-template-columns: minmax(0, 1fr) minmax(250px, 320px); }
+@media (max-width: 960px) { html body .flow-body.has-summary { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-main { display: grid; gap: 16px; min-width: 0; }
+html body .flow-card { display: grid; gap: 16px; }
+html body .flow-card-head { display: flex; align-items: center; gap: 14px; }
+html body .flow-card-icon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-blue-deep); }
+html body .flow-card-head h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-card-head p { margin: 2px 0 0; font-size: 14px; color: var(--ui-text); }
+
+/* Fields (works for kit FormField, TravellyField, plain labels and OwnerRates Field). */
+html body .flow-fields { display: grid; gap: 14px; }
+html body .flow-grid-2, html body .flow-grid-3 { display: grid; gap: 14px 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html body .flow-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 767px) { html body .flow-grid-2, html body .flow-grid-3 { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) { display: grid; gap: 6px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .travelly-field > span { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .travelly-field > small { font-size: 12px; font-weight: 500; color: var(--ui-muted); }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea) {
+  box-sizing: border-box; width: 100%; min-height: 46px; padding: 8px 14px;
+  background: var(--ui-input-bg); color: var(--ui-ink);
+  border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input);
+  font: inherit; font-size: 15px; font-weight: 500; box-shadow: none;
+}
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) textarea { min-height: 76px; resize: vertical; }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea):focus { outline: 0; border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+
+/* Segmented choice (One way / Return, One day / Multi-day). */
+html body .flow-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+html body .flow-segmented > legend { grid-column: 1 / -1; padding: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-segmented label { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 6px 14px; border-radius: 16px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); box-shadow: 0 2px 8px rgb(40 80 120 / .1); color: var(--ui-ink); font-weight: 600; cursor: pointer; }
+html body .flow-segmented input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+html body .flow-segmented label.is-selected { background: #e6f0ff; border-color: var(--ui-blue); color: var(--ui-blue-deep); box-shadow: inset 0 0 0 1px var(--ui-blue); }
+html body .flow-segmented label:focus-within { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+
+/* Preference chips and notes. */
+html body .flow-chips { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+html body .flow-chips > legend, html body .flow-group > legend, html body .flow-group-title { flex: 0 0 100%; margin: 0 0 6px; padding: 0; font-size: 14px; font-weight: 700; color: var(--ui-ink); }
+html body .flow-group { margin: 0; padding: 14px 16px; border: 1px solid rgb(255 255 255 / .85); border-radius: 18px; background: rgb(255 255 255 / .5); min-width: 0; }
+html body .flow-note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ui-muted); }
+html body .flow-page .rate-hint { font-size: 12px; color: var(--ui-muted); }
+
+/* Actions: Back left, primary right. */
+html body .flow-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+html body .flow-actions .ui-button-primary { flex: 1 1 280px; max-width: 520px; margin-left: auto; min-height: 52px; font-size: 17px; }
+html body .flow-page a.ui-button { text-decoration: none; }
+@media (max-width: 767px) { html body .flow-actions { flex-direction: column-reverse; align-items: stretch; } html body .flow-actions .ui-button { max-width: none; margin-left: 0; } }
+
+/* Service choice grid. */
+html body .flow-service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { html body .flow-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { html body .flow-service-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Trip summary. */
+html body .flow-summary { display: grid; gap: 12px; align-content: start; }
+html body .flow-summary h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-summary h2 > svg { color: var(--ui-blue-deep); }
+html body .flow-summary-image { width: 100%; height: 150px; object-fit: cover; border-radius: 16px; border: 2px solid #fff; box-shadow: 0 3px 10px rgb(40 80 120 / .18); }
+html body .flow-summary dl { display: grid; gap: 0; margin: 0; }
+html body .flow-summary dl > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
+html body .flow-summary dl > div:last-child { border-bottom: 0; }
+html body .flow-summary dt { display: flex; align-items: center; gap: 8px; color: var(--ui-text); }
+html body .flow-summary dt > svg { color: var(--ui-blue-deep); flex: none; }
+html body .flow-summary dd { margin: 0; font-weight: 700; color: var(--ui-ink); overflow-wrap: anywhere; text-align: right; }
+html body .flow-summary-empty { margin: 0; font-size: 13px; color: var(--ui-muted); }
+
+/* Vehicle cards (matching list and selected vehicle). */
+html body .flow-vehicle { display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr); gap: 14px; padding: 12px; align-items: stretch; }
+html body .flow-vehicle.is-selected { border-color: #ee3a2a; }
+html body .flow-vehicle-photo { position: relative; display: grid; place-items: center; min-height: 140px; border-radius: 16px; overflow: hidden; background: #e7eef6; color: var(--ui-blue-deep); }
+html body .flow-vehicle-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html body .flow-vehicle-badge { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--ui-green); color: #fff; font-size: 12px; font-weight: 700; }
+html body .flow-vehicle-info { display: grid; gap: 8px; align-content: start; min-width: 0; }
+html body .flow-vehicle-info h3 { margin: 0; font-size: 19px; font-weight: 800; color: var(--ui-ink); overflow-wrap: anywhere; }
+html body .flow-vehicle-info ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--ui-text); }
+html body .flow-vehicle-info li { display: flex; align-items: center; gap: 8px; }
+html body .flow-vehicle-info li > svg { color: var(--ui-blue-deep); flex: none; }
+html body .flow-vehicle-action { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+html body .flow-vehicle-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 960px) { html body .flow-vehicle-list { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { html body .flow-vehicle { grid-template-columns: minmax(0, 1fr); } }
+
+/* Estimate / quote. */
+html body .flow-estimate { display: grid; gap: 8px; align-content: start; }
+html body .flow-estimate h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-estimate h2 > svg { color: var(--ui-blue-deep); }
+html body .flow-estimate dl { display: grid; margin: 0; }
+html body .flow-estimate dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 15px; }
+html body .flow-estimate dt { color: var(--ui-text); }
+html body .flow-estimate dd { margin: 0; font-weight: 700; color: var(--ui-ink); }
+html body .flow-estimate-total { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 0; padding: 10px 14px; border-radius: 14px; background: #e6f0ff; border: 1px solid #b8d2ff; }
+html body .flow-estimate-total strong { font-size: 20px; color: var(--ui-ink); }
+html body .flow-two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 960px) { html body .flow-two { grid-template-columns: minmax(0, 1fr); } }
+
+/* Review rows and status banner. */
+html body .flow-review { display: grid; margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid rgb(255 255 255 / .85); background: rgb(255 255 255 / .55); }
+html body .flow-review > div { display: grid; grid-template-columns: minmax(130px, .35fr) minmax(0, 1fr); gap: 12px; padding: 11px 16px; border-bottom: 1px solid rgb(18 21 82 / .08); }
+html body .flow-review > div:last-child { border-bottom: 0; }
+html body .flow-review dt { font-weight: 700; color: var(--ui-ink); }
+html body .flow-review dd { margin: 0; color: var(--ui-text); overflow-wrap: anywhere; }
+@media (max-width: 560px) { html body .flow-review > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+html body .flow-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 20px; border: 1px solid rgb(255 255 255 / .9); background: rgb(255 255 255 / .7); }
+html body .flow-banner > div { flex: 1; min-width: 0; }
+html body .flow-banner strong { display: block; font-size: 19px; color: var(--ui-ink); }
+html body .flow-banner p { margin: 2px 0 0; font-size: 14px; color: var(--ui-text); }
+html body .flow-banner-icon { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #fff; color: var(--ui-blue-deep); }
+html body .flow-banner-success { background: #e4f6e8; border-color: #bfe6c8; } html body .flow-banner-success .flow-banner-icon { color: var(--ui-green); }
+html body .flow-banner-warning { background: #fff2d9; border-color: #f2d58f; } html body .flow-banner-warning .flow-banner-icon { color: #e08a00; }
+html body .flow-chipbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+html body .flow-chipbar .flow-chips { flex: 1; }
+
+
+/* ---------- One step per screen (wizard) ----------
+   The page fills the window under the navbar and nothing inside it scrolls: every step is
+   sized to fit (verified at 1536x864, 1366x768 and 1280x720). The Back / Next row is part of
+   the normal flow at the bottom of the card. Lists are paged (Pager) instead of scrolled. */
+html body .flow-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+html body .flow-top .ui-tabs { flex: 0 1 auto; }
+html body .flow-top .ui-tab { flex: 0 0 auto; padding-inline: 18px; }
+html body .workspace-shell[data-workspace] .flow-page { max-width: 1360px; height: calc(100dvh - var(--workspace-header-height, 106px)); min-height: 0; overflow: hidden; box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 8px; gap: 8px; }
+html body .workspace-shell[data-workspace] .flow-body { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 12px; }
+html body .workspace-shell[data-workspace] .flow-body.has-summary { grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr); }
+html body .workspace-shell[data-workspace] .flow-main { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); align-self: stretch; gap: 0; }
+html body .workspace-shell[data-workspace] .flow-card { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 8px; overflow: visible; }
+html body .workspace-shell[data-workspace] .flow-card > :is(form, .flow-fields, .flow-wizard-form) { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+html body .workspace-shell[data-workspace] .flow-card > section.trip-results { flex: 1 1 auto; min-height: 0; }
+html body .flow-card-head { position: static; margin: 0; padding: 0; background: none; flex: none; gap: 10px; }
+html body .flow-card-icon { width: 30px; height: 30px; border-radius: 10px; }
+html body .flow-card-icon > svg { width: 18px; height: 18px; }
+html body .flow-card-head h2 { font-size: 18px; }
+html body .flow-card-head p { display: none; }
+html body .workspace-shell[data-workspace] .flow-stepper { padding: 6px 14px; border-radius: 18px; }
+html body .workspace-shell[data-workspace] .flow-summary { position: static; align-self: start; max-height: 100%; overflow: visible; padding: 12px 14px; gap: 8px; }
+html body .flow-summary h2 { font-size: 17px; }
+html body .flow-summary-image { height: 76px; border-width: 1px; border-radius: 12px; }
+html body .flow-summary dl > div { padding: 5px 0; font-size: 13px; gap: 8px; }
+
+/* Back / Next: normal flow, bottom of the card. */
+html body .flow-actions { position: static; margin: auto 0 0; padding: 8px 0 0; background: none; border-top: 1px solid rgb(18 21 82 / .08); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; }
+html body .flow-actions .ui-button { min-height: 40px; padding: 6px 20px; font-size: 15px; }
+html body .flow-actions .ui-button-primary { flex: 0 1 240px; margin-left: auto; max-width: 320px; }
+html body .flow-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font-weight: 700; color: var(--ui-ink); }
+html body .flow-pager .ui-button { min-height: 36px; padding: 4px 12px; }
+html body .flow-pager + .ui-button-primary { margin-left: 0; }
+
+/* Fields: compact controls that never get cut off. */
+html body .flow-page :is(.travelly-field, .rate-field) { gap: 3px; min-width: 0; align-content: start; }
+html body .flow-page :is(.travelly-field > span, .rate-field > label) { position: relative; display: block; min-height: 18px; font-size: 13px; line-height: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .flow-page .rate-field > label small { font-size: 11px; font-weight: 500; }
+html body .flow-page .req { margin-left: 2px; color: var(--ui-red-text); font-weight: 700; }
+html body .flow-page :is(.travelly-field, .rate-field) :is(input, select, textarea) { min-width: 0; width: 100%; min-height: 40px; height: 40px; padding: 4px 10px; font-size: 14px; text-overflow: ellipsis; }
+html body .flow-page .travelly-field textarea { height: 40px; min-height: 40px; resize: none; }
+html body .flow-page .rate-field > label .ui-infotip { margin-left: 2px; vertical-align: top; }
+html body .flow-page .rate-field > label .ui-infotip > button { width: 18px; height: 18px; }
+html body .flow-segmented label { min-height: 38px; }
+html body .flow-group { padding: 8px 12px; }
+html body .flow-note { font-size: 12px; margin: 0; }
+
+/* Trip details */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane { display: grid; gap: 8px; align-content: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane[hidden] { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .counts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+@media (max-width: 640px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form :is(.trip-grid, .counts-grid) { grid-template-columns: minmax(0, 1fr); } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 4px 8px; align-items: start; padding: 8px 10px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-first { order: 1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-last { order: 2; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-middle { order: 3; grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop > .rate-row-actions { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .rate-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .terms-check { grid-column: 1 / -1; font-size: 12px; }
+@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { grid-template-columns: minmax(0, 1fr); } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { order: 0 !important; } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 24px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions .field-error { margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .inline-link { font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .field-error { margin: 0; font-size: 11.5px; line-height: 1.25; color: var(--ui-red-text); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field [aria-invalid="true"] { border-color: var(--ui-red-text); }
+
+/* Place search: Find location is an icon button inside the input. */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place { position: relative; display: block; min-width: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input { position: relative; display: block; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input > input { padding-right: 44px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--ui-input-border); border-radius: 50%; background: #fff; color: var(--ui-blue); cursor: pointer; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:disabled { opacity: .45; cursor: not-allowed; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > ul { position: absolute; z-index: 40; left: 0; right: 0; top: 100%; margin: 2px 0 0; max-height: 160px; overflow: auto; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > small:not(.rate-location-selected) { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > .rate-location-selected { position: absolute; right: 0; top: 0; font-size: 11px; color: #2f8a3d; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > p.field-error { position: absolute; z-index: 5; }
+
+/* Results: compact cards, paged. */
+html body .workspace-shell[data-workspace] .flow-page .trip-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-content: start; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results > :not(.trip-vehicle-card) { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results .rate-row-actions h2 { font-size: 16px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results > p[role="status"] { margin: 0; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results .flow-actions { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card { padding: 10px 12px; gap: 6px; border-radius: 16px; }
+html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card h3 { font-size: 16px; }
+html body .trip-vehicle-card .tv-head { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+html body .trip-vehicle-card .tv-thumb { flex: none; width: 76px; height: 56px; border-radius: 10px; overflow: hidden; background: #e7eef6; }
+html body .trip-vehicle-card .tv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+html body .trip-vehicle-card .tv-info { min-width: 0; display: grid; gap: 1px; font-size: 13px; }
+html body .trip-vehicle-card .tv-info p { margin: 0; }
+html body .trip-vehicle-card .tv-price { font-size: 13px; }
+html body .trip-vehicle-card .tv-price summary { cursor: pointer; font-weight: 700; color: var(--ui-ink); }
+html body .trip-vehicle-card .tv-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+html body .trip-vehicle-card .tv-actions .button { min-height: 38px; padding: 4px 16px; font-size: 14px; }
+@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .trip-results { grid-template-columns: minmax(0, 1fr); } }
+
+/* Passenger steps: same compact controls. */
+html body .flow-grid-4 { display: grid; gap: 8px 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+html body .flow-grid-2, html body .flow-grid-3 { gap: 8px 12px; }
+html body .flow-fields { gap: 8px; }
+html body .flow-vehicle { grid-template-columns: 140px minmax(0, 1fr); gap: 10px; padding: 8px; }
+html body .flow-vehicle-photo { min-height: 96px; }
+html body .flow-vehicle-info { gap: 4px; }
+html body .flow-vehicle-info h3 { font-size: 16px; }
+html body .flow-vehicle-info ul { font-size: 13px; gap: 2px; }
+html body .flow-vehicle-action { grid-column: 2; }
+html body .flow-vehicle-list { gap: 8px 12px; }
+html body .flow-chipbar { gap: 6px 10px; }
+html body .flow-estimate { gap: 4px; }
+html body .flow-estimate h2 { font-size: 17px; }
+html body .flow-estimate dl > div { padding: 4px 0; font-size: 14px; }
+html body .flow-estimate-total { padding: 6px 12px; }
+html body .flow-review > div { padding: 7px 12px; }
+html body .flow-banner { padding: 8px 14px; }
+html body .flow-banner-icon { width: 40px; height: 40px; }
+html body .flow-two { gap: 10px; }
+html body .flow-heading { font-size: clamp(24px, 2.4vw, 32px); }
+@media (max-width: 960px) { html body .flow-vehicle-action { grid-column: 1 / -1; } }
+@media (max-width: 560px) { html body .flow-vehicle { grid-template-columns: minmax(0, 1fr); } }
+
+/* Stepper: inline dot + label. */
+html body .flow-stepper .ui-stepper { max-width: none; align-items: center; }
+html body .flow-stepper .ui-step { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: 1 1 auto; text-align: left; }
+html body .flow-stepper .ui-step:first-child { flex: 0 0 auto; }
+html body .flow-stepper .ui-step + .ui-step::before { position: static; flex: 1 1 auto; min-width: 14px; width: auto; height: 2px; right: auto; top: auto; margin-inline: 6px; border-radius: 2px; }
+html body .flow-stepper .ui-step-button { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+html body .flow-stepper .ui-step-dot { width: 26px; height: 26px; font-size: 13px; }
+html body .flow-stepper .ui-step-label { white-space: nowrap; font-size: 13px; }
+@media (max-width: 760px) { html body .flow-stepper .ui-step:not(.ui-step-current) .ui-step-label { display: none; } }
+
+/* Short windows (laptops at 125% scaling): trim the navbar and tab row too. */
+@media (max-height: 820px) {
+  html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 6px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 2px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .brand.travelly-brand { width: 100px; }
+  html body .flow-top .ui-tabs { padding: 3px; border-radius: 18px; }
+  html body .flow-top .ui-tab { min-height: 32px; padding-block: 2px; font-size: 14px; }
+}

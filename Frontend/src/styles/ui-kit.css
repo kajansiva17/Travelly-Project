@@ -179,3 +179,20 @@ a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px
 /* Visually hidden but still focusable for native required-field validation. */
 .ui-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; opacity: 0; }
 @media (max-width: 560px) { .ui-tab { white-space: normal; text-align: center; padding: 6px 10px; font-size: 14px; } }
+
+/* Stepper: completed steps are green with a check. */
+.ui-step-done .ui-step-dot { background: var(--ui-green); border-color: var(--ui-green); color: #fff; }
+.ui-step-done + .ui-step::before, .ui-step-current::before { background: var(--ui-blue); }
+.ui-tile-badge { flex: none; padding: 3px 10px; border-radius: 999px; background: #fff4d6; border: 1px solid #f0cf7a; color: #7a5200; font-size: 12px; font-weight: 700; }
+
+/* Stepper: completed steps are buttons that go back to that step. */
+.ui-step-button { display: grid; justify-items: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; min-width: 0; }
+.ui-step-button:hover .ui-step-label { text-decoration: underline; }
+.ui-step-button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; border-radius: 10px; }
+
+/* InfoTip: "i" button with a tooltip for long helper text. */
+.ui-infotip { position: relative; display: inline-flex; vertical-align: middle; margin-left: 4px; }
+.ui-infotip > button { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ui-blue); cursor: help; }
+.ui-infotip > button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.ui-infotip > [role="tooltip"] { position: absolute; z-index: 130; left: -8px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 70vw); padding: 10px 12px; border-radius: 12px; background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-input-border); box-shadow: 0 8px 22px rgb(40 80 120 / .25); font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; display: none; pointer-events: none; }
+.ui-infotip:hover > [role="tooltip"], .ui-infotip:focus-within > [role="tooltip"] { display: block; }

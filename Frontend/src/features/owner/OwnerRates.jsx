@@ -2,9 +2,10 @@ import { t } from '../../i18n/language.js'
 import React, { useContext, useEffect, useId, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { api, hasSession, publicRead } from '../../services/api'
-import { ErrorNotice, Header } from '../../components/components'
+import { ErrorNotice, Header, Icon } from '../../components/components'
 import '../../styles/rates.css'
 import { validateRateRules } from './rateValidation'
+import InfoTip from '../../components/ui/InfoTip'
 
 const methodFields = {
   DISTANCE: [['base_charge', 'Base charge', 'LKR; covers the included distance.'], ['included_km', 'Included distance', 'km per booking; enter 0 only if none are included.'], ['extra_km_rate', 'Extra distance rate', 'LKR per km beyond the included allowance.'], ['night_km_rate', 'Night distance surcharge', 'LKR per planned night km, including included km.']],
@@ -15,17 +16,20 @@ export const emptyRule = () => ({ id: crypto.randomUUID(), label: '', method: 'D
   coverage: { kind: 'ROUTE', places: [] }, pickup_area: null, return_to_base: '', return_to_base_notes: '', tolls: '', parking: '', other_charges: [], change_limits: {} })
 const allPrices = [...new Set(Object.values(methodFields).flat().map(([name]) => name))]
 
-const RateErrors = React.createContext({})
-export function Field({ label, help, children, optional = false }) {
+export const RateErrors = React.createContext({})
+export function Field({ label, help, children, optional = false, compact = false }) {
   const id = useId()
   const error = useContext(RateErrors)[children.props.name]
-  return <div className="rate-field"><label htmlFor={id}>{t(label)} <small>({optional ? t('Optional') : t('Required')})</small></label>{React.cloneElement(children, { id, 'aria-invalid': Boolean(error), 'aria-describedby': [help ? id + '-hint' : '', error ? id + '-error' : ''].filter(Boolean).join(' ') || undefined })}{help && <small className="rate-hint" id={id + '-hint'}>{t(help)}</small>}{error && <small id={id + '-error'} className="field-error">{t(error)}</small>}</div>
+  return <div className="rate-field"><label htmlFor={id}>{t(label)} {compact ? (optional ? <small>({t('Optional')})</small> : <><span className="req" aria-hidden="true">*</span><span className="ui-sr-only">({t('Required')})</span></>) : <small>({optional ? t('Optional') : t('Required')})</small>}{help && compact && <InfoTip>{t(help)}</InfoTip>}</label>{React.cloneElement(children, { id, 'aria-invalid': Boolean(error), 'aria-describedby': [help && !compact ? id + '-hint' : '', error ? id + '-error' : ''].filter(Boolean).join(' ') || undefined })}{help && !compact && <small className="rate-hint" id={id + '-hint'}>{t(help)}</small>}{error && <small id={id + '-error'} className="field-error">{t(error)}</small>}</div>
 }
-export function AmountField({ name, label, help, value, onChange, step = 'any', min = '0' }) {
-  return <Field label={label} help={help}><input name={name} type="number" min={min} step={step} required inputMode="decimal" value={value ?? ''} onChange={e => onChange(e.target.value)}/></Field>
+export function AmountField({ name, label, help, value, onChange, step = 'any', min = '0', compact = false }) {
+  return <Field label={label} help={help} compact={compact}><input name={name} type="number" min={min} step={step} required inputMode="decimal" value={value ?? ''} onChange={e => onChange(e.target.value)}/></Field>
 }
 
-export function PlaceSearch({ label, value, onChange, querySeed = '' }) {
+// Text input with an optional button drawn inside its right edge (compact place search).
+function PlaceInputBox({ button, ...inputProps }) { return <div className="place-input"><input {...inputProps}/>{button}</div> }
+
+export function PlaceSearch({ label, value, onChange, querySeed = '', compact = false, name }) {
   const [query, setQuery] = useState(querySeed), [results, setResults] = useState([]), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   async function search() {
     setBusy(true); setError('')
@@ -33,7 +37,7 @@ export function PlaceSearch({ label, value, onChange, querySeed = '' }) {
     catch (err) { setError(err.message) }
     finally { setBusy(false) }
   }
-  return <div className="rate-place"><Field label={label} help="Search and select the actual location; names alone do not establish coverage."><input type="search" value={value ? value.label : query} onChange={e => { onChange(null); setQuery(e.target.value); setResults([]) }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (query.trim().length >= 3) search() } }} required placeholder={t("Town, address or landmark")} autoComplete="off"/></Field>{!value && <button className="button outline" type="button" disabled={busy || query.trim().length < 3} onClick={search}>{busy ? t('Finding locations…') : t('Find location')}</button>}{results.length > 0 && <ul aria-label={t("{value0} results", {value0: label})}>{results.map(place => <li key={place.token}><button type="button" onClick={() => { onChange(place); setQuery(''); setResults([]) }}>{place.label}</button></li>)}</ul>}{value && <small className="rate-location-selected">{t("Location selected")}</small>}{!busy && results.length === 0 && query.length >= 3 && !error && <small>{t("Choose Find location to see matching places.")}</small>}{error && <p className="field-error" role="alert">{t(error)}</p>}</div>
+  return <div className="rate-place"><Field label={label} help="Search and select the actual location; names alone do not establish coverage." compact={compact}>{compact ? <PlaceInputBox type="search" name={name} value={value ? value.label : query} onChange={e => { onChange(null); setQuery(e.target.value); setResults([]) }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (query.trim().length >= 3) search() } }} required placeholder={t("Town, address or landmark")} autoComplete="off" button={!value && <button type="button" className="place-find" aria-label={t('Find location')} title={t('Find location')} disabled={busy || query.trim().length < 3} onClick={search}><Icon name={busy ? 'clock' : 'search'} size={18}/></button>}/> : <input type="search" name={name} value={value ? value.label : query} onChange={e => { onChange(null); setQuery(e.target.value); setResults([]) }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (query.trim().length >= 3) search() } }} required placeholder={t("Town, address or landmark")} autoComplete="off"/>}</Field>{!value && !compact && <button className="button outline" type="button" disabled={busy || query.trim().length < 3} onClick={search}>{busy ? t('Finding locations…') : t('Find location')}</button>}{results.length > 0 && <ul aria-label={t("{value0} results", {value0: label})}>{results.map(place => <li key={place.token}><button type="button" onClick={() => { onChange(place); setQuery(''); setResults([]) }}>{place.label}</button></li>)}</ul>}{value && <small className="rate-location-selected">{t("Location selected")}</small>}{!busy && results.length === 0 && query.length >= 3 && !error && <small>{t("Choose Find location to see matching places.")}</small>}{error && <p className="field-error" role="alert">{t(error)}</p>}</div>
 }
 
 function AreaEditor({ label, value, onChange }) {
