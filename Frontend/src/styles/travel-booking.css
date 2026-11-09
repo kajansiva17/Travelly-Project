@@ -1,0 +1,116 @@
+/* Travel & Booking pages (Phase 6a): HireSearchPage, BookingPage and JourneysPage
+   in features/booking/TripPricing.jsx, used by owner, driver and admin personal
+   bookings. Scoped to `.travel-booking-page` and built on the --ui-* tokens and the
+   shared kit (GlassCard, Tabs, ServiceTile). Matches design-reference
+   screens/owner/O04-04 and screens/passenger/P01-01, P01-02, P02-01..04.
+   Imported last in App.jsx; the `html body .workspace-shell[data-workspace]` prefix raises specificity above the
+   older dark-blue form rules, which Phase 6c/7 delete. */
+
+html body .workspace-shell[data-workspace] .travel-booking-page {
+  display: flex; flex-direction: column; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 8px clamp(12px, 2.4vw, 28px) 40px;
+  color: var(--ui-ink); background: transparent;
+}
+html body .workspace-shell[data-workspace] .travel-booking-page > * { margin-top: 0; margin-bottom: 0; min-width: 0; }
+
+/* Heading over the scenery. */
+html body .workspace-shell[data-workspace] .travel-booking-page :is(h1, h2, h3, legend) { color: var(--ui-ink); letter-spacing: -.01em; }
+html body .workspace-shell[data-workspace] .travel-booking-page > h1, html body .workspace-shell[data-workspace] .travel-booking-heading h1 { font-size: clamp(28px, 3vw, 38px); font-weight: 800; line-height: 1.15; margin: 0; text-shadow: 0 1px 8px rgb(255 255 255 / .7); }
+html body .workspace-shell[data-workspace] .travel-booking-heading { display: grid; gap: 4px; }
+html body .workspace-shell[data-workspace] .travel-booking-heading p, html body .workspace-shell[data-workspace] .travel-booking-page .rate-intro { margin: 0; font-size: 15px; color: var(--ui-text); text-shadow: 0 1px 6px rgb(255 255 255 / .6); }
+html body .workspace-shell[data-workspace] .travel-booking-heading .travel-booking-note { font-size: 13px; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(p, li, td, th, dd, dt, summary, label, span, small) { color: inherit; }
+html body .workspace-shell[data-workspace] .travel-booking-page a:not(.button):not(.ui-tab):not(.ui-tile) { color: var(--ui-blue); }
+html body .workspace-shell[data-workspace] .travel-booking-page .inline-link { color: var(--ui-blue); text-decoration: underline; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+html body .workspace-shell[data-workspace] .travel-booking-page .inline-link:disabled { color: var(--ui-muted); cursor: not-allowed; }
+
+/* Form: sub-panels inside the glass card instead of the old dark-blue fieldset. */
+html body .workspace-shell[data-workspace] .travel-booking-card form { display: grid; gap: 16px; }
+html body .workspace-shell[data-workspace] .travel-booking-page fieldset {
+  min-width: 0; margin: 0; padding: 16px 18px 18px;
+  background: rgb(255 255 255 / .45); color: var(--ui-ink);
+  border: 1px solid rgb(255 255 255 / .85); border-radius: 20px;
+  box-shadow: inset 0 1px 6px rgb(255 255 255 / .8);
+}
+html body .workspace-shell[data-workspace] .travel-booking-page legend { padding: 0 8px; font-size: 20px; font-weight: 700; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px 18px; align-items: start; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-field { display: grid; gap: 6px; min-width: 0; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-field > label { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-field > label small { font-weight: 500; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-hint, .rate-field small) { font-size: 12px; line-height: 1.45; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-field input, .rate-field select, .rate-field textarea) {
+  box-sizing: border-box; width: 100%; min-height: 46px; padding: 8px 14px;
+  background: var(--ui-input-bg); color: var(--ui-ink);
+  border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input);
+  font: inherit; font-size: 15px; font-weight: 500; box-shadow: none;
+}
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-field input, .rate-field select, .rate-field textarea)::placeholder { color: var(--ui-placeholder); opacity: 1; }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-field input, .rate-field select, .rate-field textarea):focus { outline: 0; border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-field [aria-invalid="true"] { border-color: var(--ui-red-text); }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-field input, .rate-field select):disabled { opacity: .65; }
+html body .workspace-shell[data-workspace] .travel-booking-page .field-error, html body .workspace-shell[data-workspace] .travel-booking-page .rate-field .field-error { color: var(--ui-red-text); }
+
+/* Stops and location search. */
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-stops { display: grid; gap: 12px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-stop { display: grid; gap: 10px; padding: 14px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .85); border-radius: 18px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-place { display: grid; gap: 8px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-place ul { margin: 0; padding: 4px; list-style: none; background: #fff; border: 1px solid var(--ui-input-border); border-radius: 14px; box-shadow: 0 8px 20px rgb(40 80 120 / .16); }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-place li button { width: 100%; padding: 9px 12px; text-align: left; background: transparent; border: 0; border-radius: 10px; color: var(--ui-ink); font: inherit; cursor: pointer; }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-place li button:hover { background: var(--ui-input-bg); }
+html body .workspace-shell[data-workspace] .travel-booking-page .rate-row-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .terms-check { display: flex; align-items: center; gap: 10px; color: var(--ui-ink); font-size: 14px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .terms-check input { accent-color: var(--ui-red); width: 20px; height: 20px; }
+
+/* Service tiles replace the old Service dropdown. */
+html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-picker { display: grid; gap: 10px; margin-bottom: 4px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-label { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-label small { font-weight: 500; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { html body .workspace-shell[data-workspace] .travel-booking-page .travel-service-tiles { grid-template-columns: minmax(0, 1fr); } }
+
+/* Buttons: primary = red pill, outline = white glass (DESIGN-SPEC §6). */
+html body .workspace-shell[data-workspace] .travel-booking-page .button:not(.outline) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 10px 26px; border-radius: var(--ui-radius-pill);
+  background: var(--ui-red-gradient); color: #fff; border: 1px solid rgb(255 255 255 / .35);
+  box-shadow: var(--ui-shadow-button); font: inherit; font-size: 16px; font-weight: 600; text-decoration: none; text-shadow: 0 1px 1px rgb(120 0 0 / .25); cursor: pointer;
+}
+html body .workspace-shell[data-workspace] .travel-booking-page .button.outline {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 10px 26px; border-radius: var(--ui-radius-pill);
+  font: inherit; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer;
+  background: var(--ui-glass-strong); color: var(--ui-ink); border-color: var(--ui-glass-border);
+  box-shadow: 0 3px 10px rgb(40 80 120 / .14); text-shadow: none;
+}
+html body .workspace-shell[data-workspace] .travel-booking-page .button:not(.outline):disabled { background: rgb(132 140 158 / .55); color: rgb(255 255 255 / .8); box-shadow: none; text-shadow: none; cursor: not-allowed; }
+html body .workspace-shell[data-workspace] .travel-booking-page .button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+html body .workspace-shell[data-workspace] .travel-booking-card form > button.button { justify-self: stretch; min-height: 52px; font-size: 17px; }
+
+/* Results, vehicle cards, price tables, notices. */
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-results { margin-top: 0; display: grid; gap: 14px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-results > p[role="status"] { margin: 0; color: var(--ui-text); }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-vehicle-card {
+  margin: 0; padding: 16px 18px; display: grid; gap: 10px;
+  background: var(--ui-glass-strong); color: var(--ui-ink);
+  border: 1px solid var(--ui-glass-border); border-radius: 22px; box-shadow: var(--ui-shadow-card);
+}
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-vehicle-card h2, html body .workspace-shell[data-workspace] .travel-booking-page .trip-vehicle-card h3 { margin: 0; font-size: 20px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-vehicle-card img { max-width: 100%; border-radius: 16px; }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-price table { width: 100%; border-collapse: collapse; background: transparent; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-price :is(th, td, caption) { padding: 6px 8px; border-bottom: 1px solid rgb(18 21 82 / .12); color: var(--ui-ink); text-align: left; background: transparent; }
+html body .workspace-shell[data-workspace] .travel-booking-page .trip-price td, html body .workspace-shell[data-workspace] .travel-booking-page .trip-price tfoot th { font-weight: 700; }
+html body .workspace-shell[data-workspace] .travel-booking-page :is(.rate-preview, .trip-notification, details.agreed-rate-rules, details.agreed-itinerary, .notice) {
+  background: rgb(255 255 255 / .62); color: var(--ui-ink); border: 1px solid rgb(255 255 255 / .85); border-radius: 18px; padding: 12px 14px; box-shadow: none;
+}
+html body .workspace-shell[data-workspace] .travel-booking-page .notice.error { background: #fff1ee; border-color: #f3b9b0; color: #9d1d12; }
+html body .workspace-shell[data-workspace] .travel-booking-page > section:not(.ui-card):not(.trip-results), html body .workspace-shell[data-workspace] .travel-booking-page > article:not(.trip-vehicle-card) {
+  background: var(--ui-glass); border: 1px solid var(--ui-glass-border); border-radius: var(--ui-radius-card); box-shadow: var(--ui-shadow-card); padding: clamp(14px, 2vw, 22px);
+  -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur);
+}
+
+@media (max-width: 767px) {
+  html body .workspace-shell[data-workspace] .travel-booking-page { padding-inline: 10px; }
+  html body .workspace-shell[data-workspace] .travel-booking-page fieldset { padding: 12px; }
+  html body .workspace-shell[data-workspace] .travel-booking-page .rate-grid { grid-template-columns: minmax(0, 1fr); }
+}

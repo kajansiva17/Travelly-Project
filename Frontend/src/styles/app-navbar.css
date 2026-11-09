@@ -61,3 +61,19 @@ html body header.lr-header.app-navbar.app-navbar.app-navbar { padding-block: 4px
   html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) { padding: 8px 8px 0; }
   html body .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner { min-height: 56px; padding: 6px 12px; gap: 10px; }
 }
+
+/* Phones: keep only the avatar and icons so the bar never overflows (all roles). */
+@media (max-width: 767px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name,
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > span { display: none; }
+}
+
+/* Small phones: drop Travel Reels (not available yet) and compact the logo and
+   language so menu, logo, language, bell and avatar all fit without clipping. */
+@media (max-width: 480px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 96px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation { gap: 6px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .language { gap: 2px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 64px; font-size: 12px; }
+}

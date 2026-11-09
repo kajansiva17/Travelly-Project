@@ -166,3 +166,16 @@ div.ui-tile { cursor: default; }
   .ui-button, .ui-tile, .ui-control { transition: none; }
   .ui-button:hover:not(:disabled), .ui-tile:is(a, button):hover { transform: none; }
 }
+
+/* Tabs: white-glass segmented bar, active tab outlined in red. */
+.ui-tabs { display: flex; gap: 6px; padding: 6px; border-radius: 22px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur); overflow-x: auto; }
+.ui-tab { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 6px 16px; border: 1px solid transparent; border-radius: 16px; color: var(--ui-ink); font-size: 15px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.ui-tab > svg { color: var(--ui-blue-deep); }
+a.ui-tab:hover { background: rgb(255 255 255 / .9); }
+a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.ui-tab.is-active { background: #fff0ee; border-color: #ee3a2a; }
+.ui-tab.is-active > svg { color: var(--ui-red-text); }
+
+/* Visually hidden but still focusable for native required-field validation. */
+.ui-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; opacity: 0; }
+@media (max-width: 560px) { .ui-tab { white-space: normal; text-align: center; padding: 6px 10px; font-size: 14px; } }
