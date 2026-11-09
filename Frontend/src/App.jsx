@@ -26,6 +26,7 @@ import PassengerRental from './features/passenger/PassengerRental'
 import {RentalRoleUi} from './features/rental/RentalUi'
 import PassengerFinalFare from './features/passenger/PassengerFinalFare'
 import OwnerTicketDepartures from './features/owner/OwnerTicketDepartures'
+import OwnerRoutes from './features/owner/OwnerRoutes'
 import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
 import OwnerFinanceOverview from './features/owner/OwnerFinanceOverview'
 import DriverTicketBoarding from './features/driver/DriverTicketBoarding'
@@ -160,6 +161,7 @@ export default function App() {
             <Route path="/owner/event-packages" element={<OwnerEventPackages/>}/>
             <Route path="/owner/event-operations" element={<OwnerEventOperations/>}/>
             <Route path="/owner/ticket-departures" element={<OwnerTicketDepartures/>}/>
+            <Route path="/owner/routes" element={<OwnerRoutes/>}/>
             <Route path="/owner/vehicles" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicle-setup" element={<OwnerVehicleSetup/>}/>
             <Route path="/owner/vehicles/:vehicleId" element={<VehicleRoute/>}/>

@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react'
+import {Link} from 'react-router-dom'
 import {api,publicRead} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {TravellyGlassPanel,TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
@@ -28,7 +29,7 @@ export default function OwnerTicketDepartures(){
   const loadDepartures=()=>api('/scheduled-trips?mine=true&limit=100').then(x=>setItems(x.items||[])).catch(setError)
   useEffect(()=>{
     api('/owners/me/vehicles').then(x=>setVehicles((x.items||[]).filter(v=>v.verification_status==='APPROVED'))).catch(setError)
-    publicRead('/routes?limit=100').then(x=>setRoutes(x.items||[])).catch(setError)
+    api('/owners/me/routes').then(x=>setRoutes((x.items||[]).filter(r=>r.status==='ACTIVE'))).catch(setError)
     loadDepartures()
   },[])
   const vehicle=vehicles.find(v=>v.id===layoutVehicle)
@@ -100,6 +101,7 @@ export default function OwnerTicketDepartures(){
     <TravellyGlassPanel><h2>2. Create a departure draft</h2>
       <form className="passenger-detail-grid" onSubmit={createDeparture}>
         <select required value={form.route_id} onChange={set('route_id')} aria-label="Route"><option value="">Choose a route</option>{routes.map(r=><option key={r.id} value={r.id}>{r.route_name} ({r.origin_name} → {r.destination_name})</option>)}</select>
+        {routes.length===0&&<p>You have no routes yet. <Link to="/owner/routes">Add a route</Link> first.</p>}
         <select required value={form.vehicle_id} onChange={set('vehicle_id')} aria-label="Vehicle"><option value="">Choose a vehicle</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.label||v.reference}</option>)}</select>
         <label>Departure <input required type="datetime-local" value={form.departure_at} onChange={set('departure_at')}/></label>
         <label>Estimated arrival <input required type="datetime-local" value={form.estimated_arrival_at} onChange={set('estimated_arrival_at')}/></label>

@@ -55,3 +55,20 @@ class RoutePatch(Strict):
 class StopsReplace(Strict):
     expected_version: int = Field(ge=1)
     stops: List[StopIn] = Field(min_length=2, max_length=50)
+
+
+class OwnerRouteIn(Strict):
+    """An Owner's own route. Start and end come from the first and last stop; the route code is generated."""
+    route_name: Optional[str] = Field(None, min_length=1, max_length=150)
+    estimated_distance_km: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=3)
+    estimated_duration_minutes: Optional[int] = Field(None, ge=0, le=100000)
+    stops: List[StopIn] = Field(min_length=2, max_length=50)
+
+
+class OwnerRouteUpdate(OwnerRouteIn):
+    expected_version: int = Field(ge=1)
+
+
+class OwnerRouteStatus(Strict):
+    expected_version: int = Field(ge=1)
+    active: bool

@@ -170,8 +170,8 @@ def check_departure(db, owner, values, *, publishing=False):
     if missing:
         raise invalid('Missing required departure fields: ' + ', '.join(missing) + '.')
     route = db.get(Route, values['route_id'])
-    if not route or route.status != 'ACTIVE':
-        raise ApiError(422, 'ROUTE_NOT_AVAILABLE', 'Choose an active route.')
+    if not route or route.status != 'ACTIVE' or route.created_by_owner_id not in (None, owner.id):
+        raise ApiError(422, 'ROUTE_NOT_AVAILABLE', 'Choose one of your active routes.')
     vehicle = db.get(Vehicle, values['vehicle_id'])
     if not vehicle or vehicle.owner_user_id != owner.id or vehicle.verification_status != 'APPROVED' or vehicle.availability_status != 'ACTIVE':
         raise ApiError(409, 'TICKET_VEHICLE_UNAVAILABLE', 'Use an approved, active vehicle that you own.')

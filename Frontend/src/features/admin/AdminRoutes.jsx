@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
-import {api,publicRead} from '../../services/api'
+import {api} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {TravellyGlassPanel,TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
 
@@ -10,7 +10,7 @@ const num=v=>v===''||v==null?null:String(v)
 
 export default function AdminRoutes(){
   const [form,setForm]=useState(blankRoute()),[stops,setStops]=useState([blankStop(),blankStop()]),[routes,setRoutes]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
-  const load=()=>publicRead('/routes?limit=100').then(x=>setRoutes(x.items||[])).catch(setError)
+  const load=()=>api('/admin/routes').then(x=>setRoutes(x.items||[])).catch(setError)
   useEffect(()=>{load()},[])
   const setStop=(i,patch)=>setStops(stops.map((s,k)=>k===i?{...s,...patch}:s))
   async function create(e){
@@ -24,10 +24,16 @@ export default function AdminRoutes(){
       setNotice(`Route ${created.route_code} saved as ${created.status}.`);setForm(blankRoute());setStops([blankStop(),blankStop()]);load()
     }catch(problem){setError(problem)}finally{setBusy(false)}
   }
+  async function toggle(r){
+    setError(null);setNotice('')
+    try{const saved=await api(`/admin/routes/${r.id}`,{method:'PATCH',body:JSON.stringify({expected_version:r.version,status:r.status==='ACTIVE'?'INACTIVE':'ACTIVE'})})
+      setNotice(saved.status==='ACTIVE'?`${saved.route_name} turned on.`:`${saved.route_name} turned off. The Owner cannot turn it back on.`);load();window.scrollTo({top:0,behavior:'smooth'})}
+    catch(problem){setError(problem)}
+  }
   return <><Header/><main className="role-dashboard" id="main">
     <div className="workspace-heading"><p className="section-kicker">ADMIN · SERVICES &amp; ROUTES</p><h1>Ticket routes</h1>
-      <p>Create the fixed routes and ordered stops that Owners use for scheduled Ticket departures. <Link to="/admin/services-routes">Back to service catalogue</Link></p></div>
-    <ErrorNotice error={error}/>{notice&&<p role="status">{notice}</p>}
+      <p>Owners add their own routes; you only need to turn off a wrong or abusive route. You can also add a Travelly route every Owner can use. <Link to="/admin/services-routes">Back to service catalogue</Link></p></div>
+    <ErrorNotice error={error}/>{notice&&<p role="status" style={{background:'#e6f7ec',color:'#0b5d2a',border:'1px solid #7bcf9b',borderRadius:10,padding:'12px 16px',fontWeight:600}}>✓ {notice}</p>}
     <TravellyGlassPanel><h2>Create a route</h2>
       <form className="passenger-detail-grid" onSubmit={create}>
         <input required maxLength="30" placeholder="Route code (e.g. COL-KDY)" value={form.route_code} onChange={e=>setForm({...form,route_code:e.target.value})}/>
@@ -52,9 +58,10 @@ export default function AdminRoutes(){
         <p>Minutes from start must not decrease along the route. The first stop must allow pickup and the last must allow drop-off.</p>
         <button className="button" disabled={busy}>{busy?'Saving…':'Save route'}</button>
       </form></TravellyGlassPanel>
-    <TravellyGlassPanel><h2>Available routes</h2>
+    <TravellyGlassPanel><h2>All routes</h2>
       {routes===null?<TravellyState kind="loading" title="Loading routes"/>:routes.length?routes.map(r=>
-        <article className="travelly-vehicle-card" key={r.id}><div><h3>{r.route_name}</h3><p>{r.route_code} · {r.origin_name} → {r.destination_name}</p><TravellyStatusChip tone="success">ACTIVE</TravellyStatusChip></div></article>)
+        <article className="travelly-vehicle-card" key={`${r.id}-${r.version}`}><div><h3>{r.route_name}</h3><p>{r.origin_name} → {r.destination_name} · {r.owner_user_id?'Owner route':'Travelly route'}</p><TravellyStatusChip tone={r.status==='ACTIVE'?'success':'warning'}>{r.status==='ACTIVE'?'On':'Off'}</TravellyStatusChip></div>
+          {r.status!=='DRAFT'&&<button type="button" className="button outline" onClick={()=>toggle(r)}>{r.status==='ACTIVE'?'Turn off':'Turn on'}</button>}</article>)
         :<TravellyState title="No routes yet">Create the first route above.</TravellyState>}
     </TravellyGlassPanel>
   </main></>
