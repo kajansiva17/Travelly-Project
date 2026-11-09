@@ -123,12 +123,12 @@ def own_ticket_booking(db, booking_id, user):
 
 
 def check_stops(db, route_id, boarding_id, dropoff_id):
-    if boarding_id is None:
-        return None, None
-    stops = {s.id: s for s in db.scalars(select(RouteStop).where(RouteStop.id.in_([boarding_id, dropoff_id]),
-                                                                    RouteStop.route_id == route_id,
-                                                                    RouteStop.is_active.is_(True))).all()}
-    boarding, dropoff = stops.get(boarding_id), stops.get(dropoff_id)
+    """Each stop is optional on its own: no get-on stop means the route start, no get-off stop the route end."""
+    ordered = db.scalars(select(RouteStop).where(RouteStop.route_id == route_id, RouteStop.is_active.is_(True))
+                         .order_by(RouteStop.stop_order)).all()
+    stops = {s.id: s for s in ordered}
+    boarding = stops.get(boarding_id) if boarding_id else ordered[0]
+    dropoff = stops.get(dropoff_id) if dropoff_id else ordered[-1]
     if not boarding or not dropoff:
         raise ApiError(422, 'STOP_NOT_ON_ROUTE', 'Choose active stops on this departure route.')
     if not boarding.pickup_allowed or not dropoff.dropoff_allowed:
@@ -181,11 +181,18 @@ def create_hold(body: TicketHoldRequest, user=Depends(current), db: Session = De
                        [{'field': 'seat_id', 'message': code} for code in taken])
 
     expires = moment + timedelta(minutes=minutes)
+    route_fares = (route.route_settings or {}).get('stop_fares')
+    segment = None
+    if route_fares:
+        # Owner stop prices: the Passenger pays price(get-off) - price(get-on) per seat.
+        segment = Decimal(route_fares[str(dropoff.id)]) - Decimal(route_fares[str(boarding.id)])
+        if segment <= 0:
+            raise ApiError(422, 'NO_FARE_FOR_STOPS', 'The Owner has no price for travel between these stops.')
     fares = []
     for traveller in body.travellers:
         inv, seat = found[traveller.seat_id]
-        fare = inv.fare_override if inv.fare_override is not None else trip.fare_per_seat
-        fares.append({'seat_id': str(inv.id), 'seat_code': seat.seat_code, 'fare': str(fare)})
+        fare = segment if segment is not None else inv.fare_override if inv.fare_override is not None else trip.fare_per_seat
+        fares.append({'seat_id': str(inv.id), 'seat_code': seat.seat_code, 'fare': format(Decimal(fare), '.2f')})
     total = sum((Decimal(f['fare']) for f in fares), Decimal('0'))
     terms = {'policy': trip.fulfilment_policy, 'minimum_confirmed_seats': trip.minimum_confirmed_seats,
              'decision_deadline': trip.decision_deadline.isoformat() if trip.decision_deadline else None,
@@ -206,7 +213,10 @@ def create_hold(body: TicketHoldRequest, user=Depends(current), db: Session = De
                       quoted_amount=total, total_amount=total, currency=trip.currency, idempotency_key=stored_key,
                       itinerary_snapshot=itinerary,
                       price_snapshot={'currency': trip.currency, 'fare_per_seat': str(trip.fare_per_seat), 'seats': fares,
-                                      'total': str(total)},
+                                      'total': format(total, '.2f'),
+                                      'stop_prices': None if segment is None else {
+                                          'get_on': boarding.stop_name, 'get_on_price': route_fares[str(boarding.id)],
+                                          'get_off': dropoff.stop_name, 'get_off_price': route_fares[str(dropoff.id)]}},
                       created_by=user.id, updated_by=user.id)
     db.add(booking)
     try:

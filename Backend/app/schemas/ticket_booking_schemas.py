@@ -52,8 +52,7 @@ class TicketHoldRequest(Strict):
         seats = [t.seat_id for t in self.travellers]
         if len(seats) != len(set(seats)):
             raise ValueError('Each traveller needs a different seat.')
-        if (self.boarding_stop_id is None) != (self.dropoff_stop_id is None):
-            raise ValueError('Choose both a boarding stop and a drop-off stop, or neither.')
+        # Each stop is optional on its own (decision 9 Nov 2026): no get-on stop = route start, no get-off stop = route end.
         return self
 
 

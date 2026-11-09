@@ -229,12 +229,17 @@ def test_stops_must_be_on_the_route_and_in_order(client, ticket):
     foreign = api(client, passenger, 'post', '/bookings/ticket-holds',
                   {**body, 'boarding_stop_id': str(uuid4()), 'dropoff_stop_id': stops['Kandy']})
     assert foreign.status_code == 422 and foreign.json()['code'] == 'STOP_NOT_ON_ROUTE'
+    # Each stop is optional on its own (decision 9 Nov 2026): only a get-on stop means getting off at the route end.
     half = api(client, passenger, 'post', '/bookings/ticket-holds', {**body, 'boarding_stop_id': stops['Kegalle']})
-    assert half.status_code == 422
+    assert half.status_code == 201, half.text
+    assert (half.json()['itinerary']['boarding_stop'], half.json()['itinerary']['dropoff_stop']) == ('Kegalle', 'Kandy')
     ok = api(client, passenger, 'post', '/bookings/ticket-holds',
-             {**body, 'boarding_stop_id': stops['Colombo Fort'], 'dropoff_stop_id': stops['Kegalle']})
+             {**hold_body(ticket, ['A2']), 'boarding_stop_id': stops['Colombo Fort'], 'dropoff_stop_id': stops['Kegalle']})
     assert ok.status_code == 201, ok.text
     assert ok.json()['itinerary']['dropoff_stop'] == 'Kegalle'
+    only_off = api(client, passenger, 'post', '/bookings/ticket-holds', {**hold_body(ticket, ['A3']), 'dropoff_stop_id': stops['Kegalle']})
+    assert only_off.status_code == 201, only_off.text
+    assert only_off.json()['itinerary']['boarding_stop'] == 'Colombo Fort'
 
 
 def test_invalid_hold_requests_are_rejected(client, ticket):

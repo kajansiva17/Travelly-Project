@@ -45,9 +45,16 @@ export default function PassengerTicketBooking(){
 
   const byCode=Object.fromEntries(seats.map(s=>[s.code,s]))
   const toggle=s=>setSelected(selected.includes(s.code)?selected.filter(x=>x!==s.code):[...selected,s.code])
-  const total=selected.reduce((sum,code)=>sum+Number(byCode[code]?.fare||0),0)
+  // Each stop is optional on its own: no get-on stop = route start, no get-off stop = route end.
+  const routeStops=departure?.stops||[]
+  const onStop=routeStops.find(s=>s.id===stops.boarding)||routeStops[0]
+  const offStop=routeStops.find(s=>s.id===stops.dropoff)||routeStops[routeStops.length-1]
+  const stopsReady=!onStop||!offStop||onStop.stop_order<offStop.stop_order
+  // With the Owner's price for each stop, a seat costs price(get-off) - price(get-on).
+  const partFare=departure?.stop_prices_enabled&&onStop&&offStop?Number(offStop.price_from_start)-Number(onStop.price_from_start):null
+  const seatFare=code=>partFare!=null?partFare:Number(byCode[code]?.fare||0)
+  const total=selected.reduce((sum,code)=>sum+seatFare(code),0)
   const travellers=Math.max(1,Number(query.travellers)||1)
-  const stopsReady=(stops.boarding==='')===(stops.dropoff==='')
   const namesReady=selected.length>0&&selected.every(code=>(names[code]||'').trim())
 
   async function hold(){
@@ -55,7 +62,8 @@ export default function PassengerTicketBooking(){
     try{
       const body={scheduled_trip_id:departure.id,idempotency_key:key,
         travellers:selected.map(code=>({seat_id:byCode[code].seat_id,full_name:names[code].trim()}))}
-      if(stops.boarding){body.boarding_stop_id=stops.boarding;body.dropoff_stop_id=stops.dropoff}
+      if(stops.boarding)body.boarding_stop_id=stops.boarding
+      if(stops.dropoff)body.dropoff_stop_id=stops.dropoff
       setBooking(await api('/bookings/ticket-holds',{method:'POST',body:JSON.stringify(body)}))
       await loadSeats(departure.id)
     }catch(e){
@@ -92,7 +100,9 @@ export default function PassengerTicketBooking(){
 
       {departure&&<section className="passenger-quote">
         <h2>Select numbered seats</h2>
-        <p>{departure.route.origin_name} → {departure.route.destination_name} · {new Date(departure.departure_at).toLocaleString()} · fare per seat {departure.currency} {departure.fare_per_seat}</p>
+        <p>{departure.route.origin_name} → {departure.route.destination_name} · {new Date(departure.departure_at).toLocaleString()} · {departure.stop_prices_enabled
+          ?<>price per seat {departure.currency} {partFare!=null?partFare.toFixed(2):departure.fare_per_seat} for {onStop?.stop_name} → {offStop?.stop_name}</>
+          :<>fare per seat {departure.currency} {departure.fare_per_seat}</>}</p>
         <div className="seat-legend"><span>□ Available</span><span>■ Selected</span><span>▨ Not for sale</span><span>▭ Held / booked</span></div>
         <SeatMap seats={seats.map(s=>({...s,bookable:true}))} selected={booking?.hold_active?[]:selected} onToggle={booking?.hold_active?undefined:toggle} label="Choose seats"/>
         {!booking?.hold_active&&<>
@@ -114,15 +124,17 @@ export default function PassengerTicketBooking(){
           {selected.length>0&&<div className="passenger-detail-grid">
             {selected.map((code,i)=><label key={code}>Traveller name for seat {code}{i===0?' (primary)':''}
               <input required maxLength="150" value={names[code]||''} onChange={e=>setNames({...names,[code]:e.target.value})}/></label>)}
-            {departure.stops?.length>0&&<>
-              <label>Boarding stop (optional)<select value={stops.boarding} onChange={e=>setStops({...stops,boarding:e.target.value})}>
-                <option value="">Route start</option>{departure.stops.filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></label>
-              <label>Drop-off stop (optional)<select value={stops.dropoff} onChange={e=>setStops({...stops,dropoff:e.target.value})}>
-                <option value="">Route end</option>{departure.stops.filter(s=>s.dropoff_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></label>
-              {!stopsReady&&<p>Choose both a boarding stop and a drop-off stop, or neither.</p>}</>}
+            {routeStops.length>0&&<>
+              <label>Where will you get on? (optional)<select value={stops.boarding} onChange={e=>{const on=routeStops.find(s=>s.id===e.target.value),off=routeStops.find(s=>s.id===stops.dropoff)
+                  setStops({boarding:e.target.value,dropoff:on&&off&&off.stop_order<=on.stop_order?'':stops.dropoff})}}>
+                <option value="">{routeStops[0].stop_name} (start)</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></label>
+              <label>Where will you get off? (optional)<select value={stops.dropoff} onChange={e=>setStops({...stops,dropoff:e.target.value})}>
+                <option value="">{routeStops[routeStops.length-1].stop_name} (end)</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></label>
+              {!stopsReady&&<p role="alert">Choose a get-off stop after the stop where you get on.</p>}
+              {partFare!=null&&partFare<=0&&<p role="alert">The Owner has no price for travel between these stops.</p>}</>}
           </div>}
           {signedIn
-            ?<button className="button" disabled={busy||!namesReady||!stopsReady} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
+            ?<button className="button" disabled={busy||!namesReady||!stopsReady||(partFare!=null&&partFare<=0)} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
             :<ButtonLink to="/login">Sign in to hold seats</ButtonLink>}
         </>}
       </section>}

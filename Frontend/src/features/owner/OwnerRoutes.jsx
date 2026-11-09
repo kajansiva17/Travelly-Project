@@ -11,13 +11,15 @@ import {PlaceSearch} from './OwnerRates'
 
 const six=v=>v===''||v==null?'':String(Math.round(Number(v)*1e6)/1e6)
 const shortName=label=>(label||'').split(',')[0].trim().slice(0,150)
-const blankStop=()=>({key:Math.random().toString(36).slice(2),id:null,place:null,name:'',latitude:'',longitude:'',hours:'0',minutes:'0',getOn:true,getOff:true,manual:false})
+const blankStop=()=>({key:Math.random().toString(36).slice(2),id:null,place:null,name:'',latitude:'',longitude:'',hours:'0',minutes:'0',getOn:true,getOff:true,manual:false,price:''})
 const fromServer=s=>({key:s.id,id:s.id,place:{label:s.stop_name,latitude:s.latitude,longitude:s.longitude},name:s.stop_name,latitude:s.latitude,longitude:s.longitude,
-  hours:String(Math.floor(s.scheduled_offset_minutes/60)),minutes:String(s.scheduled_offset_minutes%60),getOn:s.pickup_allowed,getOff:s.dropoff_allowed,manual:false})
+  hours:String(Math.floor(s.scheduled_offset_minutes/60)),minutes:String(s.scheduled_offset_minutes%60),getOn:s.pickup_allowed,getOff:s.dropoff_allowed,manual:false,
+  price:s.price_from_start==null?'':String(Number(s.price_from_start))})
 const offset=s=>(Number(s.hours)||0)*60+(Number(s.minutes)||0)
+const money=v=>`LKR ${Number(v||0).toLocaleString('en-LK',{minimumFractionDigits:0,maximumFractionDigits:2})}`
 const duration=m=>m<60?`${m} min`:`${Math.floor(m/60)} h${m%60?` ${m%60} min`:''}`
 
-function StopCard({stop,index,count,onChange,onMove,onRemove}){
+function StopCard({stop,index,count,onChange,onMove,onRemove,priced,lastPrice,lastName}){
   const first=index===0,last=index===count-1
   const role=first?'Starting from':last?'Going to':'Stop on the way'
   const set=patch=>onChange({...stop,...patch})
@@ -40,6 +42,10 @@ function StopCard({stop,index,count,onChange,onMove,onRemove}){
             <select aria-label="Minutes" value={stop.minutes} onChange={e=>set({minutes:e.target.value})}>{[0,5,10,15,20,25,30,35,40,45,50,55].map(m=><option key={m} value={m}>{m} min</option>)}</select>
           </span></TravellyField>}
     </div>
+    {priced&&(first
+      ?<TravellyField label="Price from the start (LKR)" help="The trip starts here, so this is 0."><input disabled value="0"/></TravellyField>
+      :<TravellyField label="Price from the start (LKR)" help={last?'This is the price for the whole trip.':lastPrice!==''&&stop.price!==''&&Number(lastPrice)>Number(stop.price)?`A passenger getting on here and off at ${lastName||'the last stop'} pays ${money(Number(lastPrice)-Number(stop.price))}.`:'What a passenger pays from the first stop to this stop.'}>
+        <input required type="number" min="0" step="1" inputMode="decimal" value={stop.price} onChange={e=>set({price:e.target.value})}/></TravellyField>)}
     <label><input type="checkbox" checked={stop.getOn} disabled={first} onChange={e=>set({getOn:e.target.checked})}/> Passengers can get on here</label>{' '}
     <label><input type="checkbox" checked={stop.getOff} disabled={last} onChange={e=>set({getOff:e.target.checked})}/> Passengers can get off here</label>
     <div style={{display:'flex',gap:8,marginTop:8}}>
@@ -54,6 +60,7 @@ function RouteForm({editing,onSaved,onCancel}){
   const [stops,setStops]=useState(editing?editing.stops.map(fromServer):[blankStop(),blankStop()])
   const [name,setName]=useState(editing&&editing.route_name!==`${editing.origin_name} - ${editing.destination_name}`?editing.route_name:'')
   const [distance,setDistance]=useState(editing?.estimated_distance_km?String(Number(editing.estimated_distance_km)):'')
+  const [priced,setPriced]=useState(!!editing?.stop_prices_enabled)
   const [busy,setBusy]=useState(false),[error,setError]=useState(null)
   const change=(i,next)=>setStops(stops.map((s,k)=>k===i?next:s))
   const move=(i,d)=>{const next=[...stops];[next[i],next[i+d]]=[next[i+d],next[i]];setStops(next)}
@@ -61,12 +68,17 @@ function RouteForm({editing,onSaved,onCancel}){
   const times=stops.map((s,i)=>i===0?0:offset(s))
   const timeProblem=times.some((m,i)=>i>0&&m<times[i-1])
   const missingPlace=stops.some(s=>s.latitude===''||s.longitude==='')
+  const prices=stops.map((s,i)=>i===0?0:s.price===''?null:Number(s.price))
+  const missingPrice=priced&&prices.some(p=>p==null)
+  const priceDown=priced&&prices.some((p,i)=>i>0&&p!=null&&prices[i-1]!=null&&p<prices[i-1])
+  const noWholePrice=priced&&!missingPrice&&!(prices[prices.length-1]>0)
   const auto=stops[0].name&&stops[stops.length-1].name?`${stops[0].name} - ${stops[stops.length-1].name}`:''
   async function save(e){
     e.preventDefault();setBusy(true);setError(null)
-    const body={route_name:name.trim()||null,estimated_distance_km:distance===''?null:String(distance),estimated_duration_minutes:times[times.length-1]||null,
+    const body={stop_prices_enabled:priced,route_name:name.trim()||null,estimated_distance_km:distance===''?null:String(distance),estimated_duration_minutes:times[times.length-1]||null,
       stops:stops.map((s,i)=>({...(s.id?{id:s.id}:{}),stop_name:s.name.trim(),latitude:six(s.latitude),longitude:six(s.longitude),
-        pickup_allowed:i===0?true:s.getOn,dropoff_allowed:i===stops.length-1?true:s.getOff,scheduled_offset_minutes:i===0?0:offset(s)}))}
+        pickup_allowed:i===0?true:s.getOn,dropoff_allowed:i===stops.length-1?true:s.getOff,scheduled_offset_minutes:i===0?0:offset(s),
+        ...(priced?{price_from_start:i===0?'0':String(s.price)}:{})}))}
     try{
       const saved=editing
         ?await api(`/owners/me/routes/${editing.id}`,{method:'PUT',body:JSON.stringify({...body,expected_version:editing.version})})
@@ -79,7 +91,13 @@ function RouteForm({editing,onSaved,onCancel}){
     <p>Add the stops in the order the vehicle drives. The first stop is where the trip starts, the last is where it ends.</p>
     <ErrorNotice error={error}/>
     <form onSubmit={save}>
-      {stops.map((s,i)=><StopCard key={s.key} stop={s} index={i} count={stops.length} onChange={next=>change(i,next)} onMove={d=>move(i,d)} onRemove={()=>setStops(stops.filter((_,k)=>k!==i))}/>)}
+      <fieldset style={{border:'1px solid rgba(15,40,80,.15)',borderRadius:14,padding:'12px 16px',marginBottom:12}}>
+        <legend style={{fontWeight:700,padding:'0 6px'}}>Ticket price</legend>
+        <label><input type="radio" name="pricing" checked={!priced} onChange={()=>setPriced(false)}/> One price for the whole trip <span style={{opacity:.75}}>(you enter it on each departure)</span></label><br/>
+        <label><input type="radio" name="pricing" checked={priced} onChange={()=>setPriced(true)}/> Different price for each stop <span style={{opacity:.75}}>(passengers pay only for the part they travel)</span></label>
+        {priced&&<p style={{marginTop:8}}>For each stop, enter the price from the first stop. Travelly works out the rest: getting on at a stop priced LKR 2,500 and off at one priced LKR 3,500 costs LKR 1,000.</p>}
+      </fieldset>
+      {stops.map((s,i)=><StopCard key={s.key} priced={priced} lastPrice={stops[stops.length-1].price} lastName={stops[stops.length-1].name} stop={s} index={i} count={stops.length} onChange={next=>change(i,next)} onMove={d=>move(i,d)} onRemove={()=>setStops(stops.filter((_,k)=>k!==i))}/>)}
       <button type="button" className="button outline" disabled={stops.length>=50} onClick={add}>+ Add a stop on the way</button>
       <div className="passenger-detail-grid" style={{marginTop:16}}>
         <TravellyField label="Route name (optional)" help={auto?`Leave empty to use “${auto}”.`:'Leave empty to name it after the first and last stop.'}><input maxLength="150" value={name} onChange={e=>setName(e.target.value)}/></TravellyField>
@@ -88,8 +106,12 @@ function RouteForm({editing,onSaved,onCancel}){
       {times[times.length-1]>0&&<p>Whole trip: about {duration(times[times.length-1])}.</p>}
       {timeProblem&&<p role="alert">Each stop’s time from start must be the same as or later than the stop before it.</p>}
       {missingPlace&&<p>Find a place for every stop before saving.</p>}
+      {missingPrice&&<p>Enter a price from the start for every stop.</p>}
+      {priceDown&&<p role="alert">A stop further along the route cannot cost less from the start than the stop before it.</p>}
+      {noWholePrice&&<p role="alert">Enter the price for the whole trip at the last stop.</p>}
+      {priced&&!missingPrice&&!priceDown&&prices[prices.length-1]>0&&<p>Whole trip: {money(prices[prices.length-1])}.</p>}
       <div style={{display:'flex',gap:8}}>
-        <button className="button" disabled={busy||timeProblem||missingPlace}>{busy?'Saving…':editing?'Save changes':'Save route'}</button>
+        <button className="button" disabled={busy||timeProblem||missingPlace||missingPrice||priceDown||noWholePrice}>{busy?'Saving…':editing?'Save changes':'Save route'}</button>
         {editing&&<button type="button" className="button outline" onClick={onCancel}>Cancel</button>}
       </div>
     </form>
@@ -106,7 +128,8 @@ function RouteCard({route,onEdit,onChanged,setError}){
   }
   return <article className="travelly-vehicle-card"><div>
     <h3>{route.route_name}</h3>
-    <p>{route.stops.map(s=>s.stop_name).join(' → ')}</p>
+    <p>{route.stops.map(s=>s.stop_name+(route.stop_prices_enabled&&s.price_from_start!=null?` (${money(s.price_from_start)})`:'')).join(' → ')}</p>
+    <p>{route.stop_prices_enabled?'Price for each stop':'One price for the whole trip, set on each departure'}</p>
     <p>{route.stops.length} stops{route.estimated_duration_minutes?` · about ${duration(route.estimated_duration_minutes)}`:''}{route.estimated_distance_km?` · ${Number(route.estimated_distance_km)} km`:''}</p>
     <TravellyStatusChip tone={route.status==='ACTIVE'?'success':'warning'}>{route.status==='ACTIVE'?'On':route.deactivated_by_admin?'Turned off by Travelly':'Off'}</TravellyStatusChip>
   </div>

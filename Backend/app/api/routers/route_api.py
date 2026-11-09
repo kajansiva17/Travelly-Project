@@ -37,10 +37,19 @@ def text_or_none(value):
     return None if value is None else str(value)
 
 
-def stop_out(stop):
-    return {'id': str(stop.id), 'stop_order': stop.stop_order, 'stop_code': stop.stop_code, 'stop_name': stop.stop_name,
+def stop_fares(route):
+    """Owner stop prices {stop_id: 'price from start'} or None when the route uses one price per departure."""
+    fares = (route.route_settings or {}).get('stop_fares')
+    return fares or None
+
+
+def stop_out(stop, fares=None):
+    out = {'id': str(stop.id), 'stop_order': stop.stop_order, 'stop_code': stop.stop_code, 'stop_name': stop.stop_name,
             'latitude': str(stop.latitude), 'longitude': str(stop.longitude), 'pickup_allowed': stop.pickup_allowed,
             'dropoff_allowed': stop.dropoff_allowed, 'scheduled_offset_minutes': stop.scheduled_offset_minutes}
+    if fares is not None:
+        out['price_from_start'] = fares.get(str(stop.id))
+    return out
 
 
 def route_out(route, stops=None, admin_view=False, viewer=None):
@@ -55,8 +64,10 @@ def route_out(route, stops=None, admin_view=False, viewer=None):
     if viewer is not None:
         out.update({'status': route.status, 'version': route.version, 'mine': route.created_by_owner_id == viewer,
                     'deactivated_by_admin': bool((route.route_settings or {}).get('deactivated_by_admin'))})
+    fares = stop_fares(route)
+    out['stop_prices_enabled'] = fares is not None
     if stops is not None:
-        out['stops'] = [stop_out(s) for s in stops]
+        out['stops'] = [stop_out(s, fares) for s in stops]
     return out
 
 
@@ -239,6 +250,8 @@ def replace_stops(route_id: UUID, body: StopsReplace, request: Request, user=Dep
     with request.app.state.audit.coordinated():
         locked_authority(db, request, user, user.id)
         route = locked_route(db, route_id, body.expected_version)
+        if route.created_by_owner_id:
+            raise ApiError(409, 'OWNER_ROUTE', 'An Owner route is edited by its Owner. Admin can only turn it off or on.')
         evidence = apply_stops(db, route, body.stops, user.id)
         previous_version = route.version
         touch(route)
@@ -275,9 +288,20 @@ def owned_route(db, route_id, owner, expected_version):
     return route
 
 
-def stops_signature(rows):
+def stops_signature(rows, fares):
     return [(str(r.id), r.stop_name, Decimal(r.latitude), Decimal(r.longitude), r.pickup_allowed, r.dropoff_allowed,
-             r.scheduled_offset_minutes) for r in rows]
+             r.scheduled_offset_minutes, Decimal(fares[str(r.id)]) if fares else None) for r in rows]
+
+
+def save_fares(db, route, body):
+    """Store the Owner's stop prices against the route's active stops, in travel order."""
+    settings = dict(route.route_settings or {})
+    if body.stop_prices_enabled:
+        stops = active_stops(db, route.id)
+        settings['stop_fares'] = {str(s.id): format(p.price_from_start, '.2f') for s, p in zip(stops, body.stops)}
+    else:
+        settings.pop('stop_fares', None)
+    route.route_settings = settings
 
 
 @router.get('/owners/me/routes')
@@ -301,6 +325,7 @@ def owner_create_route(body: OwnerRouteIn, user=Depends(current), db: Session = 
     db.add(route)
     db.flush()
     apply_stops(db, route, body.stops, user.id)
+    save_fares(db, route, body)
     db.commit()
     return route_out(route, active_stops(db, route.id), viewer=user.id)
 
@@ -314,14 +339,15 @@ def owner_update_route(route_id: UUID, body: OwnerRouteUpdate, user=Depends(curr
     if in_use:
         current_stops = active_stops(db, route.id)
         wanted = [(str(s.id) if s.id else None, s.stop_name, s.latitude, s.longitude, s.pickup_allowed, s.dropoff_allowed,
-                   s.scheduled_offset_minutes) for s in body.stops]
-        if wanted != stops_signature(current_stops):
-            raise ApiError(409, 'ROUTE_IN_USE', 'Stops cannot change while a published departure uses this route. '
+                   s.scheduled_offset_minutes, s.price_from_start) for s in body.stops]
+        if wanted != stops_signature(current_stops, stop_fares(route)):
+            raise ApiError(409, 'ROUTE_IN_USE', 'Stops and stop prices cannot change while a published departure uses this route. '
                                                 'Create a new route instead.')
     for name, value in owner_route_values(body).items():
         setattr(route, name, value)
     if not in_use:
         apply_stops(db, route, body.stops, user.id)
+        save_fares(db, route, body)
     touch(route)
     route.updated_by = user.id
     db.commit()

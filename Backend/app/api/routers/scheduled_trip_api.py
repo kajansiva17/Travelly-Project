@@ -6,6 +6,7 @@ scheduled_trip_seats     per-departure seat inventory, created when the departur
 
 Holds, bookings, travellers and payment are the next step and are intentionally not implemented here.
 """
+from decimal import Decimal
 from datetime import date as Date, datetime, time, timedelta, timezone
 from typing import Optional
 from uuid import UUID, uuid4
@@ -89,7 +90,10 @@ def trip_out(trip, route, vehicle, available=None, stops=None, owner_view=False)
     if available is not None:
         out['available_seats'] = available
     if stops is not None:
+        fares = (route.route_settings or {}).get('stop_fares') or {}
+        out['stop_prices_enabled'] = bool(fares)
         out['stops'] = [{'id': str(s.id), 'stop_order': s.stop_order, 'stop_name': s.stop_name,
+                         'price_from_start': fares.get(str(s.id)),
                          'pickup_allowed': s.pickup_allowed, 'dropoff_allowed': s.dropoff_allowed,
                          'scheduled_offset_minutes': s.scheduled_offset_minutes} for s in stops]
     if owner_view:
@@ -172,6 +176,12 @@ def check_departure(db, owner, values, *, publishing=False):
     route = db.get(Route, values['route_id'])
     if not route or route.status != 'ACTIVE' or route.created_by_owner_id not in (None, owner.id):
         raise ApiError(422, 'ROUTE_NOT_AVAILABLE', 'Choose one of your active routes.')
+    fares = (route.route_settings or {}).get('stop_fares')
+    if fares and values.get('fare_per_seat') is not None:
+        whole = max(Decimal(v) for v in fares.values())
+        if Decimal(values['fare_per_seat']) != whole:
+            raise ApiError(422, 'FARE_FROM_ROUTE_PRICES',
+                           f'This route has a price for each stop, so the whole-trip price is LKR {whole:.2f}.')
     vehicle = db.get(Vehicle, values['vehicle_id'])
     if not vehicle or vehicle.owner_user_id != owner.id or vehicle.verification_status != 'APPROVED' or vehicle.availability_status != 'ACTIVE':
         raise ApiError(409, 'TICKET_VEHICLE_UNAVAILABLE', 'Use an approved, active vehicle that you own.')

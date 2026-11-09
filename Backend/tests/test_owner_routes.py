@@ -115,3 +115,85 @@ def test_owner_switch_off_and_admin_switch_off(client, ticket):
     assert again.status_code == 409 and again.json()['code'] == 'ROUTE_DEACTIVATED_BY_ADMIN'
     admin_on = api(client, admin, 'patch', f"/admin/routes/{route['id']}", {'expected_version': admin_off.json()['version'], 'status': 'ACTIVE'})
     assert admin_on.status_code == 200 and admin_on.json()['deactivated_by_admin'] is False
+
+
+# ---------------------------------------------------------------- stop-wise fares (decision 9 Nov 2026)
+from test_ticket_holds import configure_hold  # noqa: E402
+
+PRICED = [{**STOPS[0], 'price_from_start': '0'},
+          {'stop_name': 'Anuradhapura', 'latitude': '8.311400', 'longitude': '80.403700', 'scheduled_offset_minutes': 240,
+           'price_from_start': '2000'},
+          {**STOPS[1], 'price_from_start': '2500'}, {**STOPS[2], 'price_from_start': '3500'}]
+
+
+def test_stop_prices_are_validated(client):
+    owner = person(client, 'OWNER')
+    post = lambda stops, enabled=True: api(client, owner, 'post', '/owners/me/routes', {'stops': stops, 'stop_prices_enabled': enabled})
+    assert post(PRICED, enabled=False).status_code == 422            # prices without the tick
+    assert post([*PRICED[:3], {**PRICED[3], 'price_from_start': None}]).status_code == 422   # a stop without a price
+    assert post([{**PRICED[0], 'price_from_start': '100'}, *PRICED[1:]]).status_code == 422  # start must be 0
+    assert post([PRICED[0], PRICED[3]]).status_code == 201                # two stops, rising price
+    down = [PRICED[0], PRICED[1], {**PRICED[2], 'price_from_start': '1500'}, PRICED[3]]
+    assert post(down).status_code == 422                               # prices must not go down
+    route = post(PRICED).json()
+    assert route['stop_prices_enabled'] is True
+    assert [s['price_from_start'] for s in route['stops']] == ['0.00', '2000.00', '2500.00', '3500.00']
+    flat = create(client, owner)
+    assert flat['stop_prices_enabled'] is False and 'price_from_start' not in flat['stops'][0]
+
+
+def test_passenger_pays_the_part_of_the_route_they_travel(client, ticket):
+    configure_hold(client, ticket)
+    owner = ticket['owner']
+    route = api(client, owner, 'post', '/owners/me/routes', {'stops': PRICED, 'stop_prices_enabled': True}).json()
+    vehicle_id = ticket['trip']['vehicle_id']
+    wrong = api(client, owner, 'post', '/scheduled-trips', {**departure_body(route['id'], vehicle_id), 'fare_per_seat': '3000.00'})
+    assert wrong.status_code == 422 and wrong.json()['code'] == 'FARE_FROM_ROUTE_PRICES'
+    trip = api(client, owner, 'post', '/scheduled-trips', departure_body(route['id'], vehicle_id)).json()
+    trip = api(client, owner, 'post', f"/scheduled-trips/{trip['id']}/publish",
+               {'expected_version': trip['version'], 'publish_confirmed': True}).json()
+    detail = client.get(f"/api/v1/scheduled-trips/{trip['id']}").json()
+    assert detail['stop_prices_enabled'] is True
+    stops = {s['stop_name']: s for s in detail['stops']}
+    assert stops['Vavuniya']['price_from_start'] == '2500.00'
+    seats = [s['seat_id'] for s in client.get(f"/api/v1/scheduled-trips/{trip['id']}/seats").json()['seats']]
+    passenger = person(client)
+
+    def hold(seat_ids, **chosen):
+        return api(client, passenger, 'post', '/bookings/ticket-holds', {
+            'scheduled_trip_id': trip['id'], 'idempotency_key': uuid4().hex,
+            'travellers': [{'seat_id': s, 'full_name': 'Kajan'} for s in seat_ids], **chosen})
+    part = hold(seats[:2], boarding_stop_id=stops['Vavuniya']['id'])           # Vavuniya -> Jaffna, two seats
+    assert part.status_code == 201, part.text
+    assert part.json()['total_amount'] == '2000.00'
+    assert {t['fare'] for t in part.json()['travellers']} == {'1000.00'}
+    whole = hold(seats[2:3])                                                     # start -> end
+    assert whole.status_code == 201 and whole.json()['total_amount'] == '3500.00'
+
+
+def test_equal_stop_prices_give_no_fare_and_prices_freeze_when_published(client, ticket):
+    configure_hold(client, ticket)
+    owner = ticket['owner']
+    same = [PRICED[0], PRICED[1], {**PRICED[2], 'price_from_start': '2000'}, PRICED[3]]
+    route = api(client, owner, 'post', '/owners/me/routes', {'stops': same, 'stop_prices_enabled': True}).json()
+    trip = api(client, owner, 'post', '/scheduled-trips', departure_body(route['id'], ticket['trip']['vehicle_id'])).json()
+    trip = api(client, owner, 'post', f"/scheduled-trips/{trip['id']}/publish",
+               {'expected_version': trip['version'], 'publish_confirmed': True}).json()
+    stops = {s['stop_name']: s['id'] for s in client.get(f"/api/v1/scheduled-trips/{trip['id']}").json()['stops']}
+    seat = client.get(f"/api/v1/scheduled-trips/{trip['id']}/seats").json()['seats'][0]['seat_id']
+    free = api(client, person(client), 'post', '/bookings/ticket-holds', {
+        'scheduled_trip_id': trip['id'], 'idempotency_key': uuid4().hex, 'travellers': [{'seat_id': seat, 'full_name': 'A'}],
+        'boarding_stop_id': stops['Anuradhapura'], 'dropoff_stop_id': stops['Vavuniya']})
+    assert free.status_code == 422 and free.json()['code'] == 'NO_FARE_FOR_STOPS'
+    current = [{k: v for k, v in s.items() if k not in ('stop_order', 'stop_code')} for s in route['stops']]
+    raised = [*current[:3], {**current[3], 'price_from_start': '4000'}]
+    blocked = api(client, owner, 'put', f"/owners/me/routes/{route['id']}",
+                  {'expected_version': route['version'], 'stop_prices_enabled': True, 'stops': raised})
+    assert blocked.status_code == 409 and blocked.json()['code'] == 'ROUTE_IN_USE'
+
+
+def departure_body(route_id, vehicle_id):
+    return {'route_id': route_id, 'vehicle_id': vehicle_id, 'departure_at': iso(timedelta(days=3)),
+            'estimated_arrival_at': iso(timedelta(days=3, hours=7)), 'booking_cutoff_at': iso(timedelta(days=2)),
+            'fare_per_seat': '3500.00', 'fulfilment_policy': 'FIXED_GUARANTEED', 'accepted_time_window_minutes': 0,
+            'accepted_replacement_terms': {}}

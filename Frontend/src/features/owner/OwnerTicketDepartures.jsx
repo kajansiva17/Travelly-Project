@@ -67,6 +67,10 @@ export default function OwnerTicketDepartures(){
     try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice('Departure published.');loadDepartures()}catch(e){setError(e)}
   }
   const set=k=>e=>setForm({...form,[k]:e.target.value})
+  // A route with a price for each stop fixes the whole-trip price to its last stop's price.
+  const chosenRoute=routes.find(r=>r.id===form.route_id)
+  const routeWhole=chosenRoute?.stop_prices_enabled?chosenRoute.stops[chosenRoute.stops.length-1]?.price_from_start:null
+  useEffect(()=>{if(routeWhole!=null&&form.fare_per_seat!==String(Number(routeWhole)))setForm(f=>({...f,fare_per_seat:String(Number(routeWhole))}))},[routeWhole])
   const protectedPolicy=form.fulfilment_policy!=='FIXED_GUARANTEED'
 
   return <><Header/><main className="role-dashboard" id="main">
@@ -106,7 +110,9 @@ export default function OwnerTicketDepartures(){
         <label>Departure <input required type="datetime-local" value={form.departure_at} onChange={set('departure_at')}/></label>
         <label>Estimated arrival <input required type="datetime-local" value={form.estimated_arrival_at} onChange={set('estimated_arrival_at')}/></label>
         <label>Booking cut-off <input required type="datetime-local" value={form.booking_cutoff_at} onChange={set('booking_cutoff_at')}/></label>
-        <input required min="0" step="0.01" type="number" placeholder="Fare per seat (LKR)" value={form.fare_per_seat} onChange={set('fare_per_seat')}/>
+        <label>Price for the whole trip, per seat (LKR)
+          <input required min="0" step="0.01" type="number" value={form.fare_per_seat} disabled={routeWhole!=null} onChange={set('fare_per_seat')}/>
+          {routeWhole!=null&&<small> This route has a price for each stop, so the whole-trip price comes from the route. Passengers who travel part of the way pay less.</small>}</label>
         <select value={form.fulfilment_policy} onChange={set('fulfilment_policy')} aria-label="Fulfilment policy">
           <option value="FIXED_GUARANTEED">Fixed, guaranteed departure</option>
           <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">Minimum seats with protected fulfilment</option></select>
