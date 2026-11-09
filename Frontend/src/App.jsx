@@ -1,6 +1,6 @@
 import { t } from './i18n/language.js'
 import { useLanguage } from './i18n/useLanguage.js'
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { NoticeProvider, ScrollToPage, useSession } from './components/components'
 import { DriverPage, OwnerPage, PassengerPage } from './features/landing/ReferenceLandingPages'
@@ -34,6 +34,7 @@ import AdminOversight from './features/admin/AdminOversight'
 import TripOperationPage from './features/booking/TripOperationPage'
 import TripFinancePage from './features/booking/TripFinancePage'
 import WorkspaceShell from './components/WorkspaceShell'
+const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
 import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
 import {useWorkspace} from './context/workspaceContext'
@@ -69,6 +70,7 @@ import './styles/roleReferenceGlass.css'
 import './styles/dashboardScenicBackground.css'
 import './styles/travellyVisualFoundation.css'
 import './styles/ui-theme.css'
+import './styles/ui-kit.css'
 import './styles/passengerBookingFlow.css'
 
 function AdminApplicationRoute() {
@@ -112,6 +114,7 @@ export default function App() {
           <Route path="/driver/onboarding" element={<RoleOnboarding key="driver" role="DRIVER"/>}/>
           <Route path="/register" element={<AuthPage signup />} />
           <Route path="/login" element={<AuthPage />} />
+          {import.meta.env.DEV&&<Route path="/__ui-kit" element={<Suspense fallback={null}><UiKitPreview/></Suspense>}/>}
           <Route path="/check-email" element={<CheckEmail/>}/>
           <Route path="/verify-email" element={<AuthLink key="verify"/>}/>
           <Route path="/forgot-password" element={<ForgotPassword/>}/>
