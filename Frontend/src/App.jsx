@@ -68,6 +68,7 @@ import './styles/adminReferenceGlass.css'
 import './styles/roleReferenceGlass.css'
 import './styles/dashboardScenicBackground.css'
 import './styles/travellyVisualFoundation.css'
+import './styles/ui-theme.css'
 import './styles/passengerBookingFlow.css'
 
 function AdminApplicationRoute() {

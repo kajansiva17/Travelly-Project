@@ -1,0 +1,82 @@
+/* Travelly UI theme: single source of design tokens (see design-reference/DESIGN-SPEC.md).
+   Phase 1 only defines the tokens and sets the scenic background once for every
+   workspace shell. Later phases build the shared components on these variables
+   and delete the per-role CSS they replace. Imported last in App.jsx. */
+:root {
+  /* Ink and text */
+  --ui-ink: #121552;
+  --ui-text: #233e65;
+  --ui-muted: #5b6f8f;
+  --ui-placeholder: #7d8fa8;
+
+  /* Brand */
+  --ui-red-top: #ff4a3c;
+  --ui-red: #ed2b18;
+  --ui-red-bottom: #d90f0a;
+  --ui-red-text: #e8231a;
+  --ui-blue: #2f6fe4;
+  --ui-blue-deep: #1f3fa8;
+  --ui-green: #3fb950;
+  --ui-green-soft: #dff3e2;
+  --ui-info-soft: #e3efff;
+  --ui-badge: #f11e00;
+  --ui-disabled: #848c9e;
+
+  /* Glass surfaces */
+  --ui-glass: rgb(255 255 255 / .82);
+  --ui-glass-strong: rgb(255 255 255 / .88);
+  --ui-glass-soft: rgb(255 255 255 / .62);
+  --ui-glass-border: rgb(255 255 255 / .9);
+  --ui-blur: blur(18px) saturate(1.2);
+  --ui-sidebar-glass: rgb(255 255 255 / .78);
+  --ui-sidebar-text: var(--ui-ink);
+
+  /* Inputs */
+  --ui-input-bg: #edf3f9;
+  --ui-input-border: #cfe0f0;
+  --ui-input-auth-bg: #e8eaf2;
+  --ui-focus: var(--ui-blue);
+
+  /* Radius */
+  --ui-radius-card: 26px;
+  --ui-radius-sidebar: 28px;
+  --ui-radius-navbar: 30px;
+  --ui-radius-input: 12px;
+  --ui-radius-pill: 999px;
+
+  /* Shadows */
+  --ui-shadow-card: inset 0 1px 8px rgb(255 255 255 / .9), 0 8px 24px rgb(40 80 120 / .18);
+  --ui-shadow-button: inset 0 1px 1px rgb(255 255 255 / .5), 0 6px 14px rgb(217 15 10 / .3);
+
+  /* Gradients */
+  --ui-red-gradient: linear-gradient(180deg, var(--ui-red-top), var(--ui-red) 55%, var(--ui-red-bottom));
+
+  /* Backgrounds (photos from public/images/travelly) */
+  --ui-scenic: url('/images/travelly/heroes/travelly-dashboard-sigiriya-background.png');
+  --ui-scenic-tint: linear-gradient(116deg, rgb(225 244 237 / .26), rgb(255 240 207 / .16));
+}
+
+/* One scenic canvas for every workspace (passenger, driver, owner, admin).
+   Higher specificity than the older per-role backgrounds, so it wins without
+   deleting them yet. */
+html body:has(.workspace-shell[data-workspace]),
+html body:has(.passenger-customer-shell),
+html body .workspace-shell[data-workspace],
+html body .passenger-customer-shell {
+  background: var(--ui-scenic-tint), var(--ui-scenic) center 47% / cover fixed #b7d7c8;
+  color: var(--ui-ink);
+}
+
+@media (max-width: 1023px) {
+  html body:has(.workspace-shell[data-workspace]),
+  html body:has(.passenger-customer-shell),
+  html body .workspace-shell[data-workspace],
+  html body .passenger-customer-shell { background-position: center 44%; }
+}
+
+@media (max-width: 767px) {
+  html body:has(.workspace-shell[data-workspace]),
+  html body:has(.passenger-customer-shell),
+  html body .workspace-shell[data-workspace],
+  html body .passenger-customer-shell { background-attachment: scroll; background-position: 54% top; }
+}

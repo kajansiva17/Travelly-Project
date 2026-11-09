@@ -54,5 +54,5 @@ Paths are relative to `Frontend/design-reference/`.
 
 ## Status
 - [x] Audit, `DESIGN-SPEC.md`, this plan
-- [ ] Phase 1 — waiting for the user's go-ahead
+- [x] Phase 1 — `src/styles/ui-theme.css` (tokens + scenic background), imported last in `App.jsx`
 - [ ] Phases 2-7
