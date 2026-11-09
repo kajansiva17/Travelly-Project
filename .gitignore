@@ -19,3 +19,4 @@ tmp/
 test-results/
 playwright-report/
 .DS_Store
+*.rdb
