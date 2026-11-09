@@ -139,7 +139,8 @@ def edit_vehicle(vehicle_id:UUID,body:VehiclePatch,request:Request,user=Depends(
             projection=request.app.state.audit.vehicle_projection(user.id,row.id)
             if projection['registration_locked'] and registration.lower()!=str(row.registration_number).lower():
                 raise ApiError(409,'REGISTRATION_LOCKED','Registration cannot be changed after first submission. Request an Admin correction.')
-        merged={**facts(row),**values}
+        # VehiclePatch already turned the odometer into a Decimal; the fact validator reads it as text, like facts(row) does.
+        merged={**facts(row),**{k:(str(v) if k=='current_odometer_km' and v is not None else v) for k,v in values.items()}}
         try:validated=VehicleFacts.model_validate(merged)
         except ValidationError as exc:raise ApiError(422,'VEHICLE_FACTS_INVALID','Check factual values and choose power/fuel together. Do not guess missing facts.',[{'field':str(e['loc'][-1]) if e['loc'] else 'power_type','message':e['msg']} for e in exc.errors()]) from None
         validate_public_facts(merged,registration if registration is not None else str(row.registration_number))

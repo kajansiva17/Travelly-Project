@@ -141,7 +141,7 @@ def create_app(settings=None, engine=None, store=None):
                 if review_path:
                     group, limit, seconds = ('files', 100, 60) if name == 'file' else ('review', 100, 60) if request.method == 'PATCH' else ('upload', 30, 900) if multipart else ('metadata', 300, 60)
                 app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
-                query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles')
+                query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles','/api/v1/routes','/api/v1/scheduled-trips')
                 if request.method == 'GET' and request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/admin/vehicles/')) and request.url.path.endswith('/calendar'):
                     query_route = True
                 if request.query_params and not query_route:
