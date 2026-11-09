@@ -40,3 +40,11 @@ _None found._
 - Target design reference: - Design references: Frontend/design-reference/ (see REFERENCE_MAP.md). Only source of truth.
 - Remove the old blue form theme completely; do not leave old styles as fallback.
 - Prefer shared components/styles over per-page duplicate CSS.
+
+## FORM & PAGE RULE (applies to EVERY page, every role)
+- Every form and page must follow the reference style in Frontend/design-reference/ (glass cards, compact kit controls, red primary buttons, chips, one-line labels with red *).
+- NO long scrolling forms. Primary viewport is 1280x585: each page/step/tab must fit with no page scroll and no card scroll. Also check 1366x768, 1920x1080, 2560x1440.
+- Long forms are split into steps (stepper + Back/Next) or tabs. Long lists use paging. Long help text goes into tooltips.
+- Footer actions sit in one row and never overlap fields. 20px gutters, nothing touches the screen edge.
+- No old dark-navy/teal theme panels anywhere.
+- Before saying a page is done, test with realistic states (empty, many items, approved/rejected, errors showing) and report measurements.

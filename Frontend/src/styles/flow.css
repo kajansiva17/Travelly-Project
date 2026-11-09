@@ -580,3 +580,44 @@ html body .workspace-shell[data-workspace] .workspace-content :is(.document-chec
 }
 html body .workspace-shell[data-workspace] .workspace-content :is(.trip-price, .rate-preview-pane, .flow-estimate) :is(thead, thead th, thead tr) { background: #eaf1fb; color: var(--ui-ink); }
 html body .workspace-shell[data-workspace] .workspace-content table :is(thead, thead th) { background: #eaf1fb; color: var(--ui-ink); }
+
+/* ---------- Driver pages (Phase 6d) ---------- */
+html body .op-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: end; margin: 0; }
+html body .op-grid .operation-field.wide { grid-column: span 2; }
+html body .flow-page .operation-field { display: grid; gap: 4px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .operation-field :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 12px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 15px; font-weight: 500; }
+html body .flow-page .operation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+html body .flow-page .operation-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+html body .flow-page .operation-list li { padding: 5px 10px; border-radius: 10px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .85); }
+html body .flow-page .flow-wizard-form form + form, html body .flow-page .flow-wizard-form form + div { margin-top: 0; }
+html body .finance-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+html body .finance-card { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px 14px; border-radius: 16px; background: rgb(255 255 255 / .58); border: 1px solid rgb(255 255 255 / .9); }
+html body .finance-card .finance-amount { font-size: 30px; font-weight: 800; color: var(--ui-ink); line-height: 1.1; }
+html body .flow-page .finance-ledger { display: grid; gap: 0; margin: 0; }
+html body .flow-page .finance-ledger > div { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
+html body .flow-page .finance-ledger dt { color: var(--ui-text); }
+html body .flow-page .finance-ledger dd { margin: 0; font-weight: 700; color: var(--ui-ink); text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 1000px) { html body .finance-cols { grid-template-columns: minmax(0, 1fr); } html body .op-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Booking details tabs: sections laid out in compact flowing rows */
+html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
+html body .booking-pane .rate-preview, html body .booking-pane details.rate-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > h2 { display: block; flex: 1 1 100%; margin: 0; font-size: 16px; }
+html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > p { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ui-text); }
+html body .booking-pane .trip-price table { font-size: 13px; }
+html body .booking-pane .trip-price :is(th, td) { padding: 3px 8px; }
+html body .booking-pane p { margin: 0; font-size: 14px; }
+html body .booking-pane .booking-status { font-weight: 700; }
+html body .booking-pane summary { cursor: pointer; font-weight: 700; color: var(--ui-ink); }
+html body .booking-pane .agreed-rate-rules, html body .booking-pane .agreed-itinerary { font-size: 13px; }
+
+/* Ticket boarding (DriverTicketBoarding.jsx is not edited: CSS only): departures as a compact two-column grid, the verify form pinned at the bottom of the panel. */
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article { margin: 0; padding: 8px 12px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article :is(h3, p) { margin: 0; font-size: 14px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; position: sticky; bottom: 0; padding-top: 6px; background: var(--ui-glass-strong); }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid > button { grid-column: auto; }
+html body .booking-pane .rate-preview:has(.trip-price) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 14px; align-items: start; }
+html body .booking-pane .rate-preview:has(.trip-price) > :is(h2, p, button, .ui-button) { grid-column: 1 / -1; }
+html body .booking-pane .rate-preview:has(.trip-price) > .trip-price { grid-column: 1; grid-row: 2; }
+html body .booking-pane .rate-preview:has(.trip-price) > details.agreed-rate-rules { grid-column: 2; grid-row: 2; padding: 6px 10px; border-radius: 12px; }
+html body .booking-pane .agreed-rate-rules p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; }
