@@ -111,4 +111,3 @@ from app.models.trip_operation_models import (TripOperationRun,TripPickupCredent
 from app.models.stage4_models import PlatformFeePolicy,TripPayment,OwnerSettlement,VehicleMaintenanceSchedule
 from app.models.stage5_models import VehicleTypeCatalog,AdminManualFulfilmentEvent
 from app.models.event_hire_models import EventBookingGroup,EventVehicleAllocation
-from app.models.ticket_models import TicketDeparture,TicketSeat,TicketHold,TicketReservation

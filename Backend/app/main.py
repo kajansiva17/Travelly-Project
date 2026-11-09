@@ -32,7 +32,7 @@ from app.api.routers.trip_operations_api import router as trip_operations_router
 from app.api.routers.stage4_finance_api import router as stage4_finance_router
 from app.api.routers.stage5_admin_api import router as stage5_admin_router
 from app.api.routers.event_hire_api import router as event_hire_router
-from app.api.routers.ticket_api import router as ticket_router
+from app.api.routers.ticket_booking_api import router as ticket_router
 from app.api.routers.operational_media_api import router as operational_media_router
 from app.api.routers.route_api import router as route_router
 from app.api.routers.scheduled_trip_api import router as scheduled_trip_router
