@@ -9,6 +9,7 @@ export default function Tabs({ items, label = 'Sections', className = '' }) {
     {items.map(item => {
       const body = <>{item.icon && <Icon name={item.icon} size={20} aria-hidden="true"/>}<span>{item.label}</span></>
       const classes = 'ui-tab' + (item.active ? ' is-active' : '')
+      if (item.onClick && !item.active) return <button key={item.label} type="button" className={classes} onClick={item.onClick}>{body}</button>
       return item.to && !item.active
         ? <Link key={item.label} className={classes} to={item.to}>{body}</Link>
         : <span key={item.label} className={classes} aria-current={item.active ? 'page' : undefined}>{body}</span>

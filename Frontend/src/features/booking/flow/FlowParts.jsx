@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from '../../../components/components'
 import VehiclePhoto from '../../../components/VehiclePhoto'
-import { Stepper, Tabs, ServiceTile } from '../../../components/ui'
+import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'
 
 /* Presentational parts of the Travel & Booking flow. The passenger wizard
    (/travel/book/*) and the owner / driver / admin personal booking page
@@ -21,10 +21,10 @@ export const flowImage = (service, duration) => ({
 }[service] || null)
 
 /* Page frame: heading, optional tabs, stepper, main card and Trip summary. */
-export function FlowShell({ title, subtitle, icon = 'calendar', tabs, steps, current = 0, onStepSelect, summary, card = true, heading = 'Travel & Booking', stepperLabel = 'Booking progress', children }) {
+export function FlowShell({ title, subtitle, icon = 'calendar', info, tabs, steps, current = 0, onStepSelect, summary, card = true, heading = 'Travel & Booking', stepperLabel = 'Booking progress', children }) {
   const body = card
     ? <section className="flow-card ui-card">
-        <header className="flow-card-head"><span className="flow-card-icon"><Icon name={icon} size={26} aria-hidden="true"/></span><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div></header>
+        <header className="flow-card-head"><span className="flow-card-icon"><Icon name={icon} size={26} aria-hidden="true"/></span><div><h2>{title}{info && <InfoTip>{info}</InfoTip>}</h2>{subtitle && <p>{subtitle}</p>}</div></header>
         {children}
       </section>
     : children
@@ -113,4 +113,72 @@ export function Pager({ page, pages, onPage }) {
     <span>{page + 1} / {pages}</span>
     <button type="button" className="ui-button ui-button-secondary" disabled={page >= pages - 1} onClick={() => onPage(page + 1)} aria-label="Next page"><Icon name="arrow" size={16} aria-hidden="true"/></button>
   </nav>
+}
+
+/* ---- Step-by-step pages (owner forms): one step per screen, nothing scrolls. ---- */
+export function useWizard(count) {
+  const [step, setStep] = useState(0)
+  return { step, count, setStep, back: () => setStep(current => Math.max(0, current - 1)), forward: () => setStep(current => Math.min(count - 1, current + 1)), goTo: index => { if (index < step) setStep(index) } }
+}
+
+/* All steps stay mounted so entered values survive Back; only the current one is visible. */
+export function WizardPane({ w, index, paneRef, children, className = '' }) {
+  return <div ref={paneRef} className={`wizard-pane${className ? ' ' + className : ''}`} hidden={w.step !== index}>{children}</div>
+}
+
+/* Native validity of the visible pane: returns { controlName: message } and focuses the first problem. */
+export function checkPane(pane) {
+  const errors = {}
+  let first = null
+  pane?.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.disabled || el.checkValidity()) return
+    if (!first) first = el
+    if (el.name) errors[el.name] = el.validationMessage
+  })
+  if (first) first.reportValidity()
+  return { errors, valid: !first }
+}
+
+/* Back on the left, optional extra actions, Next on the right (not shown on the last step). */
+export function WizardNav({ w, onNext, extra, nextLabel = 'Next' }) {
+  return <div className="flow-actions">
+    {w.step > (w.min ?? 0) ? <button type="button" className="ui-button ui-button-secondary" onClick={w.back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>Back</span></button> : <span/>}
+    {extra}
+    {w.step < w.count - 1 && <button type="button" className="ui-button ui-button-primary" onClick={onNext || w.forward}><span>{nextLabel}</span><Icon name="arrow" size={18} aria-hidden="true"/></button>}
+  </div>
+}
+
+/* How many compact list rows fit one screen (row height in px) without scrolling. */
+export function useRowCount(rowHeight = 64) {
+  const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
+  useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
+  return Math.max(2, Math.floor((height - 340) / rowHeight))
+}
+
+/* Pages a list: returns the current slice and a Pager element. */
+export function usePaged(items, size) {
+  const [page, setPage] = useState(0)
+  const pages = Math.max(1, Math.ceil((items || []).length / size)), current = Math.min(page, pages - 1)
+  return { slice: (items || []).slice(current * size, (current + 1) * size), pager: <Pager page={current} pages={pages} onPage={setPage}/>, page: current, pages, setPage }
+}
+
+/* How many stop rows (pickup, stops, destination) fit one screen without scrolling. */
+export function useMiddleCount() {
+  const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
+  useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
+  return height < 700 ? 2 : height < 850 ? 3 : height < 1000 ? 5 : height < 1200 ? 8 : 12
+}
+
+/* How many photo thumbnails fit one screen (3 per row). */
+export function usePhotoCount() {
+  const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
+  useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
+  return height < 700 ? 3 : height < 900 ? 6 : height < 1200 ? 9 : 12
+}
+
+/* How many uploaded-document rows fit one screen (2 per row). */
+export function useDocCount() {
+  const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
+  useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
+  return height < 700 ? 2 : height < 900 ? 4 : 8
 }

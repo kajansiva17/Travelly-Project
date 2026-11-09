@@ -7,7 +7,7 @@
 /* Outer wrapper: transparent, the pill floats with a small margin. */
 html body header.app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) {
   position: relative; background: transparent; border: 0; box-shadow: none;
-  padding: 12px clamp(12px, 2.4vw, 40px) 0;
+  padding: 12px var(--ui-gutter, 20px) 0;
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 html body .workspace-shell .workspace-topbar { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }

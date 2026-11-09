@@ -196,3 +196,14 @@ a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px
 .ui-infotip > button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
 .ui-infotip > [role="tooltip"] { position: absolute; z-index: 130; left: -8px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 70vw); padding: 10px 12px; border-radius: 12px; background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-input-border); box-shadow: 0 8px 22px rgb(40 80 120 / .25); font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; display: none; pointer-events: none; }
 .ui-infotip:hover > [role="tooltip"], .ui-infotip:focus-within > [role="tooltip"] { display: block; }
+
+/* Tabs: inactive = light glass with navy text, active = red (also when rendered as a button). */
+html body .ui-tabs .ui-tab { background: rgb(255 255 255 / .72); color: var(--ui-ink); border: 1px solid rgb(255 255 255 / .9); box-shadow: none; font: inherit; font-size: 15px; font-weight: 600; text-shadow: none; }
+html body .ui-tabs .ui-tab > svg { color: var(--ui-blue-deep); }
+html body .ui-tabs button.ui-tab:hover, html body .ui-tabs a.ui-tab:hover { background: #fff; }
+html body .ui-tabs .ui-tab.is-active { background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55); box-shadow: var(--ui-shadow-button); text-shadow: 0 1px 1px rgb(120 0 0 / .25); }
+html body .ui-tabs .ui-tab.is-active > svg { color: #fff; }
+/* Chip tones used by checklists: danger (required, missing) and muted (optional). */
+.ui-chip-danger { background: #ffe3e0; border-color: #f3a9a1; color: #a3160c; }
+.ui-chip-danger > svg { color: #d90f0a; }
+.ui-chip-muted { background: #eef1f5; border-color: #d8dee8; color: #5b6f8f; }

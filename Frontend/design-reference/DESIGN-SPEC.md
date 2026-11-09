@@ -103,3 +103,12 @@ Measurement note: references are small raster mock-ups (about 780 px wide for sc
 - Content cards: large glass cards, 2-4 column grids, 20-24 px gap.
 - Form pages (O01-O03, P01-P04): left photo/summary card plus right form card, stepper across the top of the card, primary CTA bottom-right.
 - Auth: two glass cards on a sunset coast background; left "Your Journey, Your Way" ticket card (existing `journey-pass` image), right form card (login: Welcome Back; register: Create Your Account, compact fields in single column).
+
+## 10. Test viewports and shell gutters (main target for ALL future phases)
+
+- **Primary viewport: 1280 x 585** (the owner's real browser at 100% zoom, `innerHeight` measured). Every step, tab and form must fit here with NO page scroll and NO scroll inside the card.
+- Also check **1366 x 768**, **1920 x 1080** and **2560 x 1440**. Content is capped (page 1240px, card content 1100px) and centred on wide screens.
+- Shell gutters are equal on the left (before the sidebar), right and bottom: `--ui-gutter` = 20px (12px on phones). Nothing may touch the viewport edge; measured gaps must be >= 16px.
+- At heights <= 640px the stepper and the tabs share one row, the card title and page heading are hidden when the stepper or status row already show them, controls are 40px; above that controls are 44px / 15px with 14px labels.
+- Nothing may overlap the footer row; the active tab's primary action is drawn in the footer (one row: Back / secondary / primary).
+- Measure: card scrollHeight <= clientHeight and scrollWidth <= clientWidth, page scroll 0, no cut-off control text, no footer overlap, gutters >= 16px.
