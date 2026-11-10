@@ -61,6 +61,8 @@ html body .workspace-shell[data-workspace] .app-sidebar {
 /* Compact spacing as the window gets shorter (also what browser zoom causes). */
 @media (max-height: 820px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 36px; --app-font: 14px; --app-icon: 19px; } }
 @media (max-height: 700px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 32px; --app-font: 13px; --app-icon: 18px; } html body .workspace-shell[data-workspace] .app-sidebar { padding-block: 8px; } }
+/* 13-item admin menu at 1280x585: rows shrink so the whole menu and the pinned bottom block fit with no scroll. */
+@media (max-height: 640px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 28px; --app-font: 12.5px; --app-icon: 16px; } html body .workspace-shell[data-workspace] .app-sidebar { padding-block: 6px; } .app-sidebar-menu, .app-sidebar-bottom { gap: 1px; } .app-sidebar-nav { gap: 4px; } .app-sidebar-bottom { padding-top: 4px; } .app-sidebar-link { border-radius: 10px; gap: 10px; } }
 @media (max-height: 560px) { html body .workspace-shell[data-workspace] :is(.app-sidebar, .workspace-drawer-panel) { --app-row: 30px; --app-font: 12.5px; --app-icon: 17px; } }
 
 /* Phones: the sidebar becomes the slide-in drawer with the same content. */

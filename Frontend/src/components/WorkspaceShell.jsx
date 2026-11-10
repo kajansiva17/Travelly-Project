@@ -8,6 +8,7 @@ import AppSidebar from './AppSidebar'
 import {WorkspaceContext} from '../context/workspaceContext'
 import {accountPath,personalHirePath,eligibleWorkspaces,menuActive,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
 import {journeyLink} from '../features/auth/onboardingJourney'
+import {StateCard} from '../features/booking/flow/FlowParts'
 
 export default function WorkspaceShell({role:fixedRole}){
  const location=useLocation(),navigate=useNavigate(),signedIn=useSession()
@@ -73,7 +74,7 @@ export default function WorkspaceShell({role:fixedRole}){
    </div>
    <div className="workspace-layout">
     <aside className="app-sidebar" aria-label={t('{value0} navigation',{value0:t(info.label)})}>{sidebar(false)}</aside>
-    <div className="workspace-content"><ErrorNotice error={logoutError}/>{access.loading?<main id="main" className="workspace-state" role="status"><span className="spinner"/>{t(' Loading your ')}{t(info.label)}{t(' workspace...')}</main>:access.error?<main id="main" className="workspace-state"><h1>{t('Workspace unavailable')}</h1><ErrorNotice error={access.error}/><button className="button" onClick={refreshAccess}>{t('Try again')}</button></main>:!authorized?<main id="main" className="workspace-state"><Icon name="shield" size={36}/><h1>{t('Workspace access denied')}</h1><p>{t('A current approved ')}{t(info.label)}{t(' membership is required. Navigation does not grant access.')}</p><Link className="button" to="/">{t('Return to booking home')}</Link></main>:<Outlet key={role+access.user.id}/>}</div>
+    <div className="workspace-content"><ErrorNotice error={logoutError}/>{access.loading?<StateCard busy title={<>{t(' Loading your ')}{t(info.label)}{t(' workspace...')}</>}/>:access.error?<StateCard icon="alert" title={t('Workspace unavailable')} actions={<button type="button" className="ui-button ui-button-primary" onClick={refreshAccess}>{t('Try again')}</button>}><ErrorNotice error={access.error}/></StateCard>:!authorized?<StateCard title={t('Workspace access denied')} actions={<Link className="ui-button ui-button-primary" to="/">{t('Return to booking home')}</Link>}><p>{t('A current approved ')}{t(info.label)}{t(' membership is required. Navigation does not grant access.')}</p></StateCard>:<Outlet key={role+access.user.id}/>}</div>
    </div>
    <dialog id="workspace-navigation-drawer" ref={dialog} className="workspace-drawer" aria-label={t('{value0} navigation drawer',{value0:t(info.label)})} onClick={event=>{if(event.target===dialog.current)dialog.current.close()}} onClose={()=>trigger.current?.focus()}><div className="workspace-drawer-panel">{sidebar(true)}</div></dialog>
   </div>

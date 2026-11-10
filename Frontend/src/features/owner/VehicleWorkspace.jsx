@@ -111,5 +111,13 @@ export function PublicVehicle(){
   const {vehicleId}=useParams(),workspace=useWorkspace(),location=useLocation(),[vehicle,setVehicle]=useState(null),[error,setError]=useState(null)
   const personal=['ADMIN','OWNER','DRIVER'].includes(workspace?.role),hirePath=personal?personalHirePath(workspace.role):'/hire'
   useEffect(()=>{publicRead('/vehicles/'+vehicleId).then(setVehicle).catch(setError)},[vehicleId])
-  return <><Header/><main className="owner-rates-page" id="main"><Link to={hirePath} state={{personalSearch:location.state?.personalSearch}}>{t("Browse vehicles")}</Link><Errors error={error}/>{vehicle&&<><h1>{vehicle.make} {vehicle.model}</h1><p>{vehicle.reference} · {t(vehicle.vehicle_type_code)} · {vehicle.manufacture_year} · {vehicle.colour}</p><p>{vehicle.passenger_seats}{t(" usable Passenger seats · ")}{vehicle.large_luggage}{t(" large luggage spaces")}</p><p>{vehicle.description}</p><div className="vehicle-gallery">{vehicle.photos.map(p=><VehiclePhoto key={p.id} photo={p} alt={`${vehicle.make} ${vehicle.model} ${words(p.category).toLowerCase()}`}/>)}</div><Link className="button" to={personal?hirePath:'/owners/'+vehicle.owner_reference} state={{personalSearch:location.state?.personalSearch}}>{t("Plan an itinerary or request an Owner quote")}</Link></>}</main></>
+  const photos=(vehicle?.photos||[]).filter(p=>p.variants?.length).slice(0,3)
+  return <><Header/><FlowShell heading={t('Vehicle')} icon="car" title={vehicle?`${vehicle.make} ${vehicle.model}`:t('Vehicle details')} subtitle={vehicle?vehicle.reference:undefined}>
+    <div className="flow-wizard-form vehicle-public"><Errors error={error}/>{!vehicle&&!error&&<p role="status">{t("Loading…")}</p>}{vehicle&&<>
+      <div className="status-chips"><Chip tone="info">{t(vehicle.vehicle_type_code)}</Chip><Chip tone="muted">{vehicle.manufacture_year}</Chip><Chip tone="muted">{vehicle.colour}</Chip><Chip tone="muted">{t("{value0} usable seats",{value0:vehicle.passenger_seats})}</Chip><Chip tone="muted">{t("{value0} large luggage",{value0:vehicle.large_luggage})}</Chip></div>
+      {vehicle.description&&<p className="vehicle-public-text">{vehicle.description}</p>}
+      {photos.length>0&&<div className="vehicle-public-photos">{photos.map(p=><VehiclePhoto key={p.id} photo={p} alt={`${vehicle.make} ${vehicle.model} ${words(p.category).toLowerCase()}`}/>)}</div>}
+    </>}
+    <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={hirePath} state={{personalSearch:location.state?.personalSearch}}>{t("Browse vehicles")}</Link>{vehicle&&<Link className="ui-button ui-button-primary" to={personal?hirePath:'/owners/'+vehicle.owner_reference} state={{personalSearch:location.state?.personalSearch}}>{t("Plan an itinerary or request an Owner quote")}</Link>}</div></div>
+  </FlowShell></>
 }

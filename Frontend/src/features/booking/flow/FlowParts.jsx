@@ -39,6 +39,18 @@ export function FlowShell({ title, subtitle, icon = 'calendar', info, tabs, step
   </main>
 }
 
+/* Shared compact state card (loading / access denied / unavailable): one glass card, centred, no scroll. */
+export function StateCard({ icon = 'shield', title, children, actions, busy = false }) {
+  return <main className="flow-page" id="main" role={busy ? 'status' : undefined}>
+    <section className="flow-card ui-card state-card">
+      <span className="flow-card-icon">{busy ? <span className="spinner"/> : <Icon name={icon} size={30} aria-hidden="true"/>}</span>
+      <h1>{title}</h1>
+      {children}
+      {actions && <div className="state-card-actions">{actions}</div>}
+    </section>
+  </main>
+}
+
 /* Tiles for choosing a service. items: [{ id, icon, title, description, badge, selected, onChoose }] */
 export function ServiceChoice({ items }) {
   return <div className="flow-service-grid">{items.map(item => <ServiceTile key={item.id} icon={item.icon} title={item.title} description={item.description} badge={item.badge} selected={item.selected} onClick={item.onChoose}/>)}</div>

@@ -741,3 +741,39 @@ html body .travelly-ai-card.travelly-ai-card { container-type: inline-size; }
 html body .travelly-ai-card.travelly-ai-card:not(.dash-tile) { min-height: min-content; align-content: start; }
 html body .travelly-ai-card.travelly-ai-card h2 svg { flex: none; width: 1.15em; height: 1.15em; }
 html body .passenger-side-panels > .travelly-ai-card.travelly-ai-card { grid-column: 1 / -1; }
+
+/* ---------- Public vehicle detail (inside FlowShell) ---------- */
+html body .flow-page .vehicle-public { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .vehicle-public .vehicle-public-text { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+html body .flow-page .vehicle-public .vehicle-public-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; flex: 1 1 0; min-height: 0; overflow: hidden; }
+html body .flow-page .vehicle-public .vehicle-public-photos .vehicle-photo { width: 100%; height: 100%; max-height: 100%; min-height: 0; object-fit: cover; border-radius: 12px; }
+@media (max-width: 700px) { html body .flow-page .vehicle-public .vehicle-public-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Account page documents tab ---------- */
+html body .flow-page .account-docs { min-height: 0; }
+html body .flow-page .own-documents { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .own-documents-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+html body .flow-page .own-documents-head h2 { margin: 0; font-size: 1.1em; display: flex; align-items: center; gap: 6px; }
+html body .flow-page .own-documents-head .ui-button { min-height: 34px; padding: 4px 14px; font-size: 14px; }
+html body .flow-page .own-documents-list { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+html body .flow-page .own-document-row { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 4px 12px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .own-document-row .review-reason { flex: 1 1 0; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .own-document-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+html body .flow-page .own-document-row .ui-button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+/* upload form: compact three-column grid; long guidance is hidden here (shown in the info tip above) */
+html body .flow-page .account-docs :is(.document-checklist, .upload-helper, .document-type-guidance p, .upload-metadata-note, .upload-approval-note) { display: none; }
+html body .flow-page .account-docs .private-upload fieldset { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 14px; border: 0; padding: 0; margin: 0; min-width: 0; }
+html body .flow-page .account-docs .private-upload legend { display: none; }
+html body .flow-page .account-docs .private-upload .upload-metadata { display: contents; }
+html body .flow-page .account-docs .private-upload .upload-field label { font-weight: 700; font-size: .9em; }
+html body .flow-page .account-docs .private-upload :is(input:not([type=checkbox]):not([type=file]), select) { width: 100%; box-sizing: border-box; height: 38px; border-radius: 12px; }
+html body .flow-page .account-docs .private-upload .document-type-guidance { grid-column: 1 / -1; margin: 0; }
+html body .flow-page .account-docs .private-upload > fieldset > .button { grid-column: 1 / -1; justify-self: end; min-height: 40px; padding: 6px 24px; }
+
+/* ---------- Shared state card (loading / denied / unavailable) ---------- */
+html body .flow-page .state-card { align-items: center; justify-content: center; text-align: center; gap: 8px; max-width: 560px; margin: auto; flex: 0 1 auto; padding: 18px 24px; }
+html body .flow-page .state-card h1 { margin: 0; font-size: 1.3em; }
+html body .flow-page .state-card p { margin: 0; line-height: 1.4; }
+html body .flow-page .state-card .state-card-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+html body .flow-page .travel-service-label { display: flex; align-items: center; gap: 10px; }
+html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
