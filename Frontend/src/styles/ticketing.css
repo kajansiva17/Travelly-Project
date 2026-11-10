@@ -42,3 +42,4 @@ html body .flow-page .tk-hold h3 { margin: 0; font-size: 16px; color: var(--ui-i
 html body .flow-page .tk-pane > form.flow-wizard-form, html body .flow-page .tk-pane > .flow-wizard-form { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 html body .flow-page .tk-pane > .tk-pane { flex: 1 1 auto; }
 html body .flow-page :is(.tk-pane, .tk-split)[hidden] { display: none !important; }
+html body .flow-page .tk-grid .rate-field > label { height: 18px; line-height: 18px; overflow: visible; }

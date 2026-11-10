@@ -1,3 +1,4 @@
+import { t } from '../i18n/language.js'
 import React,{useLayoutEffect,useRef,useState} from 'react'
 import '../styles/ticketSeats.css'
 
@@ -92,7 +93,7 @@ function useBox(ref){
   return box
 }
 
-export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=false,label='Seat layout'}){
+export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=false,label}){
   const stage=useRef(null),box=useBox(stage)
   const decks=[...new Set(seats.map(s=>s.deck||1))].sort((a,b)=>a-b)
   const sized=decks.map(deck=>{
@@ -107,7 +108,7 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
   const totalW=sized.reduce((sum,d)=>sum+d.W,0)+DECK_GAP*(sized.length-1)
   const totalH=Math.max(0,...sized.map(d=>d.H+14))+title
   const scale=box.w&&box.h?Math.min(box.w/totalW,box.h/totalH,MAX_SCALE):0
-  return <div className="seat-map" role="group" aria-label={label}>
+  return <div className="seat-map" role="group" aria-label={label||t('Seat layout')}>
     <div className="seat-stage" ref={stage}>
       <div className="seat-scaler" style={{width:totalW,height:totalH,transform:`translate(-50%,-50%) scale(${scale||0.01})`,visibility:scale?'visible':'hidden'}}>
         {sized.map(({deck,own,rows,columns,W,H})=>{
@@ -115,11 +116,11 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
           const dc=Math.max(0,...own.filter(x=>x.type==='CREW').map(x=>x.column))
           const driverX=PADX+EDGE+GAP*(dc+1)+SEAT*dc+SEAT/2
           return <div className="seat-deck" key={deck}>
-            {decks.length>1&&<p className="seat-deck-title">Deck {deck}</p>}
+            {decks.length>1&&<p className="seat-deck-title">{t('Deck {value0}',{value0:deck})}</p>}
             <div className="vehicle-shell" style={{width:W,height:H+14}}>
               <VehicleArt W={W} H={H} driverX={driverX}/>
               <div className="seat-grid-map" style={{left:PADX,top:PADTOP,gridTemplateColumns:`${EDGE}px repeat(${columns},${SEAT}px) ${EDGE}px`}}>
-                {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>DOOR</span>}
+                {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>{t('DOOR')}</span>}
                 {rows.flatMap(r=>own.filter(s=>s.row===r).map(s=>{
                   const crew=s.type==='CREW'
                   const notSold=s.bookable===false&&!crew
@@ -130,7 +131,7 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
                   return <button type="button" key={`${deck}-${s.row}-${s.column}`} className={cls}
                     style={{gridRow:rows.indexOf(r)+1,gridColumn:s.column+2}}
                     disabled={!onToggle||crew||(!editable&&unavailable)}
-                    aria-pressed={chosen} aria-label={crew?'Driver seat':`Seat ${s.code}${unavailable?' unavailable':''}`}
+                    aria-pressed={chosen} aria-label={crew?t('Driver seat'):t(unavailable?'Seat {value0} unavailable':'Seat {value0}',{value0:s.code})}
                     onClick={()=>onToggle&&onToggle(s)}>
                     {crew?<span className="wheel-big"><Wheel size={54} detail/></span>:<><SeatShape/><span className="seat-num">{s.code}</span></>}
                   </button>
@@ -141,11 +142,11 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
         })}
       </div>
     </div>
-    <ul className="seat-legend" aria-label="Seat colours">
+    <ul className="seat-legend" aria-label={t('Seat colours')}>
       {editable
-        ?<><li><i className="swatch"/> For sale</li><li><i className="swatch not-sold"/> Not for sale</li></>
-        :<><li><i className="swatch"/> Available</li><li><i className="swatch booked"/> Booked</li><li><i className="swatch selected"/> Selected</li><li><i className="swatch not-sold"/> Not available</li></>}
-      <li><i className="swatch crew"><Wheel/></i> Driver</li>
+        ?<><li><i className="swatch"/> {t('For sale')}</li><li><i className="swatch not-sold"/> {t('Not for sale')}</li></>
+        :<><li><i className="swatch"/> {t('Available')}</li><li><i className="swatch booked"/> {t('Booked')}</li><li><i className="swatch selected"/> {t('Selected')}</li><li><i className="swatch not-sold"/> {t('Not available')}</li></>}
+      <li><i className="swatch crew"><Wheel/></i> {t('Driver')}</li>
     </ul>
   </div>
 }
