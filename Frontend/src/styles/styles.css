@@ -13,8 +13,7 @@ html {
 
 body,
 #root,
-.public-page,
-.auth-page {
+.public-page {
   height: auto;
   max-height: none;
   min-height: 100vh;

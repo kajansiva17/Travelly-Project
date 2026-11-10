@@ -1,7 +1,8 @@
 import { t, getLanguage } from '../../i18n/language.js'
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Header, ErrorNotice, useNotice } from '../../components/components'
+import { Header, ErrorNotice, Icon, useNotice } from '../../components/components'
+import { AuthLayout, Field } from './AuthLayout'
 import { api, hasSession, getAuthFlow, setAuthFlow, publicAuth, acceptAuthResult } from '../../services/api'
 import {authJourney as journeyRole,journeyLink} from './onboardingJourney'
 import { emailError, passwordErrors, passwordHint } from './authValidation'
@@ -63,7 +64,14 @@ export function ForgotPassword() {
     catch (err) { setError(err) }
     finally { setBusy(false) }
   }
-  return <Shell><h1>{t("Reset your password")}</h1><p>{t("Recovery is available only through an email already verified on your Travelly account. Phone-only accounts and unverified email addresses cannot use this recovery method.")}</p><ErrorNotice error={error}/>{message && <p role="status">{t(message)}</p>}<form noValidate onSubmit={submit}><label htmlFor="recovery-email">{t("Email address")}</label><input id="recovery-email" name="email" type="email" autoComplete="email" aria-invalid={Boolean(field)} aria-describedby="recovery-error"/><p id="recovery-error" className="field-error">{t(field)}</p><button className="button" disabled={busy}>{busy ? t('Requesting…') : t('Request reset link')}</button></form><p><Link to={journeyLink('/login',journey)}>{t("Back to sign in")}</Link></p></Shell>
+  return <AuthLayout variant="login" title={t("Reset your password")} subtitle={t("We will email you a link to choose a new one.")} tip={t("Recovery is available only through an email already verified on your Travelly account. Phone-only accounts and unverified email addresses cannot use this recovery method.")}>
+    <ErrorNotice error={error}/>{message && <p className="auth-status" role="status">{t(message)}</p>}
+    <form className="auth-credentials-form" noValidate onSubmit={submit} aria-label={t("Reset your password")}>
+      <Field name="email" label="Email address" icon="mail" type="email" placeholder="Email address" autoComplete="email" error={field || undefined}/>
+      <button type="submit" className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Requesting…') : <>{t('Request reset link')}<Icon name="arrow" size={20}/></>}</button>
+    </form>
+    <p className="auth-switch login-switch"><Link to={journeyLink('/login',journey)}>{t("Back to sign in")}</Link></p>
+  </AuthLayout>
 }
 
 export function GoogleCompletion() {

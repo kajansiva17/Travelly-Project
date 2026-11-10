@@ -8,18 +8,7 @@ body .public-page .search-panel{margin-top:-163px;box-shadow:inset 0 1px 1px #d1
 body .public-page #services{padding-top:20px}
 body .public-page .service-card{min-height:215px;background:linear-gradient(135deg,#112d4b,#071b33);border-color:#4175a655}
 body .public-page .confidence-grid{border-color:#507da94d}
-body .auth-page{background:linear-gradient(90deg,#0216322b,#0216324d),url('/images/travelly/heroes/passenger-hero-1920.webp') center/cover #041329}
-body .auth-page .auth-layout{max-width:1440px;min-height:calc(100dvh - 110px);align-items:center;gap:7%;padding-bottom:38px}
-body .auth-page .auth-form-panel{background:linear-gradient(140deg,#143763e8,#071e3feb);border:1px solid #6b9dd4;border-radius:20px;box-shadow:inset 0 1px 0 #daedff25,0 25px 60px #0006;backdrop-filter:blur(18px)}
 .auth-kicker{display:block;font-size:9px;letter-spacing:1.7px;color:#aacded;margin-bottom:13px}
-body .auth-page .auth-heading h1{font-size:34px;font-weight:600;letter-spacing:-1px}
-body .auth-page .auth-heading h2{font-size:16px;font-weight:400;color:#d0e2f7;margin-top:10px}
-body .auth-page .auth-input{border-radius:9px;background:#041b35bb;border-color:#4c719a}
-body .auth-page .auth-field>label{font-size:11px;letter-spacing:.1px}
-body .auth-page .auth-input input{font-size:13px}
-body .auth-page .journey-ticket{background:linear-gradient(135deg,#193e6bba,#082140dd);border:1px solid #72b6f2;border-radius:24px;box-shadow:inset 0 1px 0 #e0f3ff44,0 20px 45px #0004;backdrop-filter:blur(8px)}
-body .auth-page .auth-security-note{display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;color:#bad2ed;line-height:1.5;margin:20px 0 0}
-body .auth-page .auth-security-note svg{color:#94dcca;flex:none}
 /* Operational layouts are authored in workspaces.css, without the old dashboard theme. */
 body .workspace-shell{background:radial-gradient(ellipse at 100% 0,#143d6938,transparent 65%),#041329}
 body .workspace-topbar .header-inner{border-radius:15px;min-height:64px;padding:8px 20px}
@@ -38,11 +27,6 @@ body .workspace-card-heading h2{font-size:17px}
  body .public-page .hero h1{font-size:clamp(36px,7.5vw,54px)}
  body .public-page .hero-discover{margin-top:14px;font-size:12px}
  body .public-page .search-panel{margin-top:-155px}
- body .auth-page .auth-layout{gap:24px;min-height:0;padding-top:14px;padding-bottom:28px}
- body .auth-page .auth-form-panel{padding:26px 22px}
- body .auth-page .auth-heading h1{font-size:30px}
- body .auth-page .auth-brand-panel{padding-bottom:0}
- body .auth-page .journey-ticket{padding:24px 18px}
  body .workspace-content .role-dashboard{padding:18px 14px 30px}
  body .workspace-topbar .header-inner{padding:8px 10px}
  body .workspace-quick-actions a{min-height:60px}

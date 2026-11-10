@@ -60,9 +60,7 @@ import './styles/redesign.css'
 import './styles/passengerDashboard.css'
 import './styles/referenceDesign.css'
 import './styles/accountContext.css'
-import './styles/authPromoCard.css'
 import './styles/navbarSpeedometer.css'
-import './styles/authFormCompact.css'
 import './styles/redButtonGlass.css'
 import './styles/adminProfile.css'
 import './styles/dashboardReferences.css'
@@ -80,6 +78,7 @@ import './styles/app-sidebar.css'
 import './styles/travel-booking.css'
 import './styles/flow.css'
 import './styles/passengerBookingFlow.css'
+import './styles/authGlass.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()
