@@ -43,3 +43,11 @@ html body .flow-page .tk-pane > form.flow-wizard-form, html body .flow-page .tk-
 html body .flow-page .tk-pane > .tk-pane { flex: 1 1 auto; }
 html body .flow-page :is(.tk-pane, .tk-split)[hidden] { display: none !important; }
 html body .flow-page .tk-grid .rate-field > label { height: 18px; line-height: 18px; overflow: visible; }
+
+/* Shared Admin list pages: filter row, compact rows, details view (see features/admin/AdminList.jsx). */
+html body .flow-page .tk-facts { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 6px 12px; margin: 0; }
+@media (max-width: 760px) { html body .flow-page .tk-facts { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page .tk-facts > div { min-width: 0; padding: 6px 12px; border-radius: 12px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .tk-facts dt { font-size: 12px; font-weight: 600; color: var(--ui-muted); }
+html body .flow-page .tk-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tk-bar .ui-chip { flex: none; }
