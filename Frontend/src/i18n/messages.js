@@ -516,6 +516,8 @@ const rows = [
   ["Loading booking status","முன்பதிவு நிலை ஏற்றப்படுகிறது","වෙන් කිරීමේ තත්ත්වය පූරණය වෙමින්"],
   ["Accepting quote…","மேற்கோளை ஏற்கிறது…","මිල ගණන් පිළිගනිමින්…"],
   ["Accept this quote","இந்த மேற்கோளை ஏற்கவும்","මෙම මිල ගණන් පිළිගන්න"],
+  ["e.g. Jaffna","எ.கா. யாழ்ப்பாணம்","උදා. යාපනය"],
+  ["e.g. Colombo","எ.கா. கொழும்பு","උදා. කොළඹ"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }
