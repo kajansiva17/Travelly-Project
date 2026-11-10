@@ -96,7 +96,6 @@ export default function PassengerTicketBooking(){
     <Compact.Provider value={true}>
     <ErrorNotice error={error}/>
 
-<<<<<<< HEAD
     <form className="flow-wizard-form tk-pane" hidden={w.step!==0} onSubmit={search}>
       <div className="tk-grid" style={{'--cols':4}}>
         <Field label="From" optional><input name="origin" value={query.origin} onChange={e=>setQuery({...query,origin:e.target.value})}/></Field>
@@ -111,18 +110,6 @@ export default function PassengerTicketBooking(){
         <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>Select departure</button></div></article>)}</div>
       <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">Search departures</button></div>
     </form>
-=======
-      {departure&&<section className="passenger-quote">
-        <h2>Select numbered seats</h2>
-        <p>{departure.route.origin_name} → {departure.route.destination_name} · {new Date(departure.departure_at).toLocaleString()} · {departure.stop_prices_enabled
-          ?<>price per seat {departure.currency} {partFare!=null?partFare.toFixed(2):departure.fare_per_seat} for {onStop?.stop_name} → {offStop?.stop_name}</>
-          :<>fare per seat {departure.currency} {departure.fare_per_seat}</>}</p>
-        <SeatMap seats={seats} selected={booking?.hold_active?[]:selected} onToggle={booking?.hold_active?undefined:toggle} label="Choose seats"/>
-        {!booking?.hold_active&&<>
-          <p>Selected: {selected.length?selected.join(', '):'none'}{selected.length>0&&<> · Total {departure.currency} {total.toFixed(2)}</>}</p>
-          {selected.length>0&&selected.length!==travellers&&<p>You searched for {travellers} traveller{travellers>1?'s':''}; select {travellers} seat{travellers>1?'s':''}.</p>}
-        </>}
->>>>>>> origin/claude-work
 
     {departure&&<div className="tk-split" hidden={w.step!==1}>
       <div className="tk-side">

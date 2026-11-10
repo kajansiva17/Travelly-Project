@@ -1,9 +1,5 @@
 import { t } from '../i18n/language.js'
-<<<<<<< HEAD
 import React,{useLayoutEffect,useRef,useState} from 'react'
-=======
-import React from 'react'
->>>>>>> origin/claude-work
 import '../styles/ticketSeats.css'
 
 // Top-down picture of the vehicle, drawn entirely with code (SVG + CSS, no image files).
@@ -100,7 +96,6 @@ function useBox(ref){
 export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=false,label}){
   const stage=useRef(null),box=useBox(stage)
   const decks=[...new Set(seats.map(s=>s.deck||1))].sort((a,b)=>a-b)
-<<<<<<< HEAD
   const sized=decks.map(deck=>{
     const own=seats.filter(s=>(s.deck||1)===deck)
     const rows=[...new Set(own.map(s=>s.row))].sort((a,b)=>a-b)
@@ -143,40 +138,6 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
                 }))}
               </div>
             </div>
-=======
-  return <div className="seat-map" role="group" aria-label={label}>
-    {decks.map(deck=>{
-      const own=seats.filter(s=>(s.deck||1)===deck)
-      const rows=[...new Set(own.map(s=>s.row))].sort((a,b)=>a-b)
-      const columns=Math.max(...own.map(s=>s.column))+1
-      const firstPassengerRow=rows.find(r=>r>0)
-      const gridW=EDGE*2+columns*SEAT+(columns+1)*GAP
-      const gridH=rows.length*SEAT+(rows.length-1)*GAP
-      const dc=Math.max(0,...own.filter(x=>x.type==='CREW').map(x=>x.column))
-      const driverX=PADX+EDGE+GAP*(dc+1)+SEAT*dc+SEAT/2
-      const W=gridW+PADX*2,H=gridH+PADTOP+PADBOTTOM
-      return <div className="seat-deck" key={deck}>
-        {decks.length>1&&<p className="seat-deck-title">Deck {deck}</p>}
-        <div className="vehicle-shell" style={{width:W,height:H+14}}>
-          <VehicleArt W={W} H={H} driverX={driverX}/>
-          <div className="seat-grid-map" style={{left:PADX,top:PADTOP,gridTemplateColumns:`${EDGE}px repeat(${columns},${SEAT}px) ${EDGE}px`}}>
-            {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>{t('DOOR')}</span>}
-            {rows.flatMap(r=>own.filter(s=>s.row===r).map(s=>{
-              const crew=s.type==='CREW'
-              const notSold=s.bookable===false&&!crew
-              const taken=s.status&&s.status!=='AVAILABLE'
-              const unavailable=crew||notSold||taken||(isDisabled&&isDisabled(s))
-              const chosen=selected.includes(s.code)
-              const cls=['seat',crew?'crew':'',notSold?'not-sold':'',taken?'booked':'',chosen?'selected':''].filter(Boolean).join(' ')
-              return <button type="button" key={`${deck}-${s.row}-${s.column}`} className={cls}
-                style={{gridRow:rows.indexOf(r)+1,gridColumn:s.column+2}}
-                disabled={!onToggle||crew||(!editable&&unavailable)}
-                aria-pressed={chosen} aria-label={crew?'Driver seat':`Seat ${s.code}${unavailable?' unavailable':''}`}
-                onClick={()=>onToggle&&onToggle(s)}>
-                {crew?<span className="wheel-big"><Wheel size={54} detail/></span>:<><SeatShape/><span className="seat-num">{s.code}</span></>}
-              </button>
-            }))}
->>>>>>> origin/claude-work
           </div>
         })}
       </div>
