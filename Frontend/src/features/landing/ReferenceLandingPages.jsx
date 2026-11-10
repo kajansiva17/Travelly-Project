@@ -6,6 +6,7 @@ import { getLanguage, languages, setLanguage, subscribeLanguage, t } from '../..
 import { landingContent } from './landingContent'
 import { heroArtwork, cardArtwork, artworkSources } from './landingAssets'
 import './referenceLanding.css'
+import './landingHero.css'
 
 const brandAssets = '/images/travelly/branding/approved-2026-11-07/'
 function LandingIcon({ name, size = 26, ...props }) {
