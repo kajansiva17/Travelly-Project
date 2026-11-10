@@ -28,21 +28,7 @@
 }
 /* Transparent source margins: fleet ink ends near y=702 of 823. Move the
    complete image down by that transparent tail; do not crop or edit its pixels. */
-.site-header .brand.travelly-brand .brand-mark .brand-vehicles { bottom: calc(var(--brand-art-width) * -.064); }
 .site-header .brand.travelly-brand .brand-mark .brand-speedometer { left: 12%; top: -3px; width: 76%; }
-.site-header .brand.travelly-brand .brand-wordmark {
-  display: block;
-  width: 100%;
-  height: 28px;
-  margin-top: -2px;
-  text-align: center;
-  font-family: 'Travelly Wordmark', Georgia, 'Times New Roman', serif;
-  font-size: 28px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 28px;
-  letter-spacing: -.45px;
-}
 
 /* The existing multi-role Passenger links need the existing menu layout on
    tablets too; keep the desktop link order and every account action intact. */
@@ -54,8 +40,8 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: #fcf2e5;
-    border-bottom: 1px solid #e2c8ad;
+    background: var(--ui-glass-strong);
+    border-bottom: 1px solid var(--ui-input-border);
     padding: 18px 6%;
     box-shadow: 0 12px 20px #4c1a1120;
     font-size: 15px;

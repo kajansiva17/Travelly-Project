@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Icon } from '../../../components/components'
 import VehiclePhoto from '../../../components/VehiclePhoto'
 import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'
+import { useWorkspace } from '../../../context/workspaceContext'
 
 /* Presentational parts of the Travel & Booking flow. The passenger wizard
    (/travel/book/*) and the owner / driver / admin personal booking page
@@ -22,7 +23,20 @@ export const flowImage = (service, duration) => ({
 }[service] || null)
 
 /* Page frame: heading, optional tabs, stepper, main card and Trip summary. */
+/* Public (signed-out) pages have no workspace shell: mark the body so the same compact, no-scroll flow layout applies. */
+function useStandaloneFlow() {
+  const workspace = useWorkspace()
+  useEffect(() => {
+    if (workspace) return undefined
+    const body = document.body
+    const place = () => { const header = document.querySelector('.site-header'); body.style.setProperty('--workspace-header-height', `${Math.ceil(header ? header.getBoundingClientRect().bottom : 90)}px`) }
+    body.classList.add('flow-standalone'); place(); window.addEventListener('resize', place)
+    return () => { body.classList.remove('flow-standalone'); body.style.removeProperty('--workspace-header-height'); window.removeEventListener('resize', place) }
+  }, [workspace])
+}
+
 export function FlowShell({ title, subtitle, icon = 'calendar', info, tabs, steps, current = 0, onStepSelect, summary, card = true, heading = 'Travel & Booking', stepperLabel = 'Booking progress', children }) {
+  useStandaloneFlow()
   const body = card
     ? <section className="flow-card ui-card">
         <header className="flow-card-head"><span className="flow-card-icon"><Icon name={icon} size={26} aria-hidden="true"/></span><div><h2>{title}{info && <InfoTip>{info}</InfoTip>}</h2>{subtitle && <p>{subtitle}</p>}</div></header>
@@ -53,7 +67,7 @@ export function StateCard({ icon = 'shield', title, children, actions, busy = fa
 
 /* Tiles for choosing a service. items: [{ id, icon, title, description, badge, selected, onChoose }] */
 export function ServiceChoice({ items }) {
-  return <div className="flow-service-grid">{items.map(item => <ServiceTile key={item.id} icon={item.icon} title={item.title} description={item.description} badge={item.badge} selected={item.selected} onClick={item.onChoose}/>)}</div>
+  return <div className="flow-service-grid" style={{ '--tiles': items.length % 4 === 0 ? 4 : 3 }}>{items.map(item => <ServiceTile key={item.id} icon={item.icon} title={item.title} description={item.description} badge={item.badge} selected={item.selected} onClick={item.onChoose}/>)}</div>
 }
 
 /* Two-or-more way toggle drawn as a segmented control (radio group). */
@@ -73,13 +87,21 @@ export function FlowActions({ back, children }) {
   </div>
 }
 
+/* Cover picture in a fixed 16/9 box: never stretched; a neutral placeholder when the picture is missing or fails to load. */
+export function CoverImage({ src, className = '', alt = '' }) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => { setFailed(false) }, [src])
+  if (!src || failed) return <div className={`${className} is-empty`} aria-hidden="true"><Icon name="car" size={30}/></div>
+  return <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)}/>
+}
+
 /* Trip summary aside. rows: [{ icon, label, value }]; rows without a value are skipped. */
 export function TripSummary({ title = 'Trip summary', image, rows = [], empty = 'Details appear here as you fill in the form.' }) {
   const shown = rows.filter(row => row && row.value)
   return <aside className="flow-summary ui-card" aria-label={title}>
     <h2><Icon name="document" size={22} aria-hidden="true"/>{title}</h2>
-    {image && <img className="flow-summary-image" src={image} alt="" loading="lazy" decoding="async"/>}
-    {shown.length ? <dl>{shown.map(row => <div key={row.label}><dt><Icon name={row.icon || 'check'} size={18} aria-hidden="true"/>{row.label}</dt><dd>{row.value}</dd></div>)}</dl> : <p className="flow-summary-empty">{empty}</p>}
+    <CoverImage className="flow-summary-image" src={image}/>
+    {shown.length ? <dl>{shown.map(row => <div key={row.label}><dt><Icon name={row.icon || 'check'} size={18} aria-hidden="true"/>{row.label}</dt><dd className={row.nowrap ? 'is-nowrap' : undefined} title={typeof row.value === 'string' ? row.value : undefined}>{row.value}</dd></div>)}</dl> : <p className="flow-summary-empty">{empty}</p>}
   </aside>
 }
 
@@ -115,7 +137,7 @@ export function FlowBanner({ tone = 'info', icon = 'clock', title, children, asi
 export function useFitCount() {
   const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
   useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
-  return height < 800 ? 2 : height < 960 ? 4 : 6
+  return height < 800 ? 2 : height < 1200 ? 4 : 6
 }
 
 /* Previous / next page of results, shown in the Back / Next row. */

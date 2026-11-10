@@ -1,5 +1,7 @@
-.seat-map{--seat-size:40px;display:flex;flex-wrap:wrap;gap:24px;margin:12px 0;align-items:flex-start}
-.seat-deck-title{font-weight:600;margin:0 0 6px}
+.seat-map{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0;min-width:0}
+.seat-stage{position:relative;flex:1 1 0;min-height:140px;min-width:0;overflow:hidden}
+.seat-scaler{position:absolute;left:50%;top:50%;display:flex;gap:24px;align-items:flex-start;justify-content:center;transform-origin:center center}
+.seat-deck-title{font-weight:600;font-size:14px;line-height:22px;margin:0}
 .vehicle-shell{position:relative}
 .vehicle-art{position:absolute;left:0;top:0}
 .seat-grid-map{position:absolute;display:grid;gap:8px;grid-auto-rows:40px}
@@ -23,7 +25,7 @@
 .seat-map .seat.crew .seat-num{display:none}
 .seat-map .seat.crew .wheel-big{position:absolute;left:-7px;top:-14px;width:54px;height:54px;z-index:2;color:#0f141b;filter:drop-shadow(0 3px 3px rgba(0,0,0,.4))}
 .seat-map .seat.crew .wheel-big svg{display:block}
-.seat-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.9rem;margin:0;padding:0;list-style:none;flex-basis:100%}
+.seat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;font-size:13px;margin:0;padding:0;list-style:none;flex:none}
 .seat-legend li{display:flex;align-items:center;gap:6px}
 .seat-legend .swatch{display:inline-flex;width:20px;height:20px;border-radius:6px 6px 4px 4px;border:2px solid #27303d;border-bottom-width:4px;background:#fff;align-items:center;justify-content:center}
 .seat-legend .swatch.selected{background:#0a35e8;border-color:#041660}
@@ -31,22 +33,5 @@
 .seat-legend .swatch.not-sold{background:#6f7684;border-color:#2b3039}
 .seat-legend .swatch.crew{background:#eceef1}
 .seat-legend .swatch svg{width:14px;height:14px}
-.layout-builder{display:grid;gap:12px;margin:10px 0}
-.layout-presets{display:flex;flex-wrap:wrap;gap:8px}
-.layout-presets .button[aria-pressed=true]{outline:3px solid #1e66f5}
-.stepper-row{display:flex;flex-wrap:wrap;gap:10px 24px}
-.stepper{display:flex;align-items:center;gap:8px}
-.stepper-label{min-width:150px}
-.stepper button{width:36px;height:36px;font-size:1.2rem;line-height:1}
-.stepper output{min-width:28px;text-align:center;font-weight:700}
-.layout-help{font-size:.9rem;opacity:.8;margin:0}
-
-.success-banner{background:#e6f7ec;color:#0b5d2a;border:1px solid #7bcf9b;border-radius:10px;padding:12px 16px;font-weight:600}
-.dt-field{border:1px solid rgba(0,0,0,.2);border-radius:12px;padding:8px 12px 12px;margin:0;background:rgba(255,255,255,.6)}
-.dt-field legend{font-weight:600;padding:0 6px}
-.dt-row{display:flex;flex-wrap:wrap;gap:12px}
-.dt-row label{display:grid;gap:4px;font-weight:500;font-size:.9rem}
-.dt-row input[type=date],.dt-row input[type=time]{min-height:42px;padding:6px 10px;border:2px solid #27303d;border-radius:8px;background:#fff;color:#111;font-size:1rem;cursor:pointer}
-.dt-row input:focus-visible{outline:3px solid #1e66f5}
 .passenger-detail-grid>label{display:grid;gap:4px;font-weight:600}
-.passenger-detail-grid>label small,.dt-field small{font-weight:400;opacity:.8}
+.passenger-detail-grid>label small{font-weight:400;opacity:.8}

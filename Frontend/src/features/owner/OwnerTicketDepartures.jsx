@@ -1,30 +1,22 @@
-import React,{useEffect,useMemo,useState} from 'react'
+import { t } from '../../i18n/language.js'
+import React,{useEffect,useMemo,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
-import {api,publicRead} from '../../services/api'
+import {api} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
-import {TravellyGlassPanel,TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
+import Chip from '../../components/ui/Chip'
+import InfoTip from '../../components/ui/InfoTip'
 import SeatMap from '../../components/SeatMap'
+import {Field,Compact} from './OwnerRates'
+import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
+import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
 
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
-  fulfilment_policy:'FIXED_GUARANTEED',minimum_confirmed_seats:'',decision_deadline:'',accepted_time_window_minutes:'0',operator_driver_user_id:''}
+  fulfilment_policy:'FIXED_GUARANTEED',minimum_confirmed_seats:'',decision_deadline:'',accepted_time_window_minutes:'0',driver_choice:'later'}
 const iso=v=>v?new Date(v).toISOString():null
 const pad=n=>String(n).padStart(2,'0')
 const toLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 const STOP_OPTIONS=[['30','30 minutes before departure'],['60','1 hour before departure'],['120','2 hours before departure']]
 const nice=v=>v?new Date(v).toLocaleString([],{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):''
-
-// A date picker and a time picker side by side, each with a clear label and a calendar/clock that opens on click.
-function DateTimeField({label,value,onChange,hint,min}){
-  const [time,setTime]=useState('')
-  const date=value?value.slice(0,10):'',clock=value?value.slice(11,16):time
-  const open=e=>{try{e.target.showPicker&&e.target.showPicker()}catch{}}
-  const change=(d,t)=>{setTime(t);onChange(d?`${d}T${t||'08:00'}`:'')}
-  return <fieldset className="dt-field"><legend>{label}</legend>
-    <div className="dt-row">
-      <label>Date<input required type="date" value={date} min={min} onClick={open} onChange={e=>change(e.target.value,clock)}/></label>
-      <label>Time<input required type="time" value={clock} onClick={open} onChange={e=>change(date,e.target.value)}/></label>
-    </div>{hint&&<small>{hint}</small>}</fieldset>
-}
 
 // Vehicle types the Owner can start from, then adjust with the + / - buttons.
 const PRESETS={
@@ -50,53 +42,57 @@ function buildSeats({left,right,rows,back,front,sellFront,off}){
   }
   return seats
 }
-
-function Stepper({label,value,min,max,onChange,hint}){
-  return <div className="stepper"><span className="stepper-label" id={`st-${label}`}>{label}</span>
-    <button type="button" className="button" aria-label={`Fewer: ${label}`} disabled={value<=min} onClick={()=>onChange(value-1)}>−</button>
-    <output aria-labelledby={`st-${label}`}>{value}</output>
-    <button type="button" className="button" aria-label={`More: ${label}`} disabled={value>=max} onClick={()=>onChange(value+1)}>+</button>
-    {hint&&<span className="layout-help">{hint}</span>}</div>
-}
+// The seats a passenger can book, as one comparable text: used to tell whether a departure still matches the vehicle's saved layout.
+const signature=seats=>(seats||[]).filter(s=>s.bookable).map(s=>`${s.deck||1}-${s.row}-${s.column}-${s.code}`).sort().join('|')
 
 export default function OwnerTicketDepartures(){
   const [vehicles,setVehicles]=useState([]),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
-  const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null)
+  const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(null)
   const [preset,setPreset]=useState('van'),[left,setLeft]=useState(2),[right,setRight]=useState(1),[rowCount,setRowCount]=useState(3),[back,setBack]=useState(4),[front,setFront]=useState(1),[sellFront,setSellFront]=useState(true),[off,setOff]=useState(new Set())
-  const [form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState('')
+  const [form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
+  const [tab,setTab]=useState(0),lw=useWizard(2),dw=useWizard(3),panes=[useRef(null),useRef(null),useRef(null)]
+  const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
   const loadDepartures=()=>api('/scheduled-trips?mine=true&limit=100').then(x=>setItems(x.items||[])).catch(setError)
   useEffect(()=>{
     api('/owners/me/vehicles').then(x=>setVehicles((x.items||[]).filter(v=>v.verification_status==='APPROVED'))).catch(setError)
     api('/owners/me/routes').then(x=>setRoutes((x.items||[]).filter(r=>r.status==='ACTIVE'))).catch(setError)
+    // The Owner may drive only when they hold an approved Driver role (the same check the Account page uses).
+    Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,roles])=>setMe({id:user.id,driver:(user.approved_roles||[]).includes('DRIVER')&&(roles.items||[]).some(r=>r.role_code==='DRIVER'&&r.approval_status==='APPROVED')})).catch(()=>{})
     loadDepartures()
   },[])
   const vehicle=vehicles.find(v=>v.id===layoutVehicle)
-  useEffect(()=>{setSaved(null);if(!layoutVehicle)return
-    api(`/vehicles/${layoutVehicle}/seat-layout`).then(setSaved).catch(e=>{if(e.status!==404)setError(e)})},[layoutVehicle])
-  const seats=useMemo(()=>buildSeats({left,right,rows:rowCount,back,front,sellFront,off}),[left,right,rowCount,back,front,sellFront,off])
+  // Choosing a vehicle shows the layout already saved for it; the Owner edits from there.
+  useEffect(()=>{setSaved(null);setLoaded(null);if(!layoutVehicle)return
+    api(`/vehicles/${layoutVehicle}/seat-layout`).then(result=>{setSaved(result);setLoaded(result.seats.map(s=>({...s})))}).catch(e=>{if(e.status!==404)setError(e)})},[layoutVehicle])
+  const built=useMemo(()=>buildSeats({left,right,rows:rowCount,back,front,sellFront,off}),[left,right,rowCount,back,front,sellFront,off])
+  const seats=loaded||built
   const sold=seats.filter(s=>s.bookable).length
   const capacity=vehicle?.seat_capacity
   const overCapacity=capacity!=null&&sold>capacity
-  const pick=key=>{const p=PRESETS[key];setPreset(key);setLeft(p.left);setRight(p.right);setRowCount(p.rows);setBack(p.back);setFront(p.front);setSellFront(p.sellFront);setOff(new Set())}
-  const adjust=setter=>v=>{setter(v);setOff(new Set())}
+  const pick=key=>{const p=PRESETS[key];setLoaded(null);setPreset(key);setLeft(p.left);setRight(p.right);setRowCount(p.rows);setBack(p.back);setFront(p.front);setSellFront(p.sellFront);setOff(new Set())}
+  const adjust=setter=>v=>{setLoaded(null);setter(v);setOff(new Set())}
   const width=left+1+right
-  const toggle=s=>{if(s.type==='CREW')return;const key=`${s.row}-${s.column}`;const next=new Set(off);next.has(key)?next.delete(key):next.add(key);setOff(next)}
+  const toggle=s=>{
+    if(s.type==='CREW')return
+    if(loaded){setLoaded(loaded.map(x=>x.deck===s.deck&&x.row===s.row&&x.column===s.column?{...x,bookable:!x.bookable}:x));return}
+    const key=`${s.row}-${s.column}`;const next=new Set(off);next.has(key)?next.delete(key):next.add(key);setOff(next)
+  }
 
   async function saveLayout(){
     setBusy(true);setError(null);setNotice('')
     try{
       const result=await api(`/vehicles/${layoutVehicle}/seat-layout`,{method:'PUT',body:JSON.stringify({layout_version:(saved?.layout_version||0)+1,seats:seats.map(s=>({code:s.code,row:s.row,column:s.column,deck:s.deck,type:s.type,bookable:s.bookable}))})})
-      setSaved(result);setNotice('Seat layout saved. Passengers will see this picture.')
+      setSaved(result);setLoaded(result.seats.map(s=>({...s})));setVehicleLayout(v=>({...v,[layoutVehicle]:signature(result.seats)}));setNotice(t('Seat layout saved. Passengers will see this picture.'))
     }catch(e){setError(e)}finally{setBusy(false)}
   }
-  async function createDeparture(e){
-    e.preventDefault();setBusy(true);setError(null);setNotice('')
+  async function createDeparture(){
+    setBusy(true);setError(null);setNotice('')
     const protectedPolicy=form.fulfilment_policy!=='FIXED_GUARANTEED'
     const departure=new Date(form.departure_at),arrival=new Date(form.estimated_arrival_at)
-    if(!(departure>new Date())){setBusy(false);setError({message:'Choose a departure date and time in the future.'});return}
-    if(!(arrival>departure)){setBusy(false);setError({message:'The arrival must be after the departure.'});return}
+    if(!(departure>new Date())){setBusy(false);setError({message:t('Choose a departure date and time in the future.')});return}
+    if(!(arrival>departure)){setBusy(false);setError({message:t('The arrival must be after the departure.')});return}
     const cutoff=new Date(departure.getTime()-Number(form.stop_before)*60000)
-    if(cutoff<=new Date()){setBusy(false);setError({message:'Bookings would already be closed. Choose a later departure or a shorter "Stop bookings at" time.'});return}
+    if(cutoff<=new Date()){setBusy(false);setError({message:t('Bookings would already be closed. Choose a later departure or a shorter "Stop bookings at" time.')});return}
     const cutoffIso=cutoff.toISOString()
     try{
       await api('/scheduled-trips',{method:'POST',body:JSON.stringify({
@@ -104,13 +100,13 @@ export default function OwnerTicketDepartures(){
         booking_cutoff_at:cutoffIso,fare_per_seat:String(form.fare_per_seat),fulfilment_policy:form.fulfilment_policy,
         minimum_confirmed_seats:protectedPolicy?Number(form.minimum_confirmed_seats):null,decision_deadline:protectedPolicy?iso(form.decision_deadline):null,
         accepted_time_window_minutes:Number(form.accepted_time_window_minutes||0),accepted_replacement_terms:{},
-        operator_driver_user_id:form.operator_driver_user_id||null})})
-      setForm(emptyDeparture);setNotice('Departure saved as a draft. Press Publish below when you are ready.');loadDepartures();window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})
+        operator_driver_user_id:form.driver_choice==='me'&&me.driver?me.id:null})})
+      setForm(emptyDeparture);setNotice(t('Departure saved as a draft. Press Publish below when you are ready.'));loadDepartures();dw.setStep(0);setTab(2)
     }catch(e){setError(e)}finally{setBusy(false)}
   }
   async function publish(x){
     setError(null);setNotice('')
-    try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice('Departure published. Passengers can now book it.');loadDepartures()}catch(e){setError(e)}
+    try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice(t('Departure published. Passengers can now book it.'));loadDepartures()}catch(e){setError(e)}
   }
   const set=k=>e=>setForm({...form,[k]:e.target.value})
   // A route with a price for each stop fixes the whole-trip price to its last stop's price.
@@ -119,85 +115,137 @@ export default function OwnerTicketDepartures(){
   useEffect(()=>{if(routeWhole!=null&&form.fare_per_seat!==String(Number(routeWhole)))setForm(f=>({...f,fare_per_seat:String(Number(routeWhole))}))},[routeWhole])
   const protectedPolicy=form.fulfilment_policy!=='FIXED_GUARANTEED'
 
-  return <><Header/><main className="role-dashboard" id="main">
-    <div className="workspace-heading"><p className="section-kicker">OWNER · FLEET SERVICES</p><h1>Ticket departures</h1>
-      <p>Describe each vehicle&apos;s seats once, then publish scheduled departures. Passengers see exactly the seats you define.</p></div>
-    <ErrorNotice error={error}/>{notice&&<p role="status" className="success-banner">✓ {notice}</p>}
+  const departureList=usePaged(items||[],Math.max(2,useRowCount(64)))
+  // A published departure keeps the seats it was published with. For the departures on screen, compare them with the vehicle's current saved layout.
+  const visibleKey=tab===2?departureList.slice.filter(x=>x.status!=='DRAFT').map(x=>`${x.id}:${x.vehicle_id}`).join(','):''
+  useEffect(()=>{
+    visibleKey.split(',').filter(Boolean).forEach(pair=>{
+      const [id,vehicleId]=pair.split(':')
+      if(tripLayout[id]===undefined){setTripLayout(c=>({...c,[id]:null}));api(`/scheduled-trips/${id}/seats`).then(r=>setTripLayout(c=>({...c,[id]:signature(r.seats)}))).catch(()=>{})}
+      if(vehicleId&&vehicleLayout[vehicleId]===undefined){setVehicleLayout(c=>({...c,[vehicleId]:null}));api(`/vehicles/${vehicleId}/seat-layout`).then(r=>setVehicleLayout(c=>({...c,[vehicleId]:signature(r.seats)}))).catch(()=>{})}
+    })
+  },[visibleKey])
+  const isOlder=x=>x.status!=='DRAFT'&&tripLayout[x.id]&&vehicleLayout[x.vehicle_id]&&tripLayout[x.id]!==vehicleLayout[x.vehicle_id]
+  // Every step is checked again when the draft is saved: the first step with a problem is shown.
+  const badPane=()=>panes.findIndex(p=>p.current&&[...p.current.querySelectorAll('input,select,textarea')].some(el=>!el.disabled&&!el.checkValidity()))
+  function submitDeparture(e){
+    e.preventDefault()
+    const bad=badPane()
+    if(bad>=0){dw.setStep(bad);requestAnimationFrame(()=>checkPane(panes[bad].current));return}
+    createDeparture()
+  }
+  const nextDeparture=()=>{if(checkPane(panes[dw.step].current).valid)dw.forward()}
+  const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
+  const stepNames=tab===0?[t('Vehicle and type'),t('Seats')]:[t('Route and time'),t('Arrival and price'),t('Type and driver')]
+  const statusLabel=status=>status==='PUBLISHED'?t('Published'):status==='DRAFT'?t('Draft'):status
 
-    <TravellyGlassPanel><h2>1. Vehicle seat layout</h2>
-      <label htmlFor="seat-vehicle">Vehicle</label><select id="seat-vehicle" value={layoutVehicle} onChange={e=>{setLayoutVehicle(e.target.value);setOff(new Set())}}>
-        <option value="">Choose an approved vehicle</option>
-        {vehicles.map(v=><option key={v.id} value={v.id}>{v.label||v.reference} · {v.seat_capacity??'?'} seats</option>)}
-      </select>
-      {layoutVehicle&&<>
-        {saved&&<><p>Current saved layout: version {saved.layout_version}, {saved.seats.filter(s=>s.bookable).length} bookable seats. Saving below replaces it with a new version.</p></>}
-        <div className="layout-builder">
-          <div><strong>1. Choose your vehicle type</strong>
-            <div className="layout-presets" role="group" aria-label="Vehicle type">
-              {Object.entries(PRESETS).map(([k,p])=><button type="button" key={k} className="button" aria-pressed={preset===k} onClick={()=>pick(k)}>{p.label}</button>)}</div></div>
-          <div><strong>2. Adjust with + and −</strong>
-            <div className="stepper-row">
-              <Stepper label="Rows of seats" value={rowCount} min={1} max={24} onChange={adjust(setRowCount)}/>
-              <Stepper label="Seats on the left" value={left} min={1} max={4} onChange={adjust(setLeft)} hint="(door side)"/>
-              <Stepper label="Seats on the right" value={right} min={1} max={4} onChange={adjust(setRight)}/>
-              <Stepper label="Seats in the back row" value={back} min={0} max={width} onChange={adjust(setBack)} hint={back===0?'(no back row)':''}/>
-            </div>
-            <div className="layout-row">
-              <label><input type="checkbox" checked={front===1} onChange={e=>{setFront(e.target.checked?1:0);setOff(new Set())}}/> Seat beside the Driver</label>
-              {front===1&&<label><input type="checkbox" checked={sellFront} onChange={e=>setSellFront(e.target.checked)}/> Sell the seat beside the Driver</label>}
-            </div></div>
-          <p className="layout-help"><strong>3.</strong> Tap a seat in the picture to mark it &ldquo;Not for sale&rdquo; (grey). Tap again to sell it. The Driver seat (steering wheel) is never sold. Seats are numbered for you.</p>
+  return <><Header/><FlowShell heading={t('Ticket departures')} icon="ticket" title={[t('Vehicle seat layout'),t('Create a departure draft'),t('Your departures')][tab]}
+    info={[t('Describe each vehicle’s seats once, then publish scheduled departures. Passengers see exactly the seats you define.'),t('Save a draft, then publish it from Your departures when you are ready.'),t('Publish a draft when you are ready for passengers to book it.')][tab]}
+    tabs={tabs} steps={tab<2?stepNames:undefined} current={tab===0?lw.step:dw.step}>
+    <Compact.Provider value={true}>
+    <ErrorNotice error={error}/><Notice>{notice}</Notice>
+
+    <div className="tk-pane" hidden={tab!==0}>
+      <div className="tk-pane" hidden={lw.step!==0}>
+        <div className="tk-grid" style={{'--cols':2}}>
+          <Field label="Vehicle" help="Only approved vehicles can have a seat layout."><select name="seat-vehicle" value={layoutVehicle} onChange={e=>setLayoutVehicle(e.target.value)}>
+            <option value="">{t('Choose an approved vehicle')}</option>
+            {vehicles.map(v=><option key={v.id} value={v.id}>{v.label||v.reference} · {t('{value0} seats',{value0:v.seat_capacity??'?'})}</option>)}
+          </select></Field>
         </div>
-        <SeatMap seats={seats} editable onToggle={toggle} label="New seat layout preview"/>
-        <p>Bookable seats: <strong>{sold}</strong>{capacity!=null&&<> of vehicle capacity {capacity}</>} {overCapacity&&<TravellyStatusChip tone="warning">More than the vehicle capacity</TravellyStatusChip>}</p>
-        <button className="button" disabled={busy||!sold||overCapacity} onClick={saveLayout}>{busy?'Saving…':'Save seat layout'}</button>
-      </>}
-    </TravellyGlassPanel>
+        <div className="tk-bar" role="group" aria-label={t('Vehicle type')}><strong className="tk-line">{t('Vehicle type')}</strong>
+          {Object.entries(PRESETS).map(([k,p])=><Chip key={k} tone="info" selected={!loaded&&preset===k} onClick={()=>pick(k)}>{t(p.label)}</Chip>)}</div>
+        {saved&&<p className="tk-line">{loaded?t('Showing the saved layout: version {value0}, {value1} bookable seats. Saving replaces it with a new version.',{value0:saved.layout_version,value1:signature(saved.seats).split('|').filter(Boolean).length}):t('Starting a new layout. Saving replaces version {value0} with a new version.',{value0:saved.layout_version})}</p>}
+        {layoutVehicle&&!saved&&<p className="tk-line">{t('This vehicle has no saved seat layout yet. Choose a vehicle type to start.')}</p>}
+        {vehicles.length===0&&<Empty>{t('You have no approved vehicles yet.')}</Empty>}
+      </div>
+      <div className="tk-split" hidden={lw.step!==1}>
+        <div className="tk-side">
+          {loaded
+            ?<>
+              <p className="tk-line">{t('This is the layout saved for this vehicle. Passengers see exactly this picture.')}</p>
+              <div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setLoaded(null)}>{t('Start a new layout')}</button></div>
+            </>
+            :<>
+              <Counter label={t('Rows of seats')} value={rowCount} min={1} max={24} onChange={adjust(setRowCount)}/>
+              <Counter label={t('Seats on the left')} hint={t('(door side)')} value={left} min={1} max={4} onChange={adjust(setLeft)}/>
+              <Counter label={t('Seats on the right')} value={right} min={1} max={4} onChange={adjust(setRight)}/>
+              <Counter label={t('Seats in the back row')} hint={back===0?t('(no back row)'):''} value={back} min={0} max={width} onChange={adjust(setBack)}/>
+              <div className="tk-checks">
+                <label><input type="checkbox" checked={front===1} onChange={e=>{setFront(e.target.checked?1:0);setOff(new Set())}}/> {t('Seat beside the Driver')}</label>
+                {front===1&&<label><input type="checkbox" checked={sellFront} onChange={e=>setSellFront(e.target.checked)}/> {t('Sell the seat beside the Driver')}</label>}
+              </div>
+            </>}
+          <p className="tk-line">{t('Tap a seat in the picture to mark it “Not for sale” (grey). Tap again to sell it. The Driver seat (steering wheel) is never sold. Seats are numbered for you.')}</p>
+          <p className="tk-line">{t('Bookable seats:')} <strong>{sold}</strong>{capacity!=null&&<> {t('of vehicle capacity {value0}',{value0:capacity})}</>} {overCapacity&&<Chip tone="danger" icon="alert">{t('More than the vehicle capacity')}</Chip>}</p>
+        </div>
+        <div className="tk-map"><SeatMap seats={seats} editable onToggle={toggle} label={t('New seat layout preview')}/></div>
+      </div>
+      <div className="flow-actions">
+        {lw.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={lw.back}>{t('Back')}</button>:<span/>}
+        {lw.step===0
+          ?<button type="button" className="ui-button ui-button-primary" disabled={!layoutVehicle} onClick={lw.forward}>{t('Next')}</button>
+          :<button type="button" className="ui-button ui-button-primary" disabled={busy||!sold||overCapacity} onClick={saveLayout}>{busy?t('Saving…'):t('Save seat layout')}</button>}
+      </div>
+    </div>
 
-    <TravellyGlassPanel><h2>2. Create a departure draft</h2>
-      <form className="passenger-detail-grid" onSubmit={createDeparture}>
-        <label>Route
-          <select required value={form.route_id} onChange={e=>setForm({...form,route_id:e.target.value})}><option value="">Choose a route</option>{routes.map(r=><option key={r.id} value={r.id}>{r.origin_name} → {r.destination_name}</option>)}</select></label>
-        {routes.length===0&&<p>You have no routes yet. <Link to="/owner/routes">Add a route</Link> first.</p>}
-        <label>Vehicle
-          <select required value={form.vehicle_id} onChange={set('vehicle_id')}><option value="">Choose a vehicle</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.label||v.reference}</option>)}</select></label>
-        <DateTimeField label="Departure (when the vehicle leaves)" value={form.departure_at} min={toLocal(new Date()).slice(0,10)} onChange={v=>{
-          const mins=chosenRoute?.estimated_duration_minutes
-          setForm(f=>({...f,departure_at:v,...(f.arrival_auto&&v&&mins?{estimated_arrival_at:toLocal(new Date(new Date(v).getTime()+mins*60000))}:{})}))}}/>
-        <DateTimeField label="Estimated arrival (when it reaches the end)" value={form.estimated_arrival_at} min={form.departure_at?form.departure_at.slice(0,10):undefined}
-          hint={chosenRoute?.estimated_duration_minutes?'Filled in from the route duration. You can change it.':''} onChange={v=>setForm(f=>({...f,estimated_arrival_at:v,arrival_auto:false}))}/>
-        <label>Stop bookings at
-          <select value={form.stop_before} onChange={set('stop_before')}>{STOP_OPTIONS.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select>
-          <small>{form.departure_at?`Passengers can book until ${nice(new Date(new Date(form.departure_at).getTime()-Number(form.stop_before)*60000))}.`:'Passengers cannot book after this time.'}</small></label>
-        <label>Price for the whole trip, per seat (LKR)
-          <input required min="0" step="0.01" type="number" value={form.fare_per_seat} disabled={routeWhole!=null} onChange={set('fare_per_seat')}/>
-          {routeWhole!=null&&<small> This route has a price for each stop, so the whole-trip price comes from the route. Passengers who travel part of the way pay less.</small>}</label>
-        <label>Departure type
-          <select value={form.fulfilment_policy} onChange={set('fulfilment_policy')}>
-            <option value="FIXED_GUARANTEED">Fixed, guaranteed departure</option>
-            <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">Minimum seats with protected fulfilment</option></select>
-          <small>{protectedPolicy?'The departure is confirmed only when enough seats are booked.':'The departure runs on the day whatever the number of bookings.'}</small></label>
-        {protectedPolicy&&<><label>Minimum confirmed seats
-            <input required min="1" type="number" value={form.minimum_confirmed_seats} onChange={set('minimum_confirmed_seats')}/>
-            <small>How many seats must be booked for this departure to be confirmed.</small></label>
-          <DateTimeField label="Decision deadline (you decide by this time)" value={form.decision_deadline} min={toLocal(new Date()).slice(0,10)} onChange={v=>setForm(f=>({...f,decision_deadline:v}))}/></>}
-        <label>Accepted time window (minutes)
-          <input min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/>
-          <small>Leave 0 if the departure time is fixed.</small></label>
-        <label>Driver user ID
-          <input value={form.operator_driver_user_id} onChange={set('operator_driver_user_id')}/>
-          <small>Leave empty if you drive this vehicle yourself.</small></label>
-        <button className="button" disabled={busy}>{busy?'Saving…':'Save draft'}</button>
-      </form></TravellyGlassPanel>
+    <form className="flow-wizard-form tk-pane" hidden={tab!==1} noValidate onSubmit={submitDeparture}>
+      <div ref={panes[0]} className="tk-pane" hidden={dw.step!==0}>
+        <div className="tk-grid" style={{'--cols':2}}>
+          <Field label="Route"><select required name="route" value={form.route_id} onChange={e=>setForm({...form,route_id:e.target.value})}><option value="">{t('Choose a route')}</option>{routes.map(r=><option key={r.id} value={r.id}>{r.origin_name} → {r.destination_name}</option>)}</select></Field>
+          <Field label="Vehicle"><select required name="vehicle" value={form.vehicle_id} onChange={set('vehicle_id')}><option value="">{t('Choose a vehicle')}</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.label||v.reference}</option>)}</select></Field>
+          <DateTimeFields dateLabel="Departure date" timeLabel="Departure time" help="When the vehicle leaves." value={form.departure_at} min={toLocal(new Date()).slice(0,10)} onChange={v=>{
+            const mins=chosenRoute?.estimated_duration_minutes
+            setForm(f=>({...f,departure_at:v,...(f.arrival_auto&&v&&mins?{estimated_arrival_at:toLocal(new Date(new Date(v).getTime()+mins*60000))}:{})}))}}/>
+        </div>
+        {routes.length===0&&<p className="tk-line">{t('You have no routes yet.')} <Link to="/owner/routes">{t('Add a route')}</Link> {t('first.')}</p>}
+      </div>
+      <div ref={panes[1]} className="tk-pane" hidden={dw.step!==1}>
+        <div className="tk-grid" style={{'--cols':2}}>
+          <DateTimeFields dateLabel="Arrival date" timeLabel="Arrival time" help={chosenRoute?.estimated_duration_minutes?'When it reaches the end. Filled in from the route duration; you can change it.':'When it reaches the end.'} value={form.estimated_arrival_at} min={form.departure_at?form.departure_at.slice(0,10):undefined}
+            onChange={v=>setForm(f=>({...f,estimated_arrival_at:v,arrival_auto:false}))}/>
+          <Field label="Stop bookings at" help={form.departure_at?t('Passengers can book until {value0}.',{value0:nice(new Date(new Date(form.departure_at).getTime()-Number(form.stop_before)*60000))}):'Passengers cannot book after this time.'}>
+            <select name="stop_before" value={form.stop_before} onChange={set('stop_before')}>{STOP_OPTIONS.map(([v,label])=><option key={v} value={v}>{t(label)}</option>)}</select></Field>
+          <Field label="Price for the whole trip, per seat (LKR)" help={routeWhole!=null?'This route has a price for each stop, so the whole-trip price comes from the route. Passengers who travel part of the way pay less.':'What each passenger pays for the whole trip.'}>
+            <input required name="fare" min="0" step="0.01" type="number" value={form.fare_per_seat} disabled={routeWhole!=null} onChange={set('fare_per_seat')}/></Field>
+        </div>
+      </div>
+      <div ref={panes[2]} className="tk-pane" hidden={dw.step!==2}>
+        <div className="tk-grid" style={{'--cols':3}}>
+          <Field label="Departure type" help={protectedPolicy?'The departure is confirmed only when enough seats are booked.':'The departure runs on the day whatever the number of bookings.'}>
+            <select name="policy" value={form.fulfilment_policy} onChange={set('fulfilment_policy')}>
+              <option value="FIXED_GUARANTEED">{t('Fixed, guaranteed departure')}</option>
+              <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">{t('Minimum seats with protected fulfilment')}</option></select></Field>
+          <Field label="Accepted time window (minutes)" optional help="Leave 0 if the departure time is fixed."><input name="window" min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/></Field>
+          <Field label="Who will drive?" help={me.driver?'Assign later: you are an approved Driver, so Travelly assigns you automatically. I will drive: you are named as the Driver now.':'Assign later: a Driver must be assigned before you can publish this departure.'}>
+            <select name="driver" value={form.driver_choice} onChange={set('driver_choice')}>
+              <option value="later">{t('Assign later')}</option>
+              {me.driver&&<option value="me">{t('I will drive')}</option>}</select></Field>
+          {protectedPolicy&&<>
+            <Field label="Minimum confirmed seats" help="How many seats must be booked for this departure to be confirmed."><input required name="minseats" min="1" type="number" value={form.minimum_confirmed_seats} onChange={set('minimum_confirmed_seats')}/></Field>
+            <DateTimeFields dateLabel="Decision deadline date" timeLabel="Decision deadline time" help="You decide by this time." value={form.decision_deadline} min={toLocal(new Date()).slice(0,10)} onChange={v=>setForm(f=>({...f,decision_deadline:v}))}/></>}
+        </div>
+      </div>
+      <div className="flow-actions">
+        {dw.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={dw.back}>{t('Back')}</button>:<span/>}
+        {dw.step<2
+          ?<button key="next" type="button" className="ui-button ui-button-primary" onClick={nextDeparture}>{t('Next')}</button>
+          :<button key="save" type="submit" className="ui-button ui-button-primary" disabled={busy}>{busy?t('Saving…'):t('Save draft')}</button>}
+      </div>
+    </form>
 
-    <TravellyGlassPanel><h2>3. Your departures</h2>
-      {items===null?<TravellyState kind="loading" title="Loading departures"/>:items.length?items.map(x=>
-        <article className="travelly-vehicle-card" key={x.id}><div>
-          <h3>{x.route.origin_name} → {x.route.destination_name}</h3>
-          <p>{new Date(x.departure_at).toLocaleString()} · {x.vehicle.make} {x.vehicle.model} · LKR {x.fare_per_seat} per seat{x.available_seats!=null&&` · ${x.available_seats} seats open`}</p>
-          <TravellyStatusChip tone={x.status==='PUBLISHED'?'success':'warning'}>{x.status}</TravellyStatusChip></div>
-          {x.status==='DRAFT'&&<button className="button" onClick={()=>publish(x)}>Publish</button>}</article>)
-        :<TravellyState title="No ticket departures">Save a seat layout, then create a draft departure.</TravellyState>}
-    </TravellyGlassPanel>
-  </main></>
+    <div className="tk-pane" hidden={tab!==2}>
+      {items===null?<p role="status">{t('Loading departures…')}</p>:items.length
+        ?<div className="tk-rows">{departureList.slice.map(x=><article className="tk-row" key={x.id}>
+          <div className="tk-row-main"><strong>{x.route.origin_name} → {x.route.destination_name}</strong>
+            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle.make} {x.vehicle.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}</span></div>
+          <div className="tk-row-actions">
+            {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
+            <Chip tone={x.status==='PUBLISHED'?'success':'muted'}>{statusLabel(x.status)}</Chip>
+            {x.status==='DRAFT'&&<button type="button" className="ui-button ui-button-primary" onClick={()=>publish(x)}>{t('Publish')}</button>}</div></article>)}</div>
+        :<Empty>{t('No ticket departures. Save a seat layout, then create a draft departure.')}</Empty>}
+      <div className="flow-actions">{departureList.pages>1?departureList.pager:<span/>}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{t('New departure')}</button></div>
+    </div>
+    </Compact.Provider>
+  </FlowShell></>
 }

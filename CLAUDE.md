@@ -48,3 +48,10 @@ _None found._
 - Footer actions sit in one row and never overlap fields. 20px gutters, nothing touches the screen edge.
 - No old dark-navy/teal theme panels anywhere.
 - Before saying a page is done, test with realistic states (empty, many items, approved/rejected, errors showing) and report measurements.
+
+## TRANSLATION RULE (every page you touch)
+- tests/language.test.js must keep passing. Every t("...") string must exist in src/i18n/messages.js with Tamil and Sinhala.
+- No raw English text in JSX: wrap it in t().
+- While restyling a page, also fix that page's entries: wrap its raw JSX text and add the missing strings to messages.js with both translations.
+- Run `npm.cmd test` after each batch and report the language-test count. It must go down, never up.
+- Only the UI work (this branch) edits messages.js; backend work must not, to avoid conflicts.

@@ -8,36 +8,54 @@ const needle = brandAssets + 'meter-needle.png'
 export const NEEDLE_REST = -132
 export const NEEDLE_PEAK = 18
 
-// Retain only decorative motion across navigation, when the header remounts.
+// One shared speedometer needle for every navbar (app, landing, sign-in). The needle is its own <img> and only ever
+// changes its CSS rotate(). Mouse x across the navbar sets a target angle; a click on any control sweeps to full and back.
+// Motion survives navigation (the header remounts), so the needle never jumps.
+const SWEEP_MS = 800
 let sweepStartedAt = -Infinity
+let sweepFrom = NEEDLE_REST
+let target = NEEDLE_REST
 let motion = { angle: NEEDLE_REST, velocity: 0 }
-const sweepListeners = new Set()
+const listeners = new Set()
+const wakeAll = () => listeners.forEach(wake => wake())
+const ease = q => (1 - Math.cos(Math.PI * Math.min(1, Math.max(0, q)))) / 2
 
-export function sweepNavbarNeedle() {
-  sweepStartedAt = performance.now()
-  sweepListeners.forEach(wake => wake())
+export function setNeedleTarget(angle) { target = angle; wakeAll() }
+export function sweepNavbarNeedle() { sweepFrom = motion.angle; sweepStartedAt = performance.now(); wakeAll() }
+
+// Attach to the navbar element: x position -> angle, leave -> rest, click on a control -> sweep.
+export function useNeedleEvents(ref) {
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return undefined
+    const move = event => {
+      if (event.pointerType && event.pointerType !== 'mouse') return
+      const box = element.getBoundingClientRect()
+      const fraction = box.width ? Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) : 0
+      setNeedleTarget(NEEDLE_REST + fraction * (NEEDLE_PEAK - NEEDLE_REST))
+    }
+    const leave = () => setNeedleTarget(NEEDLE_REST)
+    const click = event => { if (event.target instanceof Element && event.target.closest('a, button, summary, select')) { setNeedleTarget(NEEDLE_REST); sweepNavbarNeedle() } }
+    element.addEventListener('pointermove', move)
+    element.addEventListener('pointerleave', leave)
+    element.addEventListener('click', click, true)
+    return () => { element.removeEventListener('pointermove', move); element.removeEventListener('pointerleave', leave); element.removeEventListener('click', click, true); setNeedleTarget(NEEDLE_REST) }
+  }, [ref])
 }
 
-export default function TravellyBrand({ needleAngle = NEEDLE_REST }) {
+export default function TravellyBrand() {
   const needleElement = useRef(null)
-  const target = useRef(needleAngle)
-  const wakeMotion = useRef(null)
   const initialAngle = useRef(null)
   if (initialAngle.current === null) {
-    initialAngle.current = performance.now() - sweepStartedAt < 1500 ? motion.angle : NEEDLE_REST
+    initialAngle.current = performance.now() - sweepStartedAt < SWEEP_MS ? motion.angle : target
   }
-
-  useEffect(() => {
-    target.current = needleAngle
-    wakeMotion.current?.()
-  }, [needleAngle])
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     let frame = null
     let previousTime = null
     let angle = initialAngle.current
-    let velocity = performance.now() - sweepStartedAt < 1500 ? motion.velocity : 0
+    let velocity = performance.now() - sweepStartedAt < SWEEP_MS ? motion.velocity : 0
 
     function paint() {
       if (needleElement.current) needleElement.current.style.transform = `rotate(${angle}deg)`
@@ -46,25 +64,30 @@ export default function TravellyBrand({ needleAngle = NEEDLE_REST }) {
     function tick(now) {
       frame = null
       const elapsed = now - sweepStartedAt
-      const sweeping = elapsed < 1500
-      const destination = sweeping ? (elapsed < 420 ? NEEDLE_PEAK : NEEDLE_REST) : target.current
+      const sweeping = elapsed < SWEEP_MS
       const delta = previousTime === null ? 1 / 60 : Math.min((now - previousTime) / 1000, 1 / 30)
       previousTime = now
-      // A critically damped spring keeps position and velocity continuous when
-      // another item is entered or a click reverses the sweep.
-      const offset = angle - destination
-      const damping = 15
-      const impulse = velocity + damping * offset
-      const decay = Math.exp(-damping * delta)
-      angle = destination + (offset + impulse * delta) * decay
-      velocity = (velocity - damping * impulse * delta) * decay
-      const settled = Math.abs(angle - destination) < 0.01 && Math.abs(velocity) < 0.05
-      if (settled) { angle = destination; velocity = 0 }
+      if (sweeping) {
+        // up to full and back, ease-in-out on both halves; continuous with the angle it started from and the hover target
+        const p = elapsed / SWEEP_MS
+        angle = p < .5 ? sweepFrom + (NEEDLE_PEAK - sweepFrom) * ease(p * 2) : NEEDLE_PEAK + (target - NEEDLE_PEAK) * ease((p - .5) * 2)
+        velocity = 0
+      } else {
+        // critically damped spring: smooth, no overshoot, keeps position and velocity continuous
+        const offset = angle - target
+        const damping = 15
+        const impulse = velocity + damping * offset
+        const decay = Math.exp(-damping * delta)
+        angle = target + (offset + impulse * delta) * decay
+        velocity = (velocity - damping * impulse * delta) * decay
+        if (Math.abs(angle - target) < 0.01 && Math.abs(velocity) < 0.05) { angle = target; velocity = 0 }
+      }
       paint()
-      if (sweeping || !settled) frame = requestAnimationFrame(tick)
+      const settled = !sweeping && angle === target && velocity === 0
+      if (!settled) frame = requestAnimationFrame(tick)
       else previousTime = null
     }
-    function wake() {
+    function wakeMotion() {
       if (reducedMotion.matches) {
         if (frame !== null) cancelAnimationFrame(frame)
         frame = null
@@ -77,15 +100,13 @@ export default function TravellyBrand({ needleAngle = NEEDLE_REST }) {
         frame = requestAnimationFrame(tick)
       }
     }
-    wakeMotion.current = wake
-    sweepListeners.add(wake)
-    reducedMotion.addEventListener('change', wake)
-    wake()
+    listeners.add(wakeMotion)
+    reducedMotion.addEventListener('change', wakeMotion)
+    wakeMotion()
     return () => {
       if (frame !== null) cancelAnimationFrame(frame)
-      wakeMotion.current = null
-      sweepListeners.delete(wake)
-      reducedMotion.removeEventListener('change', wake)
+      listeners.delete(wakeMotion)
+      reducedMotion.removeEventListener('change', wakeMotion)
     }
   }, [])
 

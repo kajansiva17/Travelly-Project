@@ -7,55 +7,11 @@
 .auth-header .language { align-items: center; gap: 6px; font-size: 12px; }
 .auth-header .language > svg { width: 17px; height: 17px; }
 .auth-header .nav-divider { height: 22px; }
-.auth-header .member-prompt { font-size: 12px; }
 .auth-header .nav-cta { min-height: 44px; padding: 11px 18px; border-radius: 8px; font-size: 13px; }
 .auth-header .menu-toggle { min-width: 44px; min-height: 44px; }
 
-.auth-page .auth-form-inner { width: 100%; max-width: 420px; }
-.auth-page .auth-heading { margin-bottom: 20px; }
-.auth-page .auth-heading h1, .auth-page.login-page .auth-heading h1 { font-size: 32px; line-height: 1.15; margin-bottom: 6px; }
-.auth-page .auth-heading h2, .auth-page.login-page .auth-heading h2 { font-size: 20px; margin-bottom: 8px; }
-.auth-page .auth-heading p, .auth-page.login-page .auth-heading p { font-size: 13px; line-height: 1.5; }
-.auth-page .auth-field { margin-bottom: 16px; }
-.auth-page .auth-field > label { color: var(--deep); }
-.auth-page .auth-field :is(small, .field-error) { font-size: 11px; line-height: 1.5; }
-.auth-page .auth-field small { color: #80696f; }
-.auth-page .auth-input-content > input::placeholder,
-.auth-page .register-phone-row > input::placeholder { color: #80696f; }
-.auth-page .auth-input:focus-within { outline: 2px solid var(--burgundy); outline-offset: 2px; }
-.auth-page .auth-field .field-error { color: var(--primary-red); }
-.auth-page .terms-check { color: var(--primary-red); }
-.auth-page .auth-submit { min-height: 48px; padding-block: 11px; background: linear-gradient(110deg, var(--primary-red), #8c472c); }
-.auth-page .auth-divider { margin: 16px 0; font-size: 12px; }
-.auth-page .auth-switch { margin-top: 16px; }
-.auth-page .google-sign-in { margin-inline: auto; max-width: 350px; }
-.auth-page .google-sign-in .google-availability-hint { font-size: 11px; line-height: 1.45; margin-top: 7px; }
-.auth-page .auth-road { opacity: .65; }
-
 /* Effects move only the artwork's composited layer. The PNG and text remain
    untouched; the ambient light sits behind it rather than sweeping over it. */
-.auth-page .journey-pass-frame { isolation: isolate; }
-.auth-page .journey-pass-frame::before {
-  content: '';
-  position: absolute;
-  inset: 8% -2% -12px;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: 45%;
-  background: radial-gradient(ellipse at 50% 65%, #bd744d24, #bd744d00 72%);
-  opacity: .6;
-}
-.auth-page .journey-pass {
-  filter: drop-shadow(0 3px 5px #55250e0c) drop-shadow(0 14px 18px #55250e18);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .auth-page .journey-pass-frame { animation: travelly-ticket-float 16s ease-in-out infinite; }
-  .auth-page .journey-pass-frame::before { animation: travelly-ticket-ambient 20s ease-in-out infinite; }
-  .auth-page .journey-pass { transition: translate .65s ease; }
-}
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .auth-page .journey-pass-frame:hover .journey-pass { translate: 0 -2px; }
-}
 @keyframes travelly-ticket-float {
   0%, 100% { transform: translateY(3px); }
   50% { transform: translateY(-3px); }
@@ -68,92 +24,13 @@
 @media (min-width: 1024px) {
   /* The header takes its actual height. Content can grow the document for
      long errors, short windows and zoom without a second form scroller. */
-  .auth-page:is(.login-page, .register-page) {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    height: auto;
-    min-height: 100dvh;
-  }
-  .auth-page .auth-layout, .auth-page.login-page .auth-layout {
-    display: grid;
-    grid-template-columns: minmax(0, .42fr) minmax(0, .58fr);
-    width: 100%;
-    max-width: 1800px;
-    height: auto;
-    min-height: 0;
-    margin: 0 auto;
-  }
-  .auth-page .auth-brand-panel { min-width: 0; min-height: 0; padding: clamp(24px, 3vw, 48px); }
-  .auth-page .journey-pass-frame, .auth-page.login-page .journey-pass-frame {
-    width: min(100%, 600px, calc((100dvh - 192px) * 1.2338352524));
-    max-width: 600px;
-  }
-  .auth-page .journey-pass, .auth-page.login-page .journey-pass { width: 100%; max-width: 100%; max-height: calc(100dvh - 160px); height: auto; object-fit: contain; }
-  .auth-page .auth-form-panel { min-width: 0; min-height: 0; padding: 24px clamp(24px, 3vw, 48px); overflow: visible; align-items: center; }
-  .auth-page.register-page .auth-form-inner { max-width: 650px; }
-  .register-page .auth-credentials-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 14px; }
-  .register-page .auth-credentials-form > .auth-field { margin: 0; }
-  .register-page .auth-credentials-form > :is(.terms-check, .field-error, .auth-submit) { grid-column: 1 / -1; }
-  .register-page .auth-credentials-form > .terms-check { margin: 0; min-height: 32px; align-items: flex-start; }
-  .register-page .auth-form-inner > .auth-switch { margin-top: 12px; }
-  .register-page .auth-form-inner > .auth-divider { margin-block: 14px; }
   /* Do not add the legacy 20px top/bottom Google margins to an already
      spaced divider and account link. Retry state needs this same space. */
-  .auth-page .google-sign-in { margin-block: 12px; }
-  @supports (container-type: size) {
-    .auth-page .auth-brand-panel { container-type: size; }
-    .auth-page .journey-pass-frame, .auth-page.login-page .journey-pass-frame {
-      /* cqh is this panel's content height after its real navbar row and
-         padding, not an assumed header height. Leave room for motion. */
-      width: min(100%, 600px, calc((100cqh - 48px) * 1.2338352524));
-    }
-  }
-}
-
-@media (min-width: 1024px) and (max-height: 740px) {
-  .auth-page .auth-form-panel { padding-block: 12px; }
-  .auth-page .auth-heading { margin-bottom: 14px; }
-  .auth-page .auth-heading h1, .auth-page.login-page .auth-heading h1 { font-size: 29px; }
-  .auth-page .auth-heading h2, .auth-page.login-page .auth-heading h2 { font-size: 19px; }
-  .auth-page .auth-divider { margin-block: 12px; }
-  .auth-page .auth-switch { margin-top: 12px; }
 }
 
 /* Browser chrome can leave a 640px-tall laptop viewport. Tighten spacing,
    while retaining 44px input interiors and every option/helper message. */
-@media (min-width: 1024px) and (max-height: 680px) {
-  .auth-page .auth-form-panel { padding-block: 10px; }
-  .auth-page .auth-heading { margin-bottom: 8px; }
-  .auth-page .auth-heading h1, .auth-page.login-page .auth-heading h1 { font-size: 26px; margin-bottom: 4px; }
-  .auth-page .auth-heading h2, .auth-page.login-page .auth-heading h2 { font-size: 17px; margin-bottom: 6px; }
-  .auth-page .auth-heading p, .auth-page.login-page .auth-heading p { font-size: 12px; }
-  .auth-page .auth-field { margin-bottom: 12px; }
-  .auth-page .auth-field > label { margin-bottom: 4px; }
-  .auth-page .auth-input { min-height: 50px; padding-block: 2px; }
-  .auth-page .auth-field :is(small, .field-error) { margin-top: 4px; }
-  .register-page .auth-credentials-form { row-gap: 8px; }
-  .register-page .auth-credentials-form > .terms-check { min-height: 28px; }
-  .auth-page .auth-submit { min-height: 46px; padding-block: 10px; }
-  .auth-page .login-options { margin-block: 12px; }
-  .auth-page .auth-divider, .register-page .auth-form-inner > .auth-divider { margin-block: 8px; }
-  .auth-page .google-sign-in .google-availability-hint { margin-top: 5px; }
-  .auth-page .auth-switch, .register-page .auth-form-inner > .auth-switch { margin-top: 8px; }
-  .register-page .auth-form-inner > .auth-switch { margin-top: 6px; }
-}
 
 @media (max-width: 1023px) {
-  .auth-page:is(.login-page, .register-page) { height: auto; min-height: 100dvh; }
-  .auth-page .auth-layout, .auth-page.login-page .auth-layout { display: flex; flex-direction: column; height: auto; min-height: 0; }
-  .auth-page .auth-form-panel { order: 0; width: 100%; padding: 30px clamp(20px, 6vw, 48px) 32px; overflow: visible; }
-  .auth-page .auth-brand-panel { order: 1; width: 100%; padding: 24px; min-height: 0; }
-  .auth-page .journey-pass-frame { width: 100%; max-width: 460px; }
-  .auth-page .journey-pass, .auth-page.login-page .journey-pass { width: 100%; max-width: 100%; height: auto; max-height: none; }
-  .auth-page .auth-form-inner { max-width: 480px; }
-  .auth-page .auth-heading h1, .auth-page.login-page .auth-heading h1 { font-size: clamp(27px, 6vw, 32px); }
-  .auth-page .auth-heading h2, .auth-page.login-page .auth-heading h2 { font-size: 20px; }
-  .auth-page .auth-field { margin-bottom: 18px; }
-  .auth-page .auth-input { gap: 8px; padding-inline: 10px; }
-  .auth-page .register-phone-row { gap: 7px; }
-  .auth-page .login-options > .inline-link { display: inline-flex; align-items: center; }
   .auth-header .navigation.open { gap: 8px; }
 }

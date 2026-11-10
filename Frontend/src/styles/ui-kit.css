@@ -114,7 +114,8 @@ button.ui-chip:focus-visible { outline: 2px solid var(--ui-focus); outline-offse
   background: #fff; border: 2px solid var(--ui-blue); color: var(--ui-blue);
   font-size: 15px; font-weight: 700;
 }
-.ui-step-current .ui-step-dot, .ui-step-done .ui-step-dot { background: var(--ui-blue); color: #fff; }
+.ui-step-current .ui-step-dot { background: var(--ui-red); border-color: var(--ui-red); color: #fff; }
+.ui-step-done .ui-step-dot { background: var(--ui-green); color: #fff; }
 .ui-step-label { font-size: 13px; font-weight: 600; color: var(--ui-ink); }
 .ui-step-todo .ui-step-label { color: var(--ui-text); font-weight: 500; }
 
@@ -182,7 +183,7 @@ a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px
 
 /* Stepper: completed steps are green with a check. */
 .ui-step-done .ui-step-dot { background: var(--ui-green); border-color: var(--ui-green); color: #fff; }
-.ui-step-done + .ui-step::before, .ui-step-current::before { background: var(--ui-blue); }
+.ui-step-done + .ui-step::before, .ui-step-current::before { background: var(--ui-green); }
 .ui-tile-badge { flex: none; padding: 3px 10px; border-radius: 999px; background: #fff4d6; border: 1px solid #f0cf7a; color: #7a5200; font-size: 12px; font-weight: 700; }
 
 /* Stepper: completed steps are buttons that go back to that step. */

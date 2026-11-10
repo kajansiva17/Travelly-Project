@@ -1,7 +1,7 @@
 /* Keep the existing Latin typeface; one script family supplies Tamil/Sinhala.
    Nirmala UI supports both scripts on Windows, with the platform sans fallback
    supplying the appropriate script font on other devices. */
-body, body :is(.public-page, .auth-page, .workspace-shell) {
+body {
   font-family: 'Travelly Sans', 'Nirmala UI', sans-serif;
 }
 body :is(input,select,textarea,button) {font-family:inherit;}
@@ -11,14 +11,9 @@ body .language select:focus-visible {outline:2px solid currentColor;outline-offs
 body .workspace-shell .language {display:flex;color:inherit;}
 body .workspace-shell .language select {color:inherit;}
 body .language select {color:inherit; color-scheme:dark;}
-body .language option {color:#edf5ff;background:#082750;}
+body .language option {color:var(--ui-ink);background:var(--ui-glass-strong);}
 html:not(:lang(en)) .workspace-shell .workspace-sidebar-link {font-size:11px;line-height:1.5;}
 html:not(:lang(en)) .workspace-shell .workspace-drawer .workspace-sidebar-link {font-size:10.5px;}
-html:not(:lang(en)) .auth-form-inner :is(h1,h2) {line-height:1.35;letter-spacing:normal;}
-html:not(:lang(en)) .auth-field {min-width:0;}
-html:not(:lang(en)) .auth-field label {line-height:1.5;}
-html:not(:lang(en)) .hero-copy h1 {line-height:1.5;letter-spacing:normal;}
-html:not(:lang(en)) .search-tabs button {white-space:normal;line-height:1.6;}
 html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wrap:anywhere;}
 @media(min-width:768px) {
  html:not(:lang(en)) .workspace-shell {--workspace-sidebar-width:280px;}
@@ -27,28 +22,10 @@ html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wr
 /* Navigation uses the same width breakpoints in every language. Labels can
    wrap within their own flex item instead of pushing the last control outside
    the navbar or changing the entire desktop into a phone menu. */
-body :is(.public-page, .auth-page, .customer-shell) > .site-header .header-inner {min-width:0;}
-body :is(.public-page, .auth-page, .customer-shell) > .site-header .navigation {
-  min-width:0;
-  gap:clamp(8px, .9vw, 16px);
-}
-body :is(.public-page, .auth-page, .customer-shell) > .site-header .navigation > :is(a,button) {
-  min-width:min-content;
-  white-space:normal;
-  text-align:center;
-  justify-content:center;
-  line-height:1.5;
-  overflow-wrap:normal;
-}
-body :is(.public-page, .auth-page, .customer-shell) > .site-header .navigation svg {flex-shrink:0;}
-body :is(.public-page, .auth-page, .customer-shell) > .site-header .nav-cta {padding-inline:clamp(12px, 1.2vw, 22px);}
-body .customer-shell > .site-header .header-inner {position:relative;}
-body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160px;flex-shrink:1;}
 
 @media(min-width:1280px) {
   body :is(.public-page, .customer-shell) > .site-header .brand.travelly-brand {width:clamp(180px,13vw,225px);}
   body :is(.public-page, .customer-shell) > .site-header .navigation {flex:1;justify-content:flex-end;font-size:13px;}
-  body .customer-shell > .site-header .navigation {flex-wrap:wrap;row-gap:4px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation > :is(a,button) {flex-shrink:1;}
   body :is(.public-page, .customer-shell) > .site-header .navigation .nav-cta {font-size:13px;padding-block:8px;}
 }
@@ -66,30 +43,11 @@ body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160
   body :is(.public-page, .customer-shell) > .site-header .navigation {gap:8px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation .login-link {padding-inline:8px;}
 }
-@media(min-width:1024px) {
-  body .auth-page > .site-header .menu-toggle {display:none;}
-  body .auth-page > .site-header .navigation {
-    display:flex;position:static;flex:1;justify-content:flex-end;
-    background:transparent;border:0;padding:0;box-shadow:none;
-  }
-  body .auth-page > .site-header .nav-cta {max-width:210px;}
-}
 
 @media(max-width:1279px) {
-  body .customer-shell > .site-header .menu-toggle {display:grid;place-items:center;margin-left:auto;}
-  body .customer-shell > .site-header .navigation {display:none;}
-  body .customer-shell > .site-header .navigation.open {
-    display:flex;position:absolute;inset:calc(100% + 8px) 0 auto;
-    flex-direction:column;align-items:stretch;
-    max-height:calc(100dvh - 110px);overflow-y:auto;
-    padding:18px;gap:12px;border:1px solid #8bcaffbd;border-radius:18px;
-    background:linear-gradient(135deg,#0a3264f5,#031b3cf7);color:#edf5ff;
-    box-shadow:inset 0 1px 1px #e4f6ff60,0 14px 30px #00072e70;
-    backdrop-filter:blur(20px);z-index:60;
-  }
   body :is(.public-page, .customer-shell) > .site-header .navigation.open {
-    background:linear-gradient(135deg,#0a3264f5,#031b3cf7);
-    color:#edf5ff;
+    background:var(--ui-glass-strong);
+    color:var(--ui-ink);
   }
 }
 @media(max-width:420px) {
@@ -97,39 +55,11 @@ body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160
   body .workspace-shell[data-workspace] .workspace-header .navigation {gap:4px;}
   body .workspace-shell .language select {width:90px;}
 }
-@media(max-width:1023px) {
-  body .auth-page > .site-header .header-inner {position:relative;}
-  body .auth-page > .site-header .menu-toggle {display:grid;place-items:center;margin-left:auto;}
-  body .auth-page > .site-header .navigation {display:none;}
-  body .auth-page > .site-header .navigation.open {
-    display:flex;position:absolute;inset:calc(100% + 8px) 0 auto;
-    flex-direction:column;align-items:stretch;
-    max-height:calc(100dvh - 110px);overflow-y:auto;
-    padding:18px;gap:12px;border:1px solid #8bcaffbd;border-radius:18px;
-    background:linear-gradient(135deg,#0a3264f5,#031b3cf7);color:#edf5ff;
-    box-shadow:inset 0 1px 1px #e4f6ff60,0 14px 30px #00072e70;
-    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
-    z-index:60;
-  }
-  body .auth-page > .site-header .navigation .nav-divider {display:none;}
-}
 
 /* Flexible text boxes preserve the existing cards, backgrounds and artwork. */
-body :is(.service-card,.benefit-card,.confidence-grid,.auth-form-inner,.auth-heading,.search-panel) {min-width:0;}
 body :is(.service-card,.benefit-card) > div {min-width:0;flex:1;}
 body :is(.service-card,.benefit-card) :is(h3,p,a) {overflow-wrap:anywhere;white-space:normal;}
-body :is(.service-card,.benefit-card) .section-link {max-width:100%;}
-html:not(:lang(en)) :is(.public-page,.auth-page) :is(h1,h2,h3,.section-link) {letter-spacing:normal;line-height:1.45;}
 html:not(:lang(en)) .public-page :is(.service-card,.benefit-card) p {line-height:1.6;}
-body .driver-hero .hero-description {white-space:pre-line;}
-body .auth-page .login-options {display:flex;flex-wrap:wrap;column-gap:16px;row-gap:4px;}
-body .auth-page .login-options > label {min-width:0;flex:1 1 180px;}
-body .auth-page .login-options > a {min-width:0;max-width:100%;white-space:normal;}
-body .auth-page .auth-switch {white-space:normal;overflow-wrap:break-word;}
-body .auth-page .auth-submit {height:auto;min-height:48px;white-space:normal;line-height:1.5;}
-body .auth-page .google-sign-in > p {line-height:1.5;overflow-wrap:break-word;}
-body .auth-page .google-sign-in .google-button-unavailable {width:100%;}
-body .auth-page .google-sign-in .inline-link {color:#9bd7ff;white-space:normal;line-height:1.5;}
 
 html:not(:lang(en)) .workspace-shell .workspace-card-heading {flex-wrap:wrap;align-items:flex-start;}
 html:not(:lang(en)) .workspace-shell .workspace-card-heading > div {min-width:0;flex:1 1 180px;}

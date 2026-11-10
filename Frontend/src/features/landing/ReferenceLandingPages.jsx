@@ -1,11 +1,13 @@
 import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand, Icon, useNotice } from '../../components/components'
+import { useNeedleEvents } from '../../components/NavbarBrand'
 import { journeyLink } from '../auth/onboardingJourney'
 import { getLanguage, languages, setLanguage, subscribeLanguage, t } from '../../i18n/language'
 import { landingContent } from './landingContent'
 import { heroArtwork, cardArtwork, artworkSources } from './landingAssets'
 import './referenceLanding.css'
+import './landingHero.css'
 
 const brandAssets = '/images/travelly/branding/approved-2026-11-07/'
 function LandingIcon({ name, size = 26, ...props }) {
@@ -36,6 +38,7 @@ function Action({ to, children, className = '', onUnavailable, ...props }) {
 function LandingHeader({ role }) {
   const [open, setOpen] = useState(false)
   const headerRef = useRef(null)
+  useNeedleEvents(headerRef)
   const lang = useSyncExternalStore(subscribeLanguage, getLanguage, () => 'en')
   useEffect(() => {
     const header = headerRef.current
@@ -63,7 +66,6 @@ function JourneySearch({ unavailable }) {
   const [pickup, setPickup] = useState('')
   const [destination, setDestination] = useState('')
   const [departure, setDeparture] = useState('')
-  const [dateOpen, setDateOpen] = useState(false)
   const dateRef = useRef(null)
   const navigate = useNavigate()
   const earliestDeparture = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Colombo', hour12: false }).slice(0, 16).replace(' ', 'T')
@@ -71,15 +73,18 @@ function JourneySearch({ unavailable }) {
   function search(event) {
     event.preventDefault()
     if (active) { unavailable(active === 1 ? 'tickets' : 'rentals'); return }
-    if (!departure || !dateRef.current.checkValidity()) { setDateOpen(true); requestAnimationFrame(() => { dateRef.current.focus(); dateRef.current.reportValidity() }); return }
+    if (!departure || !dateRef.current.checkValidity()) { requestAnimationFrame(() => { dateRef.current.focus(); dateRef.current.reportValidity() }); return }
     navigate('/hire', { state: { seed: { pickup, destination, departure } } })
   }
   return <section id="search" className="lr-search lr-glass" aria-label={t('Plan your journey')}>
     <div className="lr-tabs" role="tablist" aria-label={t('Travel service')}>{tabs.map(([label, icon], index) => <button key={label} type="button" role="tab" id={`lr-tab-${index}`} aria-selected={active === index} aria-controls="lr-search-fields" tabIndex={active === index ? 0 : -1} className={active === index ? 'lr-red' : ''} onClick={() => setActive(index)} onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3; setActive(next); event.currentTarget.parentElement.children[next].focus() } }}><LandingIcon name={icon}/><span>{t(label)}</span></button>)}</div>
     <form id="lr-search-fields" role="tabpanel" aria-labelledby={`lr-tab-${active}`} onSubmit={search}>
-      <label className="lr-field"><span>{t('Pickup location')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="pickup" value={pickup} onChange={event => setPickup(event.target.value)} placeholder={t('Colombo')} maxLength={100} required={!active} autoComplete="off"/><button type="button" aria-label={t('Swap pickup and destination')} onClick={() => { setPickup(destination); setDestination(pickup) }}><LandingIcon name="swap" size={16}/></button></span></label>
-      <label className="lr-field"><span>{t('Destination')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="destination" value={destination} onChange={event => setDestination(event.target.value)} placeholder={t('Kandy')} maxLength={100} required={!active} autoComplete="off"/></span></label>
-      <div className="lr-field lr-date"><span id="lr-date-label">{t('Journey date')}</span><button className="lr-date-trigger" type="button" aria-labelledby="lr-date-label lr-date-value" aria-expanded={dateOpen} aria-controls="lr-date-picker" onClick={() => { setDateOpen(!dateOpen); if (!dateOpen) requestAnimationFrame(() => dateRef.current.focus()) }}><LandingIcon name="calendar" size={21}/><span id="lr-date-value"><span>{departure ? `${new Date(departure).toLocaleDateString(getLanguage() === 'en' ? 'en-GB' : `${getLanguage()}-LK`, { day: 'numeric', month: 'short', year: 'numeric' })} · ${departure.slice(11, 16)}` : t('Select date & time')}</span><LandingIcon name="chevron" size={18}/></span></button><div id="lr-date-picker" className="lr-date-picker lr-glass" hidden={!dateOpen} onKeyDown={event => { if (event.key === 'Escape') { setDateOpen(false); event.currentTarget.previousElementSibling.focus() } }}><label>{t('Departure date and time')}<input ref={dateRef} form="lr-date-selection" name="departure" type="datetime-local" min={earliestDeparture} required value={departure} onChange={event => setDeparture(event.target.value)} disabled={!!active}/></label><button type="button" className="lr-pill lr-red" onClick={() => { if (dateRef.current.reportValidity()) setDateOpen(false) }}>{t('Apply')}</button></div></div>
+      <label className="lr-field"><span>{t('Pickup location')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="pickup" value={pickup} onChange={event => setPickup(event.target.value)} placeholder={t('e.g. Jaffna')} maxLength={100} required={!active} autoComplete="off"/><button type="button" aria-label={t('Swap pickup and destination')} onClick={() => { setPickup(destination); setDestination(pickup) }}><LandingIcon name="swap" size={16}/></button></span></label>
+      <label className="lr-field"><span>{t('Destination')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="destination" value={destination} onChange={event => setDestination(event.target.value)} placeholder={t('e.g. Colombo')} maxLength={100} required={!active} autoComplete="off"/></span></label>
+      <div className="lr-field lr-date"><span id="lr-date-label">{t('Journey date')}</span><div className="lr-date-trigger"><LandingIcon name="calendar" size={21}/><span id="lr-date-value" className={departure ? '' : 'lr-placeholder'}><span>{departure ? `${new Date(departure).toLocaleDateString(getLanguage() === 'en' ? 'en-GB' : `${getLanguage()}-LK`, { day: 'numeric', month: 'short', year: 'numeric' })} · ${departure.slice(11, 16)}` : t('Select date & time')}</span><LandingIcon name="chevron" size={18}/></span>
+        <input ref={dateRef} className="lr-date-native" form="lr-date-selection" name="departure" type="datetime-local" min={earliestDeparture} required value={departure} aria-labelledby="lr-date-label lr-date-value" disabled={!!active}
+          onClick={event => { try { event.currentTarget.showPicker?.() } catch { /* the native picker is optional */ } }}
+          onChange={event => { setDeparture(event.target.value); const input = event.currentTarget; if (event.target.value) requestAnimationFrame(() => input.blur()) }}/></div></div>
       <button type="submit" className="lr-pill lr-red lr-search-submit"><LandingIcon name="search"/>{t('Search')}<LandingIcon name="arrow"/></button>
     </form>
   </section>

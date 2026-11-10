@@ -1,21 +1,21 @@
-body .public-page.role-onboarding{min-height:100dvh;max-width:none;background-color:#03152d;background-image:linear-gradient(to bottom,#03152d55,#03152d 900px),url('/images/travelly/heroes/passenger-hero-1920.webp');background-repeat:no-repeat;background-position:center top;background-size:100% 100%,100% auto;color:#f5f8ff}
+body .public-page.role-onboarding{min-height:100dvh;max-width:none;background-color:var(--ui-glass-strong);background-image:url('/images/travelly/heroes/passenger-hero-1920.webp');background-repeat:no-repeat;background-position:center top;background-size:100% 100%,100% auto;color:var(--ui-ink)}
 body .public-page.role-onboarding>.site-header{position:relative;inset:auto}
 .onboarding-content{width:92%;max-width:1120px;margin:auto;padding:26px 0 50px;display:grid;gap:20px}
 .onboarding-heading h1{font-size:clamp(28px,4vw,42px);margin:8px 0 16px}.onboarding-heading p{line-height:1.6}
 .onboarding-content>.button{justify-self:start}.onboarding-content .dashboard-application{margin:0}.onboarding-content .application-details{min-width:0}.onboarding-content .application-profile{overflow-wrap:anywhere}
 .onboarding-content .review-panel{margin:0}.onboarding-content .application-document-note{line-height:1.6}
-.role-onboarding .document-checklist{background:#062448;border:1px solid #4784b8;color:#f5f8ff}
-.role-onboarding .private-upload .upload-helper,.role-onboarding .document-checklist .upload-helper{color:#b9d6f4}
-.role-onboarding .document-checklist select{background:#031c38;color:#f5f8ff;border-color:#4784b8}
-.role-onboarding .document-requirement,.role-onboarding .upload-approval-note{background:#244c72;color:#fff}
+.role-onboarding .document-checklist{background:var(--ui-glass-strong);border:1px solid #4784b8;color:var(--ui-ink)}
+.role-onboarding .private-upload .upload-helper,.role-onboarding .document-checklist .upload-helper{color:var(--ui-text)}
+.role-onboarding .document-checklist select{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4784b8}
+.role-onboarding .document-requirement,.role-onboarding .upload-approval-note{background:var(--ui-glass-strong);color:var(--ui-ink)}
 .role-onboarding .private-upload .upload-field-error{color:var(--primary-red)}
 @media(max-width:767px){.onboarding-content{width:94%;padding:18px 0 30px}.onboarding-content .dashboard-application{padding:18px 14px;display:block}.onboarding-content .dashboard-app-icon{margin-bottom:12px}.onboarding-content .application-profile{display:block}.onboarding-content .application-profile>div{margin-bottom:12px}}
 .single-application{padding:clamp(20px,3vw,36px)}
 .single-application fieldset{border:0;padding:0;margin:20px 0 0;display:grid;gap:10px;min-width:0}
 .single-application label{font-weight:600;margin-top:8px}
-.single-application :is(input:not([type=checkbox]),select){width:100%;min-height:46px;padding:10px;border:1px solid #4784b8;border-radius:8px;background:#031c38;color:#f5f8ff}
-.single-application-evidence{display:grid;gap:8px;padding:20px;margin:10px 0;border:1px solid #4784b8;border-radius:12px;background:#062448}
-.single-application-evidence :is(h3,p){margin:0}.single-application-evidence small{color:#bed4ee}
+.single-application :is(input:not([type=checkbox]),select){width:100%;min-height:46px;padding:10px;border:1px solid #4784b8;border-radius:8px;background:var(--ui-glass-strong);color:var(--ui-ink)}
+.single-application-evidence{display:grid;gap:8px;padding:20px;margin:10px 0;border:1px solid #4784b8;border-radius:12px;background:var(--ui-glass-strong)}
+.single-application-evidence :is(h3,p){margin:0}.single-application-evidence small{color:var(--ui-text)}
 .single-application-replace{display:flex;align-items:center;gap:10px}.single-application fieldset>.button{justify-self:start;margin-top:12px}
 .single-application .upload-field-error{color:var(--primary-red)}
 @media(max-width:767px){.single-application-evidence{padding:16px}.single-application fieldset>.button{width:100%}}

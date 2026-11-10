@@ -4,7 +4,7 @@ import DashboardAvatar from './DashboardAvatar'
 import {journeyRole,authJourney,journeyLink} from '../features/auth/onboardingJourney'
 import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import TravellyBrand, { NEEDLE_REST, NEEDLE_PEAK, sweepNavbarNeedle } from './NavbarBrand'
+import TravellyBrand, { useNeedleEvents } from './NavbarBrand'
 import {TravellyAsset} from './TravellyVisuals'
 import { api, logout, hasSession, subscribeSession } from '../services/api'
 import { useWorkspace } from '../context/workspaceContext'
@@ -96,8 +96,8 @@ export function Asset({ file, alt = '', immediate = false, className = '', ...pr
     loading={immediate ? 'eager' : 'lazy'} fetchPriority={immediate ? 'high' : 'auto'} decoding="async" {...props}/>
 }
 
-export function Brand({ needleAngle = NEEDLE_REST }) {
-  return <TravellyBrand needleAngle={needleAngle}/>
+export function Brand() {
+  return <TravellyBrand/>
 }
 
 const NoticeContext = createContext(null)
@@ -136,47 +136,18 @@ export function Header({ auth = false, signup = false, dashboard = false, worksp
   const navigate=useNavigate()
   const [profile,setProfile]=useState(null)
   const [signoutError,setSignoutError]=useState(null)
-  const [needleAngle,setNeedleAngle]=useState(NEEDLE_REST)
+  const navbarRef=useRef(null)
+  useNeedleEvents(navbarRef)
   useEffect(()=>{let current=true;setProfile(null);if(signedIn&&!workspaceHeader&&(!workspace||customerHeader))Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,result])=>{if(current)setProfile(user)}).catch(()=>{});return()=>{current=false}},[signedIn,workspaceHeader,pathname])
-  function navbarControl(node) {
-    return node instanceof Element ? node.closest('.navigation :is(a,button,.language,summary)') : null
-  }
-  function followNavbarControl(event) {
-    const control=navbarControl(event.target)
-    if(!control || control.closest('.dashboard-profile-dropdown'))return
-    if(event.type==='pointerover'&&(event.pointerType!=='mouse'||control.contains(event.relatedTarget)))return
-    if(event.type==='focus'&&!event.target.matches(':focus-visible'))return
-    const nav=control.closest('.navigation')
-    const controls=[...nav.querySelectorAll('a,button,.language,summary')].filter(item=>
-      !item.closest('.dashboard-profile-dropdown') && item.getClientRects().length)
-    const index=controls.indexOf(control)
-    if(index<0)return
-    const first=controls[0].getBoundingClientRect(),last=controls.at(-1).getBoundingClientRect(),item=control.getBoundingClientRect()
-    const horizontal=Math.abs(last.top-first.top)<Math.max(first.height,last.height)
-    const start=first.left+first.width/2,end=last.left+last.width/2
-    const progress=controls.length===1?0:horizontal&&end>start?
-      (item.left+item.width/2-start)/(end-start):index/(controls.length-1)
-    setNeedleAngle(NEEDLE_REST+Math.min(1,Math.max(0,progress))*(NEEDLE_PEAK-NEEDLE_REST))
-  }
-  function clickNavbarControl(event) {
-    if(!navbarControl(event.target))return
-    setNeedleAngle(NEEDLE_REST)
-    sweepNavbarNeedle()
-  }
   async function signOut(){try{await logout();navigate('/login')}catch(error){setSignoutError(error)}}
   const owner = pathname === '/for-owners'
   const driver = pathname === '/drive-with-us'
   if(workspace && !workspaceHeader && !customerHeader)return null
-  return <header
+  return <header ref={navbarRef}
     className={`site-header app-navbar ${auth ? 'auth-header' : ''} ${workspaceHeader ? 'workspace-header' : ''}`}
-    onPointerOverCapture={followNavbarControl}
-    onPointerLeave={()=>setNeedleAngle(NEEDLE_REST)}
-    onFocusCapture={followNavbarControl}
-    onBlurCapture={event=>{if(!navbarControl(event.relatedTarget))setNeedleAngle(NEEDLE_REST)}}
-    onClickCapture={clickNavbarControl}
   ><div className="header-inner">
     {workspaceHeader && <button ref={workspace.sidebarTrigger} className="workspace-menu-toggle" onClick={workspace.openSidebar} aria-label={t("Open workspace navigation")} aria-haspopup="dialog" aria-controls="workspace-navigation-drawer"><Icon name="menu"/></button>}
-    <Brand needleAngle={needleAngle}/>
+    <Brand/>
     {!workspaceHeader && <button ref={menuTrigger} className="menu-toggle" onClick={()=>setOpenAt(open ? null : navigationKey)} aria-label={open ? t('Close navigation') : t('Open navigation')} aria-expanded={open} aria-controls="site-navigation"><Icon name={open ? 'close' : 'menu'}/></button>}
     <nav id="site-navigation" aria-label={t("Main navigation")} className={open ? 'navigation open' : 'navigation'}>
       {dashboard ? <><LanguageSelector/>{children}</> : signedIn && !auth ? <><NavLink to="/dashboard">{t("Home")}</NavLink><Link to="/hire">{t("Vehicles")}<Icon name="chevron" size={13}/></Link><button className="text-button" onClick={()=>notice({title:'Ticket booking',message:'Ticket checkout is not available yet. Private vehicle hire is available in trip search.'})}>{t("Tickets")}<Icon name="chevron" size={13}/></button><button className="text-button" onClick={()=>notice({title:'Vehicle rentals',message:'Rental checkout is not available yet. Plan a private hire with a driver in trip search.'})}>{t("Rentals")}<Icon name="chevron" size={13}/></button><Link to="/dashboard#destinations">{t("Destinations")}<Icon name="chevron" size={13}/></Link><NavLink className="nav-trips" to="/bookings"><Icon name="calendar" size={20}/>{t("My Trips")}</NavLink><button className="text-button nav-reels" onClick={()=>notice({title:'Travel Reels',message:'Travel Reels are not available yet. The destination artwork on your dashboard is travel inspiration.'})}><Icon name="video" size={21}/>{t("Travel Reels")}</button><details ref={customerMenu} className="customer-profile workspace-profile" onKeyDown={e=>{if(e.key==='Escape'){e.currentTarget.open=false;e.currentTarget.querySelector('summary').focus()}}}><summary aria-label={t("Your account menu")}><DashboardAvatar name={workspace?.user?.full_name||profile?.full_name} url={workspace?.user?.profile_image_url||profile?.profile_image_url}/><span>{workspace?.user?.display_name||workspace?.user?.full_name||profile?.full_name||t('Your account')}</span><Icon name="chevron" size={16}/></summary><div className="dashboard-profile-dropdown"><Link to="/account"><Icon name="user" size={17}/>{t("Your profile")}</Link><Link to="/bookings"><Icon name="calendar" size={17}/>{t("My Trips")}</Link><button className="inline-link" onClick={signOut}>{t("Sign out")}</button></div></details></> : <>{auth ? <><Link to="/" className="nav-icon"><Icon name="home"/>{t(" Back to home")}</Link><button className="text-button nav-icon" onClick={()=>notice({title:'Travelly help',message:'Use one Travelly account for Passenger, Owner and Driver membership. Create an account, then sign in to view your profile and role applications.'})}><Icon name="help"/>{t(" Help")}</button></> : <><NavLink to="/" end>{t("Home")}</NavLink><Link to="/#rides">{t("Vehicles")}</Link><Link to="/#services">{t("Tickets")}</Link><Link to="/#services">{t("Rentals")}</Link><NavLink to="/for-owners">{t("For Owners")}</NavLink><NavLink to="/drive-with-us">{t("Drive with us")}</NavLink></>}

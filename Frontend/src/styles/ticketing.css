@@ -1,0 +1,61 @@
+/* Ticket pages (routes, departures, seat booking, boarding, audit) inside the shared FlowShell.
+   Same field height, card padding, gaps and type scale as every other dashboard: no new sizes here. */
+html body .flow-page .tk-grid { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
+@media (max-width: 760px) { html body .flow-page .tk-grid { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page .tk-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .tk-pane[hidden] { display: none; }
+html body .flow-page .tk-split { display: grid; grid-template-columns: minmax(240px, 2fr) minmax(0, 3fr); gap: 12px; flex: 1 1 0; min-height: 0; }
+html body .flow-page .tk-split > * { min-width: 0; min-height: 0; }
+@media (max-width: 860px) { html body .flow-page .tk-split { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page .tk-side { display: flex; flex-direction: column; gap: 8px; align-content: start; }
+html body .flow-page .tk-side .tk-grid { --cols: 1; }
+html body .flow-page .tk-map { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-radius: 14px; background: rgb(255 255 255 / .5); border: 1px solid rgb(255 255 255 / .9); padding: 6px 8px; }
+html body .flow-page .tk-line { margin: 0; font-size: 14px; color: var(--ui-text); line-height: 1.35; }
+html body .flow-page .tk-line strong { color: var(--ui-ink); }
+html body .flow-page .tk-line.is-warn { color: var(--ui-red-text); font-weight: 600; }
+html body .flow-page .tk-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+html body .flow-page .tk-checks label { display: inline-flex; align-items: center; gap: 6px; }
+html body .flow-page .tk-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+html body .flow-page .tk-rows { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+html body .flow-page .tk-row { display: flex; align-items: center; gap: 10px; min-height: 52px; margin: 0; padding: 6px 12px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .tk-row-main { flex: 1 1 0; min-width: 0; }
+html body .flow-page .tk-row-main > strong, html body .flow-page .tk-row-main > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tk-row-main > strong { font-size: 15px; color: var(--ui-ink); }
+html body .flow-page .tk-row-main > span { font-size: 13px; color: var(--ui-text); }
+html body .flow-page .tk-row-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+html body .flow-page .tk-row .ui-button, html body .flow-page .tk-bar .ui-button { min-height: 34px; padding: 2px 14px; font-size: 14px; }
+html body .flow-page .tk-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+html body .flow-page .tk-bar .tk-grow { flex: 1 1 auto; }
+html body .flow-page .tk-counter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .tk-counter > .tk-counter-ctl { display: inline-flex; align-items: center; gap: 6px; }
+html body .flow-page .tk-counter .ui-button { min-height: 32px; width: 32px; padding: 0; font-size: 18px; line-height: 1; }
+html body .flow-page .tk-counter output { min-width: 24px; text-align: center; font-size: 15px; font-weight: 700; }
+html body .flow-page .success-banner { flex: none; margin: 0; padding: 6px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--ui-green-soft); color: #0b5d2a; border: 1px solid #7bcf9b; }
+html body .flow-page .tk-stop-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+html body .flow-page .tk-stop-nav .ui-button { min-height: 34px; padding: 2px 12px; font-size: 14px; }
+html body .flow-page .tk-stop-nav strong { font-size: 15px; color: var(--ui-ink); }
+html body .flow-page .tk-link { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--ui-blue-deep); text-decoration: underline; cursor: pointer; justify-self: start; }
+html body .flow-page .tk-hold { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .tk-hold h3 { margin: 0; font-size: 16px; color: var(--ui-ink); }
+html body .flow-page .tk-pane > form.flow-wizard-form, html body .flow-page .tk-pane > .flow-wizard-form { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+html body .flow-page .tk-pane > .tk-pane { flex: 1 1 auto; }
+html body .flow-page :is(.tk-pane, .tk-split)[hidden] { display: none !important; }
+html body .flow-page .tk-grid .rate-field > label { height: 18px; line-height: 18px; overflow: visible; }
+
+/* Shared Admin list pages: filter row, compact rows, details view (see features/admin/AdminList.jsx). */
+html body .flow-page .tk-facts { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 6px 12px; margin: 0; }
+@media (max-width: 760px) { html body .flow-page .tk-facts { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page .tk-facts > div { min-width: 0; padding: 6px 12px; border-radius: 12px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .tk-facts dt { font-size: 12px; font-weight: 600; color: var(--ui-muted); }
+html body .flow-page .tk-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tk-bar .ui-chip { flex: none; }
+
+/* Passenger pickup code: QR beside the PIN so it fits one screen. */
+html body .flow-page .pickup-code { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+html body .flow-page .pickup-code h3 { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ui-ink); }
+html body .flow-page .pickup-code-body { display: flex; align-items: center; gap: 14px; min-width: 0; }
+html body .flow-page .pickup-code .qr-code { flex: none; width: clamp(104px, 22vh, 190px) !important; height: clamp(104px, 22vh, 190px) !important; }
+html body .flow-page .pickup-code-side { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+html body .flow-page .pickup-code-side p { margin: 0; font-size: 14px; color: var(--ui-text); }
+html body .flow-page .pickup-pin { display: block; margin-top: 2px; font-size: clamp(22px, 3.6vh, 30px); font-weight: 800; letter-spacing: .22em; color: var(--ui-ink); }
+html body .flow-page .pickup-code-side .ui-button { min-height: 34px; padding: 2px 14px; font-size: 14px; }

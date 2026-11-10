@@ -62,25 +62,25 @@
    Higher specificity than the older per-role backgrounds, so it wins without
    deleting them yet. */
 html body:has(.workspace-shell[data-workspace]),
+html body.flow-standalone,
 html body:has(.passenger-customer-shell),
-html body .workspace-shell[data-workspace],
-html body .passenger-customer-shell {
+html body .workspace-shell[data-workspace] {
   background: var(--ui-scenic-tint), var(--ui-scenic) center 47% / cover fixed #b7d7c8;
   color: var(--ui-ink);
 }
 
 @media (max-width: 1023px) {
   html body:has(.workspace-shell[data-workspace]),
+  html body.flow-standalone,
   html body:has(.passenger-customer-shell),
-  html body .workspace-shell[data-workspace],
-  html body .passenger-customer-shell { background-position: center 44%; }
+  html body .workspace-shell[data-workspace] { background-position: center 44%; }
 }
 
 @media (max-width: 767px) {
   html body:has(.workspace-shell[data-workspace]),
+  html body.flow-standalone,
   html body:has(.passenger-customer-shell),
-  html body .workspace-shell[data-workspace],
-  html body .passenger-customer-shell { background-attachment: scroll; background-position: 54% top; }
+  html body .workspace-shell[data-workspace] { background-attachment: scroll; background-position: 54% top; }
 }
 
 @media (max-width: 767px) { :root { --ui-gutter: 12px; } }
