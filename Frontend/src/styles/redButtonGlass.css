@@ -1,8 +1,5 @@
 /* The original button red is the sole red hue. Only background alpha and
    neutral surface reflections vary; text and icons remain fully opaque. */
-:root {
-  --red-glass-angle: 120deg;
-}
 
 /* Solid accents use the very same channels as Find a ride's glass surface.
    Keep the color through hover, focus and visited states on all public pages. */
@@ -23,18 +20,3 @@ body .public-page :is(
 }
 
 /* Preserve existing gradient directions without introducing other red shades. */
-body .auth-header .navigation .button.nav-cta {
-  --red-glass-angle: 110deg;
-}
-
-body .public-page .search-tabs button.selected {
-  --red-glass-angle: 110deg;
-}
-
-body .reference-landing .search-tabs button.selected {
-  --red-glass-angle: 120deg;
-}
-
-body .reference-passenger .search-tabs button.selected {
-  --red-glass-angle: 110deg;
-}

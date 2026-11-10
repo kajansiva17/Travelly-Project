@@ -7,7 +7,6 @@
 .auth-header .language { align-items: center; gap: 6px; font-size: 12px; }
 .auth-header .language > svg { width: 17px; height: 17px; }
 .auth-header .nav-divider { height: 22px; }
-.auth-header .member-prompt { font-size: 12px; }
 .auth-header .nav-cta { min-height: 44px; padding: 11px 18px; border-radius: 8px; font-size: 13px; }
 .auth-header .menu-toggle { min-width: 44px; min-height: 44px; }
 

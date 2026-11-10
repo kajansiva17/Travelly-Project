@@ -1,163 +1,110 @@
 /* Shared 2026 Travelly visual system. Imported after the retained module styles. */
-:root{color-scheme:dark;--navy:#03132d;--royal:#063e91;--surface:#06234be8;--surface-raised:#0b3265e8;--blue:#2e9eff;--coral:var(--primary-red);--coral-dark:var(--primary-red);--text:#f5f8ff;--subtle:#b8cff4;--border:#268cff80;--deep:var(--text);--burgundy:var(--primary-red);--cream:#04152f;--muted:var(--subtle);--line:#6aafff36;--copper:var(--primary-red);--radius:16px;--glass:linear-gradient(125deg,#164279b8,#03214ce8 65%,#0b3068e0);--glow:inset 0 1px 1px #a1dbff5c,0 0 0 1px #167eff24,0 8px 28px #00052e40}
-html{background:var(--navy);scroll-padding-top:110px}
-body{background:var(--navy);color:var(--text);font-family:'Travelly Sans',Arial,sans-serif}
+:root{color-scheme:light;--border:var(--ui-input-border);--line:rgb(18 21 82 / .14);--glass:var(--ui-glass);--glow:var(--ui-shadow-card)}
+html{background:#f4f6f9;scroll-padding-top:110px}
+body{background:#f4f6f9;color:var(--ui-ink);font-family:'Travelly Sans',Arial,sans-serif}
 body :is(button,input,select,textarea){font-family:inherit}
-body :is(h1,h2,h3,h4){color:var(--text);font-family:'Travelly Sans',Arial,sans-serif;letter-spacing:-.025em}
+body :is(h1,h2,h3,h4){color:var(--ui-ink);font-family:'Travelly Sans',Arial,sans-serif;letter-spacing:-.025em}
 body :is(a,button,summary,input,select,textarea):focus-visible{outline:3px solid #8fdcff;outline-offset:4px}
 body a{color:inherit}
-body :is(input,select,textarea){color:var(--text);accent-color:var(--coral);max-width:100%}
-body input::placeholder,body textarea::placeholder{color:#b2c6e5;opacity:1}
+body :is(input,select,textarea){color:var(--ui-ink);accent-color:var(--primary-red);max-width:100%}
+body input::placeholder,body textarea::placeholder{color:var(--ui-placeholder);opacity:1}
 body :is(input,select,textarea):disabled{opacity:.6}
-body option{background:#08254a;color:var(--text)}
+body option{background:var(--ui-glass-strong);color:var(--ui-ink)}
 body .button{background:linear-gradient(110deg,var(--primary-red),var(--primary-red));border:1px solid var(--primary-red);color:#fff;border-radius:12px;box-shadow:inset 0 1px 1px rgb(var(--primary-red-rgb) / 43.92157%),0 5px 18px rgb(var(--primary-red-rgb) / 13.33333%);min-height:46px;font-family:inherit;font-weight:600;text-shadow:0 1px 1px rgb(var(--primary-red-rgb) / 18.82353%)}
 body .button:hover{background:linear-gradient(110deg,var(--primary-red),var(--primary-red));box-shadow:0 0 20px rgb(var(--primary-red-rgb) / 29.01961%)}
-body .button.outline{background:linear-gradient(120deg,#0c3864c9,#051d42);border-color:#48a9ff;color:#f1f7ff;box-shadow:inset 0 1px 5px #399dff40}
-body .inline-link,body .section-link{color:var(--primary-red)}
+body .button.outline{background:var(--ui-glass-strong);border-color:#48a9ff;color:var(--ui-ink);box-shadow:inset 0 1px 5px #399dff40}
+body .inline-link{color:var(--primary-red)}
 body .button:disabled{opacity:.6;cursor:not-allowed}
 body .site-header{height:auto;min-height:0;background:transparent;border:0;padding:18px clamp(16px,4vw,80px);position:relative;z-index:50}
-body .site-header .header-inner{min-height:74px;max-width:1640px;margin:0 auto;padding:10px 22px;gap:20px;background:linear-gradient(110deg,#073273d9,#011a43e8 65%,#164b91cb);border:1px solid #5baaff;border-radius:22px;box-shadow:var(--glow);backdrop-filter:blur(18px)}
+body .site-header .header-inner{min-height:74px;max-width:1640px;margin:0 auto;padding:10px 22px;gap:20px;background:var(--ui-glass-strong);border:1px solid #5baaff;border-radius:22px;box-shadow:var(--glow);backdrop-filter:blur(18px)}
 body .site-header .brand.travelly-brand{display:flex;width:230px;height:54px;flex:none;gap:0;margin:0;align-items:center;justify-content:flex-start;position:static;padding:0}
 body .site-header .brand-mark{display:block;width:100%;height:auto;position:static;aspect-ratio:auto;transform:none}
 body .site-header .brand-mark img{display:block;width:100%;height:auto;max-height:54px;object-fit:contain;object-position:left center;position:static;filter:none}
 body .site-header .brand.travelly-brand{flex-direction:row}
 body .site-header .brand.travelly-brand .brand-mark{width:100%;height:auto;max-width:none;max-height:none}
 body .auth-header .navigation .button.nav-cta{background:linear-gradient(110deg,var(--primary-red),var(--primary-red));color:white;border-color:var(--primary-red)}
-body .navigation{color:var(--text);gap:24px;font-size:13px}
-body .navigation :is(a,button){color:var(--text)}
+body .navigation{color:var(--ui-ink);gap:24px;font-size:13px}
+body .navigation :is(a,button){color:var(--ui-ink)}
 body .navigation a:not(.button):hover{color:var(--primary-red)}
-body .navigation .nav-divider{background:#3999ff70}
+body .navigation .nav-divider{background:var(--ui-glass-strong)}
 body .language{display:flex;align-items:center;gap:7px}
 body .language select{border:0;background:transparent;padding:6px 2px;min-height:40px;font-size:13px}
-body .member-prompt{display:none}
-body .menu-toggle{background:#0a3670;border:1px solid #6baeff;color:#fff;border-radius:10px;min-width:44px;min-height:44px}
-body .site-footer{background:#021127;border-top:1px solid var(--line);color:var(--subtle);padding:25px 6%;font-size:13px}
+body .menu-toggle{background:var(--ui-glass-strong);border:1px solid #6baeff;color:var(--ui-ink);border-radius:10px;min-width:44px;min-height:44px}
+body .site-footer{background:var(--ui-glass-strong);border-top:1px solid var(--line);color:var(--ui-muted);padding:25px 6%;font-size:13px}
 body .footer-brand{font:italic 700 28px 'Travelly Sans',sans-serif;color:#fff}
 body .footer-brand img{width:180px;height:auto;display:block}
-body .public-page{background:var(--navy);color:var(--text)}
+body .public-page{background:var(--ui-ink);color:var(--ui-ink)}
 body .public-page>.site-header{position:absolute;inset:0 0 auto}
-body .public-page .hero{position:relative;min-height:650px;height:calc(min(850px,72vw));max-height:850px;overflow:hidden;isolation:isolate;border:0;border-radius:0;max-width:none;margin:0;background:#05254f}
-body .public-page .hero::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(90deg,#001a4d65,transparent 75%),linear-gradient(0deg,#03132d,transparent 25%)}
-body .public-page .passenger-hero-image,body .public-page .owner-hero-art,body .public-page .driver-hero-art{position:absolute;inset:0;width:100%;height:100%;margin:0;max-width:none;mask-image:none;border-radius:0;object-fit:cover;object-position:center}
+body .public-page .hero{position:relative;min-height:650px;height:calc(min(850px,72vw));max-height:850px;overflow:hidden;isolation:isolate;border:0;border-radius:0;max-width:none;margin:0;background:var(--ui-glass-strong)}
+body .public-page .hero::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:var(--ui-glass-strong)}
 body .public-page :is(.owner-hero-art,.driver-hero-art) img{width:100%;height:100%;object-fit:cover;object-position:center}
-body .public-page .hero-copy{position:relative;z-index:1;width:100%;max-width:1640px;margin:auto;padding:160px 6% 220px;inset:auto;transform:none;align-self:start}
-body .public-page.passenger-page .passenger-hero .hero-copy{background:transparent}
 body .public-page .hero h1{font-size:clamp(38px,4.8vw,76px);font-weight:600;line-height:1.04;letter-spacing:-.045em;color:#fff;margin:10px 0 17px;max-width:850px}
 body .public-page .hero h1 span{color:var(--primary-red)}
 body .public-page .passenger-hero{height:650px;min-height:650px;max-height:700px}
-body .public-page .hero-description{color:#dae7ff;font-size:clamp(16px,1.65vw,24px);line-height:1.5;margin:0;max-width:640px}
-body .public-page .eyebrow,body .section-kicker,body .dashboard-kicker{color:#a9d4ff;font-size:11px;letter-spacing:1.8px;font-weight:600}
-body .public-page .hero-actions{display:flex;gap:12px;margin-top:25px;flex-wrap:wrap}
+body .section-kicker{color:var(--ui-text);font-size:11px;letter-spacing:1.8px;font-weight:600}
 body .public-page .page-content{width:89%;max-width:1510px;margin:auto;padding:0}
 body .public-page .search-panel{position:relative;z-index:2;margin:-165px 0 24px;padding:12px;border:1px solid #80baff;border-radius:24px;background:var(--glass);box-shadow:var(--glow);backdrop-filter:blur(20px)}
 body .public-page .search-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:transparent;border:0;gap:10px;padding:0 0 12px}
-body .public-page .search-tabs button{background:#0d2b5699;color:#fff;border:1px solid #6eb4ff4a;border-radius:13px;min-height:54px;font-size:16px;justify-content:center}
+body .public-page .search-tabs button{background:var(--ui-red-gradient);color:var(--ui-ink);border:1px solid #6eb4ff4a;border-radius:13px;min-height:54px;font-size:16px;justify-content:center}
 body .public-page .search-tabs button.selected{background:linear-gradient(110deg,var(--primary-red),var(--primary-red));border:1px solid var(--primary-red);box-shadow:0 0 16px rgb(var(--primary-red-rgb) / 25.09804%)}
-body .public-page .search-panel form{display:grid;grid-template-columns:1.1fr 1.1fr 1fr .95fr auto;gap:14px;padding:12px 14px;background:#041c3d7a;border:1px solid #69a7e958;border-radius:16px;align-items:end}
-body .public-page .search-panel label{font-size:12px;display:grid;gap:7px;color:#e5efff;min-width:0}
-body .public-page .search-input{display:flex;align-items:center;gap:8px;background:#041c3a;border:1px solid #7192bd;border-radius:10px;min-height:47px;padding:9px 10px}
+body .public-page .search-panel form{display:grid;grid-template-columns:1.1fr 1.1fr 1fr .95fr auto;gap:14px;padding:12px 14px;background:var(--ui-glass-strong);border:1px solid #69a7e958;border-radius:16px;align-items:end}
+body .public-page .search-panel label{font-size:12px;display:grid;gap:7px;color:var(--ui-text);min-width:0}
+body .public-page .search-input{display:flex;align-items:center;gap:8px;background:var(--ui-glass-strong);border:1px solid #7192bd;border-radius:10px;min-height:47px;padding:9px 10px}
 body .public-page .search-input :is(input,select){width:100%;min-width:0;background:transparent;border:0;padding:0;color:#f5f8ff;font-size:13px}
-body .public-page .search-input svg{width:18px;flex:none;color:#cee8ff}
+body .public-page .search-input svg{width:18px;flex:none;color:var(--ui-text)}
 body .public-page .search-submit{min-height:49px;padding:10px 22px;font-size:15px}
-body .public-page .group-trip{border:0;color:var(--subtle);font-size:12px;padding:14px 10px 0;gap:10px}
-body .public-page .group-trip a{color:#d5eaff}
+body .public-page .group-trip{border:0;color:var(--ui-muted);font-size:12px;padding:14px 10px 0;gap:10px}
+body .public-page .group-trip a{color:var(--ui-text)}
 body .public-page .content-section{margin:30px 0;padding:0}
-body .public-page .section-heading{margin-bottom:20px;align-items:center}
-body .public-page .section-heading h2{color:#fff;font-size:clamp(24px,2.5vw,36px)}
-body .public-page .section-heading p{color:var(--subtle);font-size:14px}
-body .public-page #services>.section-heading{text-align:center;justify-content:center}
-body .public-page .service-grid{gap:18px}
-body .public-page .service-card{background:linear-gradient(125deg,#102b4d,#061a36);border:1px solid #6599d04d;border-radius:14px;padding:20px;gap:12px;box-shadow:0 10px 25px #00091922;min-width:0}
-body .public-page .service-card img{width:42%;height:auto;max-height:180px;object-fit:contain;flex:none;align-self:center}
-body .public-page .service-card h3{color:#fff;font-size:22px}
-body .public-page .service-card p{color:var(--subtle);font-size:12px;line-height:1.7;margin:12px 0 18px}
-body .public-page .service-card .section-link{font-size:13px;color:var(--primary-red)}
-body .public-page .confidence-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;padding:22px 0;border-block:1px solid var(--line)}
-body .public-page .benefit-card{background:transparent;border:0;border-radius:0;box-shadow:none;color:var(--text);padding:12px;gap:13px;min-width:0}
-body .public-page .benefit-icon{background:transparent;color:var(--primary-red);width:auto;height:auto;flex:none}
-body .public-page .benefit-card h3{font-size:15px;color:#fff}
-body .public-page .benefit-card p{font-size:12px;color:var(--subtle);line-height:1.65}
-body .public-page .vehicle-card,body .public-page .story-card,body .public-page .steps-panel,body .public-page .faq-grid details{background:#092348;border:1px solid var(--border);border-radius:15px;color:var(--text);box-shadow:none}
-body .public-page .vehicle-picture,body .public-page .passenger-picture{background:radial-gradient(ellipse,#194d7d66,transparent);padding:22px;aspect-ratio:1.6;height:auto}
+body .public-page .vehicle-card{background:var(--ui-glass-strong);border:1px solid var(--border);border-radius:15px;color:var(--ui-ink);box-shadow:none}
+body .public-page .vehicle-picture{background:var(--ui-glass-strong);padding:22px;aspect-ratio:1.6;height:auto}
 body .public-page .vehicle-picture img{height:100%;width:100%;object-fit:contain}
-body .public-page .card-copy p,body .public-page .story-copy p,body .public-page .steps-panel p,body .public-page .faq-grid p{color:var(--subtle)}
-body .public-page .destination-card{position:relative;border:1px solid var(--border);border-radius:14px;background:#082048;overflow:hidden;min-width:0}
-body .public-page .destination-card img{width:100%;aspect-ratio:1.8;object-fit:cover;height:auto}
-body .public-page .destination-card>div{padding:18px}
-body .public-page .destination-card h3{font-size:24px;margin-bottom:6px}
-body .public-page .destination-card p{font-size:13px;color:var(--subtle);margin-bottom:15px}
-body .public-page .destination-card span{display:flex;align-items:center;gap:10px;color:#89d5ff;font-size:13px}
-body .artwork-caption{color:var(--subtle);font-size:11px;margin-top:12px}
-body .public-page .passenger-final,body .public-page .owner-final,body .public-page .driver-final{background:linear-gradient(90deg,#031730d9,#03173050),url('/images/travelly/heroes/cta-landscape-1920.webp') center/cover;border-top:1px solid var(--border);margin:45px 0 0;padding:55px 6%;min-height:230px;position:relative}
-body .public-page .passenger-final h2{font-size:32px;position:static;clip:auto;overflow:visible;width:auto;height:auto;margin-bottom:12px}
-body .public-page .passenger-final p{color:#c7deff;margin-bottom:22px}
-body .public-page .owner-final>picture{display:none}
-body .public-page .owner-final-copy{position:static;background:transparent;padding:0;inset:auto}
-body .public-page .driver-final>img{width:38%;object-fit:contain;height:auto;border-radius:12px}
 /* Authentication is a real HTML ticket and form over supplied scenic artwork. */
-body .ticket-light{width:90px;height:2px;box-shadow:0 0 12px #38d7ff;background:#8edfff;margin:20px auto}
-body .ticket-vehicles{display:flex;align-items:end;justify-content:center;height:clamp(130px,15vw,240px);margin:10px -10px 0}
-body .ticket-vehicles img{height:auto;max-height:100%;object-fit:contain;filter:drop-shadow(0 10px 8px #00073090);min-width:0}
-body .ticket-vehicles img:nth-child(1){width:36%;z-index:1}
-body .ticket-vehicles img:nth-child(2){width:34%;margin-left:-12%;z-index:2}
-body .ticket-vehicles img:nth-child(3){width:35%;margin-left:-12%;z-index:3}
-body .ticket-vehicles img:nth-child(4){width:22%;margin-left:-6%;z-index:4}
 body .ticket-services{display:flex;justify-content:center;gap:16px;align-items:center;color:#fff;font-size:clamp(15px,1.8vw,27px);font-weight:600;margin:18px 0 10px}
-body .ticket-services i{width:9px;height:9px;background:var(--coral);border-radius:50%;box-shadow:0 0 6px var(--primary-red)}
-body .ticket-tagline{color:#bdd8ff;font-size:clamp(14px,1.5vw,23px);margin-bottom:20px}
-body .ticket-steps{border-top:1px solid #2c9fff;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;list-style:none;margin:0;padding:20px 0 0;text-align:left}
-body .ticket-steps li{display:flex;align-items:center;gap:10px;min-width:0}
-body .ticket-steps img{width:42px;height:42px;object-fit:contain}
-body .ticket-steps strong{display:block;font-size:20px;font-weight:500;color:#fff}
-body .ticket-steps span{font-size:10px;white-space:nowrap;color:#d7e7ff}
-body .preview-dialog,body .document-dialog{background:#082247;color:#fff;border:1px solid #5ca9ff;border-radius:14px;box-shadow:0 20px 70px #000b28a0}
+body .ticket-services i{width:9px;height:9px;background:var(--primary-red);border-radius:50%;box-shadow:0 0 6px var(--primary-red)}
+body .preview-dialog{background:var(--ui-glass-strong);color:var(--ui-ink);border:1px solid #5ca9ff;border-radius:14px;box-shadow:0 20px 70px #000b28a0}
 /* Retained operational forms, profile and review surfaces share the same tokens. */
-body :is(.account-card,.profile-panel,.review-card,.review-detail,.review-summary,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-card,.vehicle-panel,.calendar-panel,.document-card,.account-section,.owner-rate-form fieldset){background:#082347;color:#e8f2ff;border-color:#418ac2}
-body :is(.profile-card,.role-card,.review-panel,.review-preview,.rate-vehicle-picker,.rate-reuse-note,.rate-area,.rate-area-summary,.trip-stop,.rate-prefilled,.vehicle-photo-card,.calendar-entry,.auth-flow-panel){background:#082347;color:#e8f2ff;border-color:#418ac2;box-shadow:none}
-body :is(.verification-note,.review-reason){background:#123453;color:#d3e9ff}
-body :is(.account-main,.review-main,.auth-flow-panel) :is(p,small,dt){color:#c0d4ef}
-body :is(.review-main,.review-panel,.auth-flow-panel,.private-upload) :is(input,select,textarea){background:#031c3b;color:#f0f6ff;border-color:#4c95cd}
-body :is(.role-card,.rate-field) small,body .rate-coverage-summary,body .change-totals dt,body .trip-price th small{color:#b9d1f3}
-body .trip-price tfoot th,body .trip-price tfoot td{color:#eef5ff;background:#0c335c}
-body :is(.avatar,.role-icon,.badge){background:#16416c;color:#f0f6ff}
-body :is(.status,.dashboard-role-status){background:#174777;color:#d9ecff}
+body :is(.account-card,.profile-panel,.review-card,.review-detail,.review-summary,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-card,.vehicle-panel,.calendar-panel,.document-card,.account-section,.owner-rate-form fieldset){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#418ac2}
+body :is(.profile-card,.role-card,.review-panel,.review-preview,.rate-vehicle-picker,.rate-reuse-note,.rate-area,.rate-area-summary,.trip-stop,.rate-prefilled,.vehicle-photo-card,.calendar-entry,.auth-flow-panel){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#418ac2;box-shadow:none}
+body :is(.verification-note,.review-reason){background:var(--ui-glass-strong);color:var(--ui-ink)}
+body :is(.account-main,.review-main,.auth-flow-panel) :is(p,small,dt){color:var(--ui-text)}
+body :is(.review-main,.review-panel,.auth-flow-panel,.private-upload) :is(input,select,textarea){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4c95cd}
+body :is(.role-card,.rate-field) small,body .rate-coverage-summary,body .change-totals dt,body .trip-price th small{color:var(--ui-text)}
+body .trip-price tfoot th,body .trip-price tfoot td{color:var(--ui-ink);background:var(--ui-glass-strong)}
+body :is(.avatar,.role-icon,.badge){background:var(--ui-glass-strong);color:var(--ui-ink)}
+body :is(.status,.dashboard-role-status){background:var(--ui-glass-strong);color:var(--ui-ink)}
 body .dashboard-role-status:is(.status-rejected,.status-suspended){background:rgb(var(--primary-red-rgb) / 16%);color:var(--primary-red);border-color:var(--primary-red)}
-body .rate-place li>button{background:#06264e;color:#eef7ff}
-body .rate-tabs button{background:#092c58;color:#e9f4ff;border-color:#3e8fd0}
+body .rate-place li>button{background:var(--ui-glass-strong);color:var(--ui-ink)}
+body .rate-tabs button{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#3e8fd0}
 body .rate-tabs button[aria-pressed=true]{background:var(--primary-red);border-color:var(--primary-red);color:#fff}
-body .calendar-week a{background:#0b3b4a;color:#d7fff1;border-color:#339b9a}
-body .calendar-week .occupied{background:rgb(var(--primary-red-rgb) / 16%);color:#ffe4cc;border-color:#bc8b79}
-body .calendar-entry.withdrawn{background:#102d47}
-body .calendar-checked{color:#ace5ce}
-body :is(.account-page,.review-page,.owner-rates-page,.vehicle-workspace){color:#e5f0ff;background:transparent}
-body :is(.rate-field,.account-page,.review-page,.vehicle-workspace) :is(input,select,textarea){background:#041c39;color:#f4f8ff;border-color:#467eac}
-body :is(.rate-hint,.rate-intro,.review-page p,.account-page p){color:#bad1f3}
+body .calendar-week a{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#339b9a}
+body .calendar-entry.withdrawn{background:var(--ui-glass-strong)}
+body :is(.account-page,.review-page,.owner-rates-page,.vehicle-workspace){color:var(--ui-text);background:transparent}
+body :is(.rate-field,.account-page,.review-page,.vehicle-workspace) :is(input,select,textarea){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#467eac}
+body :is(.rate-hint,.rate-intro,.review-page p,.account-page p){color:var(--ui-text)}
 body :is(table,th,td){border-color:#437eb549}
-body :is(thead,th){background:#0a2d59;color:#e4f0ff}
-body td{color:#e0edff}
+body :is(thead,th){background:var(--ui-glass-strong);color:var(--ui-ink)}
+body td{color:var(--ui-text)}
 body .notice.error{background:rgb(var(--primary-red-rgb) / 16%);color:var(--primary-red);border:1px solid var(--primary-red)}
-body .notice.success{background:#063d42;color:#b5fbe6;border-color:#2db7a2}
-body dialog::backdrop{background:#000c2aa8;backdrop-filter:blur(3px)}
-@media(max-width:1200px){body .site-header .brand.travelly-brand{width:185px}body .navigation{gap:15px;font-size:12px}body .site-header .header-inner{padding:10px 16px}body .public-page .search-panel form{grid-template-columns:1fr 1fr 1fr}body .public-page .search-submit{grid-column:span 2}body .public-page .confidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body .public-page .service-card{padding:15px;display:flex;flex-direction:column;align-items:start}body .public-page .service-card img{width:60%;max-height:140px;align-self:center}body .ticket-services{gap:10px;font-size:18px}body .ticket-steps{gap:8px}body .ticket-steps img{width:32px;height:32px}body .ticket-steps li{gap:6px}body .ticket-steps span{white-space:normal}body .ticket-steps strong{font-size:17px}}
-@media(max-width:1023px){body .site-header .navigation:not(.workspace-header .navigation){background:#06234ff5;border:1px solid #64acff;border-radius:16px;backdrop-filter:blur(20px)}body .ticket-services{gap:8px;font-size:15px}body .ticket-steps{grid-template-columns:1fr;gap:10px}body .ticket-steps li{justify-content:start}body .ticket-steps li>div{display:flex;align-items:center;gap:10px}body .ticket-tagline{font-size:14px}body .public-page .hero{height:700px;min-height:700px}body .public-page .hero-copy{padding-top:155px}body .public-page .hero h1{font-size:50px}body .workspace-layout{grid-template-columns:210px minmax(0,1fr)}body .role-dashboard,body .workspace-content .dashboard-main{padding:20px}body .workspace-card{padding:16px}body .workspace-card-heading h2{font-size:18px}}
+body .notice.success{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#2db7a2}
+body dialog::backdrop{background:rgb(18 21 82 / .45);backdrop-filter:blur(3px)}
+@media(max-width:1200px){body .site-header .brand.travelly-brand{width:185px}body .navigation{gap:15px;font-size:12px}body .site-header .header-inner{padding:10px 16px}body .public-page .search-panel form{grid-template-columns:1fr 1fr 1fr}body .public-page .search-submit{grid-column:span 2}body .ticket-services{gap:10px;font-size:18px}}
+@media(max-width:1023px){body .site-header .navigation:not(.workspace-header .navigation){background:var(--ui-glass-strong);border:1px solid #64acff;border-radius:16px;backdrop-filter:blur(20px)}body .ticket-services{gap:8px;font-size:15px}body .public-page .hero{height:700px;min-height:700px}body .public-page .hero h1{font-size:50px}body .workspace-layout{grid-template-columns:210px minmax(0,1fr)}body .role-dashboard,body .workspace-content .dashboard-main{padding:20px}body .workspace-card{padding:16px}body .workspace-card-heading h2{font-size:18px}}
 @media(max-width:767px){
- body .public-page.passenger-page .passenger-hero .hero-copy{position:absolute;inset:0;z-index:1;margin:0;padding:132px 6% 240px;width:100%;background:transparent}
- body .site-header{padding:12px 14px}body .site-header .header-inner{min-height:64px;padding:8px 12px;border-radius:16px;gap:10px}body .site-header .brand.travelly-brand{width:155px;height:44px}body .site-header .brand-mark img{max-height:44px}body .site-header .navigation.open{top:calc(100% + 8px);right:0;left:0;width:auto;padding:18px;background:#05234bf5;border:1px solid #5ba5f3;border-radius:14px;color:#fff;gap:16px}
- body .public-page .hero{min-height:620px;height:620px;max-height:none}body .public-page .hero-copy{padding:132px 6% 240px}body .public-page .hero h1{font-size:clamp(35px,7.4vw,54px);max-width:550px}body .public-page .hero-description{font-size:15px;max-width:340px}body .public-page .passenger-hero-image{object-position:61% center}body .public-page .hero::after{background:linear-gradient(0deg,#03132d,transparent 45%),linear-gradient(90deg,#001a4d55,transparent)}
- body .public-page .page-content{width:92%}body .public-page .search-panel{margin-top:-150px;border-radius:18px;padding:10px}body .public-page .search-tabs{gap:5px}body .public-page .search-tabs button{font-size:11px;padding:8px 5px;gap:6px;min-height:48px}body .public-page .search-tabs svg{width:17px;height:17px}body .public-page .search-panel form{grid-template-columns:1fr 1fr;padding:12px;gap:12px}body .public-page .search-submit{grid-column:1/-1}body .public-page .search-input{padding:8px;min-height:46px}body .public-page .search-input input{font-size:12px}body .public-page .group-trip{font-size:10px;flex-wrap:wrap}body .public-page .service-grid{grid-template-columns:1fr;gap:13px}body .public-page .service-card{display:flex;flex-direction:row;padding:18px;gap:20px}body .public-page .service-card img{width:35%;max-height:140px}body .public-page .service-card h3{font-size:22px}body .public-page .confidence-grid{gap:8px}body .public-page .benefit-card{padding:8px;gap:10px}body .public-page .benefit-icon svg{width:25px;height:25px}body .public-page .benefit-card h3{font-size:12px}body .public-page .benefit-card p{font-size:10px}body .public-page .destination-grid{grid-template-columns:1fr}body .public-page .destination-card img{aspect-ratio:2}body .public-page .section-heading{align-items:start;gap:15px;flex-wrap:wrap}body .public-page .section-heading h2{font-size:26px}body .public-page .section-heading p{font-size:12px}body .public-page .passenger-final{padding:38px 6%}body .public-page .passenger-final h2{font-size:28px}body .public-page .owner-final-copy{display:flex;flex-direction:column;gap:20px}body .public-page .driver-final{display:flex;flex-direction:column;gap:25px}body .public-page .driver-final>img{width:100%;max-width:500px}body .ticket-vehicles{height:160px}body .ticket-services{font-size:17px;gap:12px}body .ticket-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}body .ticket-steps li{flex-direction:column;text-align:center}body .ticket-steps li>div{display:block}body .ticket-steps span{font-size:9px}
- body .workspace-topbar .site-header{padding:8px 10px}body .workspace-topbar .header-inner{padding:8px 10px;min-height:62px;border-radius:14px}body .workspace-topbar .site-header .brand.travelly-brand{width:148px;height:42px}body .workspace-header .navigation{gap:10px}body .workspace-layout{grid-template-columns:minmax(0,1fr)}body .workspace-sidebar{display:none}body .role-dashboard,body .workspace-content .dashboard-main{padding:22px 14px}body .workspace-heading h1{font-size:27px;letter-spacing:-.6px}body .workspace-hero{grid-template-columns:1fr}body .workspace-hero>div{padding:24px}body .workspace-hero>img{max-height:200px;min-height:0;mask-image:linear-gradient(0deg,#000 80%,transparent);aspect-ratio:2.1}body .owner-fleet-hero>img{min-height:0;max-height:180px}body .workspace-columns,body .owner-workspace-columns{grid-template-columns:1fr}body .workspace-metrics{grid-template-columns:1fr;gap:12px}body .workspace-metric{min-height:95px;padding:17px}body .workspace-card-heading{align-items:start}body .workspace-card-heading h2{font-size:18px}body .workspace-card-heading>a{font-size:10px;padding:6px 8px}body .workspace-record .workspace-badge{margin-left:0}body .workspace-record-icon.fleet-thumbnail{width:78px}body .workspace-quick-actions a{font-size:12px;min-height:64px}body .workspace-content :is(.owner-rates-page,.review-page,.account-page,.vehicle-workspace){padding:22px 14px}body .workspace-search form{grid-template-columns:1fr}body .workspace-search input{min-height:48px}body .workspace-intro{font-size:13px}body .workspace-card p{font-size:12px}body .pipeline-row{grid-template-columns:95px 1fr 20px;font-size:10px}body .workspace-sidebar-link{font-size:13px;min-height:44px}body .workspace-drawer-panel{padding-top:20px}body .site-footer{padding:24px 5%;gap:14px;flex-wrap:wrap}
+ body .site-header{padding:12px 14px}body .site-header .header-inner{min-height:64px;padding:8px 12px;border-radius:16px;gap:10px}body .site-header .brand.travelly-brand{width:155px;height:44px}body .site-header .brand-mark img{max-height:44px}body .site-header .navigation.open{top:calc(100% + 8px);right:0;left:0;width:auto;padding:18px;background:var(--ui-glass-strong);border:1px solid #5ba5f3;border-radius:14px;color:var(--ui-ink);gap:16px}
+ body .public-page .hero{min-height:620px;height:620px;max-height:none}body .public-page .hero h1{font-size:clamp(35px,7.4vw,54px);max-width:550px}body .public-page .hero::after{background:var(--ui-glass-strong)}
+ body .public-page .page-content{width:92%}body .public-page .search-panel{margin-top:-150px;border-radius:18px;padding:10px}body .public-page .search-tabs{gap:5px}body .public-page .search-tabs button{font-size:11px;padding:8px 5px;gap:6px;min-height:48px}body .public-page .search-tabs svg{width:17px;height:17px}body .public-page .search-panel form{grid-template-columns:1fr 1fr;padding:12px;gap:12px}body .public-page .search-submit{grid-column:1/-1}body .public-page .search-input{padding:8px;min-height:46px}body .public-page .search-input input{font-size:12px}body .public-page .group-trip{font-size:10px;flex-wrap:wrap}body .ticket-services{font-size:17px;gap:12px}
+ body .workspace-topbar .site-header{padding:8px 10px}body .workspace-topbar .header-inner{padding:8px 10px;min-height:62px;border-radius:14px}body .workspace-topbar .site-header .brand.travelly-brand{width:148px;height:42px}body .workspace-header .navigation{gap:10px}body .workspace-layout{grid-template-columns:minmax(0,1fr)}body .role-dashboard,body .workspace-content .dashboard-main{padding:22px 14px}body .workspace-heading h1{font-size:27px;letter-spacing:-.6px}body .workspace-metric{min-height:95px;padding:17px}body .workspace-card-heading{align-items:start}body .workspace-card-heading h2{font-size:18px}body .workspace-card-heading>a{font-size:10px;padding:6px 8px}body .workspace-record .workspace-badge{margin-left:0}body .workspace-quick-actions a{font-size:12px;min-height:64px}body .workspace-content :is(.owner-rates-page,.review-page,.account-page,.vehicle-workspace){padding:22px 14px}body .workspace-card p{font-size:12px}body .pipeline-row{grid-template-columns:95px 1fr 20px;font-size:10px}body .workspace-sidebar-link{font-size:13px;min-height:44px}body .workspace-drawer-panel{padding-top:20px}body .site-footer{padding:24px 5%;gap:14px;flex-wrap:wrap}
 }
-@media(max-width:380px){body .site-header .brand.travelly-brand{width:140px}body .workspace-topbar .site-header .brand.travelly-brand{width:132px}body .public-page .search-panel label{font-size:11px}body .public-page .search-tabs button{font-size:10px}body .public-page .search-tabs svg{display:none}body .workspace-quick-actions{grid-template-columns:1fr}body .ticket-services{font-size:14px;gap:9px}body .ticket-vehicles{height:130px}body .public-page .confidence-grid{grid-template-columns:1fr}}
+@media(max-width:380px){body .site-header .brand.travelly-brand{width:140px}body .workspace-topbar .site-header .brand.travelly-brand{width:132px}body .public-page .search-panel label{font-size:11px}body .public-page .search-tabs button{font-size:10px}body .public-page .search-tabs svg{display:none}body .workspace-quick-actions{grid-template-columns:1fr}body .ticket-services{font-size:14px;gap:9px}}
 @media(prefers-reduced-motion:reduce){body *,body *::before,body *::after{scroll-behavior:auto;animation-duration:.01ms;animation-iteration-count:1;transition-duration:.01ms}}
 /* Clean artwork fills the complete hero beneath the live header and copy. */
-body .public-page :is(.owner-hero,.driver-hero){background:#03132d;height:auto;min-height:clamp(580px,43vw,760px);max-height:none;display:grid;align-items:center}
+body .public-page :is(.owner-hero,.driver-hero){background:var(--ui-glass-strong);height:auto;min-height:clamp(580px,43vw,760px);max-height:none;display:grid;align-items:center}
 body .public-page :is(.owner-hero,.driver-hero)::after{
  z-index:1;
- background:linear-gradient(90deg,#02132ee6 0%,#02132d99 32%,transparent 63%),linear-gradient(0deg,#03132d,transparent 15%);
+ background:var(--ui-glass-strong);
 }
-body .public-page :is(.owner-hero,.driver-hero) .hero-copy{z-index:2;background:none;padding:150px 6% 85px;position:relative;inset:auto;width:100%;align-self:center}
 body .public-page :is(.owner-hero,.driver-hero) h1{font-size:clamp(38px,3.8vw,66px);max-width:56%;font-weight:750}
-body .public-page :is(.owner-hero,.driver-hero) .hero-description{max-width:45%;font-size:clamp(17px,1.4vw,23px);line-height:1.4}
 body .public-page :is(.owner-hero-art,.driver-hero-art){
  position:absolute;inset:0;width:100%;height:100%;max-width:none;
  overflow:hidden;clip-path:none;pointer-events:none;z-index:0;
@@ -168,13 +115,7 @@ body .public-page :is(.owner-hero-art,.driver-hero-art) img{
 }
 @media(max-width:767px){
  body .public-page :is(.owner-hero,.driver-hero){height:auto;min-height:0;max-height:none;display:flex;flex-direction:column}
- body .public-page :is(.owner-hero,.driver-hero)::after{background:linear-gradient(0deg,#03132d,transparent 20%)}
- body .public-page :is(.owner-hero,.driver-hero) .hero-copy{order:0;padding:120px 6% 25px;background:linear-gradient(0deg,#03132df0,#03132d9c)}
+ body .public-page :is(.owner-hero,.driver-hero)::after{background:var(--ui-glass-strong)}
  body .public-page :is(.owner-hero,.driver-hero) h1{max-width:100%;font-size:clamp(34px,7vw,50px)}
- body .public-page :is(.owner-hero,.driver-hero) .hero-description{max-width:100%;font-size:17px}
- body .public-page .owner-hero-art,body .public-page .driver-hero-art{
-  position:relative;inset:auto;order:1;width:100%;height:62vw;min-height:250px;max-height:420px;margin:0;
-  clip-path:none;
- }
  body .public-page :is(.owner-hero-art,.driver-hero-art) img{inset:0;width:100%;height:100%;object-position:right center}
 }

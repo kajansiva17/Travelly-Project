@@ -1,31 +1,22 @@
 ﻿/* Final six-page composition. Source assets remain individual responsive images. */
 body .public-page .passenger-hero{height:690px;min-height:690px;max-height:none}
-body .public-page .passenger-hero .hero-copy{padding-top:175px;padding-bottom:245px}
 body .public-page .hero h1{font-size:clamp(44px,4.6vw,72px);font-weight:600;line-height:1.08;max-width:820px}
-.hero-discover{display:inline-flex;align-items:center;gap:12px;margin-top:22px;text-decoration:none;font-size:13px;color:#e6f0ff}
-.hero-discover svg{color:var(--primary-red)}
 body .public-page .search-panel{margin-top:-163px;box-shadow:inset 0 1px 1px #d1e7ff66,0 20px 55px #0006}
 body .public-page #services{padding-top:20px}
-body .public-page .service-card{min-height:215px;background:linear-gradient(135deg,#112d4b,#071b33);border-color:#4175a655}
-body .public-page .confidence-grid{border-color:#507da94d}
-.auth-kicker{display:block;font-size:9px;letter-spacing:1.7px;color:#aacded;margin-bottom:13px}
 /* Operational layouts are authored in workspaces.css, without the old dashboard theme. */
-body .workspace-shell{background:radial-gradient(ellipse at 100% 0,#143d6938,transparent 65%),#041329}
+body .workspace-shell{background:var(--ui-glass-strong)}
 body .workspace-topbar .header-inner{border-radius:15px;min-height:64px;padding:8px 20px}
-body .workspace-sidebar-main{overflow:visible}
 body .workspace-sidebar-link{min-height:28px;font-size:11px;padding:5px 10px;border-radius:7px}
 body .workspace-content .role-dashboard{padding:25px 30px 40px}
 body .workspace-card .workspace-note,body .workspace-note{font-size:10px}
 body .workspace-quick-actions a{min-height:60px;font-size:11px}
 body .workspace-metric{min-height:112px}
 body .workspace-card-heading h2{font-size:17px}
-@media(min-width:1100px) and (min-height:760px){body .workspace-layout{grid-template-columns:224px minmax(0,1fr)}body .workspace-sidebar{display:flex}body .workspace-menu-toggle{display:none}}
-@media(max-width:1099px),(max-height:759px){body .workspace-layout{grid-template-columns:minmax(0,1fr)}body .workspace-sidebar{display:none}body .workspace-menu-toggle{display:inline-flex}body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}}
+@media(min-width:1100px) and (min-height:760px){body .workspace-layout{grid-template-columns:224px minmax(0,1fr)}body .workspace-menu-toggle{display:none}}
+@media(max-width:1099px),(max-height:759px){body .workspace-layout{grid-template-columns:minmax(0,1fr)}body .workspace-menu-toggle{display:inline-flex}body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}}
 @media(max-width:767px){
  body .public-page .passenger-hero{height:660px;min-height:660px}
- body .public-page.passenger-page .passenger-hero .hero-copy{padding:140px 6% 240px;background:transparent}
  body .public-page .hero h1{font-size:clamp(36px,7.5vw,54px)}
- body .public-page .hero-discover{margin-top:14px;font-size:12px}
  body .public-page .search-panel{margin-top:-155px}
  body .workspace-content .role-dashboard{padding:18px 14px 30px}
  body .workspace-topbar .header-inner{padding:8px 10px}
@@ -36,9 +27,3 @@ body .workspace-card-heading h2{font-size:17px}
 
 @media(max-width:1099px){body .workspace-header .navigation>a,body .workspace-header .dashboard-signout{display:none}body .workspace-profile-name{max-width:150px}}
 /* Shared account stays within the customer booking layout at narrow widths. */
-body .customer-content .account-main{padding:20px 0}
-body .account-heading{flex-wrap:wrap}
-body .profile-card{flex-wrap:wrap}
-body .profile-card>div:nth-child(2){flex:1;min-width:0}
-body .profile-card h2{overflow-wrap:anywhere}
-body .profile-card>.button{margin-left:auto}

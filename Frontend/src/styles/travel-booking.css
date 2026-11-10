@@ -15,17 +15,13 @@ html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page)
 
 /* Heading over the scenery. */
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) :is(h1, h2, h3, legend) { color: var(--ui-ink); letter-spacing: -.01em; }
-html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) > h1, html body .workspace-shell[data-workspace] .travel-booking-heading h1 { font-size: clamp(28px, 3vw, 38px); font-weight: 800; line-height: 1.15; margin: 0; text-shadow: 0 1px 8px rgb(255 255 255 / .7); }
-html body .workspace-shell[data-workspace] .travel-booking-heading { display: grid; gap: 4px; }
-html body .workspace-shell[data-workspace] .travel-booking-heading p, html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .rate-intro { margin: 0; font-size: 15px; color: var(--ui-text); text-shadow: 0 1px 6px rgb(255 255 255 / .6); }
-html body .workspace-shell[data-workspace] .travel-booking-heading .travel-booking-note { font-size: 13px; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) > h1 { font-size: clamp(28px, 3vw, 38px); font-weight: 800; line-height: 1.15; margin: 0; text-shadow: 0 1px 8px rgb(255 255 255 / .7); }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) :is(p, li, td, th, dd, dt, summary, label, span, small) { color: inherit; }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) a:not(.button):not(.ui-tab):not(.ui-tile) { color: var(--ui-blue); }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .inline-link { color: var(--ui-blue); text-decoration: underline; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .inline-link:disabled { color: var(--ui-muted); cursor: not-allowed; }
 
 /* Form: sub-panels inside the glass card instead of the old dark-blue fieldset. */
-html body .workspace-shell[data-workspace] .travel-booking-card form { display: grid; gap: 16px; }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) fieldset {
   min-width: 0; margin: 0; padding: 16px 18px 18px;
   background: rgb(255 255 255 / .45); color: var(--ui-ink);
@@ -85,7 +81,6 @@ html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page)
 }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .button:not(.outline):disabled { background: rgb(132 140 158 / .55); color: rgb(255 255 255 / .8); box-shadow: none; text-shadow: none; cursor: not-allowed; }
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
-html body .workspace-shell[data-workspace] .travel-booking-card form > button.button { justify-self: stretch; min-height: 52px; font-size: 17px; }
 
 /* Results, vehicle cards, price tables, notices. */
 html body .workspace-shell[data-workspace] :is(.travel-booking-page, .flow-page) .trip-results { margin-top: 0; display: grid; gap: 14px; }

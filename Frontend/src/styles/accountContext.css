@@ -1,9 +1,1 @@
-.account-main .profile-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center}
-.account-main .profile-card h2,.account-main .profile-card p{overflow-wrap:anywhere;margin-block:6px}
-.account-main .document-checklist{background:#062448;border:1px solid #4784b8;color:#f5f8ff}
-body .account-main .private-upload .upload-helper,body .account-main .document-checklist .upload-helper{color:#b9d6f4}
-.account-main .document-checklist select{background:#031c38;color:#f5f8ff;border-color:#4784b8}
-.account-main .document-requirement,.account-main .upload-approval-note{background:#244c72;color:#fff}
-.account-main .private-upload .upload-field-error{color:var(--primary-red)}
-.account-main .review-document>.inline-link,.role-onboarding .review-document>.inline-link{display:block;margin-top:14px}
-@media(max-width:600px){.account-main .profile-card{grid-template-columns:auto minmax(0,1fr);gap:12px}.account-main .profile-card>.button{grid-column:1/-1;justify-self:start}.account-main .account-heading{gap:18px}.account-main .review-panel{padding:20px 14px}}
+.role-onboarding .review-document>.inline-link{display:block;margin-top:14px}

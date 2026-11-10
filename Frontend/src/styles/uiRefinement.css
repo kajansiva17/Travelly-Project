@@ -11,16 +11,11 @@
 .public-page .hero h1 { font-weight: 600; line-height: 1.08; letter-spacing: -.045em; }
 .public-page :is(.section-heading h2, .owner-final h2, .driver-final h2) { line-height: 1.18; letter-spacing: -.035em; }
 .public-page :is(.card-copy h3, .service-card h3, .benefit-card h3) { line-height: 1.25; letter-spacing: -.025em; }
-.public-page .hero .eyebrow { font-weight: 500; }
-.public-page .hero-description { line-height: 1.4; letter-spacing: -.02em; }
 .public-page .button { font-weight: 500; }
 
 /* Preserve clearance above the Owner page's existing overlapping steps panel. */
 @media (min-width: 761px) {
-  .public-page .owner-hero .hero-copy { top: 4%; }
-  .public-page .owner-hero .eyebrow { margin-bottom: 8px; }
   .public-page .owner-hero h1 { font-size: clamp(32px, 3.3vw, 48px); margin-bottom: 10px; }
-  .public-page .owner-hero .hero-description { font-size: clamp(15px, 1.45vw, 21px); line-height: 1.3; margin-bottom: 16px; }
 }
 
 /* One set of reading-sized auth rules supersedes the old embedded-input and

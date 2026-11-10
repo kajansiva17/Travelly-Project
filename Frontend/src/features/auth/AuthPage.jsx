@@ -26,7 +26,7 @@ export default function AuthPage({ signup = false }) {
   const [fields,setFields]=useState({})
   const [registrationValues,setRegistrationValues]=useState({full_name:'',email:'',password:'',confirm_password:''})
   const [registerStep,setRegisterStep]=useState(1)
-  const [compactRegistration,setCompactRegistration]=useState(()=>signup&&window.matchMedia('(min-width: 1024px) and (max-height: 640px)').matches)
+  const [compactRegistration,setCompactRegistration]=useState(()=>signup&&window.matchMedia('(min-width: 1024px) and (max-height: 820px)').matches)
   const [remember,setRemember]=useState(false)
   const [phoneCountry,setPhoneCountry]=useState('LK')
   const [nationalPhone,setNationalPhone]=useState('')
@@ -34,7 +34,7 @@ export default function AuthPage({ signup = false }) {
   useEffect(()=>{
     setError(null);setFields({});setPhoneCountry('LK');setNationalPhone('')
     setRegistrationValues({full_name:'',email:'',password:'',confirm_password:''});setRegisterStep(1)
-    const compact=window.matchMedia('(min-width: 1024px) and (max-height: 640px)')
+    const compact=window.matchMedia('(min-width: 1024px) and (max-height: 820px)')
     const updateLayout=()=>setCompactRegistration(signup&&compact.matches)
     updateLayout();compact.addEventListener('change',updateLayout)
     return ()=>compact.removeEventListener('change',updateLayout)

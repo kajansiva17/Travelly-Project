@@ -2,7 +2,6 @@
    Same field height, card padding, gaps and type scale as every other dashboard: no new sizes here. */
 html body .flow-page .tk-grid { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
 @media (max-width: 760px) { html body .flow-page .tk-grid { grid-template-columns: minmax(0, 1fr); } }
-html body .flow-page .tk-grid > .tk-span { grid-column: 1 / -1; }
 html body .flow-page .tk-pane { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
 html body .flow-page .tk-pane[hidden] { display: none; }
 html body .flow-page .tk-split { display: grid; grid-template-columns: minmax(240px, 2fr) minmax(0, 3fr); gap: 12px; flex: 1 1 0; min-height: 0; }
@@ -31,7 +30,6 @@ html body .flow-page .tk-counter { display: grid; grid-template-columns: minmax(
 html body .flow-page .tk-counter > .tk-counter-ctl { display: inline-flex; align-items: center; gap: 6px; }
 html body .flow-page .tk-counter .ui-button { min-height: 32px; width: 32px; padding: 0; font-size: 18px; line-height: 1; }
 html body .flow-page .tk-counter output { min-width: 24px; text-align: center; font-size: 15px; font-weight: 700; }
-html body .flow-page .tk-stepno { font-size: 13px; font-weight: 700; color: var(--ui-muted); }
 html body .flow-page .success-banner { flex: none; margin: 0; padding: 6px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--ui-green-soft); color: #0b5d2a; border: 1px solid #7bcf9b; }
 html body .flow-page .tk-stop-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 html body .flow-page .tk-stop-nav .ui-button { min-height: 34px; padding: 2px 12px; font-size: 14px; }

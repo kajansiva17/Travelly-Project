@@ -11,10 +11,9 @@ body .language select:focus-visible {outline:2px solid currentColor;outline-offs
 body .workspace-shell .language {display:flex;color:inherit;}
 body .workspace-shell .language select {color:inherit;}
 body .language select {color:inherit; color-scheme:dark;}
-body .language option {color:#edf5ff;background:#082750;}
+body .language option {color:var(--ui-ink);background:var(--ui-glass-strong);}
 html:not(:lang(en)) .workspace-shell .workspace-sidebar-link {font-size:11px;line-height:1.5;}
 html:not(:lang(en)) .workspace-shell .workspace-drawer .workspace-sidebar-link {font-size:10.5px;}
-html:not(:lang(en)) .hero-copy h1 {line-height:1.5;letter-spacing:normal;}
 html:not(:lang(en)) .search-tabs button {white-space:normal;line-height:1.6;}
 html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wrap:anywhere;}
 @media(min-width:768px) {
@@ -24,13 +23,10 @@ html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wr
 /* Navigation uses the same width breakpoints in every language. Labels can
    wrap within their own flex item instead of pushing the last control outside
    the navbar or changing the entire desktop into a phone menu. */
-body .customer-shell > .site-header .header-inner {position:relative;}
-body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160px;flex-shrink:1;}
 
 @media(min-width:1280px) {
   body :is(.public-page, .customer-shell) > .site-header .brand.travelly-brand {width:clamp(180px,13vw,225px);}
   body :is(.public-page, .customer-shell) > .site-header .navigation {flex:1;justify-content:flex-end;font-size:13px;}
-  body .customer-shell > .site-header .navigation {flex-wrap:wrap;row-gap:4px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation > :is(a,button) {flex-shrink:1;}
   body :is(.public-page, .customer-shell) > .site-header .navigation .nav-cta {font-size:13px;padding-block:8px;}
 }
@@ -50,20 +46,9 @@ body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160
 }
 
 @media(max-width:1279px) {
-  body .customer-shell > .site-header .menu-toggle {display:grid;place-items:center;margin-left:auto;}
-  body .customer-shell > .site-header .navigation {display:none;}
-  body .customer-shell > .site-header .navigation.open {
-    display:flex;position:absolute;inset:calc(100% + 8px) 0 auto;
-    flex-direction:column;align-items:stretch;
-    max-height:calc(100dvh - 110px);overflow-y:auto;
-    padding:18px;gap:12px;border:1px solid #8bcaffbd;border-radius:18px;
-    background:linear-gradient(135deg,#0a3264f5,#031b3cf7);color:#edf5ff;
-    box-shadow:inset 0 1px 1px #e4f6ff60,0 14px 30px #00072e70;
-    backdrop-filter:blur(20px);z-index:60;
-  }
   body :is(.public-page, .customer-shell) > .site-header .navigation.open {
-    background:linear-gradient(135deg,#0a3264f5,#031b3cf7);
-    color:#edf5ff;
+    background:var(--ui-glass-strong);
+    color:var(--ui-ink);
   }
 }
 @media(max-width:420px) {
@@ -75,9 +60,7 @@ body .customer-shell > .site-header .customer-profile {min-width:0;max-width:160
 /* Flexible text boxes preserve the existing cards, backgrounds and artwork. */
 body :is(.service-card,.benefit-card) > div {min-width:0;flex:1;}
 body :is(.service-card,.benefit-card) :is(h3,p,a) {overflow-wrap:anywhere;white-space:normal;}
-body :is(.service-card,.benefit-card) .section-link {max-width:100%;}
 html:not(:lang(en)) .public-page :is(.service-card,.benefit-card) p {line-height:1.6;}
-body .driver-hero .hero-description {white-space:pre-line;}
 
 html:not(:lang(en)) .workspace-shell .workspace-card-heading {flex-wrap:wrap;align-items:flex-start;}
 html:not(:lang(en)) .workspace-shell .workspace-card-heading > div {min-width:0;flex:1 1 180px;}

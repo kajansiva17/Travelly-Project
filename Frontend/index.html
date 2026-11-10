@@ -4,10 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#4b0712" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="description" content="One Travelly account for your journeys across Sri Lanka." />
     <title>Travelly — Your journey starts here</title>
     <link rel="icon" type="image/png" href="/images/Speedometer%20vehicle%20logo%20with%20deep%20red%20accents.png" />
+    <style>
+      /* First paint before the app loads: never blue. Neutral light, or the sunset photo on the sign-in pages. */
+      html, body { margin: 0; background: #f4f6f9; }
+      html.auth-boot, html.auth-boot body { background: #f6dcc8 url('/images/travelly/heroes/auth-sunset-coast.jpg') center / cover no-repeat; }
+    </style>
+    <script>
+      if (/^\/(login|register|forgot-password|check-email|verify-email|reset-password|google-complete)\/?$/.test(location.pathname)) document.documentElement.classList.add('auth-boot')
+    </script>
   </head>
   <body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body>
 </html>
