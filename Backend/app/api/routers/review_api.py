@@ -81,8 +81,10 @@ class UploadMetadata(BaseModel):
     issuing_country: str | None = None
     issue_date: date | None = None
     expiry_date: date | None = None
+    # Only for a route permit: the vehicle number printed on the permit, checked against the vehicle (not stored).
+    vehicle_number: str | None = Field(default=None, min_length=1, max_length=40)
 
-    @field_validator('number', mode='before')
+    @field_validator('number', 'vehicle_number', mode='before')
     @classmethod
     def trim(cls, value):
         return value.strip() if isinstance(value, str) else value
@@ -401,6 +403,9 @@ def documents(request: Request, user=Depends(current), db: Session = Depends(get
         clauses.append(getattr(Document, key) == value)
     if not is_admin(db, user):
         clauses.append(or_(Document.user_id == user.id, Document.vehicle_id.in_(select(Vehicle.id).where(Vehicle.owner_user_id == user.id))))
+    elif 'document_type' not in p and 'vehicle_id' not in p:
+        # Route permits are system-checked, so they stay out of the Admin review queue.
+        clauses.append(Document.document_type != 'ROUTE_PERMIT')
     for key in ('document_type', 'status'):
         if key in p: clauses.append(getattr(Document, key) == p[key])
     query = select(Document).where(*clauses)
@@ -440,6 +445,8 @@ def review_document(document_id: UUID, body: DocumentReview, request: Request, u
             raise ApiError(409, 'INVALID_REVIEW_TRANSITION', 'This decision is not available for the current status.')
         if db.scalar(select(Document.id).where(Document.superseded_document_id == doc.id).limit(1)):
             raise ApiError(409, 'INVALID_REVIEW_TRANSITION', 'This document has been replaced.')
+        if doc.document_type == 'ROUTE_PERMIT':
+            raise ApiError(409, 'ROUTE_PERMIT_SYSTEM_CHECKED', 'Route permits are optional and checked by the system when uploaded. Admin review is not needed.')
         if body.decision == 'APPROVED' and doc.document_type == 'DRIVING_LICENCE':
             today = datetime.now(ZoneInfo('Asia/Colombo')).date()
             fields = []
@@ -463,6 +470,34 @@ def review_document(document_id: UUID, body: DocumentReview, request: Request, u
         return result
 
 
+def plate(value):
+    return re.sub(r'[^A-Z0-9]', '', (value or '').upper())
+
+
+def check_route_permit(db, meta):
+    # Project-owner decision: a route permit is optional and is checked by the system, not by Admin.
+    fields = []
+    if meta.document_type != 'ROUTE_PERMIT' or meta.owner_type != 'VEHICLE':
+        raise ApiError(422, 'VALIDATION_ERROR', 'The vehicle number on a permit is only used for a vehicle route permit.',
+                       [{'field': 'vehicle_number', 'code': 'not_allowed', 'message': 'Only send this for a route permit.'}])
+    today = datetime.now(ZoneInfo('Asia/Colombo')).date()
+    if not meta.number:
+        fields.append({'field': 'number', 'code': 'required', 'message': 'Enter the permit number printed on the route permit.'})
+    if not meta.expiry_date:
+        fields.append({'field': 'expiry_date', 'code': 'required', 'message': 'Enter the permit expiry date.'})
+    elif meta.expiry_date < today:
+        fields.append({'field': 'expiry_date', 'code': 'invalid_value', 'message': 'This route permit has expired. Upload a current permit.'})
+    if meta.issue_date and meta.issue_date > today:
+        fields.append({'field': 'issue_date', 'code': 'invalid_value', 'message': 'The issue date cannot be in the future.'})
+    registration = db.scalar(select(Vehicle.registration_number).where(Vehicle.id == meta.owner_id))
+    if not meta.vehicle_number:
+        fields.append({'field': 'vehicle_number', 'code': 'required', 'message': 'Enter the vehicle number printed on the route permit.'})
+    elif plate(meta.vehicle_number) != plate(registration):
+        fields.append({'field': 'vehicle_number', 'code': 'invalid_value', 'message': 'The vehicle number on the permit does not match this vehicle.'})
+    if fields:
+        raise ApiError(422, 'ROUTE_PERMIT_DETAILS_INVALID', ' '.join(f['message'] for f in fields), fields)
+
+
 def save_upload(meta, upload, request, user, db):
     storage, journal = request.app.state.documents, request.app.state.audit
     with journal.coordinated(), file_lock(storage.root() / 'upload.lock'):
@@ -470,6 +505,8 @@ def save_upload(meta, upload, request, user, db):
         owner = user.id if meta.owner_type == 'USER' else db.scalar(select(Vehicle.owner_user_id).where(Vehicle.id == meta.owner_id).with_for_update())
         if owner != user.id or (meta.owner_type == 'USER' and meta.owner_id != user.id):
             raise ApiError(404, 'DOCUMENT_NOT_FOUND', 'Document not found.')
+        if meta.document_type == 'ROUTE_PERMIT' or meta.vehicle_number is not None:
+            check_route_permit(db, meta)
         storage.recover(db)
         # Replacement rows link the most recent same-owner/type file; old rows/bytes/reasons are retained.
         fk = 'user_id' if meta.owner_type == 'USER' else 'vehicle_id'

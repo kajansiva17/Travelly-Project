@@ -1,0 +1,118 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Travelly: Redis",
+      "type": "shell",
+      "command": "& '${workspaceFolder}\\.venv\\Scripts\\python.exe' Backend\\scripts\\start_local_redis.py",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": false,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "travelly",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Travelly: Review Writer",
+      "type": "shell",
+      "command": "Start-Sleep -Seconds 4; if (Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -like '*app.services.review_writer*' }) { 'Review writer is already running.' } else { & '${workspaceFolder}\\.venv\\Scripts\\python.exe' -m app.services.review_writer }",
+      "options": {
+        "cwd": "${workspaceFolder}\\Backend",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "travelly",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Travelly: Backend",
+      "type": "shell",
+      "command": "Start-Sleep -Seconds 6; if (Get-NetTCPConnection -State Listen -LocalPort 8000 -ErrorAction SilentlyContinue) { 'Backend is already running on port 8000.' } else { & '${workspaceFolder}\\.venv\\Scripts\\python.exe' -m uvicorn app.main:app --app-dir Backend --reload --host 127.0.0.1 --port 8000 }",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "travelly",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Travelly: Frontend",
+      "type": "shell",
+      "command": "if (Get-NetTCPConnection -State Listen -LocalPort 5173 -ErrorAction SilentlyContinue) { 'Frontend is already running. Open: http://localhost:5173/' } else { npm.cmd run dev }",
+      "options": {
+        "cwd": "${workspaceFolder}\\Frontend",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "travelly",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Travelly: Start all",
+      "dependsOn": [
+        "Travelly: Redis",
+        "Travelly: Review Writer",
+        "Travelly: Backend",
+        "Travelly: Frontend"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "never"
+      }
+    }
+  ]
+}

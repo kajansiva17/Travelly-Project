@@ -134,8 +134,11 @@ class VehicleEligibility(Version):
     authorisation_required: bool = Field(strict=True)
     @model_validator(mode='after')
     def complete_applicability(self):
-        if set(self.conditional_documents) != {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'}:
-            raise ValueError('Admin must explicitly confirm every conditional document applicability.')
+        # Project-owner decision (9 Nov 2026): a route permit is never mandatory, so Admin is not asked about it.
+        # It is always stored as "not required"; an older client that still sends it cannot make it required.
+        if not {'EMISSION', 'FITNESS'} <= set(self.conditional_documents):
+            raise ValueError('Admin must explicitly confirm whether the emission and fitness certificates are required.')
+        self.conditional_documents = {**self.conditional_documents, 'ROUTE_PERMIT': False}
         return self
 
 

@@ -85,7 +85,8 @@ class VehicleDecision(RateModel):
     @model_validator(mode='after')
     def decision_fields(self):
         if self.decision == 'APPROVED':
-            VehicleEligibility.model_validate({k: getattr(self, k) for k in ('expected_version','category','conditional_documents','authorisation_required')})
+            checked = VehicleEligibility.model_validate({k: getattr(self, k) for k in ('expected_version','category','conditional_documents','authorisation_required')})
+            self.conditional_documents = checked.conditional_documents  # stores ROUTE_PERMIT as never required
             if self.reason is not None: raise ValueError('Approval does not require a negative decision reason.')
         elif not self.reason or not self.reason.strip(): raise ValueError('Explain the rejection or suspension to the Owner.')
         elif any(v is not None for v in (self.category,self.conditional_documents,self.authorisation_required)):

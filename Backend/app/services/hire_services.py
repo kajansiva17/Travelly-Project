@@ -43,11 +43,12 @@ def current_documents(db, *, uid=None, vid=None, at=None):
 def vehicle_evidence(db, vehicle, at=None):
     policy = vehicle.verified_eligibility
     applicability = policy.get('conditional_documents', {})
-    if set(applicability) != {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
+    if not {'EMISSION', 'FITNESS'} <= set(applicability) <= {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'Vehicle evidence applicability has not been verified.')
     if type(policy.get('authorisation_required')) is not bool or not policy.get('category'):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'The registered-owner case and vehicle category must be reviewed.')
-    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed}
+    # A route permit is optional for every vehicle (project-owner decision), even on vehicles reviewed before that rule.
+    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed and t != 'ROUTE_PERMIT'}
     if policy['authorisation_required']: required.add('OWNER_AUTHORISATION')
     docs = current_documents(db, vid=vehicle.id, at=at)
     if not required <= set(docs):

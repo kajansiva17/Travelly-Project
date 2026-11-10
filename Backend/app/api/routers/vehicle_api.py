@@ -89,17 +89,30 @@ def admin_locked(db,request,user,vid,body=None):
     return row
 
 
+def route_permit(db,vehicle_id):
+    # Optional permit badge only: never blocks approval, publication or booking.
+    from zoneinfo import ZoneInfo
+    replacement=Document.__table__.alias('replacement')
+    doc=db.scalar(select(Document).where(Document.vehicle_id==vehicle_id,Document.document_type=='ROUTE_PERMIT',
+        ~exists(select(replacement.c.id).where(replacement.c.superseded_document_id==Document.id))).order_by(Document.created_at.desc()).limit(1))
+    if not doc:return {'uploaded':False,'current':False,'expiry_date':None}
+    today=datetime.now(ZoneInfo('Asia/Colombo')).date()
+    return {'uploaded':True,'current':bool(doc.expiry_date and doc.expiry_date>=today),'expiry_date':doc.expiry_date.isoformat() if doc.expiry_date else None}
+
+
 def details(db,request,user,row):
     projection=request.app.state.audit.vehicle_projection(user.id,row.id)
     declaration=row.verified_eligibility.get('owner_declaration',{})
     applicable=row.verified_eligibility.get('conditional_documents',{})
     checklist=[{'type':t,'requirement':'Required'} for t in ('VEHICLE_REGISTRATION','INSURANCE','REVENUE_LICENCE')]
     checklist.append({'type':'OWNER_AUTHORISATION','requirement':'Required for your case' if declaration.get('registered_owner_case') in ('OTHER_PERSON','COMPANY') or row.verified_eligibility.get('authorisation_required') else 'Optional'})
-    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION','FITNESS','ROUTE_PERMIT'))
+    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION','FITNESS'))
+    checklist.append({'type':'ROUTE_PERMIT','requirement':'Optional — upload only if you have one. The system checks it; Admin does not review it.'})
     owner=db.get(User,row.owner_user_id)
     replacement=Document.__table__.alias('replacement')
     return {**summary(row),**projection,'checklist':checklist,'has_commitments':commitments(db,row.id),
         'reviewed_category':row.verified_eligibility.get('category'),'conditional_documents':applicable,
+        'route_permit':route_permit(db,row.id),
         'authorisation_required':row.verified_eligibility.get('authorisation_required'),
         'owner_reference':owner.public_user_reference,'owner_name':owner.full_name,
         'documents':[document_summary(d) for d in db.scalars(select(Document).where(Document.vehicle_id==row.id,
