@@ -85,28 +85,28 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Driver | `/bookings/b1?workspace=driver` | PASS |  |
 | Driver | `/trips/t1/finance?workspace=driver` | PASS |  |
 | Driver | `/trips/t1/operation?workspace=driver` | PASS |  |
-| Admin | `/admin/dashboard` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 597px [busy] ; page scroll 597px [empty] |
+| Admin | `/admin/dashboard` | PASS |  |
 | Admin | `/admin/personal/hire` | PASS |  |
 | Admin | `/admin/personal/owners/OWN1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
 | Admin | `/admin/personal/bookings` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
 | Admin | `/admin/personal/bookings/b1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
 | Admin | `/admin/personal/vehicles/v1` | PASS |  |
-| Admin | `/admin/applications` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (dashboard-main) [empty] ; legacy layout (role-dashboard) [busy] ; old theme dark: site-footer [empty] ; page scroll 137px [empty] ; page scr |
-| Admin | `/admin/applications/r1` | FAIL | CRASH Cannot read properties of undefined (reading 'role_code') @     at AdminApplicat ; Cannot read properties of undefined (reading 'role_code') @     at AdminApplications (http://127.0.0.1:5199/src/features [busy] ; card scroll/clip: app-sidebar-menu 372/30 |
+| Admin | `/admin/applications` | PASS |  |
+| Admin | `/admin/applications/r1` | PASS |  |
 | Admin | `/admin/vehicles` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
 | Admin | `/admin/vehicles/v1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab4] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 37 |
 | Admin | `/admin/vehicles/v1/calendar` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
-| Admin | `/admin/documents` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 495px [busy] |
-| Admin | `/admin/services-routes` | FAIL | CRASH Cannot read properties of undefined (reading 'replaceAll') @     at http://127.0 ; Cannot read properties of undefined (reading 'replaceAll') @     at http://127.0.0.1:5199/src/features/admin/AdminServic [busy] ; card scroll/clip: app-sidebar-menu 372/30 |
-| Admin | `/admin/services-routes/tickets` | FAIL |     at http://127.0.0.1:5199/src/feat [busy] ; CRASH Cannot convert undefined or null to object @     at Object.entries (<anonymous>) ; Cannot convert undefined or null to object @     at Object.entries (<anonymous>) [busy] ; card scroll/clip: app-sidebar-menu |
-| Admin | `/admin/bookings` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 445px [busy] |
-| Admin | `/admin/oversight` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 2323px [busy] ; page scroll 402px [empty] |
+| Admin | `/admin/documents` | PASS |  |
+| Admin | `/admin/services-routes` | PASS |  |
+| Admin | `/admin/services-routes/tickets` | PASS |  |
+| Admin | `/admin/bookings` | PASS |  |
+| Admin | `/admin/oversight` | PASS |  |
 | Admin | `/admin/rentals` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 3 |
-| Admin | `/admin/payments` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 443px [busy] |
-| Admin | `/admin/social-reviews` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 443px [busy] |
-| Admin | `/admin/road-alerts` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 445px [busy] |
-| Admin | `/admin/reports` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 172px [busy] |
-| Admin | `/admin/manual-fulfilment` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; legacy layout (role-dashboard) [busy] ; legacy layout (workspace-state) [empty] ; page scroll 770px [busy] |
+| Admin | `/admin/payments` | PASS |  |
+| Admin | `/admin/social-reviews` | PASS |  |
+| Admin | `/admin/road-alerts` | PASS |  |
+| Admin | `/admin/reports` | PASS |  |
+| Admin | `/admin/manual-fulfilment` | PASS |  |
 | Admin | `/admin/settings` | PASS |  |
 | Admin | `/account?workspace=admin` | PASS |  |
 | Admin | `/bookings/b1?workspace=admin` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab4] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab5] ; card scroll/clip: app-sidebar-me |
@@ -114,3 +114,9 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 
 ## BATCH A re-measure (1280x585 and 1920x1080, busy + empty + all tabs)
 PASS (no page scroll, no card scroll/clip, no overlap, no legacy layout, admin sidebar fits): hire x4, /account x4 roles (3 tabs), vehicle detail x4, owner/personal/bookings, driver/personal/bookings/b1, admin/settings, owner/rates, owner/service-readiness, passenger/bookings. Admin sidebar scroll: gone on all admin routes at 1280x585.
+
+## ADMIN batch re-measure (1280x585 and 1920x1080, busy + empty, tabs/details/confirmation opened)
+PASS (no page scroll, no card scroll/clip, no overlap, no legacy layout, no dark panel, actions in view, sidebar fits): /admin/dashboard (reference grid: 4 stats, 6 tiles + Travelly AI card, no tabs), /admin/applications (+ /:id with Application / Evidence tabs and the confirmation step), /admin/documents, /admin/bookings, /admin/payments, /admin/social-reviews, /admin/road-alerts, /admin/reports, /admin/oversight (3 tabs), /admin/manual-fulfilment (Events / Record an event), /admin/services-routes (list + details), /admin/services-routes/tickets, /admin/settings, /account?workspace=admin.
+Shared layout: features/admin/AdminList.jsx (filter row, compact rows, paging, Details view). Crash fixes: /admin/applications/:id and /admin/services-routes now guard missing application / pricing_scope / status / ready_vehicles.
+Not in this batch (still listed above as FAIL by the old sidebar finding only, which is fixed): /admin/personal/*, /admin/vehicles*, /admin/rentals, /bookings/:id?workspace=admin.
+
