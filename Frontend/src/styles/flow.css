@@ -66,7 +66,8 @@ html body .flow-page a.ui-button { text-decoration: none; }
 @media (max-width: 767px) { html body .flow-actions { flex-direction: column-reverse; align-items: stretch; } html body .flow-actions .ui-button { max-width: none; margin-left: 0; } }
 
 /* Service choice grid. */
-html body .flow-service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+html body .flow-service-grid { display: grid; grid-template-columns: repeat(var(--tiles, 3), minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; }
+html body .flow-service-grid > .ui-tile, html body .travel-service-tiles > .ui-tile { min-height: clamp(84px, 15vh, 140px); width: 100%; box-sizing: border-box; }
 @media (max-width: 1100px) { html body .flow-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { html body .flow-service-grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -74,13 +75,17 @@ html body .flow-service-grid { display: grid; grid-template-columns: repeat(3, m
 html body .flow-summary { display: grid; gap: 12px; align-content: start; }
 html body .flow-summary h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 800; color: var(--ui-ink); }
 html body .flow-summary h2 > svg { color: var(--ui-blue-deep); }
-html body .flow-summary-image { width: 100%; height: 150px; object-fit: cover; border-radius: 16px; border: 2px solid #fff; box-shadow: 0 3px 10px rgb(40 80 120 / .18); }
+html body .flow-summary-image { display: block; width: min(100%, calc(clamp(84px, 17vh, 200px) * 16 / 9)); aspect-ratio: 16 / 9; height: auto; margin-inline: auto; object-fit: cover; object-position: center; border-radius: 14px; border: 2px solid #fff; box-shadow: 0 3px 10px rgb(40 80 120 / .18); }
+html body .flow-summary-image.is-empty { display: grid; place-items: center; background: var(--ui-input-bg); color: var(--ui-muted); }
 html body .flow-summary dl { display: grid; gap: 0; margin: 0; }
 html body .flow-summary dl > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
 html body .flow-summary dl > div:last-child { border-bottom: 0; }
 html body .flow-summary dt { display: flex; align-items: center; gap: 8px; color: var(--ui-text); }
 html body .flow-summary dt > svg { color: var(--ui-blue-deep); flex: none; }
 html body .flow-summary dd { margin: 0; font-weight: 700; color: var(--ui-ink); overflow-wrap: anywhere; text-align: right; }
+html body .flow-summary dd.is-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .flow-summary dt { white-space: nowrap; }
+html body .flow-summary dl > div { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
 html body .flow-summary-empty { margin: 0; font-size: 13px; color: var(--ui-muted); }
 
 /* Vehicle cards (matching list and selected vehicle). */
@@ -137,22 +142,22 @@ html body .flow-chipbar .flow-chips { flex: 1; }
 html body .flow-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
 html body .flow-top .ui-tabs { flex: 0 1 auto; }
 html body .flow-top .ui-tab { flex: 0 0 auto; padding-inline: 18px; }
-html body .workspace-shell[data-workspace] .flow-page { max-width: 1360px; height: calc(100dvh - var(--workspace-header-height, 106px)); min-height: 0; overflow: hidden; box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 8px; gap: 8px; }
-html body .workspace-shell[data-workspace] .flow-body { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 12px; }
-html body .workspace-shell[data-workspace] .flow-body.has-summary { grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr); }
-html body .workspace-shell[data-workspace] .flow-main { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); align-self: stretch; gap: 0; }
-html body .workspace-shell[data-workspace] .flow-card { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 8px; overflow: visible; }
-html body .workspace-shell[data-workspace] .flow-card > :is(form, .flow-fields, .flow-wizard-form) { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-html body .workspace-shell[data-workspace] .flow-card > section.trip-results { flex: 1 1 auto; min-height: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { max-width: 1360px; height: calc(100dvh - var(--workspace-header-height, 106px)); min-height: 0; overflow: hidden; box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 8px; gap: 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-body { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-body.has-summary { grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-main { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); align-self: stretch; gap: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 8px; overflow: visible; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > :is(form, .flow-fields, .flow-wizard-form) { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > section.trip-results { flex: 1 1 auto; min-height: 0; }
 html body .flow-card-head { position: static; margin: 0; padding: 0; background: none; flex: none; gap: 10px; }
 html body .flow-card-icon { width: 30px; height: 30px; border-radius: 10px; }
 html body .flow-card-icon > svg { width: 18px; height: 18px; }
 html body .flow-card-head h2 { font-size: 18px; }
 html body .flow-card-head p { display: none; }
-html body .workspace-shell[data-workspace] .flow-stepper { padding: 6px 14px; border-radius: 18px; }
-html body .workspace-shell[data-workspace] .flow-summary { position: static; align-self: start; max-height: 100%; overflow: visible; padding: 12px 14px; gap: 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-stepper { padding: 6px 14px; border-radius: 18px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-summary { position: static; align-self: start; max-height: 100%; overflow: visible; padding: 12px 14px; gap: 8px; }
 html body .flow-summary h2 { font-size: 17px; }
-html body .flow-summary-image { height: 76px; border-width: 1px; border-radius: 12px; }
+html body .flow-summary-image { border-width: 1px; border-radius: 12px; }
 html body .flow-summary dl > div { padding: 5px 0; font-size: 13px; gap: 8px; }
 
 /* Back / Next: normal flow, bottom of the card. */
@@ -177,46 +182,46 @@ html body .flow-group { padding: 8px 12px; }
 html body .flow-note { font-size: 12px; margin: 0; }
 
 /* Trip details */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane { display: grid; gap: 8px; align-content: start; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane[hidden] { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; align-items: start; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .counts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
-@media (max-width: 640px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form :is(.trip-grid, .counts-grid) { grid-template-columns: minmax(0, 1fr); } }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 4px 8px; align-items: start; padding: 8px 10px; border-radius: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-first { order: 1; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-last { order: 2; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-middle { order: 3; grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop > .rate-row-actions { grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .rate-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .terms-check { grid-column: 1 / -1; font-size: 12px; }
-@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { grid-template-columns: minmax(0, 1fr); } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { order: 0 !important; } }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 24px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions .field-error { margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .inline-link { font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .field-error { margin: 0; font-size: 11.5px; line-height: 1.25; color: var(--ui-red-text); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field [aria-invalid="true"] { border-color: var(--ui-red-text); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .wizard-pane { display: grid; gap: 8px; align-content: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .wizard-pane[hidden] { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; align-items: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .counts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+@media (max-width: 640px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form :is(.trip-grid, .counts-grid) { grid-template-columns: minmax(0, 1fr); } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-stops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 4px 8px; align-items: start; padding: 8px 10px; border-radius: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.is-first { order: 1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.is-last { order: 2; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.is-middle { order: 3; grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop > .rate-row-actions { grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop .rate-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop .terms-check { grid-column: 1 / -1; font-size: 12px; }
+@media (max-width: 760px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-stops { grid-template-columns: minmax(0, 1fr); } html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop { order: 0 !important; } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 24px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-actions .field-error { margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .inline-link { font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .field-error { margin: 0; font-size: 11.5px; line-height: 1.25; color: var(--ui-red-text); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field [aria-invalid="true"] { border-color: var(--ui-red-text); }
 
 /* Place search: Find location is an icon button inside the input. */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place { position: relative; display: block; min-width: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input { position: relative; display: block; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input > input { padding-right: 44px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--ui-input-border); border-radius: 50%; background: #fff; color: var(--ui-blue); cursor: pointer; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:disabled { opacity: .45; cursor: not-allowed; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > ul { position: absolute; z-index: 40; left: 0; right: 0; top: 100%; margin: 2px 0 0; max-height: 160px; overflow: auto; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > small:not(.rate-location-selected) { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > .rate-location-selected { position: absolute; right: 0; top: 0; font-size: 11px; color: #2f8a3d; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > p.field-error { position: absolute; z-index: 5; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-place { position: relative; display: block; min-width: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .place-input { position: relative; display: block; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .place-input > input { padding-right: 44px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .place-find { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--ui-input-border); border-radius: 50%; background: #fff; color: var(--ui-blue); cursor: pointer; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .place-find:disabled { opacity: .45; cursor: not-allowed; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .place-find:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-place > ul { position: absolute; z-index: 40; left: 0; right: 0; top: 100%; margin: 2px 0 0; max-height: 160px; overflow: auto; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-place > small:not(.rate-location-selected) { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-place > .rate-location-selected { position: absolute; right: 0; top: 0; font-size: 11px; color: #2f8a3d; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-place > p.field-error { position: absolute; z-index: 5; }
 
 /* Results: compact cards, paged. */
-html body .workspace-shell[data-workspace] .flow-page .trip-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-content: start; align-items: start; }
-html body .workspace-shell[data-workspace] .flow-page .trip-results > :not(.trip-vehicle-card) { grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .trip-results .rate-row-actions h2 { font-size: 16px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .trip-results > p[role="status"] { margin: 0; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .trip-results .flow-actions { grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card { padding: 10px 12px; gap: 6px; border-radius: 16px; }
-html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card h3 { font-size: 16px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-content: start; align-items: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results > :not(.trip-vehicle-card) { grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results .rate-row-actions h2 { font-size: 16px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results > p[role="status"] { margin: 0; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results .flow-actions { grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-vehicle-card { padding: 10px 12px; gap: 6px; border-radius: 16px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-vehicle-card h3 { font-size: 16px; }
 html body .trip-vehicle-card .tv-head { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
 html body .trip-vehicle-card .tv-thumb { flex: none; width: 76px; height: 56px; border-radius: 10px; overflow: hidden; background: #e7eef6; }
 html body .trip-vehicle-card .tv-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -226,7 +231,7 @@ html body .trip-vehicle-card .tv-price { font-size: 13px; }
 html body .trip-vehicle-card .tv-price summary { cursor: pointer; font-weight: 700; color: var(--ui-ink); }
 html body .trip-vehicle-card .tv-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 html body .trip-vehicle-card .tv-actions .button { min-height: 38px; padding: 4px 16px; font-size: 14px; }
-@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .trip-results { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .trip-results { grid-template-columns: minmax(0, 1fr); } }
 
 /* Passenger steps: same compact controls. */
 html body .flow-grid-4 { display: grid; gap: 8px 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -272,75 +277,75 @@ html body .flow-stepper .ui-step-label { white-space: nowrap; font-size: 13px; }
 }
 
 /* ---------- Owner step-by-step forms (rates and the other owner pages) ---------- */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 268px), 1fr)); gap: 6px 10px; align-items: start; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset { position: relative; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; display: grid; gap: 8px; align-content: start; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form legend { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip { position: absolute; top: -4px; right: 0; margin: 0; z-index: 4; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip > [role="tooltip"] { left: auto; right: -4px; }
-html body .workspace-shell[data-workspace] .flow-page .rate-form-host[hidden], html body .workspace-shell[data-workspace] .flow-page .wizard-pane[hidden] { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .rate-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .rate-tabs > button { min-height: 32px; padding: 2px 14px; border-radius: 999px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); color: var(--ui-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-html body .workspace-shell[data-workspace] .flow-page .rate-tabs > button[aria-pressed="true"] { background: #fff0ee; border-color: #ee3a2a; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > h2, html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > p:first-of-type { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-row-actions { justify-content: flex-start; gap: 4px 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form textarea { height: 56px; min-height: 56px; resize: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 268px), 1fr)); gap: 6px 10px; align-items: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form fieldset { position: relative; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; display: grid; gap: 8px; align-content: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form legend { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .fieldset-tip { position: absolute; top: -4px; right: 0; margin: 0; z-index: 4; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .fieldset-tip > [role="tooltip"] { left: auto; right: -4px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-form-host[hidden], html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .wizard-pane[hidden] { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button { min-height: 32px; padding: 2px 14px; border-radius: 999px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); color: var(--ui-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button[aria-pressed="true"] { background: #fff0ee; border-color: #ee3a2a; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > h2, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > p:first-of-type { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-row-actions { justify-content: flex-start; gap: 4px 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form textarea { height: 56px; min-height: 56px; resize: none; }
 html body .flow-actions .ui-button-primary[type="submit"] { flex: 0 1 220px; margin-left: 0; }
 
 /* Fixed-route departure fields: select and the two times on one row, weekdays below. */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) > .rate-grid { display: contents; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays { grid-column: 1 / -1; order: 5; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays .rate-row-actions { flex-wrap: wrap; gap: 4px 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) > .rate-grid { display: contents; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays { grid-column: 1 / -1; order: 5; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays .rate-row-actions { flex-wrap: wrap; gap: 4px 14px; }
 
 /* Preview: form on the left, calculated example on the right. */
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px 14px; align-items: start; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > form { grid-column: 1; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] { grid-column: 2; grid-row: 1 / span 3; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] table { width: 100%; border-collapse: collapse; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] :is(th, td) { padding: 3px 6px; text-align: left; border-bottom: 1px solid rgb(18 21 82 / .1); }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-waiting-periods { display: grid; gap: 4px; }
-html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-waiting-periods > :is(h3, p) { display: none; }
-@media (max-width: 960px) { html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 1fr); } html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] { grid-column: 1; grid-row: auto; } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px 14px; align-items: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > form { grid-column: 1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > [role="status"] { grid-column: 2; grid-row: 1 / span 3; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > [role="status"] table { width: 100%; border-collapse: collapse; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > [role="status"] :is(th, td) { padding: 3px 6px; text-align: left; border-bottom: 1px solid rgb(18 21 82 / .1); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane .rate-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane .rate-waiting-periods { display: grid; gap: 4px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane .rate-waiting-periods > :is(h3, p) { display: none; }
+@media (max-width: 960px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 1fr); } html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > [role="status"] { grid-column: 1; grid-row: auto; } }
 
 /* Hidden steps / sections must stay hidden whatever display their classes set. */
 html body .flow-page [hidden] { display: none !important; }
 
 /* ---------- Owner pages: compact rows, documents, calendar entries ---------- */
 html body .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
-html body .workspace-shell[data-workspace] .flow-page .vehicle-rows { display: grid; gap: 6px; }
-html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 6px 12px; border-radius: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card h2 { grid-column: 1; margin: 0; font-size: 15px; }
-html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card p { grid-column: 1; margin: 0; font-size: 12.5px; color: var(--ui-text); }
-html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card > a { grid-column: 2; grid-row: 1 / span 2; min-height: 36px; padding: 2px 14px; font-size: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-reuse-note { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > h2 { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > p { margin: 0; font-size: 12px; color: var(--ui-muted); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > ul { display: flex; flex-wrap: wrap; gap: 2px 16px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 10px; border: 1px solid rgb(255 255 255 / .85); border-radius: 12px; background: rgb(255 255 255 / .5); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document :is(h3, p) { margin: 0; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document .button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a { padding: 4px 6px; font-size: 12px; min-height: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { display: grid; gap: 4px; margin: 0; padding: 8px 12px; border-radius: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry :is(p, h3) { margin: 0; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .section-kicker { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .rate-row-actions .ui-button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 38px; padding: 2px 14px; font-size: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form #calendar-entries { display: grid; gap: 6px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .operation-list { margin: 0; padding-left: 18px; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label { display: grid; gap: 4px; min-width: 0; font-size: 13px; font-weight: 600; }
-html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label select { width: 100%; min-height: 40px; padding-inline: 8px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > :is(.rate-grid, button, .flow-actions) { grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > button { justify-self: start; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview { position: relative; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: absolute; top: -2px; right: 0; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows { display: grid; gap: 6px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows .trip-vehicle-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 6px 12px; border-radius: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows .trip-vehicle-card h2 { grid-column: 1; margin: 0; font-size: 15px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows .trip-vehicle-card p { grid-column: 1; margin: 0; font-size: 12.5px; color: var(--ui-text); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows .trip-vehicle-card > a { grid-column: 2; grid-row: 1 / span 2; min-height: 36px; padding: 2px 14px; font-size: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-reuse-note { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview > h2 { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview > p { margin: 0; font-size: 12px; color: var(--ui-muted); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview > ul { display: flex; flex-wrap: wrap; gap: 2px 16px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 10px; border: 1px solid rgb(255 255 255 / .85); border-radius: 12px; background: rgb(255 255 255 / .5); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document :is(h3, p) { margin: 0; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document .button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week > a { padding: 4px 6px; font-size: 12px; min-height: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry { display: grid; gap: 4px; margin: 0; padding: 8px 12px; border-radius: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry :is(p, h3) { margin: 0; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry .section-kicker { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry .rate-row-actions .ui-button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 38px; padding: 2px 14px; font-size: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form #calendar-entries { display: grid; gap: 6px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .operation-list { margin: 0; padding-left: 18px; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label { display: grid; gap: 4px; min-width: 0; font-size: 13px; font-weight: 600; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label select { width: 100%; min-height: 40px; padding-inline: 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > :is(.rate-grid, button, .flow-actions) { grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > button { justify-self: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview { position: relative; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: absolute; top: -2px; right: 0; margin: 0; }
 
 /* Ticket departures (OwnerTicketDepartures.jsx is not edited: CSS only). Form on the left, the
    departures list on the right in its own panel; only that list scrolls inside its panel. */
@@ -356,15 +361,15 @@ html body .workspace-shell[data-workspace] .workspace-content > main.role-dashbo
 @media (max-width: 960px) { html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); } }
 
 /* ---------- Global form kit pass: compact controls, capped width, one footer row ---------- */
-html body .workspace-shell[data-workspace] .flow-page { max-width: 1240px; }
-html body .workspace-shell[data-workspace] .flow-card > :not(.flow-actions):not(.flow-card-head):not(.ui-infotip) { max-width: 1100px; width: 100%; }
-html body .workspace-shell[data-workspace] .flow-card > .ui-infotip { align-self: flex-start; width: auto; }
-html body .workspace-shell[data-workspace] .flow-card > .flow-actions { max-width: 1100px; width: 100%; margin-inline: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { max-width: 1240px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > :not(.flow-actions):not(.flow-card-head):not(.ui-infotip) { max-width: 1100px; width: 100%; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > .ui-infotip { align-self: flex-start; width: auto; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > .flow-actions { max-width: 1100px; width: 100%; margin-inline: 0; }
 html body .flow-page :is(.travelly-field, .rate-field) { gap: 4px; }
 html body .flow-page :is(.travelly-field > span, .rate-field > label) { font-size: 14px; line-height: 20px; min-height: 20px; }
 html body .flow-page :is(.travelly-field, .rate-field) :is(input, select) { min-height: 44px; height: 44px; font-size: 15px; padding: 4px 12px; }
 html body .flow-page :is(.travelly-field, .rate-field) textarea { font-size: 15px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { gap: 6px 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { gap: 6px 12px; }
 html body .flow-actions { gap: 8px; flex-wrap: nowrap; }
 html body .flow-actions .ui-button { min-height: 44px; flex: 0 0 auto; white-space: nowrap; }
 html body .flow-actions .footer-slot { display: flex; align-items: center; gap: 8px; margin-left: auto; }
@@ -375,7 +380,7 @@ html body .flow-actions .footer-slot:empty { display: none; }
 html body .pane-head { display: flex; align-items: center; gap: 4px; min-height: 28px; }
 html body .pane-head > strong { font-size: 16px; font-weight: 700; color: var(--ui-ink); }
 html body .pane-head .pane-status { margin-left: auto; font-size: 13px; color: var(--ui-muted); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: static; margin: 0 0 2px; justify-self: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .fieldset-tip, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: static; margin: 0 0 2px; justify-self: start; }
 html body .flow-page .fieldset-tip::after { content: 'About this step'; margin-left: 2px; font-size: 12px; color: var(--ui-muted); align-self: center; }
 
 /* Documents */
@@ -403,101 +408,100 @@ html body .status-row .flow-note { margin: 0; }
 html body .status-row .inline-link { font-size: 13px; white-space: nowrap; }
 html body .flow-page :is(.travelly-field, .rate-field) select { padding-inline: 10px 6px; }
 html body .flow-page :is(.travelly-field, .rate-field) select { font-size: 14.5px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field select { font-size: 14px; padding-inline: 10px 4px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field select { font-size: 14px; padding-inline: 10px 4px; }
 
 /* ---------- Shell gutters (equal on the left, right and bottom) ---------- */
 html body .workspace-shell[data-workspace] .workspace-content { box-sizing: border-box; padding-right: var(--ui-gutter, 20px); padding-bottom: var(--ui-gutter, 20px); }
-html body .workspace-shell[data-workspace] .flow-page { padding-inline: 0; padding-bottom: 0; height: calc(100dvh - var(--workspace-header-height, 106px) - var(--ui-gutter, 20px)); }
-html body .workspace-shell[data-workspace] .flow-card { overflow: auto; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { padding-inline: 0; padding-bottom: 0; height: calc(100dvh - var(--workspace-header-height, 106px) - var(--ui-gutter, 20px)); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card { overflow: auto; }
 
 /* ---------- Stops: one compact row each; only the middle stops page ---------- */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops.stops-table { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 118px 96px 72px; gap: 0 10px; align-items: center; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head { padding: 0 10px; font-size: 12.5px; font-weight: 700; color: var(--ui-ink); line-height: 18px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { order: 0 !important; grid-column: auto; padding: 4px 10px; border-radius: 12px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field > label, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field > .ui-infotip { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field { display: block; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-caption { font-size: 13px; font-weight: 700; color: var(--ui-ink); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-rest-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-actions { display: flex; gap: 6px; justify-content: flex-end; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-stops.stops-table { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-head, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.stop-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 118px 96px 72px; gap: 0 10px; align-items: center; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-head { padding: 0 10px; font-size: 12.5px; font-weight: 700; color: var(--ui-ink); line-height: 18px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.stop-row { order: 0 !important; grid-column: auto; padding: 4px 10px; border-radius: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-row .rate-field > label, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-row .rate-field > .ui-infotip { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-row .rate-field { display: block; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-caption { font-size: 13px; font-weight: 700; color: var(--ui-ink); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-rest-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-actions { display: flex; gap: 6px; justify-content: flex-end; }
 html body .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid var(--ui-input-border); background: #fff; color: var(--ui-ink); cursor: pointer; }
 html body .icon-btn:disabled { opacity: .4; cursor: not-allowed; }
 html body .icon-btn:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions { min-height: 28px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-actions { min-height: 28px; }
 html body .stops-head .ui-infotip, html body .pane-head .ui-infotip { margin-left: 2px; }
-@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head { display: none; } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { grid-template-columns: minmax(0, 1fr) 100px; gap: 4px 8px; } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-caption { grid-column: 1 / -1; } }
+@media (max-width: 760px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stops-head { display: none; } html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .trip-stop.stop-row { grid-template-columns: minmax(0, 1fr) 100px; gap: 4px 8px; } html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-caption { grid-column: 1 / -1; } }
 
 /* ---------- Documents ---------- */
 html body .doc-chips { gap: 4px 6px; }
 html body .doc-chips .ui-chip { min-height: 26px; padding: 2px 10px; font-size: 12.5px; gap: 4px; }
 html body .doc-chips .ui-chip > svg { width: 14px; height: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 1000px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-documents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview { gap: 6px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-documents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview { gap: 6px; }
 
 /* ---------- Very short windows (1280x585 laptops): merge stepper and tabs into one row ---------- */
 @media (max-height: 640px) {
   html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
   html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 4px; }
   html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 0; }
-  html body .workspace-shell[data-workspace] .flow-page { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: 6px 12px; padding-top: 0; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: 6px 12px; padding-top: 0; }
   html body .flow-top { display: contents; }
   html body .flow-heading { display: none; }
-  html body .workspace-shell[data-workspace] .flow-stepper { grid-column: 1; grid-row: 1; padding: 3px 12px; align-self: center; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-stepper { grid-column: 1; grid-row: 1; padding: 3px 12px; align-self: center; }
   html body .flow-top .ui-tabs { grid-column: 2; grid-row: 1; }
-  html body .workspace-shell[data-workspace] .flow-body { grid-column: 1 / -1; grid-row: 2; }
-  html body .workspace-shell[data-workspace] .flow-card { padding: 6px 14px 8px; gap: 5px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-body { grid-column: 1 / -1; grid-row: 2; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card { padding: 6px 14px 8px; gap: 5px; }
   html body .flow-card-icon { width: 26px; height: 26px; }
   html body .flow-card-head h2 { font-size: 16px; }
   html body .flow-page :is(.travelly-field > span, .rate-field > label) { line-height: 18px; min-height: 18px; font-size: 13px; }
   html body .flow-page :is(.travelly-field, .rate-field) :is(input, select) { min-height: 40px; height: 40px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field input { min-height: 38px; height: 38px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .stop-row .rate-field input { min-height: 38px; height: 38px; }
   html body .flow-actions { padding-top: 6px; }
   html body .flow-actions .ui-button { min-height: 40px; }
   html body .flow-actions .ui-button, html body .ui-tabs .ui-tab { font-size: 14px; }
   html body .flow-top .ui-tab { min-height: 30px; }
-  html body .workspace-shell[data-workspace] .flow-summary { padding: 8px 12px; }
-  html body .flow-summary-image { height: 56px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane { gap: 5px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-summary { padding: 8px 12px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .wizard-pane { gap: 5px; }
 }
 
 /* Field errors float under the control so they never change the step's height. */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field { position: relative; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: #fff0ee; border: 1px solid #f3a9a1; color: #a3160c; font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field { position: relative; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: #fff0ee; border: 1px solid #f3a9a1; color: #a3160c; font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 @media (max-height: 640px) {
-  html body .workspace-shell[data-workspace] .flow-page:has(.flow-stepper) .flow-card-head { display: none; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page:has(.flow-stepper) .flow-card-head { display: none; }
 }
 
 /* ---------- Short-window fixes (1280x585) ---------- */
 html body .fact-reg { display: contents; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid.facts-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-grid.facts-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 12px; }
 html body .flow-page :is(.flow-grid-4 > label) { display: grid; gap: 4px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
 html body .flow-page :is(.flow-grid-4 > label) :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 10px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 14.5px; }
 @media (max-height: 640px) {
   html body .flow-page:has(.status-row) .flow-card-head { display: none; }
   html body .flow-page :is(.flow-grid-4 > label) :is(input, select) { min-height: 40px; height: 40px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a { padding: 2px 6px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a > span { display: none; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week > a { padding: 2px 6px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week > a > span { display: none; }
 }
 
 @media (max-height: 640px) {
   html body .doc-chips { gap: 3px 5px; }
   html body .doc-chips .ui-chip { min-height: 24px; padding: 1px 8px; font-size: 12px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { padding: 5px 10px; gap: 2px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { padding: 2px 8px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { gap: 6px 8px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry { padding: 5px 10px; gap: 2px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document { padding: 2px 8px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar { gap: 6px 8px; }
 }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 1000px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-height: 640px) {
   html body .flow-segmented label { min-height: 34px; }
   html body .flow-segmented > legend { padding: 0 0 2px; font-size: 13px; }
-  html body .workspace-shell[data-workspace] .flow-page .travelly-field textarea { height: 40px; min-height: 40px; }
-  html body .workspace-shell[data-workspace] .flow-page .flow-fields { gap: 5px; }
-  html body .workspace-shell[data-workspace] .flow-page :is(.flow-grid-2, .flow-grid-3) { gap: 5px 10px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .travelly-field textarea { height: 40px; min-height: 40px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-fields { gap: 5px; }
+  html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page :is(.flow-grid-2, .flow-grid-3) { gap: 5px 10px; }
   html body .flow-group { padding: 4px 10px; }
 }
 
@@ -521,19 +525,19 @@ html body .submit-grid > .rate-preview form > button { grid-column: 1 / -1; just
 html body .submit-grid > .rate-preview .rate-row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 html body .submit-grid > .rate-preview .rate-row-actions .button { min-height: 36px; padding: 2px 14px; font-size: 13.5px; }
 @media (max-width: 1000px) { html body .submit-grid { grid-template-columns: minmax(0, 1fr); } }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 2px 8px; align-items: start; margin: 0; padding: 6px 8px; border-radius: 12px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card h3 { grid-column: 2; margin: 0; font-size: 12.5px; line-height: 1.25; text-transform: capitalize; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card .vehicle-photo { grid-column: 1; grid-row: 1 / span 3; width: 78px; height: 58px; object-fit: cover; border-radius: 8px; display: block; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card > :not(h3):not(img):not(.vehicle-photo):not(p) { grid-column: 1 / -1; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card p { grid-column: 2; margin: 0; font-size: 12px; }
-@media (max-width: 900px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 2px 8px; align-items: start; margin: 0; padding: 6px 8px; border-radius: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card h3 { grid-column: 2; margin: 0; font-size: 12.5px; line-height: 1.25; text-transform: capitalize; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card .vehicle-photo { grid-column: 1; grid-row: 1 / span 3; width: 78px; height: 58px; object-fit: cover; border-radius: 8px; display: block; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card > :not(h3):not(img):not(.vehicle-photo):not(p) { grid-column: 1 / -1; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card p { grid-column: 2; margin: 0; font-size: 12px; }
+@media (max-width: 900px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 html body .create-row form fieldset { display: grid; grid-template-columns: minmax(0, 440px) auto; gap: 6px 12px; align-items: end; }
 html body .create-row form fieldset > button { min-height: 44px; }
 @media (max-width: 700px) { html body .create-row form fieldset { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- Calendar week: light glass day columns, red today, coloured entry chips ---------- */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
 html body .cal-day { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 6px 8px; border-radius: 14px; background: rgb(255 255 255 / .62); border: 1px solid rgb(255 255 255 / .9); color: var(--ui-ink); }
 html body .cal-day > strong { font-size: 13px; font-weight: 700; color: var(--ui-ink); white-space: nowrap; }
 html body .cal-day.is-today { border-color: #ee3a2a; background: #fff0ee; }
@@ -544,30 +548,30 @@ html body .cal-chip.block { background: #fff2d9; color: #7a5200; border-color: #
 html body .cal-chip.booking { background: #e6f0ff; color: #1f3fa8; border-color: #b8d2ff; }
 html body .cal-chip.other { background: #dff3e2; color: #17622b; border-color: #bfe6c8; }
 html body .cal-chip.more { background: #eef1f5; color: var(--ui-muted); border-color: #d8dee8; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; margin: 0; min-width: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field input { width: 176px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 42px; padding: 2px 16px; font-size: 14px; }
-@media (max-height: 640px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > .cal-day > span.cal-free { display: none; } }
-@media (max-width: 900px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { grid-template-columns: repeat(4, minmax(0, 1fr)); } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { flex-wrap: wrap; } }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card .button { min-height: 26px; padding: 0 10px; font-size: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; margin: 0; min-width: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .rate-field input { width: 176px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 42px; padding: 2px 16px; font-size: 14px; }
+@media (max-height: 640px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week > .cal-day > span.cal-free { display: none; } }
+@media (max-width: 900px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week { grid-template-columns: repeat(4, minmax(0, 1fr)); } html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar { flex-wrap: wrap; } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-photo-card .button { min-height: 26px; padding: 0 10px; font-size: 12px; }
 
 /* ---------- Pass 3 fit tweaks ---------- */
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 5px 12px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child > :is(p, h3) { margin: 0; font-size: 13px; line-height: 1.4; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child > h3 { font-weight: 700; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .rate-row-actions { display: flex; gap: 6px; margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .calendar-reason { display: none; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form #calendar-entries > strong { font-size: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .docs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .docs-row .flow-pager { margin: 0; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 0 10px; align-items: center; padding: 3px 10px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document h3 { grid-column: 1; margin: 0; font-size: 13px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document p { grid-column: 1; margin: 0; font-size: 12px; }
-html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document > .button { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 5px 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry > div:first-child > :is(p, h3) { margin: 0; font-size: 13px; line-height: 1.4; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry > div:first-child > h3 { font-weight: 700; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry .rate-row-actions { display: flex; gap: 6px; margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-entry .calendar-reason { display: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form #calendar-entries > strong { font-size: 14px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .docs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .docs-row .flow-pager { margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 0 10px; align-items: center; padding: 3px 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document h3 { grid-column: 1; margin: 0; font-size: 13px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document p { grid-column: 1; margin: 0; font-size: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .vehicle-document > .button { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
 html body .workspace-shell[data-workspace] .workspace-content :is(.document-checklist, .document-requirement) { background: rgb(255 255 255 / .62); color: var(--ui-ink); border-color: rgb(255 255 255 / .9); }
 
 /* Short windows: keep the logo at its normal size and slim the navbar pill instead. */
@@ -601,8 +605,8 @@ html body .flow-page .finance-ledger dd { margin: 0; font-weight: 700; color: va
 /* Booking details tabs: sections laid out in compact flowing rows */
 html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
 html body .booking-pane .rate-preview, html body .booking-pane details.rate-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); border-radius: 14px; }
-html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > h2 { display: block; flex: 1 1 100%; margin: 0; font-size: 16px; }
-html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > p { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ui-text); }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .booking-pane .rate-preview > h2 { display: block; flex: 1 1 100%; margin: 0; font-size: 16px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .booking-pane .rate-preview > p { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ui-text); }
 html body .booking-pane .trip-price table { font-size: 13px; }
 html body .booking-pane .trip-price :is(th, td) { padding: 3px 8px; }
 html body .booking-pane p { margin: 0; font-size: 14px; }

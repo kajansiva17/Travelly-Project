@@ -18,9 +18,9 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Passenger | `/passenger/settings` | PASS |  |
 | Passenger | `/passenger/trips/t1/finance` | FAIL | legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 212px [busy] |
 | Passenger | `/travel/book/service` | PASS |  |
-| Passenger | `/travel/book/event` | FAIL | card scroll/clip: flow-card.ui-card 582/465 [busy] ; card scroll/clip: flow-card.ui-card 582/465 [empty] ; overlap INPUT�Back [busy] ; overlap INPUT�Back [empty] |
-| Passenger | `/travel/book/tickets` | FAIL | legacy layout (passenger-booking-flow) [busy] ; legacy layout (passenger-booking-flow) [empty] |
-| Passenger | `/travel/book/rental` | FAIL | legacy layout (passenger-booking-flow) [busy] ; legacy layout (passenger-booking-flow) [empty] |
+| Passenger | `/travel/book/event` | PASS |  |
+| Passenger | `/travel/book/tickets` | PASS |  |
+| Passenger | `/travel/book/rental` | PASS |  |
 | Passenger | `/travel/book/details/airport` | PASS |  |
 | Passenger | `/travel/book/details/local` | PASS |  |
 | Passenger | `/travel/book/details/event` | PASS |  |
@@ -122,4 +122,8 @@ Not in this batch (still listed above as FAIL by the old sidebar finding only, w
 
 ## Passenger dashboard batch (1280x585 and 1920x1080, busy + empty)
 PASS: /dashboard (shared dash grid: 4 stat cards, 6 tiles + Travelly AI card, no page or tile scroll; legacy passenger-dashboard layout, DashboardSearchPanel and passengerDashboard.css deleted), /trips/:id/request-status and /trips/:id/confirmed (BookingState guards missing status/itinerary/proposal; pickup QR + PIN beside each other so quote + code still fit 1280x585).
+
+## Booking wizard batch (1280x585 and 1920x1080)
+PASS (no page/card scroll, nothing outside the card): /hire signed-out and signed-in (steps: service cards, Journey, Pickup & stops incl. populated pickup list and 4 stops, vehicle needs, vehicles), /travel/book/service, /details/{airport,local,event,long-distance/one-day,multi-day}, /requirements, /vehicles, /vehicles/:id/review, /review, /travel/book/tickets, /travel/book/event (Event / Date & vehicles / Results tabs), /travel/book/rental, /vehicles/:id.
+Root cause of the signed-out /hire breakage: the compact flow CSS was keyed to `.workspace-shell[data-workspace]`, which public pages do not have. FlowShell now marks the body `flow-standalone` and those 242 selectors accept either. The audit script flags Event hire's Venue/Pickup fields as overlapping their own search button; the button is drawn inside the input on purpose.
 
