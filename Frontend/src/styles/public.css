@@ -46,22 +46,6 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .menu-toggle{display:none;background:transparent;border:1px solid var(--ui-input-border);border-radius:5px;padding:8px;color:var(--ui-ink)}
 
 .public-page{max-width:1600px;margin:auto;background:#f4f6f9}
-.search-panel{position:relative;z-index:3;margin-bottom:28px;padding:0 19px 15px;background:#fffffff5;border:1px solid #ede8df;border-radius:10px;box-shadow:0 4px 14px #4b241315;scroll-margin-top:20px}
-.search-tabs{display:flex;gap:35px;border-bottom:1px solid #e9e5df;margin-bottom:13px}
-.search-tabs button{display:flex;gap:12px;align-items:center;border:0;background:transparent;color:#71515b;padding:15px 8px 13px;position:relative;font-size:15px}
-.search-tabs button.selected{font-weight:700;color:var(--ui-ink)}
-.search-tabs button.selected:after{content:'';position:absolute;height:2px;left:0;right:0;bottom:-1px;background:var(--primary-red)}
-.search-panel form{display:grid;grid-template-columns:1.35fr 1.35fr 1fr 1.1fr auto;gap:14px;align-items:end}
-.search-panel label{font-size:13px;display:block;color:#2b2222}
-.search-input{display:flex;align-items:center;gap:10px;border:1px solid #e7e1db;border-radius:6px;min-height:46px;margin-top:6px;padding:0 11px;min-width:0;color:var(--ui-ink);background:#fff}
-.search-input input,.search-input select{border:0;outline:none;min-width:0;width:100%;color:var(--primary-red);background:transparent;padding:12px 0;font-size:13px}
-.search-input input::placeholder{color:#98838e}
-.search-input svg{width:20px}
-.search-input select{cursor:pointer}
-.search-input:focus-within{outline:2px solid #c89879;outline-offset:1px}
 .search-submit{min-height:46px;padding:12px 18px;white-space:nowrap}
-.group-trip{display:flex;align-items:center;gap:13px;margin-top:14px;color:var(--primary-red);font-size:13px}
-.group-trip a{display:flex;align-items:center;gap:12px;text-decoration:underline;text-underline-offset:3px;color:var(--primary-red)}
-.group-trip>svg{width:22px}
 .site-footer{background:linear-gradient(110deg,#f8e7d3,#f8eee1);border-top:1px solid var(--ui-input-border);padding:20px 4.3%;display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--primary-red);font-size:13px}
 .footer-brand{font-size:27px;font-weight:800;letter-spacing:-1.4px;color:var(--primary-red)}

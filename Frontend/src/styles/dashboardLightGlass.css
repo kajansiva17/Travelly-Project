@@ -19,11 +19,8 @@ body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar img {widt
 body .workspace-shell[data-workspace] .workspace-sidebar-link {color:#fff;border-radius:18px}
 body .workspace-shell[data-workspace] .workspace-sidebar-link.active {color:#fff;background:linear-gradient(#ff6a72,#ff1320 55%,#dc0012);border-color:#fff9;box-shadow:inset 0 1px 7px #fff9,0 5px 12px #a9002455}
 body .workspace-shell[data-workspace] .workspace-sidebar-link:hover:not(.active) {background:#fff4;color:#fff}
-body .workspace-shell .overview-banner :is(h1,p),
-body .reference-passenger .passenger-welcome :is(h1,p) {color:#071645;text-shadow:0 1px 8px #ffffffc9}
+body .workspace-shell .overview-banner :is(h1,p) {color:#071645;text-shadow:0 1px 8px #ffffffc9}
 body .workspace-shell .reference-availability {color:#19335b;background:#f3f9ffcd;border-color:#fff}
-body .reference-passenger .passenger-welcome {background:transparent}
-body .reference-passenger .passenger-welcome:after {display:none}
 
 body .workspace-shell :is(.workspace-card,.workspace-metric),
 body .reference-passenger :is(.workspace-card,.search-panel) {
@@ -62,18 +59,6 @@ body .dashboard-overview .reference-platform-map>div {background:#f3f9ffdc;color
 body .dashboard-overview .reference-platform-map>small {color:#fff;text-shadow:0 1px 3px #001}
 body .dashboard-overview .reference-route {grid-template-columns:1fr;min-height:0}
 body .dashboard-overview .pipeline-columns .pipeline-row>strong {color:#071645}
-body .reference-passenger .search-panel {padding:12px 15px}
-body .reference-passenger .search-tabs button {color:#071645;background:linear-gradient(#fff,#dceaf5);border-color:#fff;border-radius:22px}
-body .reference-passenger .search-tabs button.selected {color:#fff;background:linear-gradient(#ff777e,#f00017 56%,#cc0013);border-color:#fff}
-body .passenger-dashboard.reference-passenger .search-tabs button.selected {color:#fff;background:linear-gradient(#ff777e,#f00017 56%,#cc0013);border-color:#fff}
-body .passenger-dashboard.reference-passenger .search-tabs button.selected:after {display:none}
-body .reference-passenger .search-panel label {color:#071645;background:#dfedf6cc;border-color:#fff}
-body .reference-passenger .search-input {color:#071645;background:#f4f9fddc}
-body .reference-passenger .search-input :is(input,select) {color:#071645}
-body .reference-passenger .search-input svg {color:#087cc2}
-body .reference-passenger .search-assurance {color:#152c55}
-body .reference-passenger .passenger-verification {color:#071645;background:#e6f7f2e8;border-color:#fff}
-body .reference-passenger .passenger-verification p {color:#30466a}
 body .workspace-shell .workspace-content :is(.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.auth-flow-panel,.profile-card) {
  color:#071645;border:1px solid #ffffffed;border-radius:20px;
  background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
@@ -92,7 +77,6 @@ body .reference-passenger .reference-help {position:static;display:flex;margin:1
  body .workspace-shell .workspace-menu-toggle {color:#071645;background:#e7f3fd;border:1px solid #fff}
  body .workspace-shell .workspace-card {padding:14px}
  body .workspace-shell .workspace-metric {min-height:110px;padding:10px}
- body .reference-passenger .search-panel {padding:10px}
 }
 @media(max-width:420px){
  body .workspace-shell .workspace-topbar .brand.travelly-brand {width:112px}

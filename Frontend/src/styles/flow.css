@@ -740,7 +740,6 @@ html body .travelly-ai-card.travelly-ai-card { container-type: inline-size; }
 @container (max-width: 300px) { html body .travelly-ai-card.travelly-ai-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "title" "chip" "robot" "text" "actions"; justify-items: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-robot, html body .travelly-ai-card.travelly-ai-card .reference-ai-soon, html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { flex-wrap: wrap; justify-content: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { padding: 0 .7em; } html body .travelly-ai-card.travelly-ai-card h2 { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { text-align: center; } }
 html body .travelly-ai-card.travelly-ai-card:not(.dash-tile) { min-height: min-content; align-content: start; }
 html body .travelly-ai-card.travelly-ai-card h2 svg { flex: none; width: 1.15em; height: 1.15em; }
-html body .passenger-side-panels > .travelly-ai-card.travelly-ai-card { grid-column: 1 / -1; }
 
 /* ---------- Public vehicle detail (inside FlowShell) ---------- */
 html body .flow-page .vehicle-public { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; }

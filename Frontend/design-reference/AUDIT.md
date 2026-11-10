@@ -6,7 +6,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 
 | Role | Route | Result | Reasons |
 |---|---|---|---|
-| Passenger | `/dashboard` | FAIL | legacy layout (passenger-dashboard) [busy] ; legacy layout (passenger-dashboard) [empty] ; page scroll 697px [busy] ; page scroll 697px [empty] |
+| Passenger | `/dashboard` | PASS |  |
 | Passenger | `/account` | PASS |  |
 | Passenger | `/bookings` | PASS |  |
 | Passenger | `/bookings/b1` | PASS |  |
@@ -30,8 +30,8 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Passenger | `/travel/book/vehicles` | PASS |  |
 | Passenger | `/travel/book/vehicles/v1/review` | PASS |  |
 | Passenger | `/travel/book/review` | PASS |  |
-| Passenger | `/trips/t1/request-status` | FAIL | CRASH Cannot read properties of undefined (reading 'replaceAll') @     at BookingState ; Cannot read properties of undefined (reading 'replaceAll') @     at BookingState (http://127.0.0.1:5199/src/features/pas [empty] ; no app shell/redirect -> /trips/t1/reque |
-| Passenger | `/trips/t1/confirmed` | FAIL | CRASH Cannot read properties of undefined (reading 'replaceAll') @     at BookingState ; Cannot read properties of undefined (reading 'replaceAll') @     at BookingState (http://127.0.0.1:5199/src/features/pas [busy] ; Cannot read properties of undefined (read |
+| Passenger | `/trips/t1/request-status` | PASS |  |
+| Passenger | `/trips/t1/confirmed` | PASS |  |
 | Passenger | `/vehicles/v1` | PASS |  |
 | Passenger | `/hire` | PASS |  |
 | Passenger | `/owners/OWN1` | PASS |  |
@@ -119,4 +119,7 @@ PASS (no page scroll, no card scroll/clip, no overlap, no legacy layout, admin s
 PASS (no page scroll, no card scroll/clip, no overlap, no legacy layout, no dark panel, actions in view, sidebar fits): /admin/dashboard (reference grid: 4 stats, 6 tiles + Travelly AI card, no tabs), /admin/applications (+ /:id with Application / Evidence tabs and the confirmation step), /admin/documents, /admin/bookings, /admin/payments, /admin/social-reviews, /admin/road-alerts, /admin/reports, /admin/oversight (3 tabs), /admin/manual-fulfilment (Events / Record an event), /admin/services-routes (list + details), /admin/services-routes/tickets, /admin/settings, /account?workspace=admin.
 Shared layout: features/admin/AdminList.jsx (filter row, compact rows, paging, Details view). Crash fixes: /admin/applications/:id and /admin/services-routes now guard missing application / pricing_scope / status / ready_vehicles.
 Not in this batch (still listed above as FAIL by the old sidebar finding only, which is fixed): /admin/personal/*, /admin/vehicles*, /admin/rentals, /bookings/:id?workspace=admin.
+
+## Passenger dashboard batch (1280x585 and 1920x1080, busy + empty)
+PASS: /dashboard (shared dash grid: 4 stat cards, 6 tiles + Travelly AI card, no page or tile scroll; legacy passenger-dashboard layout, DashboardSearchPanel and passengerDashboard.css deleted), /trips/:id/request-status and /trips/:id/confirmed (BookingState guards missing status/itinerary/proposal; pickup QR + PIN beside each other so quote + code still fit 1280x585).
 

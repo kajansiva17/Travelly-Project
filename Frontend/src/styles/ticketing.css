@@ -49,3 +49,13 @@ html body .flow-page .tk-facts > div { min-width: 0; padding: 6px 12px; border-r
 html body .flow-page .tk-facts dt { font-size: 12px; font-weight: 600; color: var(--ui-muted); }
 html body .flow-page .tk-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html body .flow-page .tk-bar .ui-chip { flex: none; }
+
+/* Passenger pickup code: QR beside the PIN so it fits one screen. */
+html body .flow-page .pickup-code { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+html body .flow-page .pickup-code h3 { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ui-ink); }
+html body .flow-page .pickup-code-body { display: flex; align-items: center; gap: 14px; min-width: 0; }
+html body .flow-page .pickup-code .qr-code { flex: none; width: clamp(104px, 22vh, 190px) !important; height: clamp(104px, 22vh, 190px) !important; }
+html body .flow-page .pickup-code-side { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+html body .flow-page .pickup-code-side p { margin: 0; font-size: 14px; color: var(--ui-text); }
+html body .flow-page .pickup-pin { display: block; margin-top: 2px; font-size: clamp(22px, 3.6vh, 30px); font-weight: 800; letter-spacing: .22em; color: var(--ui-ink); }
+html body .flow-page .pickup-code-side .ui-button { min-height: 34px; padding: 2px 14px; font-size: 14px; }
