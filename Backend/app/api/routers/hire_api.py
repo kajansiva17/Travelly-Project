@@ -16,7 +16,7 @@ from app.models.review_models import Vehicle, Document
 from app.models.rate_models import ServiceType, VehicleService
 from app.api.routers.rate_api import persist_rates
 from app.schemas.rate_schemas import RateRule
-from app.models.hire_models import Booking, Trip, Notification
+from app.models.hire_models import Booking, ScheduledTrip, Trip, Notification
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
     ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
     PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
@@ -385,6 +385,8 @@ def assignment_decline(trip_id: UUID, body: Version, request: Request, user=Depe
 def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     trip = db.get(Trip, trip_id)
     if not trip or trip.driver_user_id != user.id: raise missing()
+    departure = departure_of(db, trip)
+    if departure is not None: return start_departure(db, trip, departure, body, user)
     with request.app.state.audit.coordinated():
         before = db.get(Booking, trip.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
@@ -403,8 +405,25 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
 def driving_trip(db, trip_id, user):
     """Only the operator assigned to this trip may record what happens on it."""
     trip = db.get(Trip, trip_id)
-    if not trip or not trip.booking_id or trip.driver_user_id != user.id: raise missing()
+    if not trip or trip.driver_user_id != user.id: raise missing()
     return trip
+
+
+def departure_of(db, trip, *, lock=False):
+    """The published departure a trip runs, or None when the trip belongs to a private hire."""
+    if not trip.scheduled_trip_id: return None
+    query = select(ScheduledTrip).where(ScheduledTrip.id == trip.scheduled_trip_id)
+    if lock: query = query.with_for_update().execution_options(populate_existing=True)
+    return db.scalar(query)
+
+
+def riding_on(db, departure, user):
+    """True when this person holds a seat on the departure, so they may follow the journey."""
+    from app.models.seat_models import ScheduledTripSeat
+    return bool(db.scalar(select(Booking.id)
+                          .join(ScheduledTripSeat, ScheduledTripSeat.booked_booking_id == Booking.id)
+                          .where(ScheduledTripSeat.scheduled_trip_id == departure.id,
+                                 Booking.passenger_user_id == user.id).limit(1)))
 
 
 def locked_trip(db, trip_id, expected):
@@ -418,14 +437,88 @@ def running(trip):
         raise ApiError(409, 'TRIP_NOT_READY', 'The trip has not started or has already finished.')
 
 
+def start_departure(db, trip, departure, body, user):
+    """A published departure starts the same way a private hire does, against the departure itself."""
+    from app.models.rate_models import ServiceType as Service
+    locked_departure = departure_of(db, trip, lock=True)
+    locked = locked_trip(db, trip.id, body.expected_version)
+    if locked.assignment_status != 'ACCEPTED' or locked.status != 'READY' or locked_departure.status not in ('PUBLISHED', 'READY'):
+        raise ApiError(409, 'TRIP_NOT_READY', 'Only an accepted assignment on a published departure can start.')
+    moment = datetime.now(timezone.utc)
+    if moment < locked_departure.departure_at:
+        raise ApiError(409, 'TRIP_NOT_READY', 'The departure time has not arrived.')
+    if moment >= locked_departure.estimated_arrival_at:
+        raise ApiError(409, 'TRIP_NOT_READY', 'The arrival time has passed. Resolve the departure before starting it.')
+    vehicle = db.scalar(select(Vehicle).where(Vehicle.id == locked.vehicle_id).with_for_update().execution_options(populate_existing=True))
+    eligible_vehicle(db, vehicle)
+    compatible_driver(db, user, vehicle, db.get(Service, locked_departure.service_type_id), moment)
+    # The departure itself holds this vehicle's slot, so only the Driver's own calendar is rechecked.
+    clash = db.scalar(select(Trip.id).where(Trip.driver_user_id == user.id, Trip.assignment_status == 'ACCEPTED',
+                                            Trip.status.notin_(('COMPLETED', 'CANCELLED')), Trip.id != locked.id,
+                                            Trip.scheduled_start_at < locked_departure.estimated_arrival_at,
+                                            Trip.scheduled_end_at > locked_departure.departure_at).limit(1))
+    if clash:
+        raise ApiError(409, 'DRIVER_SCHEDULE_CONFLICT', 'The Driver already has an overlapping accepted trip.')
+    locked.status = 'IN_PROGRESS'
+    locked.actual_start_at = moment
+    locked.start_odometer_km = body.start_odometer_km
+    touch(locked); locked.updated_by = user.id
+    locked_departure.status = 'IN_PROGRESS'
+    touch(locked_departure); locked_departure.updated_by = user.id
+    db.commit()
+    return trip_summary(locked)
+
+
+def breakdown_departure(db, trip, body, user):
+    locked = locked_trip(db, trip.id, body.expected_version)
+    running(locked)
+    locked.status = body.kind
+    locked.breakdown_details = body.details
+    touch(locked); locked.updated_by = user.id
+    db.commit()
+    return {'trip': trip_summary(locked)}
+
+
+def complete_departure(db, trip, body, user):
+    """Finishing the journey closes the departure and the travellers who boarded it."""
+    from app.models.seat_models import BookingTraveller, ScheduledTripSeat
+    locked_departure = departure_of(db, trip, lock=True)
+    locked = locked_trip(db, trip.id, body.expected_version)
+    running(locked)
+    if locked.start_odometer_km is None or body.end_odometer_km < locked.start_odometer_km:
+        raise ApiError(422, 'VALIDATION_ERROR', 'The closing odometer cannot be lower than the odometer recorded at the start.')
+    locked.actual_end_at = datetime.now(timezone.utc)
+    locked.end_odometer_km = body.end_odometer_km
+    locked.calculated_distance_km = body.end_odometer_km - locked.start_odometer_km
+    locked.completion_notes = body.completion_notes
+    locked.status = 'COMPLETED'
+    locked.tracking_status = 'ENDED'
+    touch(locked); locked.updated_by = user.id
+    locked_departure.status = 'COMPLETED'
+    touch(locked_departure); locked_departure.updated_by = user.id
+    seats = select(ScheduledTripSeat.id).where(ScheduledTripSeat.scheduled_trip_id == locked_departure.id)
+    for traveller in db.scalars(select(BookingTraveller).where(BookingTraveller.scheduled_trip_seat_id.in_(seats),
+                                                               BookingTraveller.traveller_status == 'BOARDED')):
+        traveller.traveller_status = 'COMPLETED'
+        touch(traveller); traveller.updated_by = user.id
+    db.commit()
+    return {'trip': trip_summary(locked)}
+
+
 @router.get('/trips/{trip_id}')
 def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     trip = db.get(Trip, trip_id)
-    if not trip or not trip.booking_id: raise missing()
-    row = db.get(Booking, trip.booking_id)
+    if not trip: raise missing()
     reviewer = db.scalar(select(UserRole.id).where(UserRole.user_id == user.id, UserRole.role_code == 'ADMIN',
                                                    UserRole.approval_status == 'APPROVED'))
-    if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
+    departure = departure_of(db, trip)
+    if departure is not None:
+        if not reviewer and user.id not in (departure.owner_user_id, trip.driver_user_id) and not riding_on(db, departure, user):
+            raise missing()
+    else:
+        row = db.get(Booking, trip.booking_id)
+        if not row: raise missing()
+        if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
     return trip_summary(trip)
 
 
@@ -449,6 +542,7 @@ def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: 
 @router.post('/trips/{trip_id}/breakdown')
 def trip_breakdown(trip_id: UUID, body: Breakdown, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     first = driving_trip(db, trip_id, user)
+    if first.scheduled_trip_id: return breakdown_departure(db, first, body, user)
     with request.app.state.audit.coordinated():
         before = db.get(Booking, first.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
@@ -467,6 +561,7 @@ def trip_breakdown(trip_id: UUID, body: Breakdown, request: Request, user=Depend
 @router.post('/trips/{trip_id}/complete')
 def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     first = driving_trip(db, trip_id, user)
+    if first.scheduled_trip_id: return complete_departure(db, first, body, user)
     with request.app.state.audit.coordinated():
         before = db.get(Booking, first.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
