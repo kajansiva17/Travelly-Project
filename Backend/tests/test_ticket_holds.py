@@ -76,7 +76,7 @@ def ticket(client):
     assert services.status_code == 200, services.text
     service = services.json()['items'][0]
     return {'owner': owner, 'admin': admin, 'trip': published.json(), 'route': route, 'service': service,
-            'seats': {s['code']: s['seat_id'] for s in seat_map}, 'seat_map': seat_map}
+            'seats': {s['code']: s['seat_id'] for s in seat_map if s.get('seat_id')}, 'seat_map': seat_map}
 
 
 def configure_hold(client, t, minutes=10):
@@ -93,7 +93,17 @@ def hold_body(t, codes, key=None):
 
 def test_seat_map_only_sells_bookable_seats_with_the_owner_fare(client, ticket):
     assert set(ticket['seats']) == {'A1', 'A2', 'A3'}
-    assert all(s['status'] == 'AVAILABLE' and s['fare'] == '1500.00' for s in ticket['seat_map'])
+    sold = [s for s in ticket['seat_map'] if s.get('seat_id')]
+    assert {s['code'] for s in sold} == {'A1', 'A2', 'A3'}
+    assert all(s['status'] == 'AVAILABLE' and s['fare'] == '1500.00' for s in sold)
+
+
+def test_seat_map_also_returns_the_rest_of_the_layout_so_the_vehicle_can_be_drawn(client, ticket):
+    rest = {s['code']: s for s in ticket['seat_map'] if not s.get('seat_id')}
+    assert set(rest) == {'DRV', 'F1'}
+    assert rest['DRV']['type'] == 'CREW'
+    assert all(s['bookable'] is False for s in rest.values())  # not sellable on this departure
+    assert all('status' not in s and 'fare' not in s for s in rest.values())
 
 
 def test_hold_requires_admin_hold_time_and_passenger_role(client, ticket):
@@ -119,7 +129,7 @@ def test_hold_creates_requested_booking_travellers_and_held_seats(client, ticket
     assert sum(t['is_primary'] for t in booking['travellers']) == 1
     expires = datetime.fromisoformat(booking['hold_expires_at'])
     assert timedelta(minutes=6) < expires - datetime.now(timezone.utc) <= timedelta(minutes=7)
-    seats = {s['code']: s['status'] for s in client.get(f"/api/v1/scheduled-trips/{ticket['trip']['id']}/seats").json()['seats']}
+    seats = {s['code']: s['status'] for s in client.get(f"/api/v1/scheduled-trips/{ticket['trip']['id']}/seats").json()['seats'] if s.get('status')}
     assert seats == {'A1': 'HELD', 'A2': 'HELD', 'A3': 'AVAILABLE'}
     assert client.get(f"/api/v1/scheduled-trips/{ticket['trip']['id']}").json()['available_seats'] == 1
     other = person(client)
@@ -189,7 +199,7 @@ def test_expired_hold_is_released_before_the_next_hold(client, ticket):
         db.execute(update(ScheduledTripSeat).where(ScheduledTripSeat.held_by_booking_id == UUID(booking['id']))
                    .values(hold_expires_at=datetime.now(timezone.utc) - timedelta(seconds=1)))
         db.commit()
-    seats = {s['code']: s['status'] for s in client.get(f"/api/v1/scheduled-trips/{ticket['trip']['id']}/seats").json()['seats']}
+    seats = {s['code']: s['status'] for s in client.get(f"/api/v1/scheduled-trips/{ticket['trip']['id']}/seats").json()['seats'] if s.get('status')}
     assert seats['A2'] == 'AVAILABLE'
     second = api(client, person(client), 'post', '/bookings/ticket-holds', hold_body(ticket, ['A2']))
     assert second.status_code == 201, second.text

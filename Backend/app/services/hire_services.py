@@ -15,6 +15,7 @@ from app.services.pricing_scope import require_supported_private_hire
 from app.services.rate_calculation import calculate
 from app.core.errors import ApiError
 from app.api.routers.api import allowed_account, touch
+from app.services.pickup_codes import MAX_ATTEMPTS
 
 ZONE = ZoneInfo('Asia/Colombo')
 
@@ -162,6 +163,31 @@ def booking_summary(row):
             'itinerary': row.itinerary_snapshot, 'price': row.price_snapshot, 'proposal': row.pending_change,
             'accepted_quote_digest': row.accepted_quote_digest, 'vehicle_committed': row.vehicle_committed,
             'total_amount': str(row.total_amount) if row.total_amount is not None else None, 'currency': row.currency}
+
+
+def trip_summary(trip):
+    """Trip facts for the assigned Driver, the booking Passenger, the booking Owner and Admin.
+    Live coordinates are reported only while tracking is on; completion and cancellation end it."""
+    live = trip.tracking_status in ('ACTIVE', 'STALE') and trip.location_updated_at is not None
+    return {'id': str(trip.id), 'booking_id': str(trip.booking_id) if trip.booking_id else None,
+            'driver_user_id': str(trip.driver_user_id) if trip.driver_user_id else None,
+            'assignment_type': trip.assignment_type, 'assignment_status': trip.assignment_status,
+            'status': trip.status, 'version': trip.version,
+            'scheduled_start_at': trip.scheduled_start_at.isoformat(), 'scheduled_end_at': trip.scheduled_end_at.isoformat(),
+            'actual_start_at': trip.actual_start_at.isoformat() if trip.actual_start_at else None,
+            'actual_end_at': trip.actual_end_at.isoformat() if trip.actual_end_at else None,
+            'start_odometer_km': str(trip.start_odometer_km) if trip.start_odometer_km is not None else None,
+            'end_odometer_km': str(trip.end_odometer_km) if trip.end_odometer_km is not None else None,
+            'calculated_distance_km': str(trip.calculated_distance_km) if trip.calculated_distance_km is not None else None,
+            'tracking_status': trip.tracking_status,
+            'location': {'latitude': str(trip.current_latitude), 'longitude': str(trip.current_longitude),
+                         'accuracy_m': str(trip.location_accuracy_m) if trip.location_accuracy_m is not None else None,
+                         'speed_kph': str(trip.current_speed_kph) if trip.current_speed_kph is not None else None,
+                         'updated_at': trip.location_updated_at.isoformat()} if live else None,
+            'breakdown_details': trip.breakdown_details, 'completion_notes': trip.completion_notes,
+            'pickup': {'code_issued': bool(trip.pickup_code_version),
+                       'verified_at': trip.pickup_verified_at.isoformat() if trip.pickup_verified_at else None,
+                       'attempts_left': max(0, MAX_ATTEMPTS - (trip.pickup_failed_attempts or 0))}}
 
 
 def notify(db, booking, title, body, driver_id=None):

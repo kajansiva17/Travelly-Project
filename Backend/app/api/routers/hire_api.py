@@ -18,9 +18,11 @@ from app.api.routers.rate_api import persist_rates
 from app.schemas.rate_schemas import RateRule
 from app.models.hire_models import Booking, Trip, Notification
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
-    ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
+    ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
+    PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
 from app.services.hire_services import (digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
-    price, saved_rules, booking_summary, notify, audited, matches, matching_rules)
+    price, saved_rules, booking_summary, trip_summary, notify, audited, matches, matching_rules)
+from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
@@ -155,9 +157,10 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
         try:
             usable_capacity(vehicle, body)
             snapshot = offer(request, db, vehicle, service, body.itinerary)
-            # Matching only establishes eligibility. A price is deliberately
-            # withheld until the Passenger selects one specific vehicle.
-            items.append(safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)))
+            # Every listed vehicle shows the Owner's own price for this itinerary, so the
+            # Passenger compares before choosing. Selecting one still asks for a fresh quote.
+            items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
+                          'price': snapshot['calculation'], 'reserved_end_at': snapshot['reserved_end_at']})
         except ApiError as exc:
             if exc.status == 503: unavailable = True
             if exc.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
@@ -167,7 +170,7 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
         raise incomplete()
     if unavailable and not items:
         raise ApiError(503, 'TRIP_PRICING_UNAVAILABLE', 'Trusted route pricing is temporarily unavailable. Browse vehicles for an Owner quote.')
-    return {'items': items, 'message': 'Only vehicles with an active approved service rate and checked availability are shown. Select one vehicle to reveal its quote.'}
+    return {'items': items, 'message': 'Only vehicles with an active approved service rate and checked availability are shown. Each price comes from that Owner\u2019s saved rates; selecting a vehicle calculates a fresh quote.'}
 
 
 @router.post('/search/vehicles/{vehicle_id}/quote')
@@ -244,7 +247,7 @@ def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depend
     row = visible_booking(db, booking_id, user)
     result = booking_summary(row)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
-    result['trip'] = {'id': str(trip.id), 'driver_user_id': str(trip.driver_user_id), 'assignment_status': trip.assignment_status, 'status': trip.status, 'version': trip.version} if trip else None
+    result['trip'] = trip_summary(trip) if trip else None
     return result
 
 
@@ -395,6 +398,179 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
         notify(db, row, 'Trip started', 'The assigned Driver started this confirmed journey.', user.id)
         audited(request, db, user, row, previous, 'Assigned eligible Driver started the trip')
     return booking_summary(row)
+
+
+def driving_trip(db, trip_id, user):
+    """Only the operator assigned to this trip may record what happens on it."""
+    trip = db.get(Trip, trip_id)
+    if not trip or not trip.booking_id or trip.driver_user_id != user.id: raise missing()
+    return trip
+
+
+def locked_trip(db, trip_id, expected):
+    trip = db.scalar(select(Trip).where(Trip.id == trip_id).with_for_update().execution_options(populate_existing=True))
+    if trip.version != expected: raise ApiError(409, 'VERSION_CONFLICT', 'Trip changed. Reload before retrying.')
+    return trip
+
+
+def running(trip):
+    if trip.status not in ('IN_PROGRESS', 'BREAKDOWN', 'ASSISTANCE_REQUIRED'):
+        raise ApiError(409, 'TRIP_NOT_READY', 'The trip has not started or has already finished.')
+
+
+@router.get('/trips/{trip_id}')
+def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    trip = db.get(Trip, trip_id)
+    if not trip or not trip.booking_id: raise missing()
+    row = db.get(Booking, trip.booking_id)
+    reviewer = db.scalar(select(UserRole.id).where(UserRole.user_id == user.id, UserRole.role_code == 'ADMIN',
+                                                   UserRole.approval_status == 'APPROVED'))
+    if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
+    return trip_summary(trip)
+
+
+@router.patch('/trips/{trip_id}/location')
+def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: Session = Depends(get_db)):
+    driving_trip(db, trip_id, user)
+    allowed_account(user)
+    trip = locked_trip(db, trip_id, body.expected_version)
+    running(trip)
+    trip.current_latitude = body.latitude
+    trip.current_longitude = body.longitude
+    trip.location_accuracy_m = body.accuracy_m
+    trip.current_speed_kph = body.speed_kph
+    trip.location_updated_at = datetime.now(timezone.utc)
+    trip.tracking_status = 'ACTIVE'
+    touch(trip); trip.updated_by = user.id
+    db.commit()
+    return trip_summary(trip)
+
+
+@router.post('/trips/{trip_id}/breakdown')
+def trip_breakdown(trip_id: UUID, body: Breakdown, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    first = driving_trip(db, trip_id, user)
+    with request.app.state.audit.coordinated():
+        before = db.get(Booking, first.booking_id)
+        row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
+        trip = locked_trip(db, trip_id, body.expected_version)
+        running(trip)
+        previous = booking_summary(row)
+        trip.status = body.kind
+        trip.breakdown_details = body.details
+        touch(trip); trip.updated_by = user.id
+        notify(db, row, 'The trip needs help', body.details, user.id)
+        audited(request, db, user, row, previous,
+                'Assigned Driver reported ' + ('a breakdown' if body.kind == 'BREAKDOWN' else 'that assistance is required'))
+    return {**booking_summary(row), 'trip': trip_summary(trip)}
+
+
+@router.post('/trips/{trip_id}/complete')
+def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    first = driving_trip(db, trip_id, user)
+    with request.app.state.audit.coordinated():
+        before = db.get(Booking, first.booking_id)
+        row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
+        trip = locked_trip(db, trip_id, body.expected_version)
+        running(trip)
+        if row.status != 'IN_PROGRESS': raise ApiError(409, 'TRIP_NOT_READY', 'Only a started booking can be completed.')
+        if trip.start_odometer_km is None or body.end_odometer_km < trip.start_odometer_km:
+            raise ApiError(422, 'VALIDATION_ERROR', 'The closing odometer cannot be lower than the odometer recorded at the start.')
+        previous = booking_summary(row)
+        trip.actual_end_at = datetime.now(timezone.utc)
+        trip.end_odometer_km = body.end_odometer_km
+        trip.calculated_distance_km = body.end_odometer_km - trip.start_odometer_km
+        trip.completion_notes = body.completion_notes
+        trip.status = 'COMPLETED'
+        trip.tracking_status = 'ENDED'
+        row.status = 'COMPLETED'
+        touch(trip); trip.updated_by = user.id
+        notify(db, row, 'Trip completed', 'The assigned Driver completed this journey.', user.id)
+        audited(request, db, user, row, previous, 'Assigned Driver completed the trip')
+    return {**booking_summary(row), 'trip': trip_summary(trip)}
+
+
+def pickup_party(db, trip_id, user, *, passenger):
+    """The pickup code belongs to the Passenger; only the assigned operator may check it."""
+    trip = db.get(Trip, trip_id)
+    if not trip or not trip.booking_id: raise missing()
+    row = db.get(Booking, trip.booking_id)
+    if not row: raise missing()
+    if passenger and row.passenger_user_id != user.id: raise missing()
+    if not passenger and trip.driver_user_id != user.id: raise missing()
+    allowed_account(user)
+    return trip, row
+
+
+def pickup_out(trip):
+    """The Passenger's own copy: the code is recalculated, never read from a stored value."""
+    return {'trip_id': str(trip.id), 'pin': pin_for(trip.id, trip.pickup_code_version),
+            'qr_token': token_for(trip.id, trip.pickup_code_version),
+            'issued_at': trip.pickup_code_issued_at.isoformat() if trip.pickup_code_issued_at else None,
+            'verified_at': trip.pickup_verified_at.isoformat() if trip.pickup_verified_at else None,
+            'attempts_left': max(0, MAX_ATTEMPTS - (trip.pickup_failed_attempts or 0))}
+
+
+def open_trip(trip):
+    if trip.status in ('COMPLETED', 'CANCELLED'):
+        raise ApiError(409, 'TRIP_NOT_READY', 'This trip has finished, so a pickup code is no longer used.')
+
+
+@router.get('/trips/{trip_id}/pickup-code')
+def pickup_code(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """Issued on the Passenger's first look and shown again whenever they come back."""
+    trip, _ = pickup_party(db, trip_id, user, passenger=True)
+    open_trip(trip)
+    if not trip.pickup_code_version:
+        trip = db.scalar(select(Trip).where(Trip.id == trip.id).with_for_update().execution_options(populate_existing=True))
+        if not trip.pickup_code_version:
+            # The trip version is left alone: issuing a code is not a change the Driver has to reload for.
+            trip.pickup_code_version = 1
+            trip.pickup_code_issued_at = datetime.now(timezone.utc)
+            trip.pickup_failed_attempts = 0
+            db.commit()
+    return pickup_out(trip)
+
+
+@router.post('/trips/{trip_id}/pickup-code/reissue')
+def reissue_pickup_code(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """A new code: the previous one stops working at once."""
+    first, _ = pickup_party(db, trip_id, user, passenger=True)
+    open_trip(first)
+    trip = db.scalar(select(Trip).where(Trip.id == first.id).with_for_update().execution_options(populate_existing=True))
+    if trip.pickup_verified_at:
+        raise ApiError(409, 'PICKUP_ALREADY_VERIFIED', 'The Driver already checked this pickup, so the code is finished with.')
+    trip.pickup_code_version += 1
+    trip.pickup_code_issued_at = datetime.now(timezone.utc)
+    trip.pickup_failed_attempts = 0
+    db.commit()
+    return pickup_out(trip)
+
+
+@router.post('/trips/{trip_id}/pickup-verifications')
+def verify_pickup(trip_id: UUID, body: PickupVerification, user=Depends(current), db: Session = Depends(get_db)):
+    """The Driver checks the Passenger at the pickup: the scanned code, or the six digits under it."""
+    first, _ = pickup_party(db, trip_id, user, passenger=False)
+    trip = db.scalar(select(Trip).where(Trip.id == first.id).with_for_update().execution_options(populate_existing=True))
+    if trip.version != body.expected_version:
+        raise ApiError(409, 'VERSION_CONFLICT', 'Trip changed. Reload before retrying.')
+    if trip.status not in ('READY', 'IN_PROGRESS'):
+        raise ApiError(409, 'TRIP_NOT_READY', 'Check the Passenger when you reach the pickup, before the trip finishes.')
+    if trip.pickup_verified_at:
+        return {'verified_at': trip.pickup_verified_at.isoformat(), 'trip': trip_summary(trip)}
+    if not trip.pickup_code_version:
+        raise ApiError(409, 'PICKUP_CODE_NOT_ISSUED', 'Ask the Passenger to open their pickup code first.')
+    if (trip.pickup_failed_attempts or 0) >= MAX_ATTEMPTS:
+        raise ApiError(409, 'PICKUP_CODE_LOCKED', 'Too many wrong tries. Ask the Passenger to get a new code.')
+    expected = token_for(trip.id, trip.pickup_code_version) if body.qr_token else pin_for(trip.id, trip.pickup_code_version)
+    if not same(body.qr_token or body.pin, expected):
+        trip.pickup_failed_attempts = (trip.pickup_failed_attempts or 0) + 1
+        left = max(0, MAX_ATTEMPTS - trip.pickup_failed_attempts)
+        db.commit()
+        raise ApiError(422, 'PICKUP_CODE_INVALID', f'That code does not match. {left} tries left before the Passenger needs a new code.')
+    trip.pickup_verified_at = datetime.now(timezone.utc)
+    trip.pickup_failed_attempts = 0
+    db.commit()
+    return {'verified_at': trip.pickup_verified_at.isoformat(), 'trip': trip_summary(trip)}
 
 
 def validate_change(old, new, reason):
@@ -600,6 +776,25 @@ def vehicle_review(vehicle_id: UUID, body: VehicleDecision, request: Request, us
     return decide_vehicle(vehicle_id,body,request,user,db)
 
 
+def priced_for_publication(db, vehicle):
+    """A published vehicle must carry a price a Passenger can see.
+
+    Private hire needs saved rate rules (or event packages). Ticket and rental services
+    price each departure or agreement separately, so enabling the service is enough."""
+    rows = db.scalars(select(VehicleService).where(VehicleService.vehicle_id == vehicle.id,
+                                                   VehicleService.is_enabled.is_(True))).all()
+    for row in rows:
+        service = db.get(ServiceType, row.service_type_id)
+        if not service or not service.is_active:
+            continue
+        if service.category != 'PRIVATE_HIRE':
+            return True
+        terms = row.owner_terms or {}
+        if terms.get('rate_rules') or terms.get('event_packages'):
+            return True
+    return False
+
+
 @router.patch('/vehicles/{vehicle_id}/publish')
 def publish_vehicle(vehicle_id: UUID, body: Publication, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     from app.api.routers.rate_api import owned
@@ -610,6 +805,8 @@ def publish_vehicle(vehicle_id: UUID, body: Publication, request: Request, user=
         from app.services.vehicle_rules import has_exterior, require_complete
         if body.published:require_complete(row)
         if body.published and not has_exterior(row):raise ApiError(409,'EXTERIOR_PHOTO_REQUIRED','Approve at least one genuine exterior photo with no visible plates/private information before publication.')
+        if body.published and not priced_for_publication(db, row):
+            raise ApiError(409, 'VEHICLE_PRICES_REQUIRED', 'Add your prices for at least one active service before publishing. Passengers only see a vehicle that already has a price.')
         before = row.version; old = copy.deepcopy(row.verified_eligibility)
         was_published = row.is_published
         row.verified_eligibility = {**row.verified_eligibility, 'publication_fingerprint': fingerprint}; row.is_published = body.published; touch(row); row.updated_by = user.id

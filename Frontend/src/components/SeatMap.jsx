@@ -1,3 +1,4 @@
+import { t } from '../i18n/language.js'
 import React from 'react'
 import '../styles/ticketSeats.css'
 
@@ -96,7 +97,7 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
         <div className="vehicle-shell" style={{width:W,height:H+14}}>
           <VehicleArt W={W} H={H} driverX={driverX}/>
           <div className="seat-grid-map" style={{left:PADX,top:PADTOP,gridTemplateColumns:`${EDGE}px repeat(${columns},${SEAT}px) ${EDGE}px`}}>
-            {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>DOOR</span>}
+            {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>{t('DOOR')}</span>}
             {rows.flatMap(r=>own.filter(s=>s.row===r).map(s=>{
               const crew=s.type==='CREW'
               const notSold=s.bookable===false&&!crew
@@ -118,9 +119,9 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
     })}
     <ul className="seat-legend" aria-label="Seat colours">
       {editable
-        ?<><li><i className="swatch"/> For sale</li><li><i className="swatch not-sold"/> Not for sale</li></>
-        :<><li><i className="swatch"/> Available</li><li><i className="swatch booked"/> Booked</li><li><i className="swatch selected"/> Selected</li><li><i className="swatch not-sold"/> Not available</li></>}
-      <li><i className="swatch crew"><Wheel/></i> Driver</li>
+        ?<><li><i className="swatch"/> {t('For sale')}</li><li><i className="swatch not-sold"/> {t('Not for sale')}</li></>
+        :<><li><i className="swatch"/> {t('Available')}</li><li><i className="swatch booked"/> {t('Booked')}</li><li><i className="swatch selected"/> {t('Selected')}</li><li><i className="swatch not-sold"/> {t('Not available')}</li></>}
+      <li><i className="swatch crew"><Wheel/></i> {t('Driver')}</li>
     </ul>
   </div>
 }

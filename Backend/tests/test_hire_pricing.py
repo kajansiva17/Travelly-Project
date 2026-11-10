@@ -255,6 +255,19 @@ def committed(client, ctx):
     return result.json()
 
 
+def test_vehicle_list_shows_each_owner_price_before_the_passenger_selects(client, hire_setup):
+    c = hire_setup
+    body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(), 'passenger_count': 2,
+            'large_luggage_count': 1, 'small_luggage_count': 1}
+    found = client.post('/api/v1/search/vehicles', json=body)
+    assert found.status_code == 200, found.text
+    items = found.json()['items']
+    assert items and all(item['price']['total'] for item in items)
+    quoted = client.post(f"/api/v1/search/vehicles/{items[0]['id']}/quote", json=body)
+    assert quoted.status_code == 200, quoted.text
+    assert quoted.json()['price']['total'] == items[0]['price']['total']  # the listed price is the Owner's own rate
+
+
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):
     c = hire_setup; request = c.create(c.itinerary(('A','C')))
     assert request['proposal'] == {} and request['status'] == 'REQUESTED'

@@ -45,7 +45,8 @@ def test_fixed_first_then_distance_then_quote_and_no_duration_switch(client, hir
     assert c.create(c.itinerary(('A', 'C')))['proposal'] == {}
     searched = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': inside,
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
-    assert searched.status_code == 200 and 'price' not in searched.json()['items'][0]
+    assert searched.status_code == 200, searched.text
+    assert searched.json()['items'][0]['price']['total'] == '1500.00'  # the list shows each Owner's own price
     quoted = client.post(f"/api/v1/search/vehicles/{searched.json()['items'][0]['id']}/quote", json={'service_type_id': str(c.service_id), 'itinerary': inside,
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
     assert quoted.status_code == 200 and quoted.json()['price']['total'] == '1500.00'

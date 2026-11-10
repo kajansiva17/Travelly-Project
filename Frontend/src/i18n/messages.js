@@ -1,5 +1,6 @@
 import generated from './messages.generated.json' with { type: 'json' }
 import landing from './messages.landing.js'
+import trips from './messages.trips.js'
 
 // English source copy is the stable lookup key. Both translations are bundled
 // locally; switching languages never sends page content to a translation service.
@@ -329,4 +330,4 @@ const rows = [
   ["Ask anything about bookings, vehicles or reports.", "முன்பதிவுகள், வாகனங்கள் அல்லது அறிக்கைகள் பற்றி எதையும் கேளுங்கள்.", "වෙන් කිරීම්, වාහන හෝ වාර්තා ගැන ඕනෑම දෙයක් අසන්න."],
 ]
 
-export const messages = { ...landing, ...generated, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }
+export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -103,8 +103,7 @@ export default function PassengerTicketBooking(){
         <p>{departure.route.origin_name} → {departure.route.destination_name} · {new Date(departure.departure_at).toLocaleString()} · {departure.stop_prices_enabled
           ?<>price per seat {departure.currency} {partFare!=null?partFare.toFixed(2):departure.fare_per_seat} for {onStop?.stop_name} → {offStop?.stop_name}</>
           :<>fare per seat {departure.currency} {departure.fare_per_seat}</>}</p>
-        <div className="seat-legend"><span>□ Available</span><span>■ Selected</span><span>▨ Not for sale</span><span>▭ Held / booked</span></div>
-        <SeatMap seats={seats.map(s=>({...s,bookable:true}))} selected={booking?.hold_active?[]:selected} onToggle={booking?.hold_active?undefined:toggle} label="Choose seats"/>
+        <SeatMap seats={seats} selected={booking?.hold_active?[]:selected} onToggle={booking?.hold_active?undefined:toggle} label="Choose seats"/>
         {!booking?.hold_active&&<>
           <p>Selected: {selected.length?selected.join(', '):'none'}{selected.length>0&&<> · Total {departure.currency} {total.toFixed(2)}</>}</p>
           {selected.length>0&&selected.length!==travellers&&<p>You searched for {travellers} traveller{travellers>1?'s':''}; select {travellers} seat{travellers>1?'s':''}.</p>}
