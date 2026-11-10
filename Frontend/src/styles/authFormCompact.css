@@ -51,3 +51,11 @@
   body .auth-page .auth-divider { margin-block: 8px; }
   body .auth-page .auth-switch { margin-top: 8px; }
 }
+
+/* Register alignment: mobile number takes its own full row so that
+   Password and Confirm password sit side by side, and fields align to the
+   top of their row instead of stretching around a long helper text. */
+@media (min-width: 1024px) {
+  body .auth-page.register-page .auth-credentials-form { align-items: start; }
+  body .auth-page.register-page .auth-credentials-form > .register-phone-field { grid-column: 1 / -1; }
+}

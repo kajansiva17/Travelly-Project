@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Icon, useNotice } from '../../components/components'
+import { Brand, Icon, useNotice } from '../../components/components'
 import { journeyLink } from '../auth/onboardingJourney'
 import { getLanguage, languages, setLanguage, subscribeLanguage, t } from '../../i18n/language'
 import { landingContent } from './landingContent'
@@ -46,8 +46,8 @@ function LandingHeader({ role }) {
     observer.observe(header)
     return () => observer.disconnect()
   }, [])
-  return <header ref={headerRef} className="lr-header">
-    <Link className="lr-logo" to="/" aria-label={t('Travelly Home')}><img src={`${brandAssets}${role === 'driver' ? 'driver' : 'standard'}-logo.png`} alt={t('Travelly')} width="197" height="43"/></Link>
+  return <header ref={headerRef} className="lr-header site-header app-navbar">
+    <Brand/>
     <button className="lr-menu" type="button" aria-expanded={open} aria-controls="landing-navigation" aria-label={t('Navigation menu')} onClick={() => setOpen(!open)}><LandingIcon name={open ? 'close' : 'menu'}/></button>
     <nav id="landing-navigation" className={`lr-nav ${open ? 'lr-nav-open' : ''}`} aria-label={t('Main navigation')}>
       {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active' : ''}`}>{['steering','car'].includes(icon) ? <img className={`lr-role-icon lr-role-icon-${icon}`} src={`${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png`} alt="" width="22" height="22"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}

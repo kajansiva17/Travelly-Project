@@ -1,0 +1,209 @@
+/* Shared form kit (components/ui/*). Built only on the --ui-* tokens from
+   ui-theme.css. New class names (ui-*), so nothing existing is affected until
+   pages adopt the components in later phases. */
+
+/* GlassCard */
+.ui-card {
+  background: var(--ui-glass);
+  border: 1px solid var(--ui-glass-border);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-shadow-card);
+  -webkit-backdrop-filter: var(--ui-blur);
+  backdrop-filter: var(--ui-blur);
+  color: var(--ui-ink);
+  padding: clamp(16px, 2vw, 26px);
+  min-width: 0;
+}
+.ui-card-strong { background: var(--ui-glass-strong); }
+
+/* Button */
+.ui-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 10px 26px;
+  border-radius: var(--ui-radius-pill);
+  font: inherit; font-size: 17px; font-weight: 600; line-height: 1.2;
+  cursor: pointer; text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.ui-button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.ui-button-primary {
+  background: var(--ui-red-gradient); color: #fff;
+  border: 1px solid rgb(255 255 255 / .35);
+  box-shadow: var(--ui-shadow-button);
+  text-shadow: 0 1px 1px rgb(120 0 0 / .25);
+}
+.ui-button-secondary {
+  background: var(--ui-glass-strong); color: var(--ui-ink);
+  border: 1px solid var(--ui-glass-border);
+  box-shadow: 0 3px 10px rgb(40 80 120 / .14);
+}
+.ui-button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.04); }
+.ui-button:disabled, .ui-button[aria-disabled="true"] {
+  background: rgb(132 140 158 / .55); color: rgb(255 255 255 / .75);
+  border-color: rgb(255 255 255 / .4); box-shadow: none; text-shadow: none; cursor: not-allowed;
+}
+.ui-back-arrow { transform: scaleX(-1); }
+
+/* FormField, Input, Select */
+.ui-field { display: grid; gap: 6px; min-width: 0; color: var(--ui-ink); }
+.ui-field > label { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+.ui-required { color: var(--ui-red-text); }
+.ui-field-hint { font-size: 12px; line-height: 1.4; color: var(--ui-muted); }
+.ui-field-error { font-size: 12px; line-height: 1.4; color: var(--ui-red-text); }
+.ui-control {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  min-height: 46px; padding: 0 14px;
+  background: var(--ui-input-bg); border: 1px solid var(--ui-input-border);
+  border-radius: var(--ui-radius-input); color: var(--ui-blue-deep);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.ui-control:focus-within { border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+.ui-field-invalid .ui-control { border-color: var(--ui-red-text); }
+.ui-control > :is(input, select) {
+  flex: 1; min-width: 0; width: 100%; height: 44px;
+  border: 0; outline: 0; background: transparent; box-shadow: none;
+  color: var(--ui-ink); font: inherit; font-size: 15px; font-weight: 500; padding: 0;
+}
+.ui-control > :is(input, select)::placeholder { color: var(--ui-placeholder); opacity: 1; }
+.ui-control-select > select { appearance: none; -webkit-appearance: none; padding-right: 26px; cursor: pointer; }
+.ui-select-chevron { position: absolute; right: 12px; pointer-events: none; color: var(--ui-ink); }
+
+/* Chip */
+.ui-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 6px 14px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border);
+  color: var(--ui-ink); font: inherit; font-size: 14px; font-weight: 600; line-height: 1.2;
+  box-shadow: 0 2px 8px rgb(40 80 120 / .1);
+}
+button.ui-chip { cursor: pointer; }
+button.ui-chip:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.ui-chip-success { background: var(--ui-green-soft); border-color: rgb(63 185 80 / .35); }
+.ui-chip-success > svg { color: var(--ui-green); }
+.ui-chip-info { background: var(--ui-info-soft); border-color: rgb(47 111 228 / .3); }
+.ui-chip-info > svg { color: var(--ui-blue); }
+.ui-chip-selected { border-color: #ee3a2a; background: #fff0ee; }
+
+/* Checkbox */
+.ui-checkbox { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ui-ink); cursor: pointer; }
+.ui-checkbox > input { position: absolute; opacity: 0; width: 18px; height: 18px; margin: 0; }
+.ui-checkbox-box {
+  flex: none; width: 20px; height: 20px; border-radius: 6px;
+  background: #fff; border: 1px solid var(--ui-input-border);
+  box-shadow: inset 0 1px 2px rgb(40 80 120 / .12); position: relative;
+}
+.ui-checkbox > input:checked + .ui-checkbox-box { border-color: var(--ui-red); }
+.ui-checkbox > input:checked + .ui-checkbox-box::after {
+  content: ''; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px;
+  border: solid var(--ui-red); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+}
+.ui-checkbox > input:focus-visible + .ui-checkbox-box { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.ui-checkbox a, .ui-checkbox .inline-link { color: var(--ui-blue); text-decoration: underline; }
+
+/* Stepper */
+.ui-stepper { display: flex; align-items: flex-start; gap: 0; list-style: none; margin: 0; padding: 0; }
+.ui-step { position: relative; flex: 1; display: grid; justify-items: center; gap: 6px; text-align: center; min-width: 0; }
+.ui-step + .ui-step::before {
+  content: ''; position: absolute; top: 15px; right: 50%; width: 100%; height: 2px;
+  background: rgb(47 111 228 / .45); z-index: 0;
+}
+.ui-step-dot {
+  position: relative; z-index: 1; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--ui-blue); color: var(--ui-blue);
+  font-size: 15px; font-weight: 700;
+}
+.ui-step-current .ui-step-dot, .ui-step-done .ui-step-dot { background: var(--ui-blue); color: #fff; }
+.ui-step-label { font-size: 13px; font-weight: 600; color: var(--ui-ink); }
+.ui-step-todo .ui-step-label { color: var(--ui-text); font-weight: 500; }
+
+/* InfoCallout */
+.ui-callout {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 14px; border-radius: 16px;
+  background: rgb(227 239 255 / .85); border: 1px solid rgb(255 255 255 / .9);
+  color: var(--ui-text); font-size: 12.5px; line-height: 1.45;
+}
+.ui-callout > svg { flex: none; color: var(--ui-blue); }
+
+/* FormGrid */
+.ui-grid { display: grid; gap: 14px 18px; grid-template-columns: repeat(var(--ui-cols, 2), minmax(0, 1fr)); }
+.ui-grid-1 { --ui-cols: 1; } .ui-grid-2 { --ui-cols: 2; } .ui-grid-3 { --ui-cols: 3; } .ui-grid-4 { --ui-cols: 4; }
+.ui-grid > .ui-span-all { grid-column: 1 / -1; }
+@media (max-width: 767px) { .ui-grid { grid-template-columns: minmax(0, 1fr); } .ui-grid > * { grid-column: auto; } }
+
+/* ServiceTile */
+.ui-tile {
+  position: relative; display: flex; align-items: center; gap: 14px; overflow: hidden;
+  min-height: 84px; padding: 14px 18px; text-align: left; text-decoration: none;
+  background: var(--ui-glass); border: 1px solid var(--ui-glass-border);
+  border-radius: 22px; box-shadow: var(--ui-shadow-card);
+  -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur);
+  color: var(--ui-ink); font: inherit; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+div.ui-tile { cursor: default; }
+.ui-tile:is(a, button):hover { transform: translateY(-2px); box-shadow: var(--ui-shadow-card), 0 10px 22px rgb(40 80 120 / .14); }
+.ui-tile:is(a, button):focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+.ui-tile-icon { flex: none; display: grid; place-items: center; color: var(--ui-blue-deep); }
+.ui-tile-text { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.ui-tile-text strong { font-size: 18px; font-weight: 700; color: var(--ui-ink); }
+.ui-tile-text small { font-size: 13px; line-height: 1.35; color: var(--ui-text); }
+.ui-tile-image { flex: none; width: 38%; max-width: 150px; height: 64px; object-fit: contain; }
+.ui-tile-go {
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-ink);
+}
+.ui-tile-go > svg { transform: rotate(-90deg); }
+.ui-tile-selected { border-color: #ee3a2a; background: #fff0ee; }
+.ui-tile-mark {
+  position: absolute; top: 10px; right: 12px; display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 50%; background: var(--ui-red); color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button, .ui-tile, .ui-control { transition: none; }
+  .ui-button:hover:not(:disabled), .ui-tile:is(a, button):hover { transform: none; }
+}
+
+/* Tabs: white-glass segmented bar, active tab outlined in red. */
+.ui-tabs { display: flex; gap: 6px; padding: 6px; border-radius: 22px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); -webkit-backdrop-filter: var(--ui-blur); backdrop-filter: var(--ui-blur); overflow-x: auto; }
+.ui-tab { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 6px 16px; border: 1px solid transparent; border-radius: 16px; color: var(--ui-ink); font-size: 15px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.ui-tab > svg { color: var(--ui-blue-deep); }
+a.ui-tab:hover { background: rgb(255 255 255 / .9); }
+a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.ui-tab.is-active { background: #fff0ee; border-color: #ee3a2a; }
+.ui-tab.is-active > svg { color: var(--ui-red-text); }
+
+/* Visually hidden but still focusable for native required-field validation. */
+.ui-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; opacity: 0; }
+@media (max-width: 560px) { .ui-tab { white-space: normal; text-align: center; padding: 6px 10px; font-size: 14px; } }
+
+/* Stepper: completed steps are green with a check. */
+.ui-step-done .ui-step-dot { background: var(--ui-green); border-color: var(--ui-green); color: #fff; }
+.ui-step-done + .ui-step::before, .ui-step-current::before { background: var(--ui-blue); }
+.ui-tile-badge { flex: none; padding: 3px 10px; border-radius: 999px; background: #fff4d6; border: 1px solid #f0cf7a; color: #7a5200; font-size: 12px; font-weight: 700; }
+
+/* Stepper: completed steps are buttons that go back to that step. */
+.ui-step-button { display: grid; justify-items: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; min-width: 0; }
+.ui-step-button:hover .ui-step-label { text-decoration: underline; }
+.ui-step-button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 3px; border-radius: 10px; }
+
+/* InfoTip: "i" button with a tooltip for long helper text. */
+.ui-infotip { position: relative; display: inline-flex; vertical-align: middle; margin-left: 4px; }
+.ui-infotip > button { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ui-blue); cursor: help; }
+.ui-infotip > button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+.ui-infotip > [role="tooltip"] { position: absolute; z-index: 130; left: -8px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 70vw); padding: 10px 12px; border-radius: 12px; background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-input-border); box-shadow: 0 8px 22px rgb(40 80 120 / .25); font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; display: none; pointer-events: none; }
+.ui-infotip:hover > [role="tooltip"], .ui-infotip:focus-within > [role="tooltip"] { display: block; }
+
+/* Tabs: inactive = light glass with navy text, active = red (also when rendered as a button). */
+html body .ui-tabs .ui-tab { background: rgb(255 255 255 / .72); color: var(--ui-ink); border: 1px solid rgb(255 255 255 / .9); box-shadow: none; font: inherit; font-size: 15px; font-weight: 600; text-shadow: none; }
+html body .ui-tabs .ui-tab > svg { color: var(--ui-blue-deep); }
+html body .ui-tabs button.ui-tab:hover, html body .ui-tabs a.ui-tab:hover { background: #fff; }
+html body .ui-tabs .ui-tab.is-active { background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55); box-shadow: var(--ui-shadow-button); text-shadow: 0 1px 1px rgb(120 0 0 / .25); }
+html body .ui-tabs .ui-tab.is-active > svg { color: #fff; }
+/* Chip tones used by checklists: danger (required, missing) and muted (optional). */
+.ui-chip-danger { background: #ffe3e0; border-color: #f3a9a1; color: #a3160c; }
+.ui-chip-danger > svg { color: #d90f0a; }
+.ui-chip-muted { background: #eef1f5; border-color: #d8dee8; color: #5b6f8f; }

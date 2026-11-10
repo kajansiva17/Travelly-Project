@@ -1,7 +1,4 @@
-﻿/* Passenger home has a full-width top navigation and no operational sidebar. */
-body .passenger-customer-shell>.site-header{padding:0;background:linear-gradient(110deg,#103b6e,#061a37);border-bottom:1px solid #578abd66}
-body .passenger-customer-shell>.site-header .header-inner{max-width:1520px;padding:14px 30px;min-height:84px;border:0;border-radius:0;background:transparent;box-shadow:none}
-body .passenger-customer-shell .customer-content{max-width:none;padding:0}
+﻿/* Passenger home content. It renders inside the shared workspace shell (navbar + sidebar). */
 body .passenger-dashboard{background:radial-gradient(ellipse at 80% 10%,#143c6455,transparent 50%),#041329;padding-bottom:40px}
 .passenger-welcome{position:relative;isolation:isolate;min-height:410px;overflow:hidden;background:#08264d}
 .passenger-welcome::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#031b3de8,#031b3d33 65%),linear-gradient(0deg,#041329,transparent 45%)}

@@ -1,0 +1,779 @@
+/* Travel & Booking flow (Phase 6b): shared layout for the passenger wizard
+   (/travel/book/*) and the owner / driver / admin personal booking page.
+   Matches design-reference/screens/passenger P01-01..04, P02-01..04, P03-01..04.
+   Built on --ui-* tokens and the kit (GlassCard `.ui-card`, Stepper, Tabs, ServiceTile).
+   Imported last in App.jsx. */
+
+html body .flow-page {
+  display: flex; flex-direction: column; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 8px clamp(12px, 2.4vw, 28px) 40px;
+  color: var(--ui-ink); background: transparent;
+}
+html body .flow-page > * { margin-top: 0; margin-bottom: 0; min-width: 0; }
+html body .flow-heading { margin: 0; font-size: clamp(28px, 3vw, 38px); font-weight: 800; line-height: 1.15; color: var(--ui-ink); text-shadow: 0 1px 8px rgb(255 255 255 / .7); letter-spacing: -.01em; }
+
+/* Stepper pill. */
+html body .flow-stepper { padding: 12px clamp(12px, 3vw, 36px); border-radius: 22px; }
+html body .flow-stepper .ui-stepper { max-width: 980px; margin: 0 auto; }
+
+/* Main card + Trip summary. */
+html body .flow-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+html body .flow-body.has-summary { grid-template-columns: minmax(0, 1fr) minmax(250px, 320px); }
+@media (max-width: 960px) { html body .flow-body.has-summary { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-main { display: grid; gap: 16px; min-width: 0; }
+html body .flow-card { display: grid; gap: 16px; }
+html body .flow-card-head { display: flex; align-items: center; gap: 14px; }
+html body .flow-card-icon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-blue-deep); }
+html body .flow-card-head h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-card-head p { margin: 2px 0 0; font-size: 14px; color: var(--ui-text); }
+
+/* Fields (works for kit FormField, TravellyField, plain labels and OwnerRates Field). */
+html body .flow-fields { display: grid; gap: 14px; }
+html body .flow-grid-2, html body .flow-grid-3 { display: grid; gap: 14px 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html body .flow-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 767px) { html body .flow-grid-2, html body .flow-grid-3 { grid-template-columns: minmax(0, 1fr); } }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) { display: grid; gap: 6px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .travelly-field > span { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .travelly-field > small { font-size: 12px; font-weight: 500; color: var(--ui-muted); }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea) {
+  box-sizing: border-box; width: 100%; min-height: 46px; padding: 8px 14px;
+  background: var(--ui-input-bg); color: var(--ui-ink);
+  border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input);
+  font: inherit; font-size: 15px; font-weight: 500; box-shadow: none;
+}
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) textarea { min-height: 76px; resize: vertical; }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea):focus { outline: 0; border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+
+/* Segmented choice (One way / Return, One day / Multi-day). */
+html body .flow-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+html body .flow-segmented > legend { grid-column: 1 / -1; padding: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-segmented label { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 6px 14px; border-radius: 16px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); box-shadow: 0 2px 8px rgb(40 80 120 / .1); color: var(--ui-ink); font-weight: 600; cursor: pointer; }
+html body .flow-segmented input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+html body .flow-segmented label.is-selected { background: #e6f0ff; border-color: var(--ui-blue); color: var(--ui-blue-deep); box-shadow: inset 0 0 0 1px var(--ui-blue); }
+html body .flow-segmented label:focus-within { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+
+/* Preference chips and notes. */
+html body .flow-chips { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+html body .flow-chips > legend, html body .flow-group > legend, html body .flow-group-title { flex: 0 0 100%; margin: 0 0 6px; padding: 0; font-size: 14px; font-weight: 700; color: var(--ui-ink); }
+html body .flow-group { margin: 0; padding: 14px 16px; border: 1px solid rgb(255 255 255 / .85); border-radius: 18px; background: rgb(255 255 255 / .5); min-width: 0; }
+html body .flow-note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ui-muted); }
+html body .flow-page .rate-hint { font-size: 12px; color: var(--ui-muted); }
+
+/* Actions: Back left, primary right. */
+html body .flow-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+html body .flow-actions .ui-button-primary { flex: 1 1 280px; max-width: 520px; margin-left: auto; min-height: 52px; font-size: 17px; }
+html body .flow-page a.ui-button { text-decoration: none; }
+@media (max-width: 767px) { html body .flow-actions { flex-direction: column-reverse; align-items: stretch; } html body .flow-actions .ui-button { max-width: none; margin-left: 0; } }
+
+/* Service choice grid. */
+html body .flow-service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { html body .flow-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { html body .flow-service-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Trip summary. */
+html body .flow-summary { display: grid; gap: 12px; align-content: start; }
+html body .flow-summary h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-summary h2 > svg { color: var(--ui-blue-deep); }
+html body .flow-summary-image { width: 100%; height: 150px; object-fit: cover; border-radius: 16px; border: 2px solid #fff; box-shadow: 0 3px 10px rgb(40 80 120 / .18); }
+html body .flow-summary dl { display: grid; gap: 0; margin: 0; }
+html body .flow-summary dl > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
+html body .flow-summary dl > div:last-child { border-bottom: 0; }
+html body .flow-summary dt { display: flex; align-items: center; gap: 8px; color: var(--ui-text); }
+html body .flow-summary dt > svg { color: var(--ui-blue-deep); flex: none; }
+html body .flow-summary dd { margin: 0; font-weight: 700; color: var(--ui-ink); overflow-wrap: anywhere; text-align: right; }
+html body .flow-summary-empty { margin: 0; font-size: 13px; color: var(--ui-muted); }
+
+/* Vehicle cards (matching list and selected vehicle). */
+html body .flow-vehicle { display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr); gap: 14px; padding: 12px; align-items: stretch; }
+html body .flow-vehicle.is-selected { border-color: #ee3a2a; }
+html body .flow-vehicle-photo { position: relative; display: grid; place-items: center; min-height: 140px; border-radius: 16px; overflow: hidden; background: #e7eef6; color: var(--ui-blue-deep); }
+html body .flow-vehicle-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html body .flow-vehicle-badge { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--ui-green); color: #fff; font-size: 12px; font-weight: 700; }
+html body .flow-vehicle-info { display: grid; gap: 8px; align-content: start; min-width: 0; }
+html body .flow-vehicle-info h3 { margin: 0; font-size: 19px; font-weight: 800; color: var(--ui-ink); overflow-wrap: anywhere; }
+html body .flow-vehicle-info ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--ui-text); }
+html body .flow-vehicle-info li { display: flex; align-items: center; gap: 8px; }
+html body .flow-vehicle-info li > svg { color: var(--ui-blue-deep); flex: none; }
+html body .flow-vehicle-action { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+html body .flow-vehicle-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 960px) { html body .flow-vehicle-list { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { html body .flow-vehicle { grid-template-columns: minmax(0, 1fr); } }
+
+/* Estimate / quote. */
+html body .flow-estimate { display: grid; gap: 8px; align-content: start; }
+html body .flow-estimate h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px; font-weight: 800; color: var(--ui-ink); }
+html body .flow-estimate h2 > svg { color: var(--ui-blue-deep); }
+html body .flow-estimate dl { display: grid; margin: 0; }
+html body .flow-estimate dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 15px; }
+html body .flow-estimate dt { color: var(--ui-text); }
+html body .flow-estimate dd { margin: 0; font-weight: 700; color: var(--ui-ink); }
+html body .flow-estimate-total { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 0; padding: 10px 14px; border-radius: 14px; background: #e6f0ff; border: 1px solid #b8d2ff; }
+html body .flow-estimate-total strong { font-size: 20px; color: var(--ui-ink); }
+html body .flow-two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 960px) { html body .flow-two { grid-template-columns: minmax(0, 1fr); } }
+
+/* Review rows and status banner. */
+html body .flow-review { display: grid; margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid rgb(255 255 255 / .85); background: rgb(255 255 255 / .55); }
+html body .flow-review > div { display: grid; grid-template-columns: minmax(130px, .35fr) minmax(0, 1fr); gap: 12px; padding: 11px 16px; border-bottom: 1px solid rgb(18 21 82 / .08); }
+html body .flow-review > div:last-child { border-bottom: 0; }
+html body .flow-review dt { font-weight: 700; color: var(--ui-ink); }
+html body .flow-review dd { margin: 0; color: var(--ui-text); overflow-wrap: anywhere; }
+@media (max-width: 560px) { html body .flow-review > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+html body .flow-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 20px; border: 1px solid rgb(255 255 255 / .9); background: rgb(255 255 255 / .7); }
+html body .flow-banner > div { flex: 1; min-width: 0; }
+html body .flow-banner strong { display: block; font-size: 19px; color: var(--ui-ink); }
+html body .flow-banner p { margin: 2px 0 0; font-size: 14px; color: var(--ui-text); }
+html body .flow-banner-icon { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #fff; color: var(--ui-blue-deep); }
+html body .flow-banner-success { background: #e4f6e8; border-color: #bfe6c8; } html body .flow-banner-success .flow-banner-icon { color: var(--ui-green); }
+html body .flow-banner-warning { background: #fff2d9; border-color: #f2d58f; } html body .flow-banner-warning .flow-banner-icon { color: #e08a00; }
+html body .flow-chipbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+html body .flow-chipbar .flow-chips { flex: 1; }
+
+
+/* ---------- One step per screen (wizard) ----------
+   The page fills the window under the navbar and nothing inside it scrolls: every step is
+   sized to fit (verified at 1536x864, 1366x768 and 1280x720). The Back / Next row is part of
+   the normal flow at the bottom of the card. Lists are paged (Pager) instead of scrolled. */
+html body .flow-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+html body .flow-top .ui-tabs { flex: 0 1 auto; }
+html body .flow-top .ui-tab { flex: 0 0 auto; padding-inline: 18px; }
+html body .workspace-shell[data-workspace] .flow-page { max-width: 1360px; height: calc(100dvh - var(--workspace-header-height, 106px)); min-height: 0; overflow: hidden; box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 8px; gap: 8px; }
+html body .workspace-shell[data-workspace] .flow-body { flex: 1 1 auto; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 12px; }
+html body .workspace-shell[data-workspace] .flow-body.has-summary { grid-template-columns: minmax(0, 7fr) minmax(220px, 3fr); }
+html body .workspace-shell[data-workspace] .flow-main { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); align-self: stretch; gap: 0; }
+html body .workspace-shell[data-workspace] .flow-card { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 8px; overflow: visible; }
+html body .workspace-shell[data-workspace] .flow-card > :is(form, .flow-fields, .flow-wizard-form) { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+html body .workspace-shell[data-workspace] .flow-card > section.trip-results { flex: 1 1 auto; min-height: 0; }
+html body .flow-card-head { position: static; margin: 0; padding: 0; background: none; flex: none; gap: 10px; }
+html body .flow-card-icon { width: 30px; height: 30px; border-radius: 10px; }
+html body .flow-card-icon > svg { width: 18px; height: 18px; }
+html body .flow-card-head h2 { font-size: 18px; }
+html body .flow-card-head p { display: none; }
+html body .workspace-shell[data-workspace] .flow-stepper { padding: 6px 14px; border-radius: 18px; }
+html body .workspace-shell[data-workspace] .flow-summary { position: static; align-self: start; max-height: 100%; overflow: visible; padding: 12px 14px; gap: 8px; }
+html body .flow-summary h2 { font-size: 17px; }
+html body .flow-summary-image { height: 76px; border-width: 1px; border-radius: 12px; }
+html body .flow-summary dl > div { padding: 5px 0; font-size: 13px; gap: 8px; }
+
+/* Back / Next: normal flow, bottom of the card. */
+html body .flow-actions { position: static; margin: auto 0 0; padding: 8px 0 0; background: none; border-top: 1px solid rgb(18 21 82 / .08); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; }
+html body .flow-actions .ui-button { min-height: 40px; padding: 6px 20px; font-size: 15px; }
+html body .flow-actions .ui-button-primary { flex: 0 1 240px; margin-left: auto; max-width: 320px; }
+html body .flow-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font-weight: 700; color: var(--ui-ink); }
+html body .flow-pager .ui-button { min-height: 36px; padding: 4px 12px; }
+html body .flow-pager + .ui-button-primary { margin-left: 0; }
+
+/* Fields: compact controls that never get cut off. */
+html body .flow-page :is(.travelly-field, .rate-field) { gap: 3px; min-width: 0; align-content: start; }
+html body .flow-page :is(.travelly-field > span, .rate-field > label) { position: relative; display: block; min-height: 18px; font-size: 13px; line-height: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .flow-page .rate-field > label small { font-size: 11px; font-weight: 500; }
+html body .flow-page .req { margin-left: 2px; color: var(--ui-red-text); font-weight: 700; }
+html body .flow-page :is(.travelly-field, .rate-field) :is(input, select, textarea) { min-width: 0; width: 100%; min-height: 40px; height: 40px; padding: 4px 10px; font-size: 14px; text-overflow: ellipsis; }
+html body .flow-page .travelly-field textarea { height: 40px; min-height: 40px; resize: none; }
+html body .flow-page .rate-field > label .ui-infotip { margin-left: 2px; vertical-align: top; }
+html body .flow-page .rate-field > label .ui-infotip > button { width: 18px; height: 18px; }
+html body .flow-segmented label { min-height: 38px; }
+html body .flow-group { padding: 8px 12px; }
+html body .flow-note { font-size: 12px; margin: 0; }
+
+/* Trip details */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane { display: grid; gap: 8px; align-content: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane[hidden] { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .counts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+@media (max-width: 640px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form :is(.trip-grid, .counts-grid) { grid-template-columns: minmax(0, 1fr); } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 4px 8px; align-items: start; padding: 8px 10px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-first { order: 1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-last { order: 2; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.is-middle { order: 3; grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop > .rate-row-actions { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .rate-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop .terms-check { grid-column: 1 / -1; font-size: 12px; }
+@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops { grid-template-columns: minmax(0, 1fr); } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop { order: 0 !important; } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 24px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions .field-error { margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .inline-link { font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .field-error { margin: 0; font-size: 11.5px; line-height: 1.25; color: var(--ui-red-text); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field [aria-invalid="true"] { border-color: var(--ui-red-text); }
+
+/* Place search: Find location is an icon button inside the input. */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place { position: relative; display: block; min-width: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input { position: relative; display: block; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-input > input { padding-right: 44px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--ui-input-border); border-radius: 50%; background: #fff; color: var(--ui-blue); cursor: pointer; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:disabled { opacity: .45; cursor: not-allowed; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .place-find:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > ul { position: absolute; z-index: 40; left: 0; right: 0; top: 100%; margin: 2px 0 0; max-height: 160px; overflow: auto; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > small:not(.rate-location-selected) { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > .rate-location-selected { position: absolute; right: 0; top: 0; font-size: 11px; color: #2f8a3d; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-place > p.field-error { position: absolute; z-index: 5; }
+
+/* Results: compact cards, paged. */
+html body .workspace-shell[data-workspace] .flow-page .trip-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-content: start; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results > :not(.trip-vehicle-card) { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results .rate-row-actions h2 { font-size: 16px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results > p[role="status"] { margin: 0; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .trip-results .flow-actions { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card { padding: 10px 12px; gap: 6px; border-radius: 16px; }
+html body .workspace-shell[data-workspace] .flow-page .trip-vehicle-card h3 { font-size: 16px; }
+html body .trip-vehicle-card .tv-head { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+html body .trip-vehicle-card .tv-thumb { flex: none; width: 76px; height: 56px; border-radius: 10px; overflow: hidden; background: #e7eef6; }
+html body .trip-vehicle-card .tv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+html body .trip-vehicle-card .tv-info { min-width: 0; display: grid; gap: 1px; font-size: 13px; }
+html body .trip-vehicle-card .tv-info p { margin: 0; }
+html body .trip-vehicle-card .tv-price { font-size: 13px; }
+html body .trip-vehicle-card .tv-price summary { cursor: pointer; font-weight: 700; color: var(--ui-ink); }
+html body .trip-vehicle-card .tv-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+html body .trip-vehicle-card .tv-actions .button { min-height: 38px; padding: 4px 16px; font-size: 14px; }
+@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .trip-results { grid-template-columns: minmax(0, 1fr); } }
+
+/* Passenger steps: same compact controls. */
+html body .flow-grid-4 { display: grid; gap: 8px 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+html body .flow-grid-2, html body .flow-grid-3 { gap: 8px 12px; }
+html body .flow-fields { gap: 8px; }
+html body .flow-vehicle { grid-template-columns: 140px minmax(0, 1fr); gap: 10px; padding: 8px; }
+html body .flow-vehicle-photo { min-height: 96px; }
+html body .flow-vehicle-info { gap: 4px; }
+html body .flow-vehicle-info h3 { font-size: 16px; }
+html body .flow-vehicle-info ul { font-size: 13px; gap: 2px; }
+html body .flow-vehicle-action { grid-column: 2; }
+html body .flow-vehicle-list { gap: 8px 12px; }
+html body .flow-chipbar { gap: 6px 10px; }
+html body .flow-estimate { gap: 4px; }
+html body .flow-estimate h2 { font-size: 17px; }
+html body .flow-estimate dl > div { padding: 4px 0; font-size: 14px; }
+html body .flow-estimate-total { padding: 6px 12px; }
+html body .flow-review > div { padding: 7px 12px; }
+html body .flow-banner { padding: 8px 14px; }
+html body .flow-banner-icon { width: 40px; height: 40px; }
+html body .flow-two { gap: 10px; }
+html body .flow-heading { font-size: clamp(24px, 2.4vw, 32px); }
+@media (max-width: 960px) { html body .flow-vehicle-action { grid-column: 1 / -1; } }
+@media (max-width: 560px) { html body .flow-vehicle { grid-template-columns: minmax(0, 1fr); } }
+
+/* Stepper: inline dot + label. */
+html body .flow-stepper .ui-stepper { max-width: none; align-items: center; }
+html body .flow-stepper .ui-step { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: 1 1 auto; text-align: left; }
+html body .flow-stepper .ui-step:first-child { flex: 0 0 auto; }
+html body .flow-stepper .ui-step + .ui-step::before { position: static; flex: 1 1 auto; min-width: 14px; width: auto; height: 2px; right: auto; top: auto; margin-inline: 6px; border-radius: 2px; }
+html body .flow-stepper .ui-step-button { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+html body .flow-stepper .ui-step-dot { width: 26px; height: 26px; font-size: 13px; }
+html body .flow-stepper .ui-step-label { white-space: nowrap; font-size: 13px; }
+@media (max-width: 760px) { html body .flow-stepper .ui-step:not(.ui-step-current) .ui-step-label { display: none; } }
+
+/* Short windows (laptops at 125% scaling): trim the navbar and tab row too. */
+@media (max-height: 820px) {
+  html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 6px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 2px; }
+  html body .flow-top .ui-tabs { padding: 3px; border-radius: 18px; }
+  html body .flow-top .ui-tab { min-height: 32px; padding-block: 2px; font-size: 14px; }
+}
+
+/* ---------- Owner step-by-step forms (rates and the other owner pages) ---------- */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 268px), 1fr)); gap: 6px 10px; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset { position: relative; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; display: grid; gap: 8px; align-content: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form legend { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip { position: absolute; top: -4px; right: 0; margin: 0; z-index: 4; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip > [role="tooltip"] { left: auto; right: -4px; }
+html body .workspace-shell[data-workspace] .flow-page .rate-form-host[hidden], html body .workspace-shell[data-workspace] .flow-page .wizard-pane[hidden] { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .rate-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .rate-tabs > button { min-height: 32px; padding: 2px 14px; border-radius: 999px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); color: var(--ui-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+html body .workspace-shell[data-workspace] .flow-page .rate-tabs > button[aria-pressed="true"] { background: #fff0ee; border-color: #ee3a2a; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > h2, html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > p:first-of-type { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-row-actions { justify-content: flex-start; gap: 4px 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form textarea { height: 56px; min-height: 56px; resize: none; }
+html body .flow-actions .ui-button-primary[type="submit"] { flex: 0 1 220px; margin-left: 0; }
+
+/* Fixed-route departure fields: select and the two times on one row, weekdays below. */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset:has(> fieldset.departure-weekdays) > .rate-grid { display: contents; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays { grid-column: 1 / -1; order: 5; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form fieldset > fieldset.departure-weekdays .rate-row-actions { flex-wrap: wrap; gap: 4px 14px; }
+
+/* Preview: form on the left, calculated example on the right. */
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px 14px; align-items: start; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > form { grid-column: 1; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] { grid-column: 2; grid-row: 1 / span 3; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] table { width: 100%; border-collapse: collapse; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] :is(th, td) { padding: 3px 6px; text-align: left; border-bottom: 1px solid rgb(18 21 82 / .1); }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-waiting-periods { display: grid; gap: 4px; }
+html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane .rate-waiting-periods > :is(h3, p) { display: none; }
+@media (max-width: 960px) { html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane { grid-template-columns: minmax(0, 1fr); } html body .workspace-shell[data-workspace] .flow-page .rate-preview-pane > [role="status"] { grid-column: 1; grid-row: auto; } }
+
+/* Hidden steps / sections must stay hidden whatever display their classes set. */
+html body .flow-page [hidden] { display: none !important; }
+
+/* ---------- Owner pages: compact rows, documents, calendar entries ---------- */
+html body .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
+html body .workspace-shell[data-workspace] .flow-page .vehicle-rows { display: grid; gap: 6px; }
+html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 12px; padding: 6px 12px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card h2 { grid-column: 1; margin: 0; font-size: 15px; }
+html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card p { grid-column: 1; margin: 0; font-size: 12.5px; color: var(--ui-text); }
+html body .workspace-shell[data-workspace] .flow-page .vehicle-rows .trip-vehicle-card > a { grid-column: 2; grid-row: 1 / span 2; min-height: 36px; padding: 2px 14px; font-size: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-reuse-note { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > h2 { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > p { margin: 0; font-size: 12px; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > ul { display: flex; flex-wrap: wrap; gap: 2px 16px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 10px; border: 1px solid rgb(255 255 255 / .85); border-radius: 12px; background: rgb(255 255 255 / .5); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document :is(h3, p) { margin: 0; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document .button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a { padding: 4px 6px; font-size: 12px; min-height: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { display: grid; gap: 4px; margin: 0; padding: 8px 12px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry :is(p, h3) { margin: 0; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .section-kicker { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .rate-row-actions .ui-button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 38px; padding: 2px 14px; font-size: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form #calendar-entries { display: grid; gap: 6px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .operation-list { margin: 0; padding-left: 18px; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label { display: grid; gap: 4px; min-width: 0; font-size: 13px; font-weight: 600; }
+html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label select { width: 100%; min-height: 40px; padding-inline: 8px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > :is(.rate-grid, button, .flow-actions) { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > button { justify-self: start; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview { position: relative; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: absolute; top: -2px; right: 0; margin: 0; }
+
+/* Ticket departures (OwnerTicketDepartures.jsx is not edited: CSS only). Form on the left, the
+   departures list on the right in its own panel; only that list scrolls inside its panel. */
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px 14px; height: calc(100dvh - var(--workspace-header-height, 106px)); box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 12px; overflow: hidden; max-width: 1360px; margin-inline: auto; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .workspace-heading { grid-column: 1 / -1; padding: 0; margin: 0; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) .workspace-heading :is(.section-kicker, p:not(.section-kicker)) { display: none; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) .workspace-heading h1 { margin: 0; font-size: clamp(24px, 2.4vw, 32px); }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .travelly-glass-panel { min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px; display: grid; gap: 8px; align-content: start; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .travelly-glass-panel h2 { margin: 0; font-size: 18px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid :is(input:not([type="checkbox"]), select) { min-width: 0; width: 100%; min-height: 40px; height: 40px; padding: 4px 10px; font-size: 14px; text-overflow: ellipsis; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid > button { grid-column: 1 / -1; min-height: 44px; }
+@media (max-width: 960px) { html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); } }
+
+/* ---------- Global form kit pass: compact controls, capped width, one footer row ---------- */
+html body .workspace-shell[data-workspace] .flow-page { max-width: 1240px; }
+html body .workspace-shell[data-workspace] .flow-card > :not(.flow-actions):not(.flow-card-head):not(.ui-infotip) { max-width: 1100px; width: 100%; }
+html body .workspace-shell[data-workspace] .flow-card > .ui-infotip { align-self: flex-start; width: auto; }
+html body .workspace-shell[data-workspace] .flow-card > .flow-actions { max-width: 1100px; width: 100%; margin-inline: 0; }
+html body .flow-page :is(.travelly-field, .rate-field) { gap: 4px; }
+html body .flow-page :is(.travelly-field > span, .rate-field > label) { font-size: 14px; line-height: 20px; min-height: 20px; }
+html body .flow-page :is(.travelly-field, .rate-field) :is(input, select) { min-height: 44px; height: 44px; font-size: 15px; padding: 4px 12px; }
+html body .flow-page :is(.travelly-field, .rate-field) textarea { font-size: 15px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid:not(.trip-grid):not(.counts-grid) { gap: 6px 12px; }
+html body .flow-actions { gap: 8px; flex-wrap: nowrap; }
+html body .flow-actions .ui-button { min-height: 44px; flex: 0 0 auto; white-space: nowrap; }
+html body .flow-actions .footer-slot { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+html body .flow-actions .footer-slot .ui-button-primary { margin-left: 0; flex: 0 0 auto; max-width: none; }
+html body .flow-actions .footer-slot:empty { display: none; }
+
+/* Section heading row (replaces the stray corner help icon). */
+html body .pane-head { display: flex; align-items: center; gap: 4px; min-height: 28px; }
+html body .pane-head > strong { font-size: 16px; font-weight: 700; color: var(--ui-ink); }
+html body .pane-head .pane-status { margin-left: auto; font-size: 13px; color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .fieldset-tip, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview > .fieldset-tip { position: static; margin: 0 0 2px; justify-self: start; }
+html body .flow-page .fieldset-tip::after { content: 'About this step'; margin-left: 2px; font-size: 12px; color: var(--ui-muted); align-self: center; }
+
+/* Documents */
+html body .doc-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+html body .doc-chips .ui-chip { min-height: 30px; padding: 3px 12px; font-size: 13px; cursor: default; }
+html body .flow-page input[type="checkbox"] { -webkit-appearance: none; appearance: none; display: inline-grid; place-content: center; flex: none; width: 20px; height: 20px; margin: 0; border-radius: 6px; border: 1px solid var(--ui-input-border); background: #fff; cursor: pointer; }
+html body .flow-page input[type="checkbox"]:checked { background: var(--ui-red); border-color: var(--ui-red); }
+html body .flow-page input[type="checkbox"]:checked::after { content: ''; width: 5px; height: 10px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) translate(-1px, -1px); }
+html body .flow-page input[type="checkbox"]:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
+html body .flow-page .terms-check { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+html body .flow-page input[type="file"] { padding: 5px 10px; font-size: 14px; color: var(--ui-text); }
+html body .flow-page input[type="file"]::file-selector-button { margin-right: 10px; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--ui-glass-border); background: var(--ui-glass-strong); color: var(--ui-ink); font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgb(40 80 120 / .14); }
+html body .flow-page input[type="file"]::file-selector-button:hover { background: #fff; }
+
+/* Description: two cards side by side with a compact empty state. */
+html body .desc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+html body .desc-card { min-width: 0; padding: 10px 14px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); border-radius: 16px; }
+html body .desc-card h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--ui-ink); }
+html body .desc-card p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ui-text); background: none; overflow-wrap: anywhere; }
+html body .desc-card .empty-state { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px dashed var(--ui-input-border); border-radius: 12px; color: var(--ui-muted); font-size: 13.5px; }
+html body .desc-card .empty-state > svg { flex: none; color: var(--ui-blue); }
+@media (max-width: 760px) { html body .desc-grid { grid-template-columns: minmax(0, 1fr); } }
+html body .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+html body .status-row .flow-note { margin: 0; }
+html body .status-row .inline-link { font-size: 13px; white-space: nowrap; }
+html body .flow-page :is(.travelly-field, .rate-field) select { padding-inline: 10px 6px; }
+html body .flow-page :is(.travelly-field, .rate-field) select { font-size: 14.5px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field select { font-size: 14px; padding-inline: 10px 4px; }
+
+/* ---------- Shell gutters (equal on the left, right and bottom) ---------- */
+html body .workspace-shell[data-workspace] .workspace-content { box-sizing: border-box; padding-right: var(--ui-gutter, 20px); padding-bottom: var(--ui-gutter, 20px); }
+html body .workspace-shell[data-workspace] .flow-page { padding-inline: 0; padding-bottom: 0; height: calc(100dvh - var(--workspace-header-height, 106px) - var(--ui-gutter, 20px)); }
+html body .workspace-shell[data-workspace] .flow-card { overflow: auto; }
+
+/* ---------- Stops: one compact row each; only the middle stops page ---------- */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-stops.stops-table { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 118px 96px 72px; gap: 0 10px; align-items: center; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head { padding: 0 10px; font-size: 12.5px; font-weight: 700; color: var(--ui-ink); line-height: 18px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { order: 0 !important; grid-column: auto; padding: 4px 10px; border-radius: 12px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field > label, html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field > .ui-infotip { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field { display: block; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-caption { font-size: 13px; font-weight: 700; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-rest-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-actions { display: flex; gap: 6px; justify-content: flex-end; }
+html body .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1px solid var(--ui-input-border); background: #fff; color: var(--ui-ink); cursor: pointer; }
+html body .icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+html body .icon-btn:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-actions { min-height: 28px; }
+html body .stops-head .ui-infotip, html body .pane-head .ui-infotip { margin-left: 2px; }
+@media (max-width: 760px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stops-head { display: none; } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .trip-stop.stop-row { grid-template-columns: minmax(0, 1fr) 100px; gap: 4px 8px; } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-caption { grid-column: 1 / -1; } }
+
+/* ---------- Documents ---------- */
+html body .doc-chips { gap: 4px 6px; }
+html body .doc-chips .ui-chip { min-height: 26px; padding: 2px 10px; font-size: 12.5px; gap: 4px; }
+html body .doc-chips .ui-chip > svg { width: 14px; height: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-documents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview { gap: 6px; }
+
+/* ---------- Very short windows (1280x585 laptops): merge stepper and tabs into one row ---------- */
+@media (max-height: 640px) {
+  html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 4px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 0; }
+  html body .workspace-shell[data-workspace] .flow-page { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: 6px 12px; padding-top: 0; }
+  html body .flow-top { display: contents; }
+  html body .flow-heading { display: none; }
+  html body .workspace-shell[data-workspace] .flow-stepper { grid-column: 1; grid-row: 1; padding: 3px 12px; align-self: center; }
+  html body .flow-top .ui-tabs { grid-column: 2; grid-row: 1; }
+  html body .workspace-shell[data-workspace] .flow-body { grid-column: 1 / -1; grid-row: 2; }
+  html body .workspace-shell[data-workspace] .flow-card { padding: 6px 14px 8px; gap: 5px; }
+  html body .flow-card-icon { width: 26px; height: 26px; }
+  html body .flow-card-head h2 { font-size: 16px; }
+  html body .flow-page :is(.travelly-field > span, .rate-field > label) { line-height: 18px; min-height: 18px; font-size: 13px; }
+  html body .flow-page :is(.travelly-field, .rate-field) :is(input, select) { min-height: 40px; height: 40px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .stop-row .rate-field input { min-height: 38px; height: 38px; }
+  html body .flow-actions { padding-top: 6px; }
+  html body .flow-actions .ui-button { min-height: 40px; }
+  html body .flow-actions .ui-button, html body .ui-tabs .ui-tab { font-size: 14px; }
+  html body .flow-top .ui-tab { min-height: 30px; }
+  html body .workspace-shell[data-workspace] .flow-summary { padding: 8px 12px; }
+  html body .flow-summary-image { height: 56px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .wizard-pane { gap: 5px; }
+}
+
+/* Field errors float under the control so they never change the step's height. */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field { position: relative; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: #fff0ee; border: 1px solid #f3a9a1; color: #a3160c; font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+@media (max-height: 640px) {
+  html body .workspace-shell[data-workspace] .flow-page:has(.flow-stepper) .flow-card-head { display: none; }
+}
+
+/* ---------- Short-window fixes (1280x585) ---------- */
+html body .fact-reg { display: contents; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-grid.facts-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 12px; }
+html body .flow-page :is(.flow-grid-4 > label) { display: grid; gap: 4px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page :is(.flow-grid-4 > label) :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 10px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 14.5px; }
+@media (max-height: 640px) {
+  html body .flow-page:has(.status-row) .flow-card-head { display: none; }
+  html body .flow-page :is(.flow-grid-4 > label) :is(input, select) { min-height: 40px; height: 40px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a { padding: 2px 6px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > a > span { display: none; }
+}
+
+@media (max-height: 640px) {
+  html body .doc-chips { gap: 3px 5px; }
+  html body .doc-chips .ui-chip { min-height: 24px; padding: 1px 8px; font-size: 12px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { padding: 5px 10px; gap: 2px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { padding: 2px 8px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { gap: 6px 8px; }
+}
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset > .rate-grid.rate-grid:not(.trip-grid):not(.counts-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-height: 640px) {
+  html body .flow-segmented label { min-height: 34px; }
+  html body .flow-segmented > legend { padding: 0 0 2px; font-size: 13px; }
+  html body .workspace-shell[data-workspace] .flow-page .travelly-field textarea { height: 40px; min-height: 40px; }
+  html body .workspace-shell[data-workspace] .flow-page .flow-fields { gap: 5px; }
+  html body .workspace-shell[data-workspace] .flow-page :is(.flow-grid-2, .flow-grid-3) { gap: 5px 10px; }
+  html body .flow-group { padding: 4px 10px; }
+}
+
+/* ---------- Old dark panels -> light glass (everything inside the workspace) ---------- */
+html body .workspace-shell[data-workspace] .workspace-content :is(.account-card, .profile-panel, .review-card, .review-detail, .review-summary, .rate-preview, .rate-rule, .trip-vehicle-card, .vehicle-card, .vehicle-panel, .calendar-panel, .document-card, .account-section, .profile-card, .role-card, .review-panel, .review-preview, .rate-vehicle-picker, .rate-reuse-note, .rate-area, .rate-area-summary, .trip-stop, .rate-prefilled, .vehicle-photo-card, .calendar-entry, .auth-flow-panel, .verification-note, .review-reason, .vehicle-document, .calendar-entry.withdrawn) { background: rgb(255 255 255 / .62); color: var(--ui-ink); border-color: rgb(255 255 255 / .9); box-shadow: none; }
+html body .workspace-shell[data-workspace] .workspace-content :is(.account-main, .review-main, .auth-flow-panel, .review-page, .vehicle-workspace, .owner-rates-page) :is(p, small, dt, li) { color: var(--ui-text); }
+html body .workspace-shell[data-workspace] .workspace-content :is(.rate-field small, .rate-coverage-summary, .change-totals dt, .trip-price th small, .calendar-checked) { color: var(--ui-muted); }
+html body .workspace-shell[data-workspace] .workspace-content .trip-price :is(tfoot th, tfoot td) { background: #e6f0ff; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .workspace-content :is(.avatar, .role-icon, .badge, .status) { background: #e6f0ff; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .workspace-content :is(.rate-place li > button) { background: #fff; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .workspace-content :is(.review-main, .review-panel, .auth-flow-panel, .private-upload, .rate-field, .account-page, .review-page, .vehicle-workspace) :is(input, select, textarea) { background: var(--ui-input-bg); color: var(--ui-ink); border-color: var(--ui-input-border); }
+
+/* ---------- Vehicle page pieces ---------- */
+html body .status-chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+html body .status-chips .ui-chip { min-height: 26px; padding: 2px 10px; font-size: 12.5px; }
+html body .submit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+html body .submit-grid .submit-main, html body .submit-grid > .rate-preview { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px 12px; border-radius: 16px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); }
+html body .submit-grid .submit-main > .rate-preview { padding: 0; border: 0; background: none; }
+html body .submit-grid > .rate-preview form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; align-items: end; }
+html body .submit-grid > .rate-preview form > button { grid-column: 1 / -1; justify-self: start; min-height: 38px; }
+html body .submit-grid > .rate-preview .rate-row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+html body .submit-grid > .rate-preview .rate-row-actions .button { min-height: 36px; padding: 2px 14px; font-size: 13.5px; }
+@media (max-width: 1000px) { html body .submit-grid { grid-template-columns: minmax(0, 1fr); } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 2px 8px; align-items: start; margin: 0; padding: 6px 8px; border-radius: 12px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card h3 { grid-column: 2; margin: 0; font-size: 12.5px; line-height: 1.25; text-transform: capitalize; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card .vehicle-photo { grid-column: 1; grid-row: 1 / span 3; width: 78px; height: 58px; object-fit: cover; border-radius: 8px; display: block; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card > :not(h3):not(img):not(.vehicle-photo):not(p) { grid-column: 1 / -1; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card p { grid-column: 2; margin: 0; font-size: 12px; }
+@media (max-width: 900px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html body .create-row form fieldset { display: grid; grid-template-columns: minmax(0, 440px) auto; gap: 6px 12px; align-items: end; }
+html body .create-row form fieldset > button { min-height: 44px; }
+@media (max-width: 700px) { html body .create-row form fieldset { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Calendar week: light glass day columns, red today, coloured entry chips ---------- */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
+html body .cal-day { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 6px 8px; border-radius: 14px; background: rgb(255 255 255 / .62); border: 1px solid rgb(255 255 255 / .9); color: var(--ui-ink); }
+html body .cal-day > strong { font-size: 13px; font-weight: 700; color: var(--ui-ink); white-space: nowrap; }
+html body .cal-day.is-today { border-color: #ee3a2a; background: #fff0ee; }
+html body .cal-day.is-today > strong { color: var(--ui-red-text); }
+html body .cal-free { font-size: 11.5px; color: var(--ui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .cal-chip { display: block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #e6f0ff; color: #1f3fa8; border: 1px solid #b8d2ff; }
+html body .cal-chip.block { background: #fff2d9; color: #7a5200; border-color: #f2d58f; }
+html body .cal-chip.booking { background: #e6f0ff; color: #1f3fa8; border-color: #b8d2ff; }
+html body .cal-chip.other { background: #dff3e2; color: #17622b; border-color: #bfe6c8; }
+html body .cal-chip.more { background: #eef1f5; color: var(--ui-muted); border-color: #d8dee8; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field { display: flex; align-items: center; gap: 8px; margin: 0; min-width: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field > label { white-space: nowrap; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .rate-field input { width: 176px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 42px; padding: 2px 16px; font-size: 14px; }
+@media (max-height: 640px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week > .cal-day > span.cal-free { display: none; } }
+@media (max-width: 900px) { html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-week { grid-template-columns: repeat(4, minmax(0, 1fr)); } html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-toolbar { flex-wrap: wrap; } }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-photo-card .button { min-height: 26px; padding: 0 10px; font-size: 12px; }
+
+/* ---------- Pass 3 fit tweaks ---------- */
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .rate-preview form fieldset { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 5px 12px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child > :is(p, h3) { margin: 0; font-size: 13px; line-height: 1.4; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry > div:first-child > h3 { font-weight: 700; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .rate-row-actions { display: flex; gap: 6px; margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .calendar-entry .calendar-reason { display: none; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form #calendar-entries > strong { font-size: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .docs-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .docs-row .flow-pager { margin: 0; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 0 10px; align-items: center; padding: 3px 10px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document h3 { grid-column: 1; margin: 0; font-size: 13px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document p { grid-column: 1; margin: 0; font-size: 12px; }
+html body .workspace-shell[data-workspace] .flow-page .flow-wizard-form .vehicle-document > .button { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+html body .workspace-shell[data-workspace] .workspace-content :is(.document-checklist, .document-requirement) { background: rgb(255 255 255 / .62); color: var(--ui-ink); border-color: rgb(255 255 255 / .9); }
+
+/* Short windows: keep the logo at its normal size and slim the navbar pill instead. */
+@media (max-height: 640px) {
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner { min-height: 54px; padding-block: 2px; }
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 225px; height: 45px; }
+}
+@media (min-width: 1200px) {
+  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 225px; height: 45px; }
+}
+html body .workspace-shell[data-workspace] .workspace-content :is(.trip-price, .rate-preview-pane, .flow-estimate) :is(thead, thead th, thead tr) { background: #eaf1fb; color: var(--ui-ink); }
+html body .workspace-shell[data-workspace] .workspace-content table :is(thead, thead th) { background: #eaf1fb; color: var(--ui-ink); }
+
+/* ---------- Driver pages (Phase 6d) ---------- */
+html body .op-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: end; margin: 0; }
+html body .op-grid .operation-field.wide { grid-column: span 2; }
+html body .flow-page .operation-field { display: grid; gap: 4px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .flow-page .operation-field :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 12px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 15px; font-weight: 500; }
+html body .flow-page .operation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+html body .flow-page .operation-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+html body .flow-page .operation-list li { padding: 5px 10px; border-radius: 10px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .85); }
+html body .flow-page .flow-wizard-form form + form, html body .flow-page .flow-wizard-form form + div { margin-top: 0; }
+html body .finance-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+html body .finance-card { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px 14px; border-radius: 16px; background: rgb(255 255 255 / .58); border: 1px solid rgb(255 255 255 / .9); }
+html body .finance-card .finance-amount { font-size: 30px; font-weight: 800; color: var(--ui-ink); line-height: 1.1; }
+html body .flow-page .finance-ledger { display: grid; gap: 0; margin: 0; }
+html body .flow-page .finance-ledger > div { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
+html body .flow-page .finance-ledger dt { color: var(--ui-text); }
+html body .flow-page .finance-ledger dd { margin: 0; font-weight: 700; color: var(--ui-ink); text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 1000px) { html body .finance-cols { grid-template-columns: minmax(0, 1fr); } html body .op-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Booking details tabs: sections laid out in compact flowing rows */
+html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
+html body .booking-pane .rate-preview, html body .booking-pane details.rate-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); border-radius: 14px; }
+html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > h2 { display: block; flex: 1 1 100%; margin: 0; font-size: 16px; }
+html body .workspace-shell[data-workspace] .flow-page .booking-pane .rate-preview > p { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--ui-text); }
+html body .booking-pane .trip-price table { font-size: 13px; }
+html body .booking-pane .trip-price :is(th, td) { padding: 3px 8px; }
+html body .booking-pane p { margin: 0; font-size: 14px; }
+html body .booking-pane .booking-status { font-weight: 700; }
+html body .booking-pane summary { cursor: pointer; font-weight: 700; color: var(--ui-ink); }
+html body .booking-pane .agreed-rate-rules, html body .booking-pane .agreed-itinerary { font-size: 13px; }
+
+/* Ticket boarding (DriverTicketBoarding.jsx is not edited: CSS only): departures as a compact two-column grid, the verify form pinned at the bottom of the panel. */
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article { margin: 0; padding: 8px 12px; border-radius: 14px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article :is(h3, p) { margin: 0; font-size: 14px; }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; position: sticky; bottom: 0; padding-top: 6px; background: var(--ui-glass-strong); }
+html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid > button { grid-column: auto; }
+html body .booking-pane .rate-preview:has(.trip-price) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 14px; align-items: start; }
+html body .booking-pane .rate-preview:has(.trip-price) > :is(h2, p, button, .ui-button) { grid-column: 1 / -1; }
+html body .booking-pane .rate-preview:has(.trip-price) > .trip-price { grid-column: 1; grid-row: 2; }
+html body .booking-pane .rate-preview:has(.trip-price) > details.agreed-rate-rules { grid-column: 2; grid-row: 2; padding: 6px 10px; border-radius: 12px; }
+html body .booking-pane .agreed-rate-rules p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; }
+
+/* ---------- Owner / driver dashboards: all cards on one screen ---------- */
+html body .workspace-shell[data-workspace] .dash-page { --d: clamp(11px, 1.1vh + 5.5px, 15px); display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 1240px; margin: 0; padding: 0; box-sizing: border-box; height: calc(100dvh - var(--workspace-header-height, 106px) - var(--ui-gutter, 20px)); min-height: 0; overflow: hidden; font-size: var(--d); color: var(--ui-ink); }
+html body .dash-page .dash-hero { align-self: flex-start; display: grid; gap: 1px; padding: 4px 16px 5px; border-radius: 16px; background: rgb(255 255 255 / .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); text-shadow: 0 1px 6px rgb(255 255 255 / .8); }
+html body .dash-page .dash-hero h1 { margin: 0; font-size: clamp(20px, 3.4vh, 34px); line-height: 1.1; font-weight: 800; color: var(--ui-ink); letter-spacing: -.01em; }
+html body .dash-page .dash-hero p { margin: 0; font-size: clamp(12px, 1.9vh, 16px); font-weight: 500; color: #1c3157; }
+html body .dash-page .dash-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+html body .dash-page .dash-stat { display: flex; align-items: center; gap: 10px; min-width: 0; padding: .4em .9em; border-radius: 16px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); color: var(--ui-ink); text-decoration: none; }
+html body .dash-page .dash-stat:hover { background: var(--ui-glass-strong); }
+html body .dash-page .dash-stat-icon { flex: none; display: grid; place-items: center; width: 2.8em; height: 2.8em; border-radius: 50%; background: var(--ui-info-soft); color: var(--ui-blue-deep); }
+html body .dash-page .dash-stat.tone-red .dash-stat-icon { background: #fde4e4; color: var(--ui-red-text, #c4161c); }
+html body .dash-page .dash-stat.tone-green .dash-stat-icon { background: var(--ui-green-soft, #dff5e6); color: var(--ui-green, #1b8a3b); }
+html body .dash-page .dash-stat > div { display: grid; min-width: 0; line-height: 1.15; }
+html body .dash-page .dash-stat > div > span { font-size: 1em; font-weight: 600; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .dash-page .dash-stat strong { font-size: 1.7em; font-weight: 800; color: var(--ui-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body .dash-page .dash-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.5fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 8px 10px; }
+html body .dash-page .a-main { grid-column: span 7; } html body .dash-page .a-side { grid-column: span 5; }
+html body .dash-page .b-1, html body .dash-page .b-2, html body .dash-page .b-3 { grid-column: span 4; }
+html body .dash-page .c-main, html body .dash-page .c-mid, html body .dash-page .c-side { grid-column: span 4; }
+html body .dash-page .dash-grid > .c-main:nth-last-child(2) { grid-column: span 8; }
+html body .dash-page .dash-tile { display: flex; flex-direction: column; gap: .4em; min-width: 0; min-height: 0; margin: 0; padding: .55em .9em .6em; overflow: hidden; border-radius: 16px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); }
+html body .dash-page .dash-tile > header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+html body .dash-page .dash-tile > header h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 1.2em; font-weight: 800; color: var(--ui-ink); white-space: nowrap; }
+html body .dash-page .dash-tile > header a { font-size: .95em; font-weight: 700; color: var(--ui-red-text); text-decoration: none; white-space: nowrap; }
+html body .dash-page .dash-tile-body { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: .4em; }
+html body .dash-page .dash-soft { margin: 0; font-size: 1em; color: var(--ui-text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body .dash-page .dash-soft a { color: var(--ui-red-text); font-weight: 700; }
+html body .dash-page .dash-vehicles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; align-content: start; }
+html body .dash-page .dash-vehicle { display: flex; align-items: center; gap: 8px; min-width: 0; padding: .3em .5em; border-radius: 12px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); color: var(--ui-ink); text-decoration: none; }
+html body .dash-page .dash-vehicle:hover { background: #fff; }
+html body .dash-page .dash-vehicle > div { display: grid; gap: 1px; min-width: 0; }
+html body .dash-page .dash-vehicle strong { font-size: 1.05em; font-weight: 800; color: var(--ui-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-vehicle .status-chips { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; font-size: .9em; color: var(--ui-text); white-space: nowrap; }
+html body .dash-page .dash-vehicle .ui-chip { min-height: 0; padding: 0 .6em; font-size: .85em; line-height: 1.6; flex: none; }
+html body .dash-page .dash-vehicle-art { flex: none; display: grid; place-items: center; width: 2.9em; height: 2.9em; border-radius: 10px; overflow: hidden; background: linear-gradient(145deg, #eaf2fb, #d3e3f3); color: var(--ui-blue-deep); }
+html body .dash-page .dash-vehicle-art.big { width: 6em; height: 100%; min-height: 4em; max-height: 8em; border-radius: 14px; }
+html body .dash-page .dash-vehicle-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html body .dash-page .dash-vehicle-art p { display: none; }
+html body .dash-page .dash-chart { display: grid; gap: .45em; align-content: center; flex: 1 1 auto; min-height: 0; }
+html body .dash-page .dash-chart-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 2em; align-items: center; gap: 8px; font-size: 1em; color: var(--ui-text); }
+html body .dash-page .dash-chart-row strong { text-align: right; color: var(--ui-ink); }
+html body .dash-page .dash-chart-track { height: .9em; border-radius: 999px; background: rgb(18 21 82 / .08); overflow: hidden; }
+html body .dash-page .dash-chart-track i { display: block; height: 100%; border-radius: 999px; background: var(--ui-red-gradient, var(--ui-red)); }
+html body .dash-page .dash-list, html body .dash-page .dash-stops { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+html body .dash-page .dash-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: .25em .6em; border-radius: 10px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); color: var(--ui-ink); text-decoration: none; }
+html body .dash-page .dash-row > div { display: grid; min-width: 0; }
+html body .dash-page .dash-row strong { font-size: 1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-row span { font-size: .9em; color: var(--ui-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-row .ui-chip { min-height: 0; padding: 0 .6em; font-size: .85em; line-height: 1.6; }
+html body .dash-page .dash-stops li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+html body .dash-page .dash-stops li > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; flex: 1; }
+html body .dash-page .dash-stops strong { font-size: 1em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-stops li > div span { font-size: .9em; color: var(--ui-text); white-space: nowrap; }
+html body .dash-page .dash-dot { flex: none; width: .8em; height: .8em; border-radius: 50%; border: 2px solid var(--ui-blue-deep); background: #fff; }
+html body .dash-page .dash-stops li:last-child .dash-dot { border-color: var(--ui-red); background: var(--ui-red); }
+html body .dash-page .dash-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+html body .dash-page .dash-link { display: flex; align-items: center; gap: 8px; min-width: 0; padding: .4em .7em; border-radius: 10px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); color: var(--ui-ink); font-weight: 700; font-size: 1em; text-decoration: none; }
+html body .dash-page .dash-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-link:hover { background: #fff; }
+html body .dash-page .dash-assignment { display: flex; gap: 12px; align-items: stretch; min-height: 0; }
+html body .dash-page .dash-assignment-main { display: grid; gap: .45em; align-content: center; min-width: 0; flex: 1; }
+html body .dash-page .dash-route { font-size: 1.35em; font-weight: 800; color: var(--ui-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 1em; color: var(--ui-ink); }
+html body .dash-page .dash-facts.col { display: grid; gap: .35em; }
+html body .dash-page .dash-facts span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .dash-facts .ui-chip { min-height: 0; padding: 0 .6em; font-size: .9em; line-height: 1.6; }
+html body .dash-page .dash-buttons { display: flex; gap: 8px; }
+html body .dash-page .dash-buttons .ui-button { min-height: 0; height: 2.6em; padding: 0 1.1em; font-size: 1em; flex: 0 1 auto; max-width: none; margin: 0; }
+html body .dash-page .dash-tile .workspace-select { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1em; font-weight: 600; color: var(--ui-ink); }
+html body .dash-page .dash-tile .workspace-select select { flex: 1 1 auto; min-width: 0; min-height: 0; height: 2.4em; padding: 0 .8em; border-radius: var(--ui-radius-input); background: var(--ui-input-bg); border: 1px solid var(--ui-input-border); color: var(--ui-ink); font: inherit; }
+html body .dash-page .dash-tile .workspace-note, html body .dash-page .dash-tile p { margin: 0; font-size: .95em; color: var(--ui-text); }
+html body .dash-page .dash-timeline { display: grid; gap: 4px; margin: 0; padding: 0; }
+html body .dash-page .dash-timeline > div { display: flex; gap: 8px; padding: .2em .6em; border-radius: 10px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); }
+html body .dash-page .dash-timeline > div > div { display: flex; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
+html body .dash-page .dash-timeline small, html body .dash-page .dash-timeline p { display: none; }
+html body .dash-page .dash-timeline strong { font-size: 1em; }
+html body .dash-page .dash-timeline span { font-size: .9em; color: var(--ui-text); }
+/* Travelly AI card */
+@media (max-width: 1000px) { html body .workspace-shell[data-workspace] .dash-page { height: auto; overflow: visible; } html body .dash-page .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } html body .dash-page .dash-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; } html body .dash-page .dash-grid > * { grid-column: auto !important; } }
+@media (max-height: 640px) { html body .dash-page .dash-vehicle .status-chips .ui-chip { display: none; } html body .dash-page .dash-vehicle .status-chips span { display: inline; } html body .dash-page .dash-hero { flex-direction: row; } }
+
+/* Account cards: Sign-in & email | Google connection */
+html body .profile-auth.auth-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+html body .auth-card { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 12px 16px; border-radius: 16px; background: rgb(255 255 255 / .58); border: 1px solid rgb(255 255 255 / .9); }
+html body .auth-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+html body .auth-card h3 { margin: 0; font-size: 17px; font-weight: 800; color: var(--ui-ink); }
+html body .auth-card p { margin: 0; font-size: 14px; color: var(--ui-text); overflow-wrap: anywhere; }
+html body .auth-card .auth-hint { font-size: 13px; }
+html body .auth-card .auth-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+html body .auth-card .auth-row .ui-button { min-height: 40px; font-size: 14px; padding: 0 16px; flex: 0 0 auto; max-width: none; }
+html body .auth-card .auth-fields { display: grid; grid-template-columns: minmax(0, 260px); }
+html body .auth-card .terms-check { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--ui-text); flex: 1 1 200px; }
+html body .auth-card .terms-check span { line-height: 1.25; }
+html body .profile-details { display: grid; gap: 8px; align-content: start; }
+html body .profile-details .ui-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; }
+html body .profile-details .profile-static-label { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
+html body .profile-details .ui-field { align-content: start; }
+html body .profile-details .ui-chip { justify-self: start; }
+@media (max-width: 1000px) { html body .profile-auth.auth-cards { grid-template-columns: minmax(0, 1fr); } html body .profile-details .ui-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-height: 700px) { html body .dash-page .dash-tile .workspace-note { display: none; } }
+html body .dash-page .dash-tile .workspace-note { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-height: 700px) { html body .dash-page .dash-links { grid-template-columns: repeat(4, minmax(0, 1fr)); } html body .dash-page .dash-link { justify-content: center; } html body .dash-page .dash-link span { display: none; } }
+
+/* ---------- Travelly AI card (driver, owner and passenger dashboards) ---------- */
+html body .travelly-ai-card.travelly-ai-card { --robot: clamp(54px, 10.5vh, 132px); position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "title chip" "text robot" "actions robot"; column-gap: 10px; row-gap: .4em; align-items: center; align-content: center; box-sizing: border-box; min-width: 0; min-height: 0; margin: 0; padding: .6em .9em .7em; overflow: hidden; border-radius: 18px; background: linear-gradient(135deg, #f1e9ff 0%, #dde8ff 55%, #cfe2ff 100%); border: 1.5px solid rgb(255 255 255 / .95); box-shadow: inset 0 1px 8px #fff, 0 6px 18px rgb(92 70 160 / .2); }
+html body .travelly-ai-card.travelly-ai-card :is(.workspace-card-heading, .reference-ai-content, .reference-ai-content > div) { display: contents; }
+html body .travelly-ai-card.travelly-ai-card h2 { grid-area: title; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 1.25em; line-height: 1.1; font-weight: 800; font-style: italic; letter-spacing: -.01em; color: #3b2a99; white-space: nowrap; }
+html body .travelly-ai-card.travelly-ai-card h2 svg { color: #7c4dff; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-soon { grid-area: chip; justify-self: end; align-self: start; padding: 0 .7em; border-radius: 999px; background: #fff; color: #5b3fc4; font-size: .8em; font-weight: 700; line-height: 1.7; white-space: nowrap; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { grid-area: text; margin: 0; font-size: .95em; line-height: 1.3; color: #25345c; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-content strong { display: none; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { grid-area: actions; display: flex; flex-wrap: nowrap; gap: 6px; margin: 0; align-self: end; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { display: inline-flex; align-items: center; gap: 5px; height: 2.3em; padding: 0 1em; border-radius: 999px; border: 1px solid #fff; background: rgb(255 255 255 / .88); box-shadow: 0 2px 6px rgb(74 54 112 / .14); color: #29335a; font: inherit; font-weight: 700; opacity: .8; cursor: not-allowed; white-space: nowrap; }
+html body .travelly-ai-card.travelly-ai-card .reference-ai-robot { grid-area: robot; justify-self: end; align-self: center; width: auto; height: var(--robot); max-width: none; aspect-ratio: 1; filter: drop-shadow(0 0 10px rgb(139 67 255 / .3)); }
+@media (max-height: 700px) { html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { display: none; } html body .dash-page .dash-grid { grid-template-rows: minmax(0, 1.2fr) minmax(0, 1.05fr) minmax(0, 1fr); } }
+html body .travelly-ai-card.travelly-ai-card { container-type: inline-size; }
+@container (max-width: 300px) { html body .travelly-ai-card.travelly-ai-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "title" "chip" "robot" "text" "actions"; justify-items: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-robot, html body .travelly-ai-card.travelly-ai-card .reference-ai-soon, html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { flex-wrap: wrap; justify-content: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { padding: 0 .7em; } html body .travelly-ai-card.travelly-ai-card h2 { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { text-align: center; } }
+html body .travelly-ai-card.travelly-ai-card:not(.dash-tile) { min-height: min-content; align-content: start; }
+html body .travelly-ai-card.travelly-ai-card h2 svg { flex: none; width: 1.15em; height: 1.15em; }
+html body .passenger-side-panels > .travelly-ai-card.travelly-ai-card { grid-column: 1 / -1; }
+
+/* ---------- Public vehicle detail (inside FlowShell) ---------- */
+html body .flow-page .vehicle-public { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .vehicle-public .vehicle-public-text { margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+html body .flow-page .vehicle-public .vehicle-public-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; flex: 1 1 0; min-height: 0; overflow: hidden; }
+html body .flow-page .vehicle-public .vehicle-public-photos .vehicle-photo { width: 100%; height: 100%; max-height: 100%; min-height: 0; object-fit: cover; border-radius: 12px; }
+@media (max-width: 700px) { html body .flow-page .vehicle-public .vehicle-public-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Account page documents tab ---------- */
+html body .flow-page .account-docs { min-height: 0; }
+html body .flow-page .own-documents { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .own-documents-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+html body .flow-page .own-documents-head h2 { margin: 0; font-size: 1.1em; display: flex; align-items: center; gap: 6px; }
+html body .flow-page .own-documents-head .ui-button { min-height: 34px; padding: 4px 14px; font-size: 14px; }
+html body .flow-page .own-documents-list { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+html body .flow-page .own-document-row { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 4px 12px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .own-document-row .review-reason { flex: 1 1 0; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .own-document-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+html body .flow-page .own-document-row .ui-button { min-height: 32px; padding: 2px 12px; font-size: 13px; }
+/* upload form: compact three-column grid; long guidance is hidden here (shown in the info tip above) */
+html body .flow-page .account-docs :is(.document-checklist, .upload-helper, .document-type-guidance p, .upload-metadata-note, .upload-approval-note) { display: none; }
+html body .flow-page .account-docs .private-upload fieldset { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 14px; border: 0; padding: 0; margin: 0; min-width: 0; }
+html body .flow-page .account-docs .private-upload legend { display: none; }
+html body .flow-page .account-docs .private-upload .upload-metadata { display: contents; }
+html body .flow-page .account-docs .private-upload .upload-field label { font-weight: 700; font-size: .9em; }
+html body .flow-page .account-docs .private-upload :is(input:not([type=checkbox]):not([type=file]), select) { width: 100%; box-sizing: border-box; height: 38px; border-radius: 12px; }
+html body .flow-page .account-docs .private-upload .document-type-guidance { grid-column: 1 / -1; margin: 0; }
+html body .flow-page .account-docs .private-upload > fieldset > .button { grid-column: 1 / -1; justify-self: end; min-height: 40px; padding: 6px 24px; }
+
+/* ---------- Shared state card (loading / denied / unavailable) ---------- */
+html body .flow-page .state-card { align-items: center; justify-content: center; text-align: center; gap: 8px; max-width: 560px; margin: auto; flex: 0 1 auto; padding: 18px 24px; }
+html body .flow-page .state-card h1 { margin: 0; font-size: 1.3em; }
+html body .flow-page .state-card p { margin: 0; line-height: 1.4; }
+html body .flow-page .state-card .state-card-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+html body .flow-page .travel-service-label { display: flex; align-items: center; gap: 10px; }
+html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
