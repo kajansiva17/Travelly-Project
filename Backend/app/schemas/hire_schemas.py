@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 from pydantic import AwareDatetime, Field, StrictBool, field_validator, model_validator
@@ -113,6 +114,55 @@ class StartTrip(Version):
         if value > Decimal('99999999999.9') or value % Decimal('.1'):
             raise ValueError('Use actual odometer km with at most one decimal place.')
         return value
+
+
+class TripLocation(Version):
+    latitude: Decimal = Field(ge=-90, le=90)
+    longitude: Decimal = Field(ge=-180, le=180)
+    accuracy_m: Decimal | None = Field(default=None, ge=0, le=Decimal('99999999.99'))
+    speed_kph: Decimal | None = Field(default=None, ge=0, le=Decimal('999999.99'))
+    @field_validator('latitude', 'longitude')
+    @classmethod
+    def map_precision(cls, value):
+        if -value.as_tuple().exponent > 6: raise ValueError('Use at most six decimal places for a map position.')
+        return value
+    @field_validator('accuracy_m', 'speed_kph')
+    @classmethod
+    def sensor_precision(cls, value):
+        if value is not None and -value.as_tuple().exponent > 2: raise ValueError('Use at most two decimal places.')
+        return value
+
+
+class Breakdown(Version):
+    kind: Literal['BREAKDOWN', 'ASSISTANCE_REQUIRED']
+    details: str = Field(min_length=1, max_length=2000)
+    @field_validator('details')
+    @classmethod
+    def written(cls, value):
+        if not value.strip(): raise ValueError('Describe what happened so the Owner and Passenger can act.')
+        return value.strip()
+
+
+class CompleteTrip(Version):
+    end_odometer_km: Amount
+    completion_notes: str | None = Field(default=None, max_length=2000)
+    @field_validator('end_odometer_km')
+    @classmethod
+    def closing_odometer(cls, value):
+        if value > Decimal('99999999999.9') or value % Decimal('.1'):
+            raise ValueError('Use actual odometer km with at most one decimal place.')
+        return value
+
+
+class PickupVerification(Version):
+    """The Driver sends what they scanned, or the six digits the Passenger read out."""
+    qr_token: str | None = Field(default=None, min_length=16, max_length=64)
+    pin: str | None = Field(default=None, pattern=r'^[0-9]{6}$')
+    @model_validator(mode='after')
+    def exactly_one(self):
+        if bool(self.qr_token) == bool(self.pin):
+            raise ValueError('Send either the scanned code or the six-digit number, not both.')
+        return self
 
 
 class ChangeBody(Version):

@@ -156,7 +156,7 @@ def test_passenger_pays_the_part_of_the_route_they_travel(client, ticket):
     assert detail['stop_prices_enabled'] is True
     stops = {s['stop_name']: s for s in detail['stops']}
     assert stops['Vavuniya']['price_from_start'] == '2500.00'
-    seats = [s['seat_id'] for s in client.get(f"/api/v1/scheduled-trips/{trip['id']}/seats").json()['seats']]
+    seats = [s['seat_id'] for s in client.get(f"/api/v1/scheduled-trips/{trip['id']}/seats").json()['seats'] if s.get('seat_id')]
     passenger = person(client)
 
     def hold(seat_ids, **chosen):

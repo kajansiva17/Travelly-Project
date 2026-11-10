@@ -34,7 +34,7 @@ import AdminTicketAudit from './features/admin/AdminTicketAudit'
 import AdminRoutes from './features/admin/AdminRoutes'
 import AdminTicketSettings from './features/admin/AdminTicketSettings'
 import AdminOversight from './features/admin/AdminOversight'
-import TripOperationPage from './features/booking/TripOperationPage'
+import DriverTripPage from './features/driver/DriverTripPage'
 import TripFinancePage from './features/booking/TripFinancePage'
 import WorkspaceShell from './components/WorkspaceShell'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
@@ -169,7 +169,7 @@ export default function App() {
             <Route path="/account" element={<AccountEntry/>}/>
             <Route path="/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
-            <Route path="/trips/:tripId/operation" element={<TripOperationPage/>}/>
+            <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
             <Route path="/trips/:tripId/finance" element={<TripFinancePage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
@@ -228,9 +228,9 @@ export default function App() {
             <Route path="/driver/dashboard" element={<DriverDashboard/>}/>
             <Route path="/driver/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/driver/operate-trip" element={<WorkspaceBookings kind="operate"/>}/>
-            <Route path="/driver/trips/:tripId/assigned" element={<TripOperationPage/>}/>
-            <Route path="/driver/trips/:tripId/verify-passenger" element={<TripOperationPage/>}/>
-            <Route path="/driver/trips/:tripId/live" element={<TripOperationPage/>}/>
+            <Route path="/driver/trips/:tripId/assigned" element={<DriverTripPage/>}/>
+            <Route path="/driver/trips/:tripId/verify-passenger" element={<DriverTripPage/>}/>
+            <Route path="/driver/trips/:tripId/live" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/cash" element={<TripFinancePage/>}/>
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
             <Route path="/driver/rentals" element={<RentalRoleUi role="DRIVER"/>}/>

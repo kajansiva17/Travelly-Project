@@ -8,7 +8,7 @@ from PIL import Image,PngImagePlugin
 from sqlalchemy import select,func
 from app.models import UserRole
 from app.models.review_models import Vehicle,Document
-from app.models.rate_models import ServiceType
+from app.models.rate_models import ServiceType,VehicleService
 from app.models.hire_models import Booking
 from app.core.errors import ApiError
 from conftest import signed_in,bearer
@@ -143,6 +143,17 @@ def test_rejection_correction_resubmission_feedback_registration_lock_and_suspen
     assert call(client,a,'owner','post',f"/vehicles/{row['id']}/submit",{'expected_version':row['version']}).status_code==409
 
 
+def priced(client,row):
+    """Publication needs a price, so give this vehicle one active private-hire rate."""
+    with client.app.state.sessions() as db:
+        service=ServiceType(code=uuid4().hex,name='Test publish scope',category='PRIVATE_HIRE',is_active=True,
+            default_pricing_basis='DISTANCE',settings={'pricing_scope':'LONG_DISTANCE'});db.add(service);db.flush()
+        db.add(VehicleService(vehicle_id=UUID(row['id']),service_type_id=service.id,is_enabled=True,currency='LKR',pricing_basis='DISTANCE',
+            owner_terms={'rate_rules':[{'id':str(uuid4()),'name':'Test rate'}]}))
+        db.commit()
+    return row
+
+
 def test_normalized_photo_moderation_publication_privacy_and_revocation(client,actors):
     a=actors;row=approve(client,a,submitted(client,a))
     assert call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True}).status_code==409
@@ -154,7 +165,7 @@ def test_normalized_photo_moderation_publication_privacy_and_revocation(client,a
     bad=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/photos/{pid}/review",{'expected_version':row['version'],'decision':'APPROVED'})
     assert bad.status_code==422
     result=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/photos/{pid}/review",{'expected_version':row['version'],'decision':'APPROVED','privacy_confirmed':True,'genuine_vehicle_confirmed':True});assert result.status_code==200,result.text
-    row=result.json();published=call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True});assert published.status_code==200,published.text
+    row=result.json();priced(client,row);published=call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True});assert published.status_code==200,published.text
     public=client.get('/api/v1/vehicles/'+row['id']);assert public.status_code==200,public.text
     assert not {'registration_number','documents','owner_name_private','verified_eligibility','default_driver_user_id'}&public.json().keys()
     assert 'storage_key' not in public.text and 'GPSLocation' not in public.text and client.get(url).status_code==200
@@ -263,8 +274,18 @@ def test_owner_list_pagination_retains_pricing_picker_defaults_and_private_facts
         assert bad.status_code==422 and bad.json()['code']=='PRIVATE_INFO_IN_VEHICLE_FACTS'
 
 
-def test_independent_description_moderation_preserves_verification_and_last_approved_text(client,actors):
+def test_publication_needs_a_price_so_a_listed_vehicle_always_shows_one(client,actors):
     a=actors;row=approve(client,a,submitted(client,a));row,pid=photo(client,a,row)
+    refused=call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True})
+    assert refused.status_code==409 and refused.json()['code']=='VEHICLE_PRICES_REQUIRED',refused.text
+    priced(client,row)
+    published=call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True})
+    assert published.status_code==200,published.text
+    assert published.json()['published']
+
+
+def test_independent_description_moderation_preserves_verification_and_last_approved_text(client,actors):
+    a=actors;row=approve(client,a,submitted(client,a));row,pid=photo(client,a,row);priced(client,row)
     published=call(client,a,'owner','patch',f"/vehicles/{row['id']}/publish",{'expected_version':row['version'],'published':True});assert published.status_code==200;row=published.json()
     first='A comfortable vehicle for this journey.'
     edited=call(client,a,'owner','patch','/vehicles/'+row['id'],{'expected_version':row['version'],'description':first});assert edited.status_code==200;row=edited.json()

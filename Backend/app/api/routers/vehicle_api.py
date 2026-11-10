@@ -110,7 +110,9 @@ def details(db,request,user,row):
     checklist.append({'type':'ROUTE_PERMIT','requirement':'Optional — upload only if you have one. The system checks it; Admin does not review it.'})
     owner=db.get(User,row.owner_user_id)
     replacement=Document.__table__.alias('replacement')
+    from app.api.routers.hire_api import priced_for_publication
     return {**summary(row),**projection,'checklist':checklist,'has_commitments':commitments(db,row.id),
+        'prices_ready':priced_for_publication(db,row),
         'reviewed_category':row.verified_eligibility.get('category'),'conditional_documents':applicable,
         'route_permit':route_permit(db,row.id),
         'authorisation_required':row.verified_eligibility.get('authorisation_required'),

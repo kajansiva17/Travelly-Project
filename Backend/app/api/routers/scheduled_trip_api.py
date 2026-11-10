@@ -378,4 +378,17 @@ def read_seats(trip_id: UUID, request: Request, db: Session = Depends(get_db)):
             status = 'AVAILABLE'  # an expired hold is released lazily by the hold step; readers must not see it as held
         fare = inventory.fare_override if inventory.fare_override is not None else trip.fare_per_seat
         items.append({'seat_id': str(inventory.id), **seat_out(seat), 'status': status, 'fare': str(fare)})
+    if rows:
+        # Publication snapshots the seats this departure sells. Return the rest of that same layout
+        # version too (Driver, seats not for sale, and seats the layout changed after publication) so
+        # the reader can draw the whole vehicle. They have no inventory for this departure, so they
+        # carry no seat_id, status or fare and are reported as not bookable here.
+        snapshot = rows[0][1]
+        taken = [seat.id for _, seat in rows]
+        others = db.scalars(select(VehicleSeat)
+                            .where(VehicleSeat.vehicle_id == snapshot.vehicle_id,
+                                   VehicleSeat.layout_version == snapshot.layout_version,
+                                   VehicleSeat.id.not_in(taken))
+                            .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
+        items.extend({**seat_out(seat), 'bookable': False} for seat in others)
     return {'scheduled_trip_id': str(trip.id), 'currency': trip.currency, 'seats': items}
