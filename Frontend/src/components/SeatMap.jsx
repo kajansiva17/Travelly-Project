@@ -1,4 +1,4 @@
-import React from 'react'
+import React,{useLayoutEffect,useRef,useState} from 'react'
 import '../styles/ticketSeats.css'
 
 // Top-down picture of the vehicle, drawn entirely with code (SVG + CSS, no image files).
@@ -78,44 +78,69 @@ function VehicleArt({W,H,driverX}){
   </svg>
 }
 
+// The drawing keeps its fixed 40px seat units; the whole picture is scaled (CSS transform) to the space the page gives it,
+// so the full vehicle and every seat are always visible, with proportions untouched and no scrolling.
+const MAX_SCALE=1.3,DECK_GAP=24,TITLE=22
+function useBox(ref){
+  const [box,setBox]=useState({w:0,h:0})
+  useLayoutEffect(()=>{
+    const el=ref.current;if(!el)return
+    const read=()=>setBox({w:el.clientWidth,h:el.clientHeight})
+    read();if(typeof ResizeObserver==='undefined')return
+    const watch=new ResizeObserver(read);watch.observe(el);return ()=>watch.disconnect()
+  },[ref])
+  return box
+}
+
 export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=false,label='Seat layout'}){
+  const stage=useRef(null),box=useBox(stage)
   const decks=[...new Set(seats.map(s=>s.deck||1))].sort((a,b)=>a-b)
+  const sized=decks.map(deck=>{
+    const own=seats.filter(s=>(s.deck||1)===deck)
+    const rows=[...new Set(own.map(s=>s.row))].sort((a,b)=>a-b)
+    const columns=Math.max(...own.map(s=>s.column))+1
+    const gridW=EDGE*2+columns*SEAT+(columns+1)*GAP
+    const gridH=rows.length*SEAT+(rows.length-1)*GAP
+    return {deck,own,rows,columns,W:gridW+PADX*2,H:gridH+PADTOP+PADBOTTOM}
+  })
+  const title=decks.length>1?TITLE:0
+  const totalW=sized.reduce((sum,d)=>sum+d.W,0)+DECK_GAP*(sized.length-1)
+  const totalH=Math.max(0,...sized.map(d=>d.H+14))+title
+  const scale=box.w&&box.h?Math.min(box.w/totalW,box.h/totalH,MAX_SCALE):0
   return <div className="seat-map" role="group" aria-label={label}>
-    {decks.map(deck=>{
-      const own=seats.filter(s=>(s.deck||1)===deck)
-      const rows=[...new Set(own.map(s=>s.row))].sort((a,b)=>a-b)
-      const columns=Math.max(...own.map(s=>s.column))+1
-      const firstPassengerRow=rows.find(r=>r>0)
-      const gridW=EDGE*2+columns*SEAT+(columns+1)*GAP
-      const gridH=rows.length*SEAT+(rows.length-1)*GAP
-      const dc=Math.max(0,...own.filter(x=>x.type==='CREW').map(x=>x.column))
-      const driverX=PADX+EDGE+GAP*(dc+1)+SEAT*dc+SEAT/2
-      const W=gridW+PADX*2,H=gridH+PADTOP+PADBOTTOM
-      return <div className="seat-deck" key={deck}>
-        {decks.length>1&&<p className="seat-deck-title">Deck {deck}</p>}
-        <div className="vehicle-shell" style={{width:W,height:H+14}}>
-          <VehicleArt W={W} H={H} driverX={driverX}/>
-          <div className="seat-grid-map" style={{left:PADX,top:PADTOP,gridTemplateColumns:`${EDGE}px repeat(${columns},${SEAT}px) ${EDGE}px`}}>
-            {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>DOOR</span>}
-            {rows.flatMap(r=>own.filter(s=>s.row===r).map(s=>{
-              const crew=s.type==='CREW'
-              const notSold=s.bookable===false&&!crew
-              const taken=s.status&&s.status!=='AVAILABLE'
-              const unavailable=crew||notSold||taken||(isDisabled&&isDisabled(s))
-              const chosen=selected.includes(s.code)
-              const cls=['seat',crew?'crew':'',notSold?'not-sold':'',taken?'booked':'',chosen?'selected':''].filter(Boolean).join(' ')
-              return <button type="button" key={`${deck}-${s.row}-${s.column}`} className={cls}
-                style={{gridRow:rows.indexOf(r)+1,gridColumn:s.column+2}}
-                disabled={!onToggle||crew||(!editable&&unavailable)}
-                aria-pressed={chosen} aria-label={crew?'Driver seat':`Seat ${s.code}${unavailable?' unavailable':''}`}
-                onClick={()=>onToggle&&onToggle(s)}>
-                {crew?<span className="wheel-big"><Wheel size={54} detail/></span>:<><SeatShape/><span className="seat-num">{s.code}</span></>}
-              </button>
-            }))}
+    <div className="seat-stage" ref={stage}>
+      <div className="seat-scaler" style={{width:totalW,height:totalH,transform:`translate(-50%,-50%) scale(${scale||0.01})`,visibility:scale?'visible':'hidden'}}>
+        {sized.map(({deck,own,rows,columns,W,H})=>{
+          const firstPassengerRow=rows.find(r=>r>0)
+          const dc=Math.max(0,...own.filter(x=>x.type==='CREW').map(x=>x.column))
+          const driverX=PADX+EDGE+GAP*(dc+1)+SEAT*dc+SEAT/2
+          return <div className="seat-deck" key={deck}>
+            {decks.length>1&&<p className="seat-deck-title">Deck {deck}</p>}
+            <div className="vehicle-shell" style={{width:W,height:H+14}}>
+              <VehicleArt W={W} H={H} driverX={driverX}/>
+              <div className="seat-grid-map" style={{left:PADX,top:PADTOP,gridTemplateColumns:`${EDGE}px repeat(${columns},${SEAT}px) ${EDGE}px`}}>
+                {firstPassengerRow!=null&&<span className="vehicle-door" aria-hidden="true" style={{gridColumn:1,gridRow:rows.indexOf(firstPassengerRow)+1}}>DOOR</span>}
+                {rows.flatMap(r=>own.filter(s=>s.row===r).map(s=>{
+                  const crew=s.type==='CREW'
+                  const notSold=s.bookable===false&&!crew
+                  const taken=s.status&&s.status!=='AVAILABLE'
+                  const unavailable=crew||notSold||taken||(isDisabled&&isDisabled(s))
+                  const chosen=selected.includes(s.code)
+                  const cls=['seat',crew?'crew':'',notSold?'not-sold':'',taken?'booked':'',chosen?'selected':''].filter(Boolean).join(' ')
+                  return <button type="button" key={`${deck}-${s.row}-${s.column}`} className={cls}
+                    style={{gridRow:rows.indexOf(r)+1,gridColumn:s.column+2}}
+                    disabled={!onToggle||crew||(!editable&&unavailable)}
+                    aria-pressed={chosen} aria-label={crew?'Driver seat':`Seat ${s.code}${unavailable?' unavailable':''}`}
+                    onClick={()=>onToggle&&onToggle(s)}>
+                    {crew?<span className="wheel-big"><Wheel size={54} detail/></span>:<><SeatShape/><span className="seat-num">{s.code}</span></>}
+                  </button>
+                }))}
+              </div>
+            </div>
           </div>
-        </div>
+        })}
       </div>
-    })}
+    </div>
     <ul className="seat-legend" aria-label="Seat colours">
       {editable
         ?<><li><i className="swatch"/> For sale</li><li><i className="swatch not-sold"/> Not for sale</li></>
