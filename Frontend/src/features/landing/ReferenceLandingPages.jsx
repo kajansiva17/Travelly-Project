@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand, Icon, useNotice } from '../../components/components'
+import { useNeedleEvents } from '../../components/NavbarBrand'
 import { journeyLink } from '../auth/onboardingJourney'
 import { getLanguage, languages, setLanguage, subscribeLanguage, t } from '../../i18n/language'
 import { landingContent } from './landingContent'
@@ -37,6 +38,7 @@ function Action({ to, children, className = '', onUnavailable, ...props }) {
 function LandingHeader({ role }) {
   const [open, setOpen] = useState(false)
   const headerRef = useRef(null)
+  useNeedleEvents(headerRef)
   const lang = useSyncExternalStore(subscribeLanguage, getLanguage, () => 'en')
   useEffect(() => {
     const header = headerRef.current
