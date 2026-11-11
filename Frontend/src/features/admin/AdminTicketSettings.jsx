@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React,{useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
@@ -23,8 +24,8 @@ function ServiceHold({row,onSaved,pager}){
         <input required name="minutes" type="number" min="1" max="1440" step="1" value={minutes} onChange={e=>setMinutes(e.target.value)}/>
       </Field>
     </div>
-    <p className="tk-line">Current: {row.hold_minutes?`${row.hold_minutes} minutes`:'not set — Passengers cannot hold seats yet'}</p>
-    <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">Back to services</Link>{pager}
+    <p className="tk-line">{row.hold_minutes?t('Current: {value0} minutes',{value0:row.hold_minutes}):t('Current: not set — Passengers cannot hold seats yet')}</p>
+    <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">{t('Back to services')}</Link>{pager}
       <button className="ui-button ui-button-primary" disabled={busy||!minutes||Number(minutes)===row.hold_minutes}>{busy?'Saving…':'Save hold time'}</button></div>
   </form>
 }
@@ -38,10 +39,10 @@ export default function AdminTicketSettings(){
     info="Control how long Passengers can hold numbered seats while they complete a Ticket booking.">
     <Compact.Provider value={true}>
     <ErrorNotice error={error}/>
-    {items===null?<p role="status">Loading Ticket services…</p>:items.length
+    {items===null?<p role="status">{t('Loading Ticket services…')}</p>:items.length
       ?rows.slice.map(row=><ServiceHold key={`${row.id}-${row.version}`} row={row} onSaved={load} pager={rows.pages>1?rows.pager:null}/>)
-      :<><Empty>No Ticket service configured. The Ticket Hire service has not been set up in this database.</Empty>
-        <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">Back to services</Link></div></>}
+      :<><Empty>{t('No Ticket service configured. The Ticket Hire service has not been set up in this database.')}</Empty>
+        <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">{t('Back to services')}</Link></div></>}
     </Compact.Provider>
   </FlowShell></>
 }
