@@ -6,6 +6,7 @@ scheduled_trip_seats     per-departure seat inventory, created when the departur
 
 Holds, bookings, travellers and payment are the next step and are intentionally not implemented here.
 """
+import secrets
 from decimal import Decimal
 from datetime import date as Date, datetime, time, timedelta, timezone
 from typing import Optional
@@ -17,12 +18,12 @@ from sqlalchemy.orm import Session
 from app.api.routers.api import current, require_role, touch
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
-from app.models import UserRole
-from app.models.hire_models import Route, RouteStop, ScheduledTrip
+from app.models import User, UserRole
+from app.models.hire_models import Booking, Route, RouteStop, ScheduledTrip, Trip
 from app.models.rate_models import ServiceType
 from app.models.review_models import Vehicle
-from app.models.seat_models import ScheduledTripSeat, VehicleSeat
-from app.schemas.scheduled_trip_schemas import DepartureCreate, DeparturePatch, PublishRequest, SeatLayoutIn
+from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
+from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, PublishRequest, SeatLayoutIn
 from app.services.availability import no_vehicle_conflict
 
 router = APIRouter(prefix='/api/v1', tags=['Ticket departures'])
@@ -241,6 +242,39 @@ def owned_trip(db, trip_id, user, *, lock=False):
     return trip
 
 
+@router.get('/owners/me/drivers')
+def owner_drivers(user=Depends(current), db: Session = Depends(get_db)):
+    """Drivers this Owner may choose from for a departure.
+
+    There is no standing Owner-Driver network, so this is only the people the Owner has already
+    worked with: a vehicle's preferred Driver, a Driver on one of their trips or departures, and
+    the Owner themselves when they hold an approved Driver role. Anyone else is still chosen by
+    public reference through /drivers/eligible-lookup. Contact details are never listed here.
+    """
+    require_role(db, user, 'OWNER')
+    sources = {}
+    for driver_id in db.scalars(select(Vehicle.default_driver_user_id)
+                                .where(Vehicle.owner_user_id == user.id, Vehicle.default_driver_user_id.is_not(None))):
+        sources.setdefault(driver_id, 'Preferred Driver for one of your vehicles')
+    for driver_id in db.scalars(select(Trip.driver_user_id)
+                                .where(Trip.operating_owner_user_id == user.id, Trip.driver_user_id.is_not(None))):
+        sources.setdefault(driver_id, 'Drove one of your trips')
+    for driver_id in db.scalars(select(ScheduledTrip.operator_driver_user_id)
+                                .where(ScheduledTrip.owner_user_id == user.id,
+                                       ScheduledTrip.operator_driver_user_id.is_not(None))):
+        sources.setdefault(driver_id, 'Drove one of your departures')
+    if has_role(db, user.id, 'DRIVER'):
+        sources[user.id] = 'You'
+    if not sources:
+        return {'items': [], 'message': 'No Driver has worked with you yet. Add one by public reference.'}
+    rows = db.scalars(select(User).where(User.id.in_(list(sources)))).all()
+    items = [{'id': str(row.id), 'reference': row.public_user_reference,
+              'display_name': row.display_name or row.public_user_reference,
+              'eligible': has_role(db, row.id, 'DRIVER'), 'how_you_know_them': sources[row.id]} for row in rows]
+    items.sort(key=lambda item: (not item['eligible'], item['display_name'].lower()))
+    return {'items': items, 'message': 'Only Drivers you have already worked with. Add anyone else by public reference.'}
+
+
 @router.post('/scheduled-trips', status_code=201)
 def create_departure(body: DepartureCreate, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
@@ -296,6 +330,15 @@ def publish_departure(trip_id: UUID, body: PublishRequest, user=Depends(current)
         db.add(ScheduledTripSeat(scheduled_trip_id=trip.id, vehicle_seat_id=seat.id, seat_status='AVAILABLE',
                                  created_by=user.id, updated_by=user.id))
     trip.status = 'PUBLISHED'
+    # The departure now has a journey the assigned operator runs: same trips row as a private hire,
+    # linked by scheduled_trip_id instead of booking_id.
+    operator = trip.operator_driver_user_id
+    db.add(Trip(trip_reference='TRP-' + secrets.token_hex(10).upper(), scheduled_trip_id=trip.id,
+                vehicle_id=vehicle.id, operating_owner_user_id=trip.owner_user_id, driver_user_id=operator,
+                assignment_type='OWNER_SELF_DRIVE' if operator == trip.owner_user_id else 'EXTERNAL_DRIVER',
+                assignment_status='ACCEPTED' if operator == trip.owner_user_id else 'PENDING',
+                status='READY', scheduled_start_at=trip.departure_at, scheduled_end_at=trip.estimated_arrival_at,
+                created_by=user.id, updated_by=user.id))
     touch(trip)
     trip.updated_by = user.id
     db.commit()
@@ -307,7 +350,7 @@ def publish_departure(trip_id: UUID, body: PublishRequest, user=Depends(current)
 @router.get('/scheduled-trips')
 def search_departures(request: Request, route_id: Optional[UUID] = None, origin: str = Query('', max_length=100),
                       destination: str = Query('', max_length=100), date: Optional[str] = Query(None, max_length=10),
-                      min_seats: int = Query(1, ge=1, le=100), mine: bool = False,
+                      min_seats: int = Query(1, ge=1, le=100), mine: bool = False, driving: bool = False,
                       limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0, le=10000),
                       db: Session = Depends(get_db)):
     query = select(ScheduledTrip, Route, Vehicle).join(Route, Route.id == ScheduledTrip.route_id).join(
@@ -316,6 +359,13 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
         user = current(request, db)
         require_role(db, user, 'OWNER')
         query = query.where(ScheduledTrip.owner_user_id == user.id)
+    elif driving:
+        # The departures this Driver is assigned to drive, so they can board the Travellers waiting for them.
+        user = current(request, db)
+        require_role(db, user, 'DRIVER')
+        query = query.where(ScheduledTrip.id.in_(
+            select(Trip.scheduled_trip_id).where(Trip.driver_user_id == user.id,
+                                                 Trip.status.in_(('READY', 'IN_PROGRESS', 'BREAKDOWN', 'ASSISTANCE_REQUIRED')))))
     else:
         query = query.where(ScheduledTrip.status.in_(LISTED), ScheduledTrip.departure_at > now(), ScheduledTrip.booking_cutoff_at > now())
     if route_id:
@@ -392,3 +442,69 @@ def read_seats(trip_id: UUID, request: Request, db: Session = Depends(get_db)):
                             .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
         items.extend({**seat_out(seat), 'bookable': False} for seat in others)
     return {'scheduled_trip_id': str(trip.id), 'currency': trip.currency, 'seats': items}
+
+
+# --------------------------------------------------------------------------- boarding
+
+def departure_crew(db, trip_id, user):
+    """The departure and its journey, for the Owner who runs it or the Driver who drives it."""
+    departure = db.scalar(select(ScheduledTrip).where(ScheduledTrip.id == trip_id))
+    if not departure:
+        raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+    run = db.scalar(select(Trip).where(Trip.scheduled_trip_id == departure.id, Trip.status != 'CANCELLED')
+                    .order_by(Trip.created_at.desc()).limit(1))
+    allowed = {departure.owner_user_id} | ({run.driver_user_id} if run and run.driver_user_id else set())
+    if user.id not in allowed:
+        raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+    return departure, run
+
+
+@router.get('/scheduled-trips/{trip_id}/travellers')
+def departure_travellers(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """Who the assigned Driver expects on this departure, in seat order.
+
+    A seat that is only held is listed too, with its seat status, so the Driver can see it is
+    waiting for payment rather than missing."""
+    departure, run = departure_crew(db, trip_id, user)
+    stops = {row.id: row.stop_name for row in db.scalars(select(RouteStop).where(RouteStop.route_id == departure.route_id))}
+    rows = db.execute(select(BookingTraveller, ScheduledTripSeat, VehicleSeat)
+                      .join(ScheduledTripSeat, ScheduledTripSeat.id == BookingTraveller.scheduled_trip_seat_id)
+                      .join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
+                      .where(ScheduledTripSeat.scheduled_trip_id == departure.id,
+                             BookingTraveller.traveller_status.notin_(('CANCELLED', 'MOVED')))
+                      .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
+    items = [{'traveller_id': str(traveller.id), 'full_name': traveller.full_name, 'seat_code': seat.seat_code,
+              'status': traveller.traveller_status, 'is_primary': traveller.is_primary,
+              'seat_status': inventory.seat_status, 'can_board': inventory.seat_status == 'BOOKED',
+              'gets_on': stops.get(traveller.boarding_stop_id), 'gets_off': stops.get(traveller.dropoff_stop_id)}
+             for traveller, inventory, seat in rows]
+    return {'scheduled_trip_id': str(departure.id), 'trip_id': str(run.id) if run else None,
+            'departure_at': departure.departure_at.isoformat(), 'status': departure.status, 'items': items,
+            'boarded': sum(1 for item in items if item['status'] in ('BOARDED', 'COMPLETED'))}
+
+
+@router.post('/scheduled-trips/{trip_id}/boardings')
+def mark_boarded(trip_id: UUID, body: BoardingMark, user=Depends(current), db: Session = Depends(get_db)):
+    """The assigned Driver marks one traveller as boarded. Repeating it changes nothing."""
+    departure, run = departure_crew(db, trip_id, user)
+    if not run or run.driver_user_id != user.id:
+        raise ApiError(403, 'NOT_THE_DEPARTURE_DRIVER', 'Only the assigned Driver records boarding.')
+    if run.status not in ('READY', 'IN_PROGRESS'):
+        raise ApiError(409, 'TRIP_NOT_READY', 'Boarding belongs to a departure that has not finished.')
+    traveller = db.scalar(select(BookingTraveller).where(BookingTraveller.id == body.traveller_id)
+                          .with_for_update().execution_options(populate_existing=True))
+    inventory = db.get(ScheduledTripSeat, traveller.scheduled_trip_seat_id) if traveller and traveller.scheduled_trip_seat_id else None
+    if not traveller or not inventory or inventory.scheduled_trip_id != departure.id:
+        raise ApiError(404, 'TRAVELLER_NOT_FOUND', 'That traveller is not on this departure.')
+    if traveller.traveller_status in ('CANCELLED', 'MOVED'):
+        raise ApiError(409, 'TRAVELLER_NOT_TRAVELLING', 'This traveller is no longer on the departure.')
+    if inventory.seat_status != 'BOOKED':
+        raise ApiError(409, 'SEAT_NOT_PAID', 'This seat is held but not paid for, so the traveller cannot board yet.')
+    if traveller.traveller_status == 'ACTIVE':
+        traveller.traveller_status = 'BOARDED'
+        touch(traveller)
+        traveller.updated_by = user.id
+        db.commit()
+    seat = db.get(VehicleSeat, inventory.vehicle_seat_id)
+    return {'traveller_id': str(traveller.id), 'seat_code': seat.seat_code if seat else None,
+            'full_name': traveller.full_name, 'status': traveller.traveller_status}

@@ -51,12 +51,20 @@ class DepartureFields(TimezoneChecked):
     operator_driver_user_id: Optional[UUID] = None
 
 
+class BoardingMark(BaseModel):
+    """One traveller the assigned Driver has just seen board."""
+    model_config = {'extra': 'forbid'}
+    traveller_id: UUID
+
+
 class DepartureCreate(DepartureFields):
     pass
 
 
 class DeparturePatch(TimezoneChecked):
     expected_version: int = Field(ge=1)
+    # An Owner who does not drive assigns or changes the operator here while the departure is a draft.
+    operator_driver_user_id: Optional[UUID] = None
     route_id: Optional[UUID] = None
     vehicle_id: Optional[UUID] = None
     departure_at: Optional[datetime] = None

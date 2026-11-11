@@ -170,6 +170,8 @@ def trip_summary(trip):
     Live coordinates are reported only while tracking is on; completion and cancellation end it."""
     live = trip.tracking_status in ('ACTIVE', 'STALE') and trip.location_updated_at is not None
     return {'id': str(trip.id), 'booking_id': str(trip.booking_id) if trip.booking_id else None,
+            # A departure carries many Travellers, so the operator boards them one by one instead of checking one pickup code.
+            'scheduled_trip_id': str(trip.scheduled_trip_id) if trip.scheduled_trip_id else None,
             'driver_user_id': str(trip.driver_user_id) if trip.driver_user_id else None,
             'assignment_type': trip.assignment_type, 'assignment_status': trip.assignment_status,
             'status': trip.status, 'version': trip.version,

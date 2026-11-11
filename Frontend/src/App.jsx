@@ -12,19 +12,15 @@ import { CheckEmail, AuthLink, ForgotPassword, GoogleCompletion } from './featur
 import AdminApplications from './features/admin/AdminApplications'
 import OwnerRates from './features/owner/OwnerRates'
 import OwnerServiceReadiness from './features/owner/OwnerServiceReadiness'
-import OwnerEventPackages from './features/owner/OwnerEventPackages'
-import OwnerEventOperations from './features/owner/OwnerEventOperations'
 import { HireSearchPage, BookingPage } from './features/booking/TripPricing'
 import VehicleWorkspace,{PublicVehicle} from './features/owner/VehicleWorkspace'
 import VehicleCalendar from './features/owner/VehicleCalendar'
-import VehicleMaintenancePage from './features/owner/VehicleMaintenancePage'
 import AdminWorkflowPage from './features/admin/AdminWorkflowPage'
 import AdminServiceCatalogue from './features/admin/AdminServiceCatalogue'
 import PassengerEventHire from './features/passenger/PassengerEventHire'
 import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import {RentalRoleUi} from './features/rental/RentalUi'
-import PassengerFinalFare from './features/passenger/PassengerFinalFare'
 import OwnerTicketDepartures from './features/owner/OwnerTicketDepartures'
 import OwnerRoutes from './features/owner/OwnerRoutes'
 import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
@@ -36,7 +32,6 @@ import AdminTicketSettings from './features/admin/AdminTicketSettings'
 import AdminOversight from './features/admin/AdminOversight'
 import AdminDocuments from './features/admin/AdminDocuments'
 import DriverTripPage from './features/driver/DriverTripPage'
-import TripFinancePage from './features/booking/TripFinancePage'
 import WorkspaceShell from './components/WorkspaceShell'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
 import RoleOnboarding from './features/auth/RoleOnboarding'
@@ -170,7 +165,6 @@ export default function App() {
             <Route path="/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
-            <Route path="/trips/:tripId/finance" element={<TripFinancePage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/payments" element={<WorkspacePlaceholder/>}/>
@@ -180,7 +174,6 @@ export default function App() {
             <Route path="/travel/book/event" element={<PassengerEventHire/>}/>
             <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
             <Route path="/travel/book/rental" element={<PassengerRental/>}/>
-            <Route path="/passenger/trips/:tripId/finance" element={<PassengerFinalFare/>}/>
             <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>
             <Route path="/travel/book/details/local" element={<PassengerTripDetails variant="local"/>}/>
             <Route path="/travel/book/details/event" element={<PassengerTripDetails variant="event"/>}/>
@@ -202,15 +195,12 @@ export default function App() {
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
             <Route path="/owner/rates" element={<OwnerRates/>}/>
             <Route path="/owner/service-readiness" element={<OwnerServiceReadiness/>}/>
-            <Route path="/owner/event-packages" element={<OwnerEventPackages/>}/>
-            <Route path="/owner/event-operations" element={<OwnerEventOperations/>}/>
             <Route path="/owner/ticket-departures" element={<OwnerTicketDepartures/>}/>
             <Route path="/owner/routes" element={<OwnerRoutes/>}/>
             <Route path="/owner/vehicles" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicle-setup" element={<OwnerVehicleSetup/>}/>
             <Route path="/owner/vehicles/:vehicleId" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicles/:vehicleId/calendar" element={<VehicleCalendar/>}/>
-            <Route path="/owner/vehicles/:vehicleId/maintenance" element={<VehicleMaintenancePage/>}/>
             <Route path="/owner/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/owner/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/owner/operations" element={<OwnerOperations/>}/>
@@ -231,7 +221,6 @@ export default function App() {
             <Route path="/driver/trips/:tripId/assigned" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/verify-passenger" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/live" element={<DriverTripPage/>}/>
-            <Route path="/driver/trips/:tripId/cash" element={<TripFinancePage/>}/>
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
             <Route path="/driver/rentals" element={<RentalRoleUi role="DRIVER"/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>

@@ -36,6 +36,7 @@ from app.api.routers.ticket_booking_api import router as ticket_router
 from app.api.routers.operational_media_api import router as operational_media_router
 from app.api.routers.route_api import router as route_router
 from app.api.routers.scheduled_trip_api import router as scheduled_trip_router
+from app.api.routers.payment_api import router as payment_router
 from app.services.vehicle_media import VehiclePhotos
 from starlette.concurrency import run_in_threadpool
 
@@ -147,7 +148,9 @@ def create_app(settings=None, engine=None, store=None):
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
                 if request.method in ('POST', 'PATCH', 'PUT'):
-                    media = 'multipart/form-data' if multipart else 'application/json'
+                    # PayHere notifies with a form post, every other JSON API stays JSON-only.
+                    media = 'multipart/form-data' if multipart else 'application/x-www-form-urlencoded' \
+                        if request.url.path == '/api/v1/payments/webhooks/payhere' else 'application/json'
                     if request.headers.get('content-type', '').split(';')[0].lower() != media:
                         raise ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Use ' + media + '.')
                     chunks, length = [], 0
@@ -167,7 +170,7 @@ def create_app(settings=None, engine=None, store=None):
                                 raise ValueError()
                             result[key] = value
                         return result
-                    if raw and not multipart:
+                    if raw and media == 'application/json':
                         try:
                             parsed = json.loads(raw, object_pairs_hook=unique_keys, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
                         except (ValueError, UnicodeError):
@@ -208,6 +211,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(operational_media_router)
     app.include_router(route_router)
     app.include_router(scheduled_trip_router)
+    app.include_router(payment_router)
     from app.api.routers.calendar_api import router as calendar_router
     app.include_router(calendar_router)
     def contracted_openapi():
