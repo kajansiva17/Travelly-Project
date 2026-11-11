@@ -87,21 +87,21 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Driver | `/trips/t1/operation?workspace=driver` | PASS |  |
 | Admin | `/admin/dashboard` | PASS |  |
 | Admin | `/admin/personal/hire` | PASS |  |
-| Admin | `/admin/personal/owners/OWN1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
-| Admin | `/admin/personal/bookings` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
-| Admin | `/admin/personal/bookings/b1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
+| Admin | `/admin/personal/owners/OWN1` | PASS |  |
+| Admin | `/admin/personal/bookings` | PASS |  |
+| Admin | `/admin/personal/bookings/b1` | PASS |  |
 | Admin | `/admin/personal/vehicles/v1` | PASS |  |
 | Admin | `/admin/applications` | PASS |  |
 | Admin | `/admin/applications/r1` | PASS |  |
-| Admin | `/admin/vehicles` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
-| Admin | `/admin/vehicles/v1` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab4] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 37 |
-| Admin | `/admin/vehicles/v1/calendar` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty] |
+| Admin | `/admin/vehicles` | PASS |  |
+| Admin | `/admin/vehicles/v1` | PASS |  |
+| Admin | `/admin/vehicles/v1/calendar` | PASS |  |
 | Admin | `/admin/documents` | PASS |  |
 | Admin | `/admin/services-routes` | PASS |  |
 | Admin | `/admin/services-routes/tickets` | PASS |  |
 | Admin | `/admin/bookings` | PASS |  |
 | Admin | `/admin/oversight` | PASS |  |
-| Admin | `/admin/rentals` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy] ; card scroll/clip: app-sidebar-menu 372/304 [empty/tab2] ; card scroll/clip: app-sidebar-menu 3 |
+| Admin | `/admin/rentals` | PASS |  |
 | Admin | `/admin/payments` | PASS |  |
 | Admin | `/admin/social-reviews` | PASS |  |
 | Admin | `/admin/road-alerts` | PASS |  |
@@ -109,7 +109,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Admin | `/admin/manual-fulfilment` | PASS |  |
 | Admin | `/admin/settings` | PASS |  |
 | Admin | `/account?workspace=admin` | PASS |  |
-| Admin | `/bookings/b1?workspace=admin` | FAIL | card scroll/clip: app-sidebar-menu 372/304 [busy/tab2] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab3] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab4] ; card scroll/clip: app-sidebar-menu 372/304 [busy/tab5] ; card scroll/clip: app-sidebar-me |
+| Admin | `/bookings/b1?workspace=admin` | PASS |  |
 
 
 ## BATCH A re-measure (1280x585 and 1920x1080, busy + empty + all tabs)
@@ -129,4 +129,7 @@ Root cause of the signed-out /hire breakage: the compact flow CSS was keyed to `
 
 ## Group 2 (owner pages, 1280x585 and 1920x1080, busy + empty)
 All /owner/* routes PASS. /owner/operations rebuilt as FlowShell tabs (My Driving, Driver Assignments, Live Fleet Trips, Vehicle Expenses) with paging; the dashboard tiles tighten at heights <= 640px so Fleet at a glance and Booking activity no longer clip. Legacy components skipped and marked above: OwnerEventPackages, OwnerEventOperations, VehicleMaintenancePage, TripFinancePage, TripOperationPage, PassengerFinalFare.
+
+## Group 3 (admin personal, vehicles, rentals, booking detail; 1280x585 and 1920x1080, busy + empty, all tabs)
+All listed routes PASS. The old failures were the 13-item admin sidebar scroll (372/304), fixed earlier; nothing else was failing.
 
