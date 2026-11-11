@@ -100,5 +100,6 @@ const rows = [
   ['Payer', 'செலுத்தியவர்', 'ගෙවූ අය'],
   ['Approval', 'அங்கீகாரம்', 'අනුමැතිය'],
   ['Reimbursement', 'திருப்பிச் செலுத்துதல்', 'ආපසු ගෙවීම'],
+  ['Open booking', 'முன்பதிவைத் திறக்கவும்', 'වෙන්කිරීම විවෘත කරන්න'],
 ]
 export default Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }]))
