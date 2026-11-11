@@ -27,14 +27,17 @@ Show `message` to the user unless the screen has a better translated text for th
 
 ## A. Pay button (Passenger, ticket hold page)
 
-### A1. Read the booking — `GET /bookings/{booking_id}/ticket` (existing, two new fields)
+### A1. Read the booking — `GET /bookings/{booking_id}/ticket` (existing, new payment fields)
 
-New fields, both safe to ignore when null:
+New fields:
 
 | Field | Meaning |
 |---|---|
 | `payment_status` | `null` (never tried), `"PENDING"`, `"FAILED"`, `"PAID"` |
 | `latest_payment` | `null` or the most recent seat payment (below) |
+| `payment_provider` | `"SANDBOX"` or `"PAYHERE"` — the provider Admin chose for this service; `null` if none can take payments right now (then hide Pay and show "Online payment is not available right now") |
+| `payment_method` | the value to send as `method` in A2: `"SANDBOX"` for the Sandbox, `"CARD"` for PayHere; `null` when `payment_provider` is null |
+| `payer_details_required` | list of fields to ask **before** Pay and send in A2's `payer`: `[]` for the Sandbox; for PayHere `["address", "city"]`, plus `"phone"` / `"email"` only if the account has none |
 
 ```json
 {
@@ -43,6 +46,7 @@ New fields, both safe to ignore when null:
   "hold_active": true, "hold_expires_at": "2026-11-11T14:29:15.079846+00:00",
   "currency": "LKR", "total_amount": "3000.00",
   "payment_status": "FAILED",
+  "payment_provider": "PAYHERE", "payment_method": "CARD", "payer_details_required": ["address", "city"],
   "latest_payment": {
     "id": "247c7b8a-...", "payment_reference": "PAY-C21DF5A47987440F879E", "status": "FAILED",
     "amount": "3000.00", "currency": "LKR", "provider_name": "SANDBOX",
@@ -62,9 +66,9 @@ Request (all required):
 ```
 
 - `amount` / `currency`: send the booking's `total_amount` and `currency` exactly.
-- `method`: `"SANDBOX"` when the service uses the built-in Sandbox; `"CARD"` when it uses PayHere (the Passenger picks
+- `method`: send A1's `payment_method` — `"SANDBOX"` when the service uses the built-in Sandbox; `"CARD"` when it uses PayHere (the Passenger picks
   card, HelaPay or a wallet on PayHere's page; the server records what they actually used).
-- `payer` (optional object, **required for PayHere**): `{"address": "12 Galle Road", "city": "Colombo"}`, plus `"phone"`
+- `payer` (optional object, **required for PayHere**; ask exactly the fields in A1's `payer_details_required`): `{"address": "12 Galle Road", "city": "Colombo"}`, plus `"phone"`
   (E.164, e.g. `"+94771234567"`) only if the account has no phone and `"email"` only if it has no email. Name, email and
   phone otherwise come from the Travelly account. Sent to PayHere, not stored by Travelly. Ignored by the Sandbox.
 - `idempotency_key`: 8–40 chars `[A-Za-z0-9_-]`. Make **one key per button press** and reuse it if you retry the same
@@ -185,7 +189,10 @@ Owner and Admin also get, per item: `commission_amount`, `gateway_fee_amount`, `
 | `status: "REQUESTED"`, `hold_active: true`, `payment_status` null or `"FAILED"` | **Pay LKR {total_amount}** button + countdown to `hold_expires_at`. If FAILED, show `latest_payment.failure_message` above it. |
 | `hold_active: true`, `latest_payment.status: "PENDING"`, `provider_name: "SANDBOX"` | the Sandbox choice for `latest_payment.id` (do not call A2 again) |
 | `hold_active: true`, `latest_payment.status: "PENDING"`, `provider_name: "PAYHERE"` | "Waiting for PayHere…" + a **Continue to PayHere** button → A2c, then submit the form |
-| Before Pay when the service uses PayHere | ask **Address** and **City** (and Phone/Email only if A2 answers `PAYER_DETAILS_REQUIRED` for them); one short line: "Needed by PayHere for this payment. Travelly does not keep it." |
+| Before Pay, `payer_details_required` not empty | ask exactly those fields (address, city, maybe phone/email); one short line: "Needed by PayHere for this payment. Travelly does not keep it." |
+| `payment_provider: null` | no Pay button; "Online payment is not available right now" |
+
+Choose the flow from A1's `payment_provider`, never by trying one method and falling back to another.
 | Sandbox choice (after A2 or the row above) | two buttons: **Pay successfully** → A3 `SUCCEEDED`; **Simulate failure** → A3 `FAILED`; plus `checkout.message` |
 | `status: "CONFIRMED"`, `payment_status: "PAID"` | "Seats confirmed" + `latest_payment.payment_reference`; no Pay button |
 | `status: "CANCELLED"` | "Hold ended — choose seats again" |
