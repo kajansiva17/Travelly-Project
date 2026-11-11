@@ -12,7 +12,12 @@ Flow
     GET  /bookings/{id}/payments             Passenger, Owner or Admin
 
 Lock order (same as ticket holds): scheduled_trips -> bookings -> scheduled_trip_seats (by id) -> payments.
-Private hire (pay after the trip, cash or online) is slice 2.
+
+Slice 2 — private hire (owner decisions, 11 Nov 2026): no advance; the Passenger pays the full amount after the trip is
+COMPLETED, online (same intents/providers) or in cash if the Owner accepts cash for that vehicle service. Cash is
+collected at the END only and needs both sides: the Passenger confirms they paid, the collector (the trip's Driver or
+the self-driving Owner) confirms they received it. Commission still applies to cash; the Owner owes it to Travelly
+(owner_settlement_status COMMISSION_DUE). Online private-hire payments are payable to the Owner at once (trip done).
 """
 import json
 from datetime import datetime, timezone
@@ -23,22 +28,25 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from app.api.routers.api import current, touch
+from app.api.routers.api import current, require_role, touch
 from app.api.routers.review_api import admin, locked_authority
 from app.api.routers.ticket_booking_api import lock_trip, release_expired
 from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models import User, UserRole
-from app.models.hire_models import Booking, Notification
+from app.models.hire_models import Booking, Notification, Trip
 from app.models.payment_models import Payment
-from app.models.rate_models import ServiceType
+from app.models.rate_models import ServiceType, VehicleService
+from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
-from app.schemas.payment_schemas import CheckoutRequest, PaymentIntentRequest, PaymentSettings, SandboxOutcome
+from app.schemas.payment_schemas import CashReceipt, CheckoutRequest, PaymentIntentRequest, PaymentOptions, PaymentSettings, SandboxOutcome
 from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, split
+from app.services.refunds import queue_refund
 
 router = APIRouter(prefix='/api/v1', tags=['Payments'])
 OPEN = ('PENDING', 'PROCESSING')
+WAITING = OPEN + ('CASH_AWAITING_CONFIRMATION',)  # any payment still in flight blocks a second one
 ALL_PROVIDERS = {'SANDBOX': SANDBOX, 'PAYHERE': PAYHERE}  # for reading old payments and webhooks, even if not offered now
 
 
@@ -110,6 +118,48 @@ def payer_for(provider, user, details):
     return payer
 
 
+def cash_accepted(db, booking):
+    row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == booking.vehicle_id,
+                                                 VehicleService.service_type_id == booking.service_type_id))
+    return bool(row and (row.owner_terms or {}).get('cash', {}).get('accepted') is True)
+
+
+def finished_trip(db, booking):
+    return db.scalar(select(Trip).where(Trip.booking_id == booking.id, Trip.status == 'COMPLETED')
+                     .order_by(Trip.created_at.desc()).limit(1))
+
+
+def latest_of(db, booking):
+    return db.scalar(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT')
+                     .order_by(Payment.created_at.desc(), Payment.id.desc()).limit(1))
+
+
+def payment_view(db, booking, viewer):
+    """What a private-hire booking page needs to show and offer for payment (owner decision: after the trip only)."""
+    provider = provider_for(db.get(ServiceType, booking.service_type_id))
+    passenger = db.get(User, booking.passenger_user_id)
+    latest = latest_of(db, booking)
+    trip = finished_trip(db, booking)
+    due = booking.booking_type == 'PRIVATE_HIRE' and booking.status == 'COMPLETED' and booking.payment_status_snapshot != 'PAID'
+    cash = None
+    if latest is not None and latest.payment_method == 'CASH':
+        settled = latest.status == 'PAID'
+        cash = {'payment_id': str(latest.id), 'status': latest.status,
+                'passenger_confirmed': settled or latest.created_by == booking.passenger_user_id,
+                'collector_confirmed': settled or (trip is not None and latest.created_by == trip.driver_user_id)}
+    return {'payment_status': booking.payment_status_snapshot, 'amount_due': format(booking.total_amount, '.2f') if due and booking.total_amount is not None else None,
+            'currency': booking.currency, 'payment_due': due,
+            'payment_provider': provider.name if provider else None, 'payment_method': provider.methods[0] if provider else None,
+            'payer_details_required': provider.payer_required(passenger) if provider else [],
+            'cash_accepted': cash_accepted(db, booking), 'cash_collection_stage': 'END',
+            'collector_user_id': str(trip.driver_user_id) if trip and trip.driver_user_id else None,
+            'cash': cash, 'latest_payment': None if latest is None else {
+                'id': str(latest.id), 'payment_reference': latest.payment_reference, 'status': latest.status,
+                'payment_method': latest.payment_method, 'provider_name': latest.provider_name,
+                'amount': format(latest.amount, '.2f'), 'currency': latest.currency,
+                'failure_code': latest.failure_code, 'failure_message': latest.failure_message}}
+
+
 # --------------------------------------------------------------------------- 65 create intent
 
 @router.post('/bookings/{booking_id}/payment-intents', status_code=201)
@@ -117,12 +167,14 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
     booking = db.get(Booking, booking_id)
     if not booking or booking.passenger_user_id != user.id:
         raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
-    if booking.booking_type != 'TICKET_HIRE':
+    if booking.booking_type not in ('TICKET_HIRE', 'PRIVATE_HIRE'):
         raise ApiError(409, 'PAYMENT_NOT_AVAILABLE', 'Online payment for this booking type is not available yet.')
+    ticket = booking.booking_type == 'TICKET_HIRE'
     stored_key = f'{user.id.hex}:{body.idempotency_key}'
     moment = now()
-    lock_trip(db, booking.current_scheduled_trip_id)
-    release_expired(db, booking.current_scheduled_trip_id, moment)
+    if ticket:
+        lock_trip(db, booking.current_scheduled_trip_id)
+        release_expired(db, booking.current_scheduled_trip_id, moment)
     booking = lock_booking(db, booking.id)
     replay = db.scalar(select(Payment).where(Payment.idempotency_key == stored_key))
     if replay:
@@ -132,16 +184,19 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
         used = ALL_PROVIDERS[replay.provider_name]
         checkout = used.checkout(replay, booking, payer_for(used, user, body.payer)) if replay.status in OPEN else None
         return JSONResponse(status_code=200, content={**payment_out(replay), 'checkout': checkout})
-    if booking.payment_status_snapshot == 'PAID' or booking.status == 'CONFIRMED':
+    if booking.payment_status_snapshot == 'PAID' or (ticket and booking.status == 'CONFIRMED'):
         db.commit()
         raise ApiError(409, 'BOOKING_ALREADY_PAID', 'This booking is already paid.')
-    if not hold_is_active(db, booking):
+    if not ticket and booking.status != 'COMPLETED':
+        # Owner decision (CF01): no advance. Private hire is paid once the trip is completed.
+        raise ApiError(409, 'PAYMENT_NOT_DUE', 'Payment opens when the trip is completed.')
+    if ticket and not hold_is_active(db, booking):
         db.commit()  # keep any expired-hold release made above
         if booking.status == 'CANCELLED':
             raise ApiError(410, 'HOLD_EXPIRED', 'The seat hold has ended. Choose your seats again.')
         raise ApiError(409, 'HOLD_NOT_ACTIVE', 'This booking has no active seat hold.')
     if Decimal(body.amount) != booking.total_amount or body.currency != booking.currency:
-        raise ApiError(422, 'PAYMENT_AMOUNT_MISMATCH', 'Pay the full amount shown for these seats.',
+        raise ApiError(422, 'PAYMENT_AMOUNT_MISMATCH', 'Pay the full amount shown.',
                        [{'field': 'amount', 'message': f'{format(booking.total_amount, ".2f")} {booking.currency}'}])
     service = db.get(ServiceType, booking.service_type_id)
     provider = provider_for(service)
@@ -151,7 +206,7 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
         raise ApiError(422, 'PAYMENT_METHOD_UNAVAILABLE', 'Choose one of: ' + ', '.join(provider.methods) + '.')
     payer = payer_for(provider, user, body.payer)
     waiting = db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
-                                                 Payment.status.in_(OPEN)))
+                                                 Payment.status.in_(WAITING)))
     if waiting:
         raise ApiError(409, 'PAYMENT_IN_PROGRESS', 'A payment for this booking is already in progress.',
                        [{'field': 'payment_id', 'message': str(waiting)}])
@@ -213,7 +268,7 @@ def apply_event(db, provider, event, actor=None, sandbox=False):
             payment.failure_code = event.get('failure_code') or 'PROVIDER_DECLINED'
             payment.failure_message = 'The payment did not go through. No money was taken.'
             touch(payment); payment.updated_by = actor
-            if booking.status == 'REQUESTED':
+            if booking.payment_status_snapshot != 'PAID' and booking.status in ('REQUESTED', 'COMPLETED'):
                 booking.payment_status_snapshot = 'FAILED'
                 touch(booking); booking.updated_by = actor
         db.commit()
@@ -237,9 +292,20 @@ def apply_event(db, provider, event, actor=None, sandbox=False):
         capture(db, payment, booking, provider, event, actor, moment)
         payment.failure_code = 'SEATS_RELEASED_REFUND_DUE'
         payment.failure_message = 'Payment arrived after the seat hold ended. A refund is due.'
+        queue_refund(db, payment, payment.amount, 'PAYMENT_AFTER_HOLD', actor)  # full refund, waiting for Admin approval
         db.commit()
         return payment
     capture(db, payment, booking, provider, event, actor, moment)
+    if booking.booking_type == 'PRIVATE_HIRE':
+        # The trip is already completed, so the Owner's share is payable now (PRD 6.6).
+        payment.owner_settlement_status = 'OWNER_PAYABLE'
+        payment.owner_payable_at = moment
+        tell(db, booking.passenger_user_id, booking, 'PAYMENT', 'Payment received',
+             f'Payment {payment.payment_reference} received for booking {booking.booking_reference}. Thank you.')
+        tell(db, booking.owner_user_id, booking, 'PAYMENT', 'Trip paid',
+             f'{format(payment.amount, ".2f")} {payment.currency} paid online for booking {booking.booking_reference}.')
+        db.commit()
+        return payment
     for seat in seats or []:
         seat.seat_status = 'BOOKED'
         seat.booked_booking_id = booking.id
@@ -324,6 +390,135 @@ def booking_payments(booking_id: UUID, user=Depends(current), db: Session = Depe
     rows = db.scalars(select(Payment).where(Payment.booking_id == booking.id).order_by(Payment.created_at, Payment.id)).all()
     return {'booking_id': str(booking.id), 'payment_status': booking.payment_status_snapshot,
             'items': [payment_out(p, full) for p in rows]}
+
+
+# --------------------------------------------------------------------------- 70 cash receipts (private hire, END only)
+
+@router.post('/bookings/{booking_id}/cash-receipts')
+def cash_receipt(booking_id: UUID, body: CashReceipt, user=Depends(current), db: Session = Depends(get_db)):
+    booking = db.get(Booking, booking_id)
+    trip = finished_trip(db, booking) if booking else None
+    collector = trip.driver_user_id if trip else None
+    if not booking or user.id not in (booking.passenger_user_id, collector):
+        raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
+    if booking.booking_type != 'PRIVATE_HIRE':
+        raise ApiError(409, 'CASH_NOT_AVAILABLE', 'Cash is available only for private hire.')
+    if body.collection_stage != 'END':
+        raise ApiError(422, 'CASH_COLLECTION_STAGE_INVALID', 'Cash is collected at the end of the trip.',
+                       [{'field': 'collection_stage', 'message': 'Use END.'}])
+    if booking.status != 'COMPLETED' or trip is None:
+        raise ApiError(409, 'PAYMENT_NOT_DUE', 'Payment opens when the trip is completed.')
+    if not cash_accepted(db, booking):
+        raise ApiError(409, 'CASH_NOT_ACCEPTED', 'The Owner does not accept cash for this vehicle. Pay online instead.')
+    if body.collector_user_id != collector:
+        raise ApiError(422, 'COLLECTOR_NOT_ASSIGNED', 'The collector must be the Driver of this trip.',
+                       [{'field': 'collector_user_id', 'message': str(collector)}])
+    passenger = user.id == booking.passenger_user_id
+    if (passenger and (not body.passenger_confirmation or body.collector_confirmation)) or \
+            (not passenger and (not body.collector_confirmation or body.passenger_confirmation)):
+        raise ApiError(422, 'CONFIRMATION_NOT_YOURS', 'Confirm only your own part: the Passenger that they paid, '
+                       'the collector that they received the money.')
+    if Decimal(body.amount) != booking.total_amount or body.currency != booking.currency:
+        raise ApiError(422, 'PAYMENT_AMOUNT_MISMATCH', 'Confirm the full amount of the trip.',
+                       [{'field': 'amount', 'message': f'{format(booking.total_amount, ".2f")} {booking.currency}'}])
+    booking = lock_booking(db, booking.id)
+    current_cash = db.scalar(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
+                                                   Payment.payment_method == 'CASH', Payment.status.in_(('CASH_AWAITING_CONFIRMATION', 'PAID')))
+                             .with_for_update().execution_options(populate_existing=True))
+    if current_cash is None:
+        if booking.payment_status_snapshot == 'PAID':
+            db.commit()
+            raise ApiError(409, 'BOOKING_ALREADY_PAID', 'This booking is already paid.')
+        waiting = db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
+                                                     Payment.status.in_(OPEN)))
+        if waiting:
+            raise ApiError(409, 'PAYMENT_IN_PROGRESS', 'An online payment for this booking is already in progress.',
+                           [{'field': 'payment_id', 'message': str(waiting)}])
+        current_cash = Payment(payment_reference='PAY-' + uuid4().hex[:20].upper(), booking_id=booking.id,
+                               payee_owner_user_id=booking.owner_user_id, transaction_type='PAYMENT', payment_method='CASH',
+                               idempotency_key=f'{user.id.hex}:{body.idempotency_key}', amount=booking.total_amount,
+                               currency=booking.currency, status='CASH_AWAITING_CONFIRMATION', created_by=user.id, updated_by=user.id)
+        db.add(current_cash)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'This request key was already used.') from None
+        booking.payment_status_snapshot = 'CASH_AWAITING_CONFIRMATION'
+        touch(booking); booking.updated_by = user.id
+        other = collector if passenger else booking.passenger_user_id
+        db.add(Notification(recipient_user_id=other, booking_id=booking.id, trip_id=trip.id, notification_type='PAYMENT',
+                            channel='IN_APP', title='Confirm the cash payment',
+                            body=f'Please confirm {format(booking.total_amount, ".2f")} {booking.currency} in cash for booking {booking.booking_reference}.',
+                            action_required=True, action_payload={'booking_id': str(booking.id), 'payment_id': str(current_cash.id)},
+                            status='QUEUED'))
+        db.commit()
+        return JSONResponse(status_code=201, content=cash_out(current_cash, booking, collector))
+    if current_cash.status == 'PAID' or current_cash.created_by == user.id:
+        db.commit()
+        return cash_out(current_cash, booking, collector)  # repeat of a confirmation already given
+    # The other side confirms: the cash payment is settled. Commission is owed by the Owner (owner decision).
+    moment = now()
+    commission, _, net = split(current_cash.amount, db.get(ServiceType, booking.service_type_id), 0)
+    current_cash.status = 'PAID'
+    current_cash.authorized_at = current_cash.created_at
+    current_cash.captured_at = moment
+    current_cash.commission_amount = commission
+    current_cash.owner_net_amount = net
+    current_cash.owner_settlement_status = 'COMMISSION_DUE' if commission > 0 else None
+    touch(current_cash); current_cash.updated_by = user.id
+    booking.payment_status_snapshot = 'PAID'
+    touch(booking); booking.updated_by = user.id
+    for recipient in (booking.passenger_user_id, booking.owner_user_id):
+        tell(db, recipient, booking, 'PAYMENT', 'Cash payment confirmed',
+             f'Both sides confirmed {format(current_cash.amount, ".2f")} {current_cash.currency} in cash for booking {booking.booking_reference}.')
+    db.commit()
+    return cash_out(current_cash, booking, collector)
+
+
+def cash_out(payment, booking, collector):
+    settled = payment.status == 'PAID'
+    return {**payment_out(payment), 'booking_payment_status': booking.payment_status_snapshot,
+            'passenger_confirmed': settled or payment.created_by == booking.passenger_user_id,
+            'collector_confirmed': settled or payment.created_by == collector}
+
+
+@router.get('/bookings/{booking_id}/payment-summary')
+def payment_summary(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """The payment panel of a private-hire booking: what is due, how it can be paid, and where the cash confirmation is."""
+    booking = db.get(Booking, booking_id)
+    trip = finished_trip(db, booking) if booking else None
+    allowed = booking and (user.id in (booking.passenger_user_id, booking.owner_user_id) or (trip and user.id == trip.driver_user_id)
+                           or is_admin(db, user))
+    if not allowed or booking.booking_type != 'PRIVATE_HIRE':
+        raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
+    return {'booking_id': str(booking.id), 'booking_status': booking.status, **payment_view(db, booking, user)}
+
+
+# --------------------------------------------------------------------------- Owner: accept cash per vehicle service
+
+@router.patch('/vehicles/{vehicle_id}/services/{service_type_id}/payment-options')
+def update_payment_options(vehicle_id: UUID, service_type_id: UUID, body: PaymentOptions, user=Depends(current),
+                           db: Session = Depends(get_db)):
+    require_role(db, user, 'OWNER')
+    vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.owner_user_id == user.id))
+    if not vehicle:
+        raise ApiError(404, 'VEHICLE_NOT_FOUND', 'Vehicle not found.')
+    service = db.get(ServiceType, service_type_id)
+    row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vehicle.id, VehicleService.service_type_id == service_type_id)
+                    .with_for_update().execution_options(populate_existing=True))
+    if not service or not row:
+        raise ApiError(404, 'VEHICLE_SERVICE_NOT_FOUND', 'Save this service and its prices first.')
+    if service.category == 'TICKET_HIRE' and body.cash_accepted:
+        raise ApiError(422, 'CASH_NOT_ALLOWED', 'Ticket seats are paid online only.',
+                       [{'field': 'cash_accepted', 'message': 'Not available for ticket departures.'}])
+    if row.version != body.expected_version:
+        raise ApiError(409, 'VERSION_CONFLICT', 'This service changed. Reload before saving.')
+    row.owner_terms = {**(row.owner_terms or {}), 'cash': {'accepted': body.cash_accepted, 'collection_stage': 'END'}}
+    touch(row); row.updated_by = user.id
+    db.commit()
+    return {'vehicle_id': str(vehicle.id), 'service_type_id': str(service_type_id), 'version': row.version,
+            'cash_accepted': body.cash_accepted, 'cash_collection_stage': 'END'}
 
 
 # --------------------------------------------------------------------------- Admin payment settings (service_types.settings)
