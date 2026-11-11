@@ -2,7 +2,7 @@ import { t } from '../../i18n/language.js'
 import React,{useEffect,useMemo,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
-import {Header,ErrorNotice} from '../../components/components'
+import {Header,ErrorNotice,Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import SeatMap from '../../components/SeatMap'
@@ -18,15 +18,17 @@ function DriverOptions({drivers,me,self=true}){
     {others.length>0&&<optgroup label={t('My drivers')}>{others.map(d=><option key={d.id} value={d.id} disabled={!d.eligible}>{d.display_name}{d.reference&&d.display_name!==d.reference?` · ${d.reference}`:''}{d.eligible?'':` · ${t('Not an approved Driver')}`}</option>)}</optgroup>}
   </>
 }
+// One aligned card under the select: icon + message on the left, the next action on the right.
 function DriverInfo({choice,drivers,me,onSelf}){
   const picked=(drivers||[]).find(d=>d.id===choice)
   const none=drivers!==null&&!(drivers||[]).some(d=>d.id!==me.id)
-  if(picked)return <p className="tk-line"><Chip tone={picked.eligible?'success':'danger'} icon={picked.eligible?undefined:'alert'}>{picked.eligible?t('Approved Driver'):t('Not an approved Driver')}</Chip> {t(picked.how_you_know_them)}</p>
-  if(choice==='me')return <p className="tk-line"><Chip tone="success">{t('Approved Driver')}</Chip> {t('You are named as the Driver for this departure.')}</p>
-  if(none)return <p className="tk-line">{t('You have no other Drivers listed yet.')} {me.driver
-      ?<button type="button" className="ui-button ui-button-secondary" onClick={onSelf}>{t('Drive it myself')}</button>
-      :<>{t('Save the draft and assign a Driver later, or')} <Link to="/driver/onboarding">{t('apply to drive')}</Link>.</>}</p>
-  return null
+  let icon='users',title,sub,action=null
+  if(picked){icon=picked.eligible?'check':'alert';title=picked.display_name;sub=<><Chip tone={picked.eligible?'success':'danger'}>{picked.eligible?t('Approved Driver'):t('Not an approved Driver')}</Chip> <span>{t(picked.how_you_know_them)}</span></>}
+  else if(choice==='me'){icon='check';title=t('You will drive this departure');sub=<><Chip tone="success">{t('Approved Driver')}</Chip> <span>{t('You are named as the Driver for this departure.')}</span></>}
+  else if(none){title=t('You have no other Drivers listed yet.');sub=<span>{me.driver?t('You can drive it yourself, or assign a Driver later.'):t('Save the draft and assign a Driver later, or apply to become a Driver.')}</span>
+    action=me.driver?<button type="button" className="ui-button ui-button-secondary" onClick={onSelf}>{t('Drive it myself')}</button>:<Link className="ui-button ui-button-secondary" to="/driver/onboarding">{t('Apply to drive')}</Link>}
+  else{title=t('No Driver chosen yet');sub=<span>{t('Pick a Driver above. You can also leave this and assign one later, but a Driver is needed before you publish.')}</span>}
+  return <div className="tk-driver-card" role="status"><span className="tk-driver-icon"><Icon name={icon} size={22} aria-hidden="true"/></span><div className="tk-driver-text"><strong>{title}</strong><p>{sub}</p></div>{action&&<div className="tk-driver-action">{action}</div>}</div>
 }
 
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
@@ -246,21 +248,25 @@ export default function OwnerTicketDepartures(){
         </div>
       </div>
       <div ref={panes[2]} className="tk-pane" hidden={dw.step!==2}>
-        <div className="tk-grid" style={{'--cols':3}}>
+        <div className="tk-driver-split">
+        <div className="tk-grid" style={{'--cols':2}}>
           <Field label="Departure type" help={protectedPolicy?'The departure is confirmed only when enough seats are booked.':'The departure runs on the day whatever the number of bookings.'}>
             <select name="policy" value={form.fulfilment_policy} onChange={set('fulfilment_policy')}>
               <option value="FIXED_GUARANTEED">{t('Fixed, guaranteed departure')}</option>
               <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">{t('Minimum seats with protected fulfilment')}</option></select></Field>
           <Field label="Accepted time window (minutes)" optional help="Leave 0 if the departure time is fixed."><input name="window" min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/></Field>
-          <Field label="Who will drive?" help="Choose yourself (if you are an approved Driver) or one of your Drivers. You can also assign a Driver later, but one is needed before you publish.">
-            <select name="driver" value={form.driver_choice} onChange={set('driver_choice')}>
-              <option value="later">{t('Assign later')}</option>
-              <DriverOptions drivers={drivers} me={me}/></select></Field>
           {protectedPolicy&&<>
             <Field label="Minimum confirmed seats" help="How many seats must be booked for this departure to be confirmed."><input required name="minseats" min="1" type="number" value={form.minimum_confirmed_seats} onChange={set('minimum_confirmed_seats')}/></Field>
             <DateTimeFields dateLabel="Decision deadline date" timeLabel="Decision deadline time" help="You decide by this time." value={form.decision_deadline} min={toLocal(new Date()).slice(0,10)} onChange={v=>setForm(f=>({...f,decision_deadline:v}))}/></>}
         </div>
-        <DriverInfo choice={form.driver_choice} drivers={drivers} me={me} onSelf={()=>setForm(f=>({...f,driver_choice:'me'}))}/>
+        <div className="tk-driver-col">
+          <Field label="Who will drive?" help="Choose yourself (if you are an approved Driver) or one of your Drivers. You can also assign a Driver later, but one is needed before you publish.">
+            <select name="driver" value={form.driver_choice} onChange={set('driver_choice')}>
+              <option value="later">{t('Assign later')}</option>
+              <DriverOptions drivers={drivers} me={me}/></select></Field>
+          <DriverInfo choice={form.driver_choice} drivers={drivers} me={me} onSelf={()=>setForm(f=>({...f,driver_choice:'me'}))}/>
+        </div>
+        </div>
       </div>
       <div className="flow-actions">
         {dw.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={dw.back}>{t('Back')}</button>:<span/>}

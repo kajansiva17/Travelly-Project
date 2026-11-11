@@ -748,6 +748,12 @@ const rows = [
   ["Drove one of your trips","உங்கள் பயணங்களில் ஒன்றை ஓட்டியவர்","ඔබේ ගමනක් පදවූ අය"],
   ["Drove one of your departures","உங்கள் புறப்பாடுகளில் ஒன்றை ஓட்டியவர்","ඔබේ පිටත්වීමක් පදවූ අය"],
   ["You","நீங்கள்","ඔබ"],
+  ["You will drive this departure","இந்தப் புறப்பாட்டை நீங்களே ஓட்டுவீர்கள்","මෙම පිටත්වීම ඔබම පදවනු ඇත"],
+  ["You can drive it yourself, or assign a Driver later.","நீங்களே ஓட்டலாம், அல்லது பின்னர் ஓட்டுநரை நியமிக்கலாம்.","ඔබට ම පැදවිය හැක, නැතහොත් පසුව රියදුරෙකු පත් කළ හැක."],
+  ["Save the draft and assign a Driver later, or apply to become a Driver.","வரைவைச் சேமித்து பின்னர் ஓட்டுநரை நியமிக்கவும், அல்லது ஓட்டுநராக விண்ணப்பிக்கவும்.","කෙටුම්පත සුරකින්න සහ පසුව රියදුරෙකු පත් කරන්න, නැතහොත් රියදුරෙකු වීමට අයදුම් කරන්න."],
+  ["Apply to drive","ஓட்ட விண்ணப்பிக்கவும்","පැදවීමට අයදුම් කරන්න"],
+  ["No Driver chosen yet","ஓட்டுநர் இன்னும் தேர்ந்தெடுக்கப்படவில்லை","රියදුරෙකු තවම තෝරා නැත"],
+  ["Pick a Driver above. You can also leave this and assign one later, but a Driver is needed before you publish.","மேலே ஓட்டுநரைத் தேர்ந்தெடுக்கவும். இதை விட்டு பின்னரும் நியமிக்கலாம், ஆனால் வெளியிடும் முன் ஓட்டுநர் தேவை.","ඉහළින් රියදුරෙකු තෝරන්න. මෙය හැර පසුව ද පත් කළ හැක, නමුත් ප්‍රකාශයට පත් කිරීමට පෙර රියදුරෙකු අවශ්‍යයි."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -66,3 +66,18 @@ html body .ui-empty-icon { display: grid; place-items: center; width: 56px; heig
 html body .ui-empty h3 { margin: 4px 0 0; font-size: 17px; color: var(--ui-ink); }
 html body .ui-empty p { margin: 0; max-width: 46ch; font-size: 14px; line-height: 1.45; color: var(--ui-muted); }
 html body .ui-empty .ui-button { margin-top: 8px; }
+
+/* Driver choice card: message on the left, action on the right, one row height */
+html body .flow-page .tk-driver-card { display: flex; align-items: center; gap: 14px; min-height: 84px; margin-top: 6px; padding: 12px 18px; box-sizing: border-box; border-radius: 16px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .tk-driver-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / .8); border: 1px solid rgb(255 255 255 / .95); color: var(--ui-blue, #d62839); }
+html body .flow-page .tk-driver-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+html body .flow-page .tk-driver-text strong { font-size: 15px; color: var(--ui-ink); }
+html body .flow-page .tk-driver-text p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; line-height: 1.4; color: var(--ui-text); }
+html body .flow-page .tk-driver-action { flex: none; }
+html body .flow-page .tk-driver-action .ui-button { min-height: 40px; white-space: nowrap; text-decoration: none; }
+
+/* Step 3: type and window on the left, the Driver choice on the right */
+html body .flow-page .tk-driver-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; flex: 1 1 auto; min-height: 0; }
+html body .flow-page .tk-driver-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; }
+html body .flow-page .tk-driver-col .tk-driver-card { flex: 1 1 auto; margin-top: 0; max-height: 220px; }
+@media (max-width: 1100px) { html body .flow-page .tk-driver-split { grid-template-columns: minmax(0, 1fr); } }

@@ -782,3 +782,14 @@ html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
   html body .dash-page .dash-tile .workspace-note { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   html body .dash-page .dash-tile .workspace-select select { height: 2em; }
 }
+
+/* Short and narrow windows: the stepper keeps only the current step's label so it never runs into the tabs beside it.
+   Hidden labels stay readable to screen readers. */
+@media (max-height: 640px) and (max-width: 1380px) {
+  html body .flow-stepper { min-width: 0; overflow: hidden; }
+  html body .flow-stepper .ui-step:not(.ui-step-current) .ui-step-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+}
+/* Labels never run past their step, and the connector lines always stop at the dots. */
+html body .flow-stepper .ui-step { min-width: 0; }
+html body .flow-stepper .ui-step-button { min-width: 0; }
+html body .flow-stepper .ui-step + .ui-step::before { flex: 1 1 14px; }
