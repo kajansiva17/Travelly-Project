@@ -554,6 +554,10 @@ const rows = [
   ["Self Drive","சுயமாக ஓட்டு","ස්වයං රිය පැදවීම"],
   ["With Driver","ஓட்டுநருடன்","රියදුරු සමඟ"],
   ["Luggage / AC needs","பைகள் / குளிர்சாதன தேவைகள்","ගමන් මලු / ඒසී අවශ්‍යතා"],
+  ["Back to documents","ஆவணங்களுக்குத் திரும்பு","ලේඛනවලට ආපසු"],
+  ["Private download","தனிப்பட்ட பதிவிறக்கம்","පෞද්ගලික බාගැනීම"],
+  ["workspace...","பணியிடம்...","වැඩබිම..."],
+  ["Loading your account…","உங்கள் கணக்கு ஏற்றப்படுகிறது…","ඔබේ ගිණුම පූරණය වෙමින්…"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }
