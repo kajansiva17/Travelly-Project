@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React from 'react'
 import {Header} from '../../components/components'
 import {FlowShell} from '../booking/flow/FlowParts'
@@ -7,6 +8,6 @@ import {Empty} from '../ticketing/TicketParts'
 export default function DriverTicketBoarding(){
   return <><Header/><FlowShell heading="Ticket boarding" icon="ticket" title="Not available yet"
     info="Only the assigned Driver or Owner-driver will verify Passenger credentials here.">
-    <Empty>Ticket boarding opens once Passengers can book seats. There is nothing to verify right now.</Empty>
+    <Empty>{t('Ticket boarding opens once Passengers can book seats. There is nothing to verify right now.')}</Empty>
   </FlowShell></>
 }

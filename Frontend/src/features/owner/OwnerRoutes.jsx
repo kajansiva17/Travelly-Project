@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React,{useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
@@ -42,7 +43,7 @@ function StopEditor({stop,index,count,onChange,priced,lastPrice,lastName}){
         ?<Field label="Time from start" help="The trip starts here."><input disabled value="0 min" readOnly/></Field>
         :<>
           <Field label="Hours from start" help="About how long after leaving the first stop you reach this stop."><select name="hours" value={stop.hours} onChange={e=>set({hours:e.target.value})}>{Array.from({length:49},(_,h)=><option key={h} value={h}>{h} h</option>)}</select></Field>
-          <Field label="Minutes"><select name="minutes" value={stop.minutes} onChange={e=>set({minutes:e.target.value})}>{[0,5,10,15,20,25,30,35,40,45,50,55].map(m=><option key={m} value={m}>{m} min</option>)}</select></Field>
+          <Field label="Minutes"><select name="minutes" value={stop.minutes} onChange={e=>set({minutes:e.target.value})}>{[0,5,10,15,20,25,30,35,40,45,50,55].map(m=><option key={m} value={m}>{t('{value0} min',{value0:m})}</option>)}</select></Field>
         </>}
       {priced&&(first
         ?<Field label="Price from the start (LKR)" help="The trip starts here, so this is 0."><input disabled value="0" readOnly/></Field>
@@ -50,8 +51,8 @@ function StopEditor({stop,index,count,onChange,priced,lastPrice,lastName}){
           <input required name="price" type="number" min="0" step="1" inputMode="decimal" value={stop.price} onChange={e=>set({price:e.target.value})}/></Field>)}
     </div>
     <div className="tk-checks">
-      <label><input type="checkbox" checked={stop.getOn} disabled={first} onChange={e=>set({getOn:e.target.checked})}/> Passengers can get on here</label>
-      <label><input type="checkbox" checked={stop.getOff} disabled={last} onChange={e=>set({getOff:e.target.checked})}/> Passengers can get off here</label>
+      <label><input type="checkbox" checked={stop.getOn} disabled={first} onChange={e=>set({getOn:e.target.checked})}/> {t('Passengers can get on here')}</label>
+      <label><input type="checkbox" checked={stop.getOff} disabled={last} onChange={e=>set({getOff:e.target.checked})}/> {t('Passengers can get off here')}</label>
       <button type="button" className="tk-link" onClick={()=>set({manual:!stop.manual})}>{stop.manual?'Search for the place instead':'Can’t find it? Enter map numbers instead'}</button>
     </div>
   </div>
@@ -100,7 +101,7 @@ function RouteForm({editing,onSaved,onCancel,onStep}){
     <div ref={pane0} className="tk-pane" hidden={w.step!==0}>
       <SegmentedChoice legend="Ticket price" name="pricing" value={priced?'each':'one'} onChange={k=>setPriced(k==='each')}
         options={[['one','One price for the whole trip (you enter it on each departure)'],['each','Different price for each stop (passengers pay only for the part they travel)']]}/>
-      {priced&&<p className="tk-line">For each stop, enter the price from the first stop. Travelly works out the rest: getting on at a stop priced LKR 2,500 and off at one priced LKR 3,500 costs LKR 1,000.</p>}
+      {priced&&<p className="tk-line">{t('For each stop, enter the price from the first stop. Travelly works out the rest: getting on at a stop priced LKR 2,500 and off at one priced LKR 3,500 costs LKR 1,000.')}</p>}
       <div className="tk-grid">
         <Field label="Route name" optional help={auto?`Leave empty to use “${auto}”.`:'Leave empty to name it after the first and last stop.'}><input name="route_name" maxLength="150" value={name} onChange={e=>setName(e.target.value)}/></Field>
         <Field label="Distance in km" optional help="Roughly how far from the first to the last stop."><input name="distance" type="number" min="0" step="0.1" value={distance} onChange={e=>setDistance(e.target.value)}/></Field>
@@ -109,29 +110,29 @@ function RouteForm({editing,onSaved,onCancel,onStep}){
     <div ref={pane1} className="tk-pane" hidden={w.step!==1}>
       <div className="tk-stop-nav">
         <button type="button" className="ui-button ui-button-secondary" aria-label="Previous stop" disabled={current===0} onClick={()=>setCurrent(current-1)}>‹</button>
-        <strong>Stop {current+1} of {stops.length} · {roleOf(current,stops.length)}</strong>
+        <strong>{t('Stop {value0} of {value1}',{value0:current+1,value1:stops.length})} · {t(roleOf(current,stops.length))}</strong>
         <button type="button" className="ui-button ui-button-secondary" aria-label="Next stop" disabled={current===stops.length-1} onClick={()=>setCurrent(current+1)}>›</button>
         <span className="tk-grow" style={{flex:1}}/>
-        {current>0&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>move(-1)}>Move up</button>}
-        {current<stops.length-1&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>move(1)}>Move down</button>}
-        {stops.length>2&&<button type="button" className="ui-button ui-button-secondary" onClick={remove}>Remove stop</button>}
-        <button type="button" className="ui-button ui-button-secondary" disabled={stops.length>=50} onClick={add}>+ Add a stop on the way</button>
+        {current>0&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>move(-1)}>{t('Move up')}</button>}
+        {current<stops.length-1&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>move(1)}>{t('Move down')}</button>}
+        {stops.length>2&&<button type="button" className="ui-button ui-button-secondary" onClick={remove}>{t('Remove stop')}</button>}
+        <button type="button" className="ui-button ui-button-secondary" disabled={stops.length>=50} onClick={add}>{t('+ Add a stop on the way')}</button>
       </div>
       <StopEditor key={stop.key} priced={priced} lastPrice={stops[stops.length-1].price} lastName={stops[stops.length-1].name} stop={stop} index={current} count={stops.length} onChange={next=>change(current,next)}/>
     </div>
     <div className="tk-pane" hidden={w.step!==2}>
-      <p className="tk-line"><strong>{name.trim()||auto||'New route'}</strong>{times[times.length-1]>0&&<> · whole trip about {duration(times[times.length-1])}</>}{priced&&!missingPrice&&!priceDown&&prices[prices.length-1]>0&&<> · whole trip {money(prices[prices.length-1])}</>}</p>
+      <p className="tk-line"><strong>{name.trim()||auto||t('New route')}</strong>{times[times.length-1]>0&&<> · {t('whole trip about {value0}',{value0:duration(times[times.length-1])})}</>}{priced&&!missingPrice&&!priceDown&&prices[prices.length-1]>0&&<> · {t('whole trip {value0}',{value0:money(prices[prices.length-1])})}</>}</p>
       <div className="tk-rows">{review.slice.map(s=>{const i=stops.indexOf(s);return <div className="tk-row" key={s.key}>
         <div className="tk-row-main"><strong>{i+1}. {s.name||'No name yet'}</strong><span>{roleOf(i,stops.length)} · {i===0?'0 min':duration(times[i])}{priced&&` · ${i===0?money(0):s.price===''?'no price':money(s.price)}`}</span></div>
         <div className="tk-row-actions">{i>0&&<Chip tone={s.getOn?'success':'muted'}>{s.getOn?'Get on':'No get on'}</Chip>}{i<stops.length-1&&<Chip tone={s.getOff?'success':'muted'}>{s.getOff?'Get off':'No get off'}</Chip>}
-          <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setCurrent(i);w.setStep(1)}}>Edit</button></div></div>})}</div>
+          <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setCurrent(i);w.setStep(1)}}>{t('Edit')}</button></div></div>})}</div>
       {problems.map(p=><p key={p} className="tk-line is-warn" role="alert">{p}</p>)}
     </div>
     <div className="flow-actions">
-      {w.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>Back</button>:editing?<button type="button" className="ui-button ui-button-secondary" onClick={onCancel}>Cancel</button>:<span/>}
+      {w.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>:editing?<button type="button" className="ui-button ui-button-secondary" onClick={onCancel}>{t('Cancel')}</button>:<span/>}
       {w.step===2&&review.pages>1&&review.pager}
       {w.step<2
-        ?<button key="next" type="button" className="ui-button ui-button-primary" onClick={next}>Next</button>
+        ?<button key="next" type="button" className="ui-button ui-button-primary" onClick={next}>{t('Next')}</button>
         :<button key="save" type="submit" className="ui-button ui-button-primary" disabled={busy||problems.length>0}>{busy?'Saving…':editing?'Save changes':'Save route'}</button>}
     </div>
   </form>
@@ -149,11 +150,11 @@ function RouteRow({route,onEdit,onChanged,setError}){
   return <article className="tk-row">
     <div className="tk-row-main"><strong>{route.route_name}</strong>
       <span title={path}>{path}</span>
-      <span>{route.stop_prices_enabled?'Price for each stop':'One price, set on each departure'} · {route.stops.length} stops{route.estimated_duration_minutes?` · about ${duration(route.estimated_duration_minutes)}`:''}{route.estimated_distance_km?` · ${Number(route.estimated_distance_km)} km`:''}</span></div>
+      <span>{route.stop_prices_enabled?t('Price for each stop'):t('One price, set on each departure')} · {t('{value0} stops',{value0:route.stops.length})}{route.estimated_duration_minutes?` · ${t('about {value0}',{value0:duration(route.estimated_duration_minutes)})}`:''}{route.estimated_distance_km?` · ${Number(route.estimated_distance_km)} km`:''}</span></div>
     <div className="tk-row-actions">
-      <Chip tone={route.status==='ACTIVE'?'success':'muted'}>{route.status==='ACTIVE'?'On':route.deactivated_by_admin?'Turned off by Travelly':'Off'}</Chip>
-      {!route.mine&&<Chip tone="info">Travelly route</Chip>}
-      {route.mine&&<button type="button" className="ui-button ui-button-secondary" onClick={onEdit}>Edit</button>}
+      <Chip tone={route.status==='ACTIVE'?'success':'muted'}>{route.status==='ACTIVE'?t('On'):route.deactivated_by_admin?t('Turned off by Travelly'):t('Off')}</Chip>
+      {!route.mine&&<Chip tone="info">{t('Travelly route')}</Chip>}
+      {route.mine&&<button type="button" className="ui-button ui-button-secondary" onClick={onEdit}>{t('Edit')}</button>}
       {route.mine&&!route.deactivated_by_admin&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={toggle}>{route.status==='ACTIVE'?'Turn off':'Turn on'}</button>}
     </div>
   </article>
@@ -174,10 +175,10 @@ export default function OwnerRoutes(){
     <Compact.Provider value={true}>
       <Notice>{notice}</Notice><ErrorNotice error={error}/>
       <div className="tk-pane" hidden={tab!==0}>
-        {routes===null?<p role="status">Loading routes…</p>:all.length
+        {routes===null?<p role="status">{t('Loading routes…')}</p>:all.length
           ?<div className="tk-rows">{list.slice.map(r=><RouteRow key={`${r.id}-${r.version}`} route={r} setError={setError} onChanged={done} onEdit={()=>{setEditing(r);setTab(1)}}/>)}</div>
-          :<Empty>No routes yet. Add your first route.</Empty>}
-        <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/owner/ticket-departures">Go to Ticket departures</Link>{all.length>list.slice.length||list.pages>1?list.pager:null}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{editing?'Continue editing':'Add a route'}</button></div>
+          :<Empty>{t('No routes yet. Add your first route.')}</Empty>}
+        <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/owner/ticket-departures">{t('Go to Ticket departures')}</Link>{all.length>list.slice.length||list.pages>1?list.pager:null}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{editing?t('Continue editing'):t('Add a route')}</button></div>
       </div>
       <div className="tk-pane" hidden={tab!==1}>
         <RouteForm key={editing?`edit-${editing.id}-${editing.version}`:`new-${formKey}`} editing={editing} onSaved={(_,message)=>done(message)} onCancel={()=>{setEditing(null);setFormKey(k=>k+1);setTab(0)}} onStep={setStep}/>

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React,{useEffect,useState} from 'react'
 import {api,publicRead} from '../../services/api'
 import {ButtonLink,ErrorNotice,Header,useSession} from '../../components/components'
@@ -103,32 +104,32 @@ export default function PassengerTicketBooking(){
         <Field label="Date" optional><input name="date" type="date" value={query.date} onChange={e=>setQuery({...query,date:e.target.value})}/></Field>
         <Field label="Travellers"><input required name="travellers" min="1" max="100" type="number" value={query.travellers} onChange={e=>setQuery({...query,travellers:e.target.value})}/></Field>
       </div>
-      {items?.items?.length===0&&<Empty>No matching departures. No published departure matches these requirements.</Empty>}
+      {items?.items?.length===0&&<Empty>{t('No matching departures. No published departure matches these requirements.')}</Empty>}
       <div className="tk-rows">{results.slice.map(d=><article className="tk-row" key={d.id}>
         <div className="tk-row-main"><strong>{d.route.route_name}</strong>
-          <span>{new Date(d.departure_at).toLocaleString()} · {d.vehicle.make} {d.vehicle.model}{d.vehicle.air_conditioned?' · AC':''} · {d.available_seats} seats available</span></div>
-        <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>Select departure</button></div></article>)}</div>
-      <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">Search departures</button></div>
+          <span>{new Date(d.departure_at).toLocaleString()} · {d.vehicle.make} {d.vehicle.model}{d.vehicle.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
+        <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>{t('Select departure')}</button></div></article>)}</div>
+      <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">{t('Search departures')}</button></div>
     </form>
 
     {departure&&<div className="tk-split" hidden={w.step!==1}>
       <div className="tk-side">
         <p className="tk-line"><strong>{departure.route.origin_name} → {departure.route.destination_name}</strong> · {new Date(departure.departure_at).toLocaleString()}</p>
         <p className="tk-line">{departure.stop_prices_enabled
-          ?<>Price per seat {departure.currency} {partFare!=null?partFare.toFixed(2):departure.fare_per_seat} for {onStop?.stop_name} → {offStop?.stop_name}</>
-          :<>Fare per seat {departure.currency} {departure.fare_per_seat}</>}</p>
+          ?<>{t('Price per seat {value0} {value1} for {value2} → {value3}',{value0:departure.currency,value1:partFare!=null?partFare.toFixed(2):departure.fare_per_seat,value2:onStop?.stop_name,value3:offStop?.stop_name})}</>
+          :<>{t('Fare per seat {value0} {value1}',{value0:departure.currency,value1:departure.fare_per_seat})}</>}</p>
         {routeStops.length>0&&!held&&<div className="tk-grid" style={{'--cols':1}}>
           <Field label="Where will you get on?" optional><select name="boarding" value={stops.boarding} onChange={e=>{const on=routeStops.find(s=>s.id===e.target.value),off=routeStops.find(s=>s.id===stops.dropoff)
               setStops({boarding:e.target.value,dropoff:on&&off&&off.stop_order<=on.stop_order?'':stops.dropoff})}}>
-            <option value="">{routeStops[0].stop_name} (start)</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[0].stop_name} {t('(start)')}</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
           <Field label="Where will you get off?" optional><select name="dropoff" value={stops.dropoff} onChange={e=>setStops({...stops,dropoff:e.target.value})}>
-            <option value="">{routeStops[routeStops.length-1].stop_name} (end)</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[routeStops.length-1].stop_name} {t('(end)')}</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
         </div>}
-        {!stopsReady&&<p className="tk-line is-warn" role="alert">Choose a get-off stop after the stop where you get on.</p>}
-        {fareBad&&<p className="tk-line is-warn" role="alert">The Owner has no price for travel between these stops.</p>}
-        {!held&&<p className="tk-line">Selected: <strong>{selected.length?selected.join(', '):'none'}</strong>{selected.length>0&&<> · Total <strong>{departure.currency} {total.toFixed(2)}</strong></>}</p>}
-        {!held&&selected.length>0&&selected.length!==travellers&&<p className="tk-line">You searched for {travellers} traveller{travellers>1?'s':''}; select {travellers} seat{travellers>1?'s':''}.</p>}
-        {held&&<p className="tk-line">Your seats are held. Open the next step to see the timer.</p>}
+        {!stopsReady&&<p className="tk-line is-warn" role="alert">{t('Choose a get-off stop after the stop where you get on.')}</p>}
+        {fareBad&&<p className="tk-line is-warn" role="alert">{t('The Owner has no price for travel between these stops.')}</p>}
+        {!held&&<p className="tk-line">{t('Selected:')} <strong>{selected.length?selected.join(', '):t('none')}</strong>{selected.length>0&&<> · {t('Total')} <strong>{departure.currency} {total.toFixed(2)}</strong></>}</p>}
+        {!held&&selected.length>0&&selected.length!==travellers&&<p className="tk-line">{t(travellers>1?'You searched for {value0} travellers; select {value0} seats.':'You searched for {value0} traveller; select {value0} seat.',{value0:travellers})}</p>}
+        {held&&<p className="tk-line">{t('Your seats are held. Open the next step to see the timer.')}</p>}
       </div>
       <div className="tk-map"><SeatMap seats={seats} selected={held?[]:selected} onToggle={held?undefined:toggle} label="Choose seats"/></div>
     </div>}
@@ -136,34 +137,34 @@ export default function PassengerTicketBooking(){
     {departure&&<div className="tk-pane" hidden={w.step!==2}>
       {held
         ?<div className="tk-hold">
-          <Chip tone="success">Seats held</Chip>
-          <h3>Booking {booking.booking_reference}</h3>
-          <p className="tk-line">Seats {booking.travellers.map(t=>t.seat_code).join(', ')} · Total {booking.currency} {booking.total_amount}</p>
-          <p className="tk-line" role="timer" aria-live="off">Held for <strong>{clock}</strong>. The seats are released automatically when the timer ends.</p>
-          <p className="tk-line"><Chip tone="muted" icon="clock">Payment coming soon</Chip> Paying for a ticket is not available yet, so this hold cannot be confirmed. Nothing has been charged.</p>
+          <Chip tone="success">{t('Seats held')}</Chip>
+          <h3>{t('Booking {value0}',{value0:booking.booking_reference})}</h3>
+          <p className="tk-line">{t('Seats {value0} · Total {value1} {value2}',{value0:booking.travellers.map(x=>x.seat_code).join(', '),value1:booking.currency,value2:booking.total_amount})}</p>
+          <p className="tk-line" role="timer" aria-live="off">{t('Held for')} <strong>{clock}</strong>. {t('The seats are released automatically when the timer ends.')}</p>
+          <p className="tk-line"><Chip tone="muted" icon="clock">{t('Payment coming soon')}</Chip> {t('Paying for a ticket is not available yet, so this hold cannot be confirmed. Nothing has been charged.')}</p>
         </div>
         :<>
-          {booking?.status==='CANCELLED'&&<p className="tk-line is-warn" role="status"><strong>{booking.cancellation_reason==='Seat hold expired.'?'Hold expired.':'Hold released.'}</strong> Seats {booking.travellers.map(t=>t.seat_code).join(', ')} are free again. You can select seats and hold them again.</p>}
+          {booking?.status==='CANCELLED'&&<p className="tk-line is-warn" role="status"><strong>{booking.cancellation_reason==='Seat hold expired.'?t('Hold expired.'):t('Hold released.')}</strong> {t('Seats {value0} are free again. You can select seats and hold them again.',{value0:booking.travellers.map(x=>x.seat_code).join(', ')})}</p>}
           {selected.length>0
             ?<div className="tk-grid" style={{'--cols':2}}>
               {nameRows.slice.map(code=><Field key={code} label={`Traveller name for seat ${code}${code===selected[0]?' (primary)':''}`}>
                 <input required name={`name-${code}`} maxLength="150" value={names[code]||''} onChange={e=>setNames({...names,[code]:e.target.value})}/></Field>)}
             </div>
-            :<Empty>Choose at least one seat first.</Empty>}
-          {nameRows.pages>1&&<div className="tk-bar">{nameRows.pager}<span className="tk-line">{selected.length} travellers · names are needed for every seat</span></div>}
+            :<Empty>{t('Choose at least one seat first.')}</Empty>}
+          {nameRows.pages>1&&<div className="tk-bar">{nameRows.pager}<span className="tk-line">{t('{value0} travellers · names are needed for every seat',{value0:selected.length})}</span></div>}
         </>}
       <div className="flow-actions">
-        {held?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>Back</button>}
+        {held?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>}
         {held
           ?<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={release}>{busy?'Releasing…':'Release seats'}</button>
           :signedIn
             ?<button type="button" className="ui-button ui-button-primary" disabled={busy||!namesReady||!stopsReady||fareBad} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
-            :<ButtonLink to="/login">Sign in to hold seats</ButtonLink>}
+            :<ButtonLink to="/login">{t('Sign in to hold seats')}</ButtonLink>}
       </div>
     </div>}
 
     {departure&&w.step===1&&<div className="flow-actions">
-      <button type="button" className="ui-button ui-button-secondary" disabled={held} onClick={w.back}>Back</button>
+      <button type="button" className="ui-button ui-button-secondary" disabled={held} onClick={w.back}>{t('Back')}</button>
       <button type="button" className="ui-button ui-button-primary" disabled={!held&&!selected.length} onClick={w.forward}>{held?'View my hold':'Next'}</button>
     </div>}
     </Compact.Provider>

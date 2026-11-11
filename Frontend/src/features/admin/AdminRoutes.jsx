@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React,{useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
@@ -55,16 +56,16 @@ export default function AdminRoutes(){
           <Field label="Distance (km)" optional><input name="distance" min="0" step="0.001" type="number" value={form.estimated_distance_km} onChange={set('estimated_distance_km')}/></Field>
           <Field label="Duration (minutes)" optional><input name="duration" min="0" type="number" value={form.estimated_duration_minutes} onChange={set('estimated_duration_minutes')}/></Field>
         </div>
-        <div className="tk-checks"><label><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> Make the route available to Owners now</label></div>
+        <div className="tk-checks"><label><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> {t('Make the route available to Owners now')}</label></div>
       </div>
       <div className="tk-pane" hidden={w.step!==1}>
         <div className="tk-stop-nav">
           <button type="button" className="ui-button ui-button-secondary" aria-label="Previous stop" disabled={current===0} onClick={()=>setCurrent(current-1)}>‹</button>
-          <strong>Stop {current+1} of {stops.length}</strong>
+          <strong>{t('Stop {value0} of {value1}',{value0:current+1,value1:stops.length})}</strong>
           <button type="button" className="ui-button ui-button-secondary" aria-label="Next stop" disabled={current===stops.length-1} onClick={()=>setCurrent(current+1)}>›</button>
           <span style={{flex:1}}/>
-          {stops.length>2&&<button type="button" className="ui-button ui-button-secondary" onClick={remove}>Remove stop</button>}
-          <button type="button" className="ui-button ui-button-secondary" disabled={stops.length>=50} onClick={()=>{setStops([...stops,blankStop()]);setCurrent(stops.length)}}>Add stop</button>
+          {stops.length>2&&<button type="button" className="ui-button ui-button-secondary" onClick={remove}>{t('Remove stop')}</button>}
+          <button type="button" className="ui-button ui-button-secondary" disabled={stops.length>=50} onClick={()=>{setStops([...stops,blankStop()]);setCurrent(stops.length)}}>{t('Add stop')}</button>
         </div>
         <div className="tk-grid" style={{'--cols':2}} key={current}>
           <Field label="Stop name"><input required name="stop_name" maxLength="150" value={stop.stop_name} onChange={e=>setStop(current,{stop_name:e.target.value})}/></Field>
@@ -73,27 +74,27 @@ export default function AdminRoutes(){
           <Field label="Longitude"><input required name="lng" type="number" step="0.000001" min="-180" max="180" value={stop.longitude} onChange={e=>setStop(current,{longitude:e.target.value})}/></Field>
         </div>
         <div className="tk-checks">
-          <label><input type="checkbox" checked={stop.pickup_allowed} onChange={e=>setStop(current,{pickup_allowed:e.target.checked})}/> Pickup</label>
-          <label><input type="checkbox" checked={stop.dropoff_allowed} onChange={e=>setStop(current,{dropoff_allowed:e.target.checked})}/> Drop-off</label>
+          <label><input type="checkbox" checked={stop.pickup_allowed} onChange={e=>setStop(current,{pickup_allowed:e.target.checked})}/> {t('Pickup')}</label>
+          <label><input type="checkbox" checked={stop.dropoff_allowed} onChange={e=>setStop(current,{dropoff_allowed:e.target.checked})}/> {t('Drop-off')}</label>
         </div>
-        {stopBad&&<p className="tk-line is-warn">Every stop needs a name, latitude, longitude and minutes from start before saving.</p>}
+        {stopBad&&<p className="tk-line is-warn">{t('Every stop needs a name, latitude, longitude and minutes from start before saving.')}</p>}
       </div>
       <div className="flow-actions">
-        {w.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>Back</button>:<span/>}
+        {w.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>:<span/>}
         {w.step===0
-          ?<button key="next" type="button" className="ui-button ui-button-primary" onClick={()=>{if(checkPane(pane0.current).valid)w.forward()}}>Next</button>
+          ?<button key="next" type="button" className="ui-button ui-button-primary" onClick={()=>{if(checkPane(pane0.current).valid)w.forward()}}>{t('Next')}</button>
           :<button key="save" type="submit" className="ui-button ui-button-primary" disabled={busy||stopBad}>{busy?'Saving…':'Save route'}</button>}
       </div>
     </form>
 
     <div className="tk-pane" hidden={tab!==1}>
-      {routes===null?<p role="status">Loading routes…</p>:routes.length
+      {routes===null?<p role="status">{t('Loading routes…')}</p>:routes.length
         ?<div className="tk-rows">{list.slice.map(r=><article className="tk-row" key={`${r.id}-${r.version}`}>
           <div className="tk-row-main"><strong>{r.route_name}</strong><span>{r.origin_name} → {r.destination_name} · {r.owner_user_id?'Owner route':'Travelly route'}</span></div>
           <div className="tk-row-actions"><Chip tone={r.status==='ACTIVE'?'success':'muted'}>{r.status==='ACTIVE'?'On':'Off'}</Chip>
             {r.status!=='DRAFT'&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>toggle(r)}>{r.status==='ACTIVE'?'Turn off':'Turn on'}</button>}</div></article>)}</div>
-        :<Empty>No routes yet. Create the first route.</Empty>}
-      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">Back to service catalogue</Link>{list.pages>1?list.pager:null}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(0)}>Create a route</button></div>
+        :<Empty>{t('No routes yet. Create the first route.')}</Empty>}
+      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/services-routes">{t('Back to service catalogue')}</Link>{list.pages>1?list.pager:null}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(0)}>{t('Create a route')}</button></div>
     </div>
     </Compact.Provider>
   </FlowShell></>

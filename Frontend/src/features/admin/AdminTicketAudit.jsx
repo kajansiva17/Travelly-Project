@@ -1,3 +1,4 @@
+import { t } from '../../i18n/language.js'
 import React from 'react'
 import {Header} from '../../components/components'
 import {FlowShell} from '../booking/flow/FlowParts'
@@ -7,6 +8,6 @@ import {Empty} from '../ticketing/TicketParts'
 export default function AdminTicketAudit(){
   return <><Header/><FlowShell heading="Ticket audit" icon="shield" title="Not available yet"
     info="Read-only departure, seat-hold, booking and boarding audit metadata will appear here. Credentials and private contact details are never exposed.">
-    <Empty>Ticket audit opens once Passengers can book seats. No ticket activity exists to review.</Empty>
+    <Empty>{t('Ticket audit opens once Passengers can book seats. No ticket activity exists to review.')}</Empty>
   </FlowShell></>
 }
