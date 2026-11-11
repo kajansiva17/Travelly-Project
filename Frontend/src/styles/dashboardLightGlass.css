@@ -52,7 +52,7 @@ body .dashboard-overview .reference-platform-map>div {background:#f3f9ffdc;color
 body .dashboard-overview .reference-platform-map>small {color:#fff;text-shadow:0 1px 3px #001}
 body .dashboard-overview .reference-route {grid-template-columns:1fr;min-height:0}
 body .dashboard-overview .pipeline-columns .pipeline-row>strong {color:#071645}
-body .workspace-shell .workspace-content :is(.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.auth-flow-panel,.profile-card) {
+body .workspace-shell .workspace-content :is(.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.profile-card) {
  color:#071645;border:1px solid #ffffffed;border-radius:20px;
  background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
  box-shadow:inset 0 1px 10px #fff,0 8px 22px #27496d38;backdrop-filter:blur(17px)

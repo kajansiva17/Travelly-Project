@@ -170,3 +170,8 @@ Language test 64/64 green. Not covered by the mock: the real PayHere form POST a
 
 Empty states (My Driving, Driver Assignments, Live Fleet Trips) are a shared centered `EmptyState` (icon, title, one sentence, optional action; "Open my vehicles" on Live Fleet Trips). Vehicle Expenses is one "coming soon" empty state, the six "Unavailable" tiles are gone. Developer wording ("API", "assumed", "ledger") reworded, Tamil + Sinhala added.
 1280x585 and 1920x1080, all 4 tabs, with data and empty: card 449/449 (888/888), page scroll 0, nothing outside the card, empty block centered in the pane (within 8px of the pane middle, the gap is the footer row). Language test 64/64.
+
+## Auth pages restyle: /check-email, /verify-email, /reset-password, /google-complete
+
+All four now use the shared `AuthLayout` (sunset background, white-pill navbar, frosted card, red-accent title word, rounded `Field` inputs, red gradient pill button), the same as /forgot-password. Old `Shell` wrapper and every `.auth-flow-*` rule (authGlass.css plus the `.auth-flow-panel` entries in six other stylesheets) removed. Logic, validation, API calls and routes untouched.
+Measured at 1280x585 and 1920x1080, states: check-email (with ticket, cooldown after resend, resend error, no flow), verify (no token, token, error, success), reset (no token, form, weak password, server error, success), google-complete (no flow, form, field errors, server error, Admin journey). Result: page scroll 0, card scroll 0, nothing outside the card, background and red button present, inputs rounded. Card sits vertically centred (bottom gap 117-126px at 1280x585, 265-308px at 1920x1080). Language test 64/64.

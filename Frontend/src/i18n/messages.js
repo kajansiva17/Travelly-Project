@@ -721,6 +721,7 @@ const rows = [
   ["Run your journeys from your Owner workspace.","உங்கள் உரிமையாளர் பணியிடத்திலிருந்தே பயணங்களை நடத்துங்கள்.","ඔබේ හිමිකරු වැඩබිමෙන්ම ගමන් පවත්වන්න."],
   ["Drive a trip yourself or assign a verified Driver without leaving this page.","இந்தப் பக்கத்தை விட்டு வெளியேறாமல் நீங்களே ஓட்டலாம் அல்லது சரிபார்க்கப்பட்ட ஓட்டுநரை நியமிக்கலாம்.","මෙම පිටුවෙන් පිටව නොගොස් ඔබම පදවන්න හෝ තහවුරු කළ රියදුරෙකු පත් කරන්න."],
   ["Confirm who will drive only after the Passenger has accepted the price. Travelly checks the Driver’s documents, the vehicle match and any clashing trips.","பயணி விலையை ஏற்ற பிறகே யார் ஓட்டுவார் என்பதை உறுதிசெய்யுங்கள். ஓட்டுநரின் ஆவணங்கள், வாகனப் பொருத்தம் மற்றும் மோதும் பயணங்களை Travelly சரிபார்க்கும்.","මගියා මිල පිළිගත් පසුව පමණක් කවුරු පදවනවාදැයි තහවුරු කරන්න. රියදුරුගේ ලේඛන, වාහන ගැලපීම සහ ගැටෙන ගමන් Travelly පරීක්ෂා කරයි."],
+  ["Pick a strong password you have not used before.","முன்பு பயன்படுத்தாத வலுவான கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்.","කලින් භාවිතා නොකළ ශක්තිමත් මුරපදයක් තෝරන්න."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

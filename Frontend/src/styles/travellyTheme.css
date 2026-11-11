@@ -51,10 +51,10 @@ body .ticket-services i{width:9px;height:9px;background:var(--primary-red);borde
 body .preview-dialog{background:var(--ui-glass-strong);color:var(--ui-ink);border:1px solid #5ca9ff;border-radius:14px;box-shadow:0 20px 70px #000b28a0}
 /* Retained operational forms, profile and review surfaces share the same tokens. */
 body :is(.account-card,.profile-panel,.review-card,.review-detail,.review-summary,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-card,.vehicle-panel,.calendar-panel,.document-card,.account-section,.owner-rate-form fieldset){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#418ac2}
-body :is(.profile-card,.role-card,.review-panel,.review-preview,.rate-vehicle-picker,.rate-reuse-note,.rate-area,.rate-area-summary,.trip-stop,.rate-prefilled,.vehicle-photo-card,.calendar-entry,.auth-flow-panel){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#418ac2;box-shadow:none}
+body :is(.profile-card,.role-card,.review-panel,.review-preview,.rate-vehicle-picker,.rate-reuse-note,.rate-area,.rate-area-summary,.trip-stop,.rate-prefilled,.vehicle-photo-card,.calendar-entry){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#418ac2;box-shadow:none}
 body :is(.verification-note,.review-reason){background:var(--ui-glass-strong);color:var(--ui-ink)}
-body :is(.account-main,.review-main,.auth-flow-panel) :is(p,small,dt){color:var(--ui-text)}
-body :is(.review-main,.review-panel,.auth-flow-panel,.private-upload) :is(input,select,textarea){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4c95cd}
+body :is(.account-main,.review-main) :is(p,small,dt){color:var(--ui-text)}
+body :is(.review-main,.review-panel,.private-upload) :is(input,select,textarea){background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4c95cd}
 body :is(.role-card,.rate-field) small,body .rate-coverage-summary,body .change-totals dt,body .trip-price th small{color:var(--ui-text)}
 body .trip-price tfoot th,body .trip-price tfoot td{color:var(--ui-ink);background:var(--ui-glass-strong)}
 body :is(.avatar,.role-icon,.badge){background:var(--ui-glass-strong);color:var(--ui-ink)}

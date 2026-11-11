@@ -61,7 +61,7 @@ body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is(.overview-banner,.workspace-heading) p {color:#1c3157;font-weight:500}
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .reference-availability {color:#15355a;background:rgb(255 255 255 / .78);border-color:#fff;box-shadow:0 4px 12px rgb(44 76 78 / .16)}
 
-body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is(.workspace-card,.workspace-metric,.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.auth-flow-panel,.profile-card) {color:var(--ui-ink);border:1px solid var(--role-border);border-radius:20px;background:var(--role-glass);box-shadow:var(--role-shadow);backdrop-filter:blur(18px) saturate(115%)}
+body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is(.workspace-card,.workspace-metric,.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.profile-card) {color:var(--ui-ink);border:1px solid var(--role-border);border-radius:20px;background:var(--role-glass);box-shadow:var(--role-shadow);backdrop-filter:blur(18px) saturate(115%)}
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-card {padding:14px}
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-card-heading {padding:0 0 9px;margin:0 0 10px;border-bottom:1px solid rgb(51 78 97 / .14)}
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-card-heading h2 {color:var(--ui-ink);font-weight:800}

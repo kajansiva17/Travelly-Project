@@ -10,7 +10,8 @@ import RegisterPhoneField from './RegisterPhoneField'
 import { registrationPhone } from './registrationPhone'
 import {loginDestination} from '../../routes/workspaceRoutes'
 
-function Shell({ children }) { return <div className="auth-page auth-flow-page"><Header auth/><main className="auth-layout auth-flow-layout" id="main"><section className="auth-form-panel auth-flow-panel"><div className="auth-form-inner">{children}</div></section></main></div> }
+const Primary=({to,children})=><Link className="ui-button ui-button-primary auth-submit" to={to}>{children}</Link>
+const Back=({to,children})=><p className="auth-switch login-switch"><Link to={to}>{children}</Link></p>
 
 export function CheckEmail() {
   const journey=journeyRole(useLocation().search)
@@ -23,7 +24,12 @@ export function CheckEmail() {
     catch (err) { setError(err); if (err.retryAfter) setCooldown(Number(err.retryAfter)) }
     finally { setBusy(false) }
   }
-  return <Shell><h1>{t("Check your email")}</h1><p>{flow?.legacy ? t('Your email is unverified. Open the Travelly verification link to confirm it; your existing account remains available.') : t('Open your Travelly verification link to verify your email and continue.')}</p><p role="status">{t(flow?.message) || t('Sign in with your email and password, or Google, to request another verification link.')}</p><p>{t("Links expire after 30 minutes and work once. A new link replaces the previous one.")}</p><ErrorNotice error={error}/>{flow?.verification_ticket && <button className="ui-button ui-button-primary auth-submit" disabled={busy || cooldown > 0} onClick={resend}>{cooldown ? t("Resend in {value0}s", {value0: cooldown}) : busy ? t('Requesting email…') : t('Resend verification link')}</button>}<p><Link to={journeyLink('/login',journey)}>{t("Back to sign in")}</Link></p></Shell>
+  return <AuthLayout variant="login" title={t("Check your email")} subtitle={flow?.legacy ? t('Your email is unverified. Open the Travelly verification link to confirm it; your existing account remains available.') : t('Open your Travelly verification link to verify your email and continue.')} tip={t("Links expire after 30 minutes and work once. A new link replaces the previous one.")}>
+    <ErrorNotice error={error}/>
+    <p className="auth-status" role="status">{t(flow?.message) || t('Sign in with your email and password, or Google, to request another verification link.')}</p>
+    {flow?.verification_ticket && <button type="button" className="ui-button ui-button-primary auth-submit" disabled={busy || cooldown > 0} onClick={resend}>{cooldown ? t("Resend in {value0}s", {value0: cooldown}) : busy ? t('Requesting email…') : t('Resend verification link')}</button>}
+    <Back to={journeyLink('/login',journey)}>{t("Back to sign in")}</Back>
+  </AuthLayout>
 }
 
 export function AuthLink({ reset = false }) {
@@ -51,7 +57,16 @@ export function AuthLink({ reset = false }) {
     catch (err) { setError(err); setField((err.fields || []).filter(f => f.field === 'password').map(f => f.message).join(' ')) }
     finally { setBusy(false) }
   }
-  return <Shell><h1>{reset ? t('Choose a new password') : t('Verify your email')}</h1><ErrorNotice error={error}/>{message ? <p role="status">{t(message)}</p> : token ? <form onSubmit={submit} noValidate>{reset ? <><label htmlFor="reset-password">{t("New password")}</label><p id="reset-password-hint">{t(passwordHint)}</p><input id="reset-password" name="password" type="password" autoComplete="new-password" aria-describedby="reset-password-hint reset-password-error" aria-invalid={Boolean(field)}/><p className="field-error" id="reset-password-error">{t(field)}</p></> : <p>{t("Confirm that you want to verify the email address for your Travelly account.")}</p>}<button className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Please wait…') : reset ? t('Save new password') : t('Verify email')}</button></form> : <p>{t("This page needs a valid link from your email. Request a new link if yours is missing, expired or already used.")}</p>}<p><Link to={journeyLink(reset ? '/forgot-password' : '/login',journey)}>{reset ? t('Request a new reset link') : t('Sign in or request another verification link')}</Link></p>{reset && <Link to={journeyLink('/login',journey)}>{t("Back to sign in")}</Link>}</Shell>
+  return <AuthLayout variant="login" title={reset ? t('Choose a new password') : t('Verify your email')} subtitle={message ? '' : token ? (reset ? t('Pick a strong password you have not used before.') : t("Confirm that you want to verify the email address for your Travelly account.")) : t("This page needs a valid link from your email. Request a new link if yours is missing, expired or already used.")}>
+    <ErrorNotice error={error}/>
+    {message && <p className="auth-status" role="status">{t(message)}</p>}
+    {!message && token && <form className="auth-credentials-form" onSubmit={submit} noValidate aria-label={reset ? t('Choose a new password') : t('Verify your email')}>
+      {reset && <Field name="password" label="New password" icon="lock" password placeholder="New password" autoComplete="new-password" hint={passwordHint} error={field || undefined}/>}
+      <button type="submit" className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Please wait…') : reset ? t('Save new password') : t('Verify email')}</button>
+    </form>}
+    <Back to={journeyLink(reset ? '/forgot-password' : '/login',journey)}>{reset ? t('Request a new reset link') : t('Sign in or request another verification link')}</Back>
+    {reset && <Back to={journeyLink('/login',journey)}>{t("Back to sign in")}</Back>}
+  </AuthLayout>
 }
 
 export function ForgotPassword() {
@@ -95,7 +110,17 @@ export function GoogleCompletion() {
     } catch (err) { setError(err); setFields(Object.fromEntries((err.fields || []).map(f => [f.field, f.message]))) }
     finally { setBusy(false) }
   }
-  if(journey==='ADMIN')return <Shell><h1>{t("Admin sign-in")}</h1><p>{t("Use your existing approved Admin account.")}</p><Link to={journeyLink('/login',journey)}>{t("Sign in")}</Link></Shell>
-  if (!flow?.ticket || flow.status !== 'completion_required') return <Shell><h1>{t("Complete your account")}</h1><p>{t("Start Google sign-in again to continue.")}</p><Link to={journeyLink('/login',journey)}>{t("Sign in")}</Link></Shell>
-  return <Shell><h1>{t("Complete your Travelly account")}</h1><p>{t("No Travelly account has been created yet. Confirm your details and terms to join as a Passenger.")}</p><p>{t("Google email: ")}{flow.email}</p><ErrorNotice error={error}/><form noValidate onSubmit={submit}><label htmlFor="google-full-name">{t("Full name (Required)")}</label><input id="google-full-name" name="full_name" defaultValue={flow.full_name} maxLength={150} autoComplete="name" aria-invalid={Boolean(fields.full_name)}/>{fields.full_name && <p className="field-error">{fields.full_name}</p>}<RegisterPhoneField country={country} value={phone} onCountryChange={setCountry} onChange={setPhone} error={fields.phone_e164}/><p>{t("Your mobile number is required. Google sign-in does not verify your phone.")}</p><label className="terms-check"><input name="accept_terms" type="checkbox"/><span>{t("I agree to the ")}<button type="button" className="inline-link" onClick={() => notice({ title: 'Terms and Privacy Policy', message: 'The official Terms and Privacy Policy documents have not yet been supplied for this preview.' })}>{t("Terms and Privacy Policy")}</button></span></label>{fields.accept_terms && <p className="field-error">{t(fields.accept_terms)}</p>}<button className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Creating account…') : t('Create Passenger account')}</button></form></Shell>
+  if(journey==='ADMIN')return <AuthLayout variant="login" title={t("Admin sign-in")} subtitle={t("Use your existing approved Admin account.")}><Primary to={journeyLink('/login',journey)}>{t("Sign in")}</Primary></AuthLayout>
+  if (!flow?.ticket || flow.status !== 'completion_required') return <AuthLayout variant="login" title={t("Complete your account")} subtitle={t("Start Google sign-in again to continue.")}><Primary to={journeyLink('/login',journey)}>{t("Sign in")}</Primary></AuthLayout>
+  return <AuthLayout variant="register" title={t("Complete your Travelly account")} subtitle={t("No Travelly account has been created yet. Confirm your details and terms to join as a Passenger.")} tip={t("Your mobile number is required. Google sign-in does not verify your phone.")}>
+    <p className="auth-status" role="status">{t("Google email: ")}{flow.email}</p>
+    <ErrorNotice error={error}/>
+    <form className="auth-credentials-form" noValidate onSubmit={submit} aria-label={t("Complete your Travelly account")}>
+      <Field name="full_name" label="Full name" icon="user" placeholder="Full name" autoComplete="name" maxLength={150} defaultValue={flow.full_name} error={fields.full_name}/>
+      <RegisterPhoneField country={country} value={phone} onCountryChange={setCountry} onChange={setPhone} error={fields.phone_e164}/>
+      <label className="terms-check"><input name="accept_terms" type="checkbox"/><span>{t("I agree to the ")}<button type="button" className="inline-link" onClick={() => notice({ title: 'Terms and Privacy Policy', message: 'The official Terms and Privacy Policy documents have not yet been supplied for this preview.' })}>{t("Terms and Privacy Policy")}</button></span></label>
+      {fields.accept_terms && <p className="field-error" role="alert">{t(fields.accept_terms)}</p>}
+      <button type="submit" className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Creating account…') : t('Create Passenger account')}</button>
+    </form>
+  </AuthLayout>
 }

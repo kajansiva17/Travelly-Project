@@ -18,7 +18,7 @@ body .workspace-shell[data-workspace] .workspace-sidebar-link {color:#fff;border
 body .workspace-shell[data-workspace] .workspace-sidebar-link:hover:not(.active) {color:#fff;background:rgb(255 255 255 / .14);border-color:rgb(255 255 255 / .24);}
 body .workspace-shell[data-workspace] .workspace-sidebar-link.active {color:#fff;border-color:rgb(255 255 255 / .72);background:linear-gradient(#ff6975,#ff172d 55%,#d90018);box-shadow:inset 0 2px 8px rgb(255 255 255 / .68),0 5px 14px rgb(150 0 25 / .44);}
 
-body .workspace-shell[data-workspace] :is(.workspace-card,.workspace-metric,.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.auth-flow-panel,.profile-card) {
+body .workspace-shell[data-workspace] :is(.workspace-card,.workspace-metric,.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.profile-card) {
   color:var(--ui-ink);border:1px solid var(--ui-glass-border);border-radius:20px;background:var(--travelly-glass);box-shadow:var(--travelly-glass-shadow);backdrop-filter:blur(18px) saturate(115%);
 }
 body .workspace-shell[data-workspace] :is(h1,h2,h3,h4,strong,th,td) {color:var(--ui-ink);}

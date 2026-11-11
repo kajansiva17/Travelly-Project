@@ -123,18 +123,6 @@ html body .auth-page .registration-progress-track { height: 5px; border-radius: 
 html body .auth-page .registration-progress-track > span { display: block; height: 100%; border-radius: 3px; background: var(--ui-red-gradient); }
 html body .auth-page .registration-back { min-height: 36px; padding: 4px 16px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .95); background: rgb(255 255 255 / .85); color: var(--ui-ink); font: inherit; font-weight: 600; cursor: pointer; }
 
-/* Check email / verify / reset / Google completion: the same frosted card, centred on the sunset photo. */
-html body .auth-page.auth-flow-page .auth-layout { grid-template-columns: minmax(0, 560px); }
-html body .auth-page .auth-flow-panel { overflow-wrap: anywhere; }
-html body .auth-page .auth-flow-panel h1 { margin: 0; text-align: center; font-size: clamp(24px, 4vh, 34px); line-height: 1.15; font-weight: 800; color: var(--ui-ink); }
-html body .auth-page .auth-flow-panel p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ui-text); }
-html body .auth-page .auth-flow-panel p.field-error { color: var(--ag-red); font-size: 13px; }
-html body .auth-page .auth-flow-panel form { display: grid; gap: 10px; min-width: 0; }
-html body .auth-page .auth-flow-panel label { font-size: 14px; font-weight: 600; color: var(--ui-ink); }
-html body .auth-page .auth-flow-panel input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; min-width: 0; height: var(--ag-field); padding: 0 20px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .95); background: rgb(237 243 249 / .82); font: inherit; font-size: var(--ag-input-font); color: var(--ui-ink); }
-html body .auth-page .auth-flow-panel [aria-invalid="true"] { border-color: var(--ag-red); }
-html body .auth-page .auth-flow-panel a:not(.ui-button) { color: var(--ui-blue-deep); font-weight: 600; }
-html body .auth-page .auth-flow-panel .ui-button { text-decoration: none; }
 
 /* Sunlight travelling around the journey card's border (follows the rounded, notched ticket edge via the card's own mask). */
 @property --ag-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
