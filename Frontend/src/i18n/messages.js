@@ -709,6 +709,18 @@ const rows = [
   ["Choose seats","இருக்கைகளைத் தேர்ந்தெடுக்கவும்","ආසන තෝරන්න"],
   ["(primary)","(முதன்மை)","(ප්‍රධාන)"],
   ["Find another departure","வேறு புறப்பாட்டைக் கண்டறிக","වෙනත් පිටත්වීමක් සොයන්න"],
+  ["No driving assignments yet","ஓட்டுநர் பணிகள் இன்னும் இல்லை","රියදුරු පැවරුම් තවම නැත"],
+  ["When you drive a journey yourself, or another Owner assigns you as the Driver, it will show up here.","நீங்களே பயணத்தை ஓட்டும்போது அல்லது வேறு உரிமையாளர் உங்களை ஓட்டுநராக நியமிக்கும்போது அது இங்கே தோன்றும்.","ඔබම ගමනක් පැදවූ විට හෝ වෙනත් හිමිකරුවෙකු ඔබව රියදුරු ලෙස පත් කළ විට එය මෙහි පෙන්වයි."],
+  ["No decisions waiting","காத்திருக்கும் முடிவுகள் எதுவும் இல்லை","බලා සිටින තීරණ නැත"],
+  ["When a Passenger accepts a price that needs your approval, it will show up here.","பயணி ஒரு விலையை ஏற்று உங்கள் ஒப்புதல் தேவைப்படும்போது அது இங்கே தோன்றும்.","මගියෙකු ඔබේ අනුමැතිය අවශ්‍ය මිලක් පිළිගත් විට එය මෙහි පෙන්වයි."],
+  ["No live fleet trips right now","இப்போது நேரடி வாகனப் பயணங்கள் இல்லை","දැන් සජීවී රථ පෙළ ගමන් නැත"],
+  ["Trips that are confirmed or on the road will show up here.","உறுதிசெய்யப்பட்ட அல்லது சாலையில் உள்ள பயணங்கள் இங்கே தோன்றும்.","තහවුරු කළ හෝ මාර්ගයේ ඇති ගමන් මෙහි පෙන්වයි."],
+  ["Open my vehicles","என் வாகனங்களைத் திற","මගේ වාහන විවෘත කරන්න"],
+  ["Vehicle expense tracking is coming soon","வாகனச் செலவு கண்காணிப்பு விரைவில் வருகிறது","වාහන වියදම් නිරීක්ෂණය ඉක්මනින් එයි"],
+  ["Soon you will be able to record fuel, repairs and other vehicle costs here.","விரைவில் எரிபொருள், பழுது மற்றும் பிற வாகனச் செலவுகளை இங்கே பதிவு செய்யலாம்.","ඉක්මනින් ඉන්ධන, අලුත්වැඩියා සහ අනෙකුත් වාහන වියදම් මෙහි සටහන් කළ හැක."],
+  ["Run your journeys from your Owner workspace.","உங்கள் உரிமையாளர் பணியிடத்திலிருந்தே பயணங்களை நடத்துங்கள்.","ඔබේ හිමිකරු වැඩබිමෙන්ම ගමන් පවත්වන්න."],
+  ["Drive a trip yourself or assign a verified Driver without leaving this page.","இந்தப் பக்கத்தை விட்டு வெளியேறாமல் நீங்களே ஓட்டலாம் அல்லது சரிபார்க்கப்பட்ட ஓட்டுநரை நியமிக்கலாம்.","මෙම පිටුවෙන් පිටව නොගොස් ඔබම පදවන්න හෝ තහවුරු කළ රියදුරෙකු පත් කරන්න."],
+  ["Confirm who will drive only after the Passenger has accepted the price. Travelly checks the Driver’s documents, the vehicle match and any clashing trips.","பயணி விலையை ஏற்ற பிறகே யார் ஓட்டுவார் என்பதை உறுதிசெய்யுங்கள். ஓட்டுநரின் ஆவணங்கள், வாகனப் பொருத்தம் மற்றும் மோதும் பயணங்களை Travelly சரிபார்க்கும்.","මගියා මිල පිළිගත් පසුව පමණක් කවුරු පදවනවාදැයි තහවුරු කරන්න. රියදුරුගේ ලේඛන, වාහන ගැලපීම සහ ගැටෙන ගමන් Travelly පරීක්ෂා කරයි."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -165,3 +165,8 @@ Measured at 1280x585 and 1920x1080 (card scrollHeight = clientHeight, page scrol
 | Admin 409 VERSION_CONFLICT notice, 422 field message on fee | pass | pass |
 
 Language test 64/64 green. Not covered by the mock: the real PayHere form POST and return, real error bodies.
+
+## Owner Operations polish (/owner/operations)
+
+Empty states (My Driving, Driver Assignments, Live Fleet Trips) are a shared centered `EmptyState` (icon, title, one sentence, optional action; "Open my vehicles" on Live Fleet Trips). Vehicle Expenses is one "coming soon" empty state, the six "Unavailable" tiles are gone. Developer wording ("API", "assumed", "ledger") reworded, Tamil + Sinhala added.
+1280x585 and 1920x1080, all 4 tabs, with data and empty: card 449/449 (888/888), page scroll 0, nothing outside the card, empty block centered in the pane (within 8px of the pane middle, the gap is the footer row). Language test 64/64.

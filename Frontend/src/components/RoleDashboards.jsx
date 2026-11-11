@@ -15,6 +15,7 @@ import {accountPath,personalBookingPath,withWorkspace,workspaceMenu,workspaceRol
 import {displayTime,loadBookings,pendingBooking,tripRoute,useWorkspaceData,words} from '../hooks/workspaceData'
 import {FlowShell,usePaged,useRowCount} from '../features/booking/flow/FlowParts'
 import InfoTip from './ui/InfoTip'
+import EmptyState from './ui/EmptyState'
 
 function Page({title,kicker,overview,children}){
  const {role}=useWorkspace()
@@ -151,7 +152,7 @@ export function OwnerOperations(){
  const lists=[driving,awaiting,live]
  const paged=usePaged(lists[tab]||[],Math.max(2,useRowCount(tab===1?88:68)))
  const names=['My Driving','Driver Assignments','Live Fleet Trips','Vehicle Expenses']
- const emptyText=[['No driving assignments','When you choose self-drive or another Owner assigns you as the Driver, the journey remains in this Owner workspace.'],['No operator decisions waiting','Passenger-accepted bookings that need an Owner operator decision will appear here.'],['No live fleet trips','Confirmed and in-progress trips will appear here when the existing API returns them. No vehicle location is assumed.']][tab]
+ const emptyText=[['No driving assignments yet','When you drive a journey yourself, or another Owner assigns you as the Driver, it will show up here.','car'],['No decisions waiting','When a Passenger accepts a price that needs your approval, it will show up here.','users'],['No live fleet trips right now','Trips that are confirmed or on the road will show up here.','route']][tab]
  const selected=awaiting.find(booking=>booking.id===openId)
  const tabs=names.map((name,index)=>({label:t(name),icon:['car','users','route','wallet'][index],active:tab===index,onClick:()=>{setTab(index);setOpenId(null)}}))
  const tripRow=booking=>{
@@ -161,17 +162,16 @@ export function OwnerOperations(){
    <div className="tk-row-actions"><Chip tone={booking.status==='IN_PROGRESS'?'success':'muted'}>{t(words(booking.trip?.status||booking.status))}</Chip>
     <Link className="ui-button ui-button-secondary" to={booking.trip?.driver_user_id===user.id?withWorkspace('/trips/'+booking.trip.id+'/operation','OWNER'):withWorkspace('/bookings/'+booking.id,'OWNER')}>{t(booking.trip?.driver_user_id===user.id?'Operate trip':'Open trip')}</Link></div></article>
  }
- return <><Header/><FlowShell heading={t('Operations')} title={t(names[tab])} icon="watch" tabs={tabs} info={t('Run assigned journeys without leaving your Owner workspace.')+' '+t('Self-drive and Driver-assignment controls use the existing booking checks. They never switch you to the Driver sidebar.')}>
+ return <><Header/><FlowShell heading={t('Operations')} title={t(names[tab])} icon="watch" tabs={tabs} info={t('Run your journeys from your Owner workspace.')+' '+t('Drive a trip yourself or assign a verified Driver without leaving this page.')}>
   <ErrorNotice error={operations.error}/>
-  {tab===3?<div className="tk-pane"><p className="tk-line">{t('The current API has no expense ledger or receipt storage. No expense can be created, approved or reimbursed from this page yet.')}</p>
-    <dl className="tk-facts">{['Receipt','Odometer','Date and time','Payer','Approval','Reimbursement'].map(label=><div key={label}><dt>{t(label)}</dt><dd>{t('Unavailable')}</dd></div>)}</dl></div>
+  {tab===3?<div className="tk-pane"><EmptyState icon="wallet" title={t('Vehicle expense tracking is coming soon')}>{t('Soon you will be able to record fuel, repairs and other vehicle costs here.')}</EmptyState></div>
   :operations.loading?<p role="status">{t(" Loading…")}</p>
   :<div className="tk-pane">
     {lists[tab].length?<div className="tk-rows">{paged.slice.map(booking=>tab===1
       ?<article className="tk-row" key={booking.id}><div className="tk-row-main"><strong>{tripRoute(booking)}</strong><span>{booking.reference} · {displayTime(booking.start_at)}</span></div><div className="tk-row-actions"><Chip tone="muted">{t(words(booking.status))}</Chip><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpenId(openId===booking.id?null:booking.id)}>{t(openId===booking.id?'Hide':'Assign')}</button></div></article>
       :tripRow(booking))}</div>
-     :<p className="flow-note" role="status"><strong>{t(emptyText[0])}.</strong> {t(emptyText[1])}</p>}
-    {selected&&<div className="tk-hold"><p className="tk-line">{t('Confirm an operator only after the Passenger has accepted the current price. Travelly rechecks Driver evidence, compatibility and conflicting commitments.')}</p><OwnerOperationActions booking={selected} onChanged={operations.reload}/></div>}
+     :<EmptyState icon={emptyText[2]} title={t(emptyText[0])} action={tab===2?<Link className="ui-button ui-button-secondary" to={withWorkspace('/owner/vehicles','OWNER')}>{t('Open my vehicles')}</Link>:null}>{t(emptyText[1])}</EmptyState>}
+    {selected&&<div className="tk-hold"><p className="tk-line">{t('Confirm who will drive only after the Passenger has accepted the price. Travelly checks the Driver’s documents, the vehicle match and any clashing trips.')}</p><OwnerOperationActions booking={selected} onChanged={operations.reload}/></div>}
     <div className="flow-actions"><span/>{paged.pages>1?paged.pager:null}</div>
    </div>}
  </FlowShell></>
