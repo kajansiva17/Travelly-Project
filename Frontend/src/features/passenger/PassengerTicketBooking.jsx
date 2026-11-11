@@ -7,6 +7,8 @@ import SeatMap from '../../components/SeatMap'
 import {Field,Compact} from '../owner/OwnerRates'
 import {FlowShell,useWizard,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Empty} from '../ticketing/TicketParts'
+import {useLocation} from 'react-router-dom'
+import TicketPayment from './TicketPayment'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
@@ -27,6 +29,17 @@ export default function PassengerTicketBooking(){
   const [names,setNames]=useState({}),[stops,setStops]=useState({boarding:'',dropoff:''}),[booking,setBooking]=useState(null),[busy,setBusy]=useState(false),[key,setKey]=useState(newKey)
   const left=useCountdown(booking?.hold_active?booking.hold_expires_at:null)
   const w=useWizard(3)
+  // PayHere sends the passenger back to ?booking=<id>&payment=returned|cancelled. That is not proof of payment:
+  // the booking is read again and the screen is drawn from payment_status only.
+  const params=new URLSearchParams(useLocation().search),bookingParam=params.get('booking'),returned=params.get('payment')
+  useEffect(()=>{
+    if(!bookingParam||!signedIn)return
+    ;(async()=>{try{
+      const ticket=await api(`/bookings/${bookingParam}/ticket`);setBooking(ticket)
+      const [detail,map]=await Promise.all([publicRead(`/scheduled-trips/${ticket.scheduled_trip_id}`),loadSeats(ticket.scheduled_trip_id)])
+      setDeparture({...detail,currency:map.currency});w.setStep(2)
+    }catch(e){setError(e)}})()
+  },[bookingParam,signedIn])
 
   async function search(e){
     e.preventDefault();setError(null);setDeparture(null);setSeats([]);setSelected([]);setBooking(null)
@@ -63,7 +76,10 @@ export default function PassengerTicketBooking(){
   const travellers=Math.max(1,Number(query.travellers)||1)
   const namesReady=selected.length>0&&selected.every(code=>(names[code]||'').trim())
   const fareBad=partFare!=null&&partFare<=0
-  const held=booking?.hold_active
+  const held=booking?.hold_active,confirmed=booking?.status==='CONFIRMED'||booking?.payment_status==='PAID',locked=held||confirmed
+  const refresh=async()=>{const ticket=await api(`/bookings/${booking.id}/ticket`);setBooking(ticket);if(departure)loadSeats(departure.id).catch(()=>{});return ticket}
+  const chooseAgain=()=>{setBooking(null);setSelected([]);w.setStep(1);if(departure)loadSeats(departure.id).catch(setError)}
+  const bookMore=()=>{setBooking(null);setDeparture(null);setSelected([]);setSeats([]);setNames({});w.setStep(0)}
 
   async function hold(){
     setBusy(true);setError(null)
@@ -93,7 +109,7 @@ export default function PassengerTicketBooking(){
 
   return <><Header/><FlowShell heading="Travel & Booking" icon="ticket" title={title} subtitle=""
     info="Choose a departure before seeing its fare or selecting numbered seats."
-    steps={['Find a departure','Choose seats','Travellers and hold']} current={w.step} onStepSelect={i=>{if(i<w.step&&!held)w.setStep(i)}}>
+    steps={['Find a departure','Choose seats','Travellers and hold']} current={w.step} onStepSelect={i=>{if(i<w.step&&!locked)w.setStep(i)}}>
     <Compact.Provider value={true}>
     <ErrorNotice error={error}/>
 
@@ -131,17 +147,17 @@ export default function PassengerTicketBooking(){
         {!held&&selected.length>0&&selected.length!==travellers&&<p className="tk-line">{t(travellers>1?'You searched for {value0} travellers; select {value0} seats.':'You searched for {value0} traveller; select {value0} seat.',{value0:travellers})}</p>}
         {held&&<p className="tk-line">{t('Your seats are held. Open the next step to see the timer.')}</p>}
       </div>
-      <div className="tk-map"><SeatMap seats={seats} selected={held?[]:selected} onToggle={held?undefined:toggle} label="Choose seats"/></div>
+      <div className="tk-map"><SeatMap seats={seats} selected={locked?[]:selected} onToggle={locked?undefined:toggle} label="Choose seats"/></div>
     </div>}
 
     {departure&&<div className="tk-pane" hidden={w.step!==2}>
-      {held
+      {locked
         ?<div className="tk-hold">
-          <Chip tone="success">{t('Seats held')}</Chip>
+          {held&&<Chip tone="success">{t('Seats held')}</Chip>}
           <h3>{t('Booking {value0}',{value0:booking.booking_reference})}</h3>
           <p className="tk-line">{t('Seats {value0} · Total {value1} {value2}',{value0:booking.travellers.map(x=>x.seat_code).join(', '),value1:booking.currency,value2:booking.total_amount})}</p>
-          <p className="tk-line" role="timer" aria-live="off">{t('Held for')} <strong>{clock}</strong>. {t('The seats are released automatically when the timer ends.')}</p>
-          <p className="tk-line"><Chip tone="muted" icon="clock">{t('Payment coming soon')}</Chip> {t('Paying for a ticket is not available yet, so this hold cannot be confirmed. Nothing has been charged.')}</p>
+          {held&&<p className="tk-line" role="timer" aria-live="off">{t('Held for')} <strong>{clock}</strong>. {t('The seats are released automatically when the timer ends.')}</p>}
+          <TicketPayment booking={booking} refresh={refresh} returned={returned} onChooseSeats={chooseAgain}/>
         </div>
         :<>
           {booking?.status==='CANCELLED'&&<p className="tk-line is-warn" role="status"><strong>{booking.cancellation_reason==='Seat hold expired.'?t('Hold expired.'):t('Hold released.')}</strong> {t('Seats {value0} are free again. You can select seats and hold them again.',{value0:booking.travellers.map(x=>x.seat_code).join(', ')})}</p>}
@@ -154,9 +170,10 @@ export default function PassengerTicketBooking(){
           {nameRows.pages>1&&<div className="tk-bar">{nameRows.pager}<span className="tk-line">{t('{value0} travellers · names are needed for every seat',{value0:selected.length})}</span></div>}
         </>}
       <div className="flow-actions">
-        {held?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>}
+        {locked?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>}
         {held
           ?<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={release}>{busy?'Releasing…':'Release seats'}</button>
+          :confirmed?<button type="button" className="ui-button ui-button-primary" onClick={bookMore}>{t('Find another departure')}</button>
           :signedIn
             ?<button type="button" className="ui-button ui-button-primary" disabled={busy||!namesReady||!stopsReady||fareBad} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
             :<ButtonLink to="/login">{t('Sign in to hold seats')}</ButtonLink>}
@@ -164,8 +181,8 @@ export default function PassengerTicketBooking(){
     </div>}
 
     {departure&&w.step===1&&<div className="flow-actions">
-      <button type="button" className="ui-button ui-button-secondary" disabled={held} onClick={w.back}>{t('Back')}</button>
-      <button type="button" className="ui-button ui-button-primary" disabled={!held&&!selected.length} onClick={w.forward}>{held?'View my hold':'Next'}</button>
+      <button type="button" className="ui-button ui-button-secondary" disabled={locked} onClick={w.back}>{t('Back')}</button>
+      <button type="button" className="ui-button ui-button-primary" disabled={!locked&&!selected.length} onClick={w.forward}>{locked?'View my booking':'Next'}</button>
     </div>}
     </Compact.Provider>
   </FlowShell></>

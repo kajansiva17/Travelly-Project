@@ -9,7 +9,7 @@ import {Notice,Empty} from '../ticketing/TicketParts'
 // One layout for every Admin list page: optional filter row, compact rows, paging, and a details view
 // (opened with Details, closed with Back) so nothing needs a long page. Presentation only; pages pass their own data.
 //   row(item) -> { title, meta, status, tone, actions }     detail(item) -> node
-export default function AdminList({heading,title,icon='document',info,tabs,notice,error,filters,filterCols=3,items,empty,row,detail,detailTitle,custom,footer}){
+export default function AdminList({heading,title,icon='document',info,tabs,notice,error,filters,filterCols=3,items,empty,row,detail,detailTitle,detailLabel,custom,footer}){
   const [open,setOpen]=useState(null)
   const list=usePaged(items||[],Math.max(2,useRowCount(filters?84:64)))
   // The opened record is re-read from the latest items, so details never show a stale version after a save.
@@ -28,7 +28,7 @@ export default function AdminList({heading,title,icon='document',info,tabs,notic
             {items===null&&!error?<p role="status">{t('Loading…')}</p>:(items||[]).length
               ?<div className="tk-rows">{list.slice.map((item,i)=>{const r=row(item);return <article className="tk-row" key={r.key||item.id||i}>
                 <div className="tk-row-main"><strong>{r.title}</strong>{r.meta&&<span>{r.meta}</span>}</div>
-                <div className="tk-row-actions">{r.status&&<Chip tone={r.tone||'muted'}>{r.status}</Chip>}{r.actions}{detail&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(item)}>{t('Details')}</button>}</div></article>})}</div>
+                <div className="tk-row-actions">{r.status&&<Chip tone={r.tone||'muted'}>{r.status}</Chip>}{r.actions}{detail&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(item)}>{t(detailLabel||'Details')}</button>}</div></article>})}</div>
               :items!==null&&<Empty>{empty}</Empty>}
           </div>
           <div className="flow-actions">{footer||<span/>}{list.pages>1?list.pager:null}</div>

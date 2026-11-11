@@ -144,3 +144,24 @@ Tokens in `src/styles/frame.css` (--frame-inset-x 48px, --frame-max 1320px, --fr
 
 Identical on every route; sidebar top = content top, bottoms aligned, navbar-sidebar gap = sidebar-content gap; no page scroll except the landing page; no sidebar label cut off (sidebar is 236-264px wide). Full audit at 1280x585 for all four roles and the listed routes at 1920x1080 pass except the legacy rows and the by-design search-button overlap on /travel/book/event.
 
+
+## Payments UI (Sandbox + PayHere) — mocked-API audit
+
+Routes: `/travel/book/tickets` (step 3 payment panel, also `?booking=<id>&payment=returned|cancelled`) and `/admin/services-routes` (Payments tab).
+Measured at 1280x585 and 1920x1080 (card scrollHeight = clientHeight, page scroll 0/0, nothing outside the card, footer row in view):
+
+| State | 1280x585 | 1920x1080 |
+|---|---|---|
+| Held, Pay shown | pass (453/453) | pass (861/861) |
+| Sandbox: test label + Simulate success/failure | pass | pass |
+| Sandbox success → Seats confirmed | pass | pass |
+| Sandbox failure → retry offered | pass | pass |
+| PayHere payer details required (address, city, phone, email) | pass | pass |
+| 410 expired hold / 409 already paid / 422 amount changed / 409 in progress | pass | pass |
+| Returned from PayHere, pending ("Waiting…") | pass | pass |
+| Returned from PayHere, paid | pass | pass |
+| Cancelled return, Try again | pass | pass |
+| Admin payment settings: 12 rows, empty, Edit form, saved | pass (449/449) | pass (888/888) |
+| Admin 409 VERSION_CONFLICT notice, 422 field message on fee | pass | pass |
+
+Language test 64/64 green. Not covered by the mock: the real PayHere form POST and return, real error bodies.
