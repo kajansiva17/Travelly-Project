@@ -1,4 +1,5 @@
 """Seat-layout and scheduled Ticket departure contracts (matrix 32-39). Strict bodies."""
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional
@@ -82,3 +83,16 @@ class DeparturePatch(TimezoneChecked):
 class PublishRequest(Strict):
     expected_version: int = Field(ge=1)
     publish_confirmed: Literal[True]
+
+
+class DriverLookup(Strict):
+    """A Driver's public reference, as shown on their Travelly profile (USR- and 16 hex characters)."""
+    driver_reference: str = Field(min_length=20, max_length=20)
+
+    @field_validator('driver_reference', mode='before')
+    @classmethod
+    def normalise(cls, value):
+        value = value.strip().upper() if isinstance(value, str) else value
+        if not isinstance(value, str) or not re.fullmatch(r'USR-[0-9A-F]{16}', value):
+            raise ValueError('Enter a public reference like USR-0123456789ABCDEF.')
+        return value
