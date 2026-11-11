@@ -4,8 +4,8 @@ bookings               one TICKET_HIRE header per hold, status REQUESTED while t
 booking_travellers     one traveller per held seat
 scheduled_trip_seats   AVAILABLE -> HELD (held_by_booking_id, hold_expires_at) -> AVAILABLE on release/expiry
 
-Not here, by decision: payment and confirmation (HELD -> BOOKED, REQUESTED -> CONFIRMED) wait for the payments
-step; boarding waits for Trip operations. A hold therefore always ends by release or expiry for now.
+Payment and confirmation (HELD -> BOOKED, REQUESTED -> CONFIRMED) live in payment_api. A hold that ends by release
+or expiry fails any payment still waiting for it, so a late Sandbox success can never seat anyone.
 
 Lock order everywhere: scheduled_trips row -> bookings row -> scheduled_trip_seats rows (by id). This prevents
 double booking and deadlocks between hold, release and the expiry job.
@@ -24,6 +24,7 @@ from app.api.routers.review_api import admin, locked_authority
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models.hire_models import Booking, Route, RouteStop, ScheduledTrip
+from app.models.payment_models import Payment
 from app.models.rate_models import ServiceType
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
 from app.schemas.ticket_booking_schemas import HoldRelease, TicketHoldRequest, TicketHoldSettings
@@ -92,6 +93,15 @@ def cancel(db, booking, actor, reason, moment):
         traveller.traveller_status = 'CANCELLED'
         touch(traveller)
         traveller.updated_by = actor
+    for payment in db.scalars(select(Payment).where(Payment.booking_id == booking.id, Payment.status.in_(('PENDING', 'PROCESSING')))
+                              .order_by(Payment.id).with_for_update().execution_options(populate_existing=True)).all():
+        payment.status = 'FAILED'
+        payment.failure_code = 'HOLD_EXPIRED' if actor is None else 'BOOKING_CANCELLED'
+        payment.failure_message = 'The seat hold ended before payment. No money was taken.'
+        touch(payment)
+        payment.updated_by = actor
+    if booking.payment_status_snapshot in ('PENDING', 'PROCESSING'):
+        booking.payment_status_snapshot = 'FAILED'
 
 
 def booking_out(db, booking):
@@ -108,6 +118,7 @@ def booking_out(db, booking):
             'hold_active': booking.status == 'REQUESTED' and bool(held),
             'hold_expires_at': expires.isoformat() if expires else None,
             'currency': booking.currency, 'total_amount': str(booking.total_amount),
+            'payment_status': booking.payment_status_snapshot,
             'assurance_type': booking.assurance_type, 'itinerary': booking.itinerary_snapshot,
             'cancellation_reason': booking.cancellation_reason,
             'travellers': [{'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status,

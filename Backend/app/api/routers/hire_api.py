@@ -501,6 +501,15 @@ def complete_departure(db, trip, body, user):
                                                                BookingTraveller.traveller_status == 'BOARDED')):
         traveller.traveller_status = 'COMPLETED'
         touch(traveller); traveller.updated_by = user.id
+    # PRD 6.6: Owner payout only after completion. Seat payments of this departure become payable to the Owner now.
+    from app.models.payment_models import Payment
+    paid_here = select(Booking.id).where(Booking.current_scheduled_trip_id == locked_departure.id)
+    for payment in db.scalars(select(Payment).where(Payment.booking_id.in_(paid_here), Payment.transaction_type == 'PAYMENT',
+                                                    Payment.status == 'PAID', Payment.owner_settlement_status.is_(None),
+                                                    Payment.failure_code.is_(None)).order_by(Payment.id).with_for_update()):
+        payment.owner_settlement_status = 'OWNER_PAYABLE'
+        payment.owner_payable_at = locked.actual_end_at
+        touch(payment); payment.updated_by = user.id
     db.commit()
     return {'trip': trip_summary(locked)}
 
