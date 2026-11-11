@@ -2,7 +2,7 @@
 import re
 from decimal import Decimal
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Strict(BaseModel):
@@ -45,8 +45,3 @@ class PaymentSettings(Strict):
             raise ValueError('Enter a percentage from 0 to 100 with at most two decimal places.')
         return format(Decimal(value), '.2f')
 
-    @model_validator(mode='after')
-    def owner_keeps_something(self):
-        if Decimal(self.commission_percent) + Decimal(self.gateway_fee_percent) > 100:
-            raise ValueError('Commission and gateway fee together cannot be more than 100%.')
-        return self

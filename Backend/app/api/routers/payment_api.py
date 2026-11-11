@@ -134,9 +134,11 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
         raise ApiError(409, 'PAYMENT_PROVIDER_UNAVAILABLE', 'Online payment is not available right now.')
     if body.method not in provider.methods:
         raise ApiError(422, 'PAYMENT_METHOD_UNAVAILABLE', 'Choose one of: ' + ', '.join(provider.methods) + '.')
-    if db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
-                                          Payment.status.in_(OPEN))):
-        raise ApiError(409, 'PAYMENT_IN_PROGRESS', 'A payment for this booking is already in progress.')
+    waiting = db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
+                                                 Payment.status.in_(OPEN)))
+    if waiting:
+        raise ApiError(409, 'PAYMENT_IN_PROGRESS', 'A payment for this booking is already in progress.',
+                       [{'field': 'payment_id', 'message': str(waiting)}])
     payment = Payment(payment_reference='PAY-' + uuid4().hex[:20].upper(), booking_id=booking.id,
                       payee_owner_user_id=booking.owner_user_id, transaction_type='PAYMENT', payment_method=body.method,
                       provider_name=provider.name, idempotency_key=stored_key, amount=booking.total_amount,
@@ -303,7 +305,12 @@ def list_payment_settings(user=Depends(admin), db: Session = Depends(get_db)):
 def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Request, user=Depends(admin),
                             db: Session = Depends(get_db)):
     if body.payment_provider not in PROVIDERS:
-        raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Use SANDBOX for now.')
+        raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Use SANDBOX for now.',
+                       [{'field': 'payment_provider', 'message': 'Not connected yet.'}])
+    if Decimal(body.commission_percent) + Decimal(body.gateway_fee_percent) > 100:
+        # The Owner must always keep something: commission and the gateway fee both come out of the fare.
+        raise ApiError(422, 'PAYMENT_SETTINGS_INVALID', 'Commission and gateway fee together cannot be more than 100%.',
+                       [{'field': 'gateway_fee_percent', 'message': 'Commission + gateway fee must be 100% or less.'}])
     with request.app.state.audit.coordinated():
         locked_authority(db, request, user, user.id)
         row = db.scalar(select(ServiceType).where(ServiceType.id == service_id).with_for_update()

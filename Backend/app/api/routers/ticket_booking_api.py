@@ -113,12 +113,19 @@ def booking_out(db, booking):
     fares = {s['seat_id']: s['fare'] for s in booking.price_snapshot.get('seats', [])}
     held = [inv for _, inv, _ in rows if inv.seat_status == 'HELD' and inv.held_by_booking_id == booking.id]
     expires = min((inv.hold_expires_at for inv in held), default=None)
+    # The latest seat payment, so a reopened page can continue a waiting payment instead of starting a second one.
+    latest = db.scalar(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT')
+                       .order_by(Payment.created_at.desc(), Payment.id.desc()).limit(1))
     return {'id': str(booking.id), 'booking_reference': booking.booking_reference, 'booking_type': booking.booking_type,
             'status': booking.status, 'version': booking.version, 'scheduled_trip_id': str(booking.current_scheduled_trip_id),
             'hold_active': booking.status == 'REQUESTED' and bool(held),
             'hold_expires_at': expires.isoformat() if expires else None,
             'currency': booking.currency, 'total_amount': str(booking.total_amount),
             'payment_status': booking.payment_status_snapshot,
+            'latest_payment': None if latest is None else {
+                'id': str(latest.id), 'payment_reference': latest.payment_reference, 'status': latest.status,
+                'amount': format(latest.amount, '.2f'), 'currency': latest.currency, 'provider_name': latest.provider_name,
+                'failure_code': latest.failure_code, 'failure_message': latest.failure_message},
             'assurance_type': booking.assurance_type, 'itinerary': booking.itinerary_snapshot,
             'cancellation_reason': booking.cancellation_reason,
             'travellers': [{'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status,

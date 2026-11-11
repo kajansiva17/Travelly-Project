@@ -87,6 +87,10 @@ def test_a_repeated_request_returns_the_same_payment_and_only_one_can_be_open(cl
     assert replay.json()['id'] == first.json()['id']
     other = intent(client, held)
     assert other.status_code == 409 and other.json()['code'] == 'PAYMENT_IN_PROGRESS'
+    assert other.json()['field_errors'] == [{'field': 'payment_id', 'message': first.json()['id']}]
+    view = api(client, held['passenger'], 'get', f"/bookings/{held['booking']['id']}/ticket").json()
+    assert view['latest_payment']['id'] == first.json()['id'] and view['latest_payment']['status'] == 'PENDING'
+    assert view['payment_status'] == 'PENDING'
 
 
 def test_a_failed_payment_keeps_the_hold_so_the_passenger_can_try_again(client, held):
@@ -192,7 +196,8 @@ def test_only_connected_providers_and_sane_percentages_are_accepted(client, held
     base = {'expected_version': current['version'], 'payment_provider': 'SANDBOX', 'commission_percent': '0', 'gateway_fee_percent': '0'}
     payhere = api(client, held['admin'], 'patch', url, {**base, 'payment_provider': 'PAYHERE'})
     assert payhere.status_code == 422 and payhere.json()['code'] == 'PAYMENT_PROVIDER_UNAVAILABLE'
-    assert api(client, held['admin'], 'patch', url, {**base, 'commission_percent': '80', 'gateway_fee_percent': '30'}).status_code == 422
+    over = api(client, held['admin'], 'patch', url, {**base, 'commission_percent': '80', 'gateway_fee_percent': '30'})
+    assert over.status_code == 422 and over.json()['code'] == 'PAYMENT_SETTINGS_INVALID'
     assert api(client, held['admin'], 'patch', url, {**base, 'commission_percent': '101'}).status_code == 422
     assert api(client, held['owner'], 'patch', url, base).status_code == 403
 
