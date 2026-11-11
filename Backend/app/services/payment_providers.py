@@ -131,7 +131,8 @@ class PayHereProvider:
         amount = format(payment.amount, '.2f')
         names = (payer['full_name'] or '').split()
         first, last = (names[0], ' '.join(names[1:]) or names[0]) if names else ('Passenger', 'Passenger')
-        page = f"{frontend}/travel/book/tickets?booking={booking.id}"
+        page = f"{frontend}/travel/book/tickets?booking={booking.id}" if booking.booking_type == 'TICKET_HIRE' \
+            else f"{frontend}/bookings/{booking.id}?booking={booking.id}"
         fields = {'merchant_id': merchant, 'return_url': page + '&payment=returned', 'cancel_url': page + '&payment=cancelled',
                   'notify_url': f'{public}/api/v1/payments/webhooks/payhere', 'order_id': payment.payment_reference,
                   'items': f'Travelly booking {booking.booking_reference}', 'currency': payment.currency, 'amount': amount,

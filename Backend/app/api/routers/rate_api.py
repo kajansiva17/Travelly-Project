@@ -30,7 +30,8 @@ def owned(db, request, user, vehicle_id, lock=False):
 
 def summary(row):
     return {'service_type_id': str(row.service_type_id), 'version': row.version, 'enabled': row.is_enabled,
-            'currency': row.currency, 'rules': row.owner_terms.get('rate_rules', []), 'event_packages': row.owner_terms.get('event_packages', [])}
+            'currency': row.currency, 'rules': row.owner_terms.get('rate_rules', []), 'event_packages': row.owner_terms.get('event_packages', []),
+            'cash_accepted': (row.owner_terms.get('cash') or {}).get('accepted') is True}
 
 
 def catalogue_status(service):

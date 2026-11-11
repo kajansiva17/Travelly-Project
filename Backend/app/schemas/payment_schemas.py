@@ -2,6 +2,7 @@
 import re
 from decimal import Decimal
 from typing import Literal, Optional
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.schemas import email_address
 
@@ -64,3 +65,26 @@ class PaymentSettings(Strict):
             raise ValueError('Enter a percentage from 0 to 100 with at most two decimal places.')
         return format(Decimal(value), '.2f')
 
+
+
+class CashReceipt(Strict):
+    """Matrix 70. Each side confirms its own part: the Passenger that they paid, the collector that they received it."""
+    amount: str
+    currency: str = Field(pattern=r'^[A-Z]{3}$')
+    collection_stage: Literal['START', 'END']
+    collector_user_id: UUID
+    passenger_confirmation: bool
+    collector_confirmation: bool
+    idempotency_key: str = Field(min_length=8, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+
+    @field_validator('amount')
+    @classmethod
+    def valid_amount(cls, value):
+        amount_text(value, 'the amount')
+        return value
+
+
+class PaymentOptions(Strict):
+    """The Owner's choice per vehicle service: accept cash at the end of the trip or not (owner decision, 11 Nov 2026)."""
+    expected_version: int = Field(ge=1)
+    cash_accepted: bool
