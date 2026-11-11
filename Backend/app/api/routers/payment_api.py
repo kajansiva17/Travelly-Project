@@ -42,6 +42,7 @@ from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
 from app.schemas.payment_schemas import CashReceipt, CheckoutRequest, PaymentIntentRequest, PaymentOptions, PaymentSettings, SandboxOutcome
 from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, split
+from app.services.refunds import queue_refund
 
 router = APIRouter(prefix='/api/v1', tags=['Payments'])
 OPEN = ('PENDING', 'PROCESSING')
@@ -291,6 +292,7 @@ def apply_event(db, provider, event, actor=None, sandbox=False):
         capture(db, payment, booking, provider, event, actor, moment)
         payment.failure_code = 'SEATS_RELEASED_REFUND_DUE'
         payment.failure_message = 'Payment arrived after the seat hold ended. A refund is due.'
+        queue_refund(db, payment, payment.amount, 'PAYMENT_AFTER_HOLD', actor)  # full refund, waiting for Admin approval
         db.commit()
         return payment
     capture(db, payment, booking, provider, event, actor, moment)

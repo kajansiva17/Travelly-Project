@@ -88,3 +88,36 @@ class PaymentOptions(Strict):
     """The Owner's choice per vehicle service: accept cash at the end of the trip or not (owner decision, 11 Nov 2026)."""
     expected_version: int = Field(ge=1)
     cash_accepted: bool
+
+
+class TicketCancellation(Strict):
+    """A Passenger cancels a paid ticket; the refund follows the owner-approved schedule (11 Nov 2026)."""
+    expected_version: Optional[int] = Field(None, ge=1)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class RefundDecision(Strict):
+    expected_version: int = Field(ge=1)
+    decision: Literal['APPROVE', 'REJECT']
+    reason: Optional[str] = Field(None, min_length=1, max_length=2000)
+
+
+class RefundCompletion(Strict):
+    """For providers the Admin refunds by hand (PayHere portal until its Refund API is connected)."""
+    expected_version: int = Field(ge=1)
+    provider_reference: str = Field(min_length=1, max_length=200)
+
+
+class RefundRequest(Strict):
+    """Matrix 68: an Admin refunds a payment directly (full, or a stated part), with a reason."""
+    full: bool
+    amount: Optional[str] = None
+    reason: str = Field(min_length=1, max_length=2000)
+    idempotency_key: str = Field(min_length=8, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+
+    @field_validator('amount')
+    @classmethod
+    def valid_amount(cls, value):
+        if value is not None:
+            amount_text(value, 'the amount')
+        return value

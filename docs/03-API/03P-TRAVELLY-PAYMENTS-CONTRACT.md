@@ -1,6 +1,6 @@
-# Travelly — Payments API contract (Ticket seats + private hire, Sandbox and PayHere)
+# Travelly — Payments API contract (Ticket seats, private hire, refunds; Sandbox and PayHere)
 
-Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 401 passed. This is the contract the UI
+Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 410 passed. This is the contract the UI
 branch builds the **Pay button** and the **Admin payment settings** screen against. Do not change paths or field names.
 
 Owner decisions (11 Nov 2026): no advance for private hire (paid after the trip, later slice); the gateway fee comes out
@@ -330,6 +330,80 @@ Errors: 404 `VEHICLE_NOT_FOUND` / `VEHICLE_SERVICE_NOT_FOUND` (save the service 
 422 `CASH_NOT_ALLOWED` (ticket services are online only). Put it on the vehicle's Prices / service step as a single
 switch: "Accept cash at the end of the trip".
 
+## E. Ticket cancellation and refunds
+
+Owner decisions (11 Nov 2026): a Passenger who cancels a **paid** ticket gets **100%** if more than 72 h before departure,
+**50%** from 24 to 72 h, **0%** under 24 h. The system works out the amount and queues the refund; an **Admin approves**
+(or rejects with a reason). Money that arrived after a seat hold ended is queued for a full refund automatically.
+Refunds are rows in the same payment history (`transaction_type` `FULL_REFUND` / `PARTIAL_REFUND`).
+
+### E1. Passenger cancels a paid ticket — `POST /bookings/{booking_id}/ticket-cancellation`
+
+```json
+{ "reason": "Plans changed", "expected_version": 6 }
+```
+`expected_version` optional (A1 `version`). **200** = A1 body (now `status: "CANCELLED"`) plus:
+```json
+{ "refund_percent": 50, "hours_before_departure": 48.0,
+  "refund": { "id": "…", "payment_reference": "RFD-…", "amount": "1500.00", "currency": "LKR",
+              "transaction_type": "PARTIAL_REFUND", "status": "PENDING", "cause": "PASSENGER_CANCELLATION", "…": "see E2" } }
+```
+`refund` is `null` when 0% applies. Seats become available at once.
+
+Errors: 404 `BOOKING_NOT_FOUND`; 409 `TICKET_NOT_CANCELLABLE` (not a paid confirmed ticket — an unpaid hold is
+released with `DELETE /bookings/{id}/seat-hold`); 409 `DEPARTURE_STARTED`; 409 `VERSION_CONFLICT`.
+
+UI before confirming: show the band that applies now, e.g. "Cancelling now refunds 50% (LKR 1,500.00) after Admin
+approval", computed from `itinerary.departure_at`: > 72 h → 100%, 24–72 h → 50%, < 24 h → 0%. The server decides at the
+moment of the request.
+
+### E2. Admin refunds screen — `GET /admin/refunds`
+
+```json
+{ "waiting": 1,
+  "items": [ { "id": "…", "payment_reference": "RFD-…", "booking_id": "…", "booking_reference": "TKT-…",
+               "original_payment_id": "…", "original_payment_reference": "PAY-…", "original_amount": "3000.00",
+               "transaction_type": "PARTIAL_REFUND", "cause": "PASSENGER_CANCELLATION", "amount": "1500.00", "currency": "LKR",
+               "provider_name": "SANDBOX", "payment_method": "SANDBOX", "status": "PENDING", "version": 1,
+               "created_at": "…", "refunded_at": null, "provider_reference": null, "failure_code": null,
+               "cancellation": { "policy": "TICKET_PASSENGER_CANCELLATION_2026_11", "refund_percent": 50,
+                                 "hours_before_departure": 48.0, "cancelled_at": "…", "bands": ["…"] } } ] }
+```
+Waiting first (`PENDING`, then `PROCESSING`), then the latest 200. `cause`: `PASSENGER_CANCELLATION`,
+`PAYMENT_AFTER_HOLD`, `ADMIN`. Status: `PENDING` (needs a decision) → `PAID` (money back) or `FAILED` (rejected);
+PayHere refunds go `PENDING` → `PROCESSING` → `PAID`.
+
+### E3. Decide — `POST /admin/refunds/{refund_id}/decision`
+
+```json
+{ "expected_version": 1, "decision": "APPROVE" }
+{ "expected_version": 1, "decision": "REJECT", "reason": "Duplicate request" }
+```
+**200** = the E2 item. Sandbox approve → `PAID` at once. PayHere approve → `PROCESSING`: the Admin refunds it in the
+PayHere portal, then records it with E4. Reject → `FAILED`, `failure_code: "REFUND_REJECTED"`; the payment stays paid.
+Errors: 422 `REASON_REQUIRED` (reject without reason), 409 `REFUND_ALREADY_DECIDED`, 409 `VERSION_CONFLICT`, 404 `REFUND_NOT_FOUND`.
+
+### E4. Record a PayHere refund — `POST /admin/refunds/{refund_id}/complete`
+
+```json
+{ "expected_version": 2, "provider_reference": "PayHere refund no. from the portal" }
+```
+Only for `PROCESSING`. **200** → `PAID`. Error 409 `REFUND_NOT_PROCESSING`.
+
+### E5. Admin refunds a payment directly — `POST /payments/{payment_id}/refunds` (PRD 68)
+
+```json
+{ "full": true, "reason": "Trip cancelled by operator", "idempotency_key": "a1b2c3d4e5f6" }
+{ "full": false, "amount": "500.00", "reason": "Goodwill for a late departure", "idempotency_key": "…" }
+```
+**201** = E2 item, approved at once (Sandbox `PAID`, PayHere `PROCESSING`). The same key again returns the same refund.
+Errors: 422 `VALIDATION_ERROR` (both `full` and `amount`), 422 `REFUND_AMOUNT_INVALID` (more than is left;
+`field_errors[0].message` = what can still be refunded), 409 `PAYMENT_NOT_REFUNDABLE`.
+
+When the refunds add up to the whole payment its status becomes `REFUNDED`, otherwise `PARTIALLY_REFUNDED`; the
+booking's `payment_status` follows. The Passenger gets a `REFUND` notification when money goes back. Every Admin decision
+is audited with its reason.
+
 ## C. Server-only (no UI)
 
 `POST /payments/webhooks/sandbox` — JSON, signed with `x-travelly-signature` (HMAC-SHA256 of the raw body).
@@ -345,8 +419,8 @@ with `failure_code: "SEATS_RELEASED_REFUND_DUE"` and no seat is given (refunds a
 
 ## Not in this slice
 
-Refunds (waiting for the
-cancellation-band decision CF08–09; PayHere Refund API needs an API key), Admin payments list, Owner payout marking
+Owner cancelling a whole departure (with full refunds — part of protected fulfilment), the PayHere Refund API (needs a
+PayHere API key; until then PayHere refunds are done in the portal and recorded with E4), Admin payments list, Owner payout marking
 (OWNER_PAID), PayHere live mode (needs business registration, bank account and live credentials — configuration only).
 
 ## Server setup for PayHere (project owner, once)
