@@ -29,16 +29,17 @@ from app.api.routers.ticket_booking_api import lock_trip, release_expired
 from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
-from app.models import UserRole
+from app.models import User, UserRole
 from app.models.hire_models import Booking, Notification
 from app.models.payment_models import Payment
 from app.models.rate_models import ServiceType
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
-from app.schemas.payment_schemas import PaymentIntentRequest, PaymentSettings, SandboxOutcome
-from app.services.payment_providers import PROVIDERS, payment_settings, provider_for, split
+from app.schemas.payment_schemas import CheckoutRequest, PaymentIntentRequest, PaymentSettings, SandboxOutcome
+from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, split
 
 router = APIRouter(prefix='/api/v1', tags=['Payments'])
 OPEN = ('PENDING', 'PROCESSING')
+ALL_PROVIDERS = {'SANDBOX': SANDBOX, 'PAYHERE': PAYHERE}  # for reading old payments and webhooks, even if not offered now
 
 
 def now():
@@ -97,6 +98,18 @@ def tell(db, recipient, booking, kind, title, body):
                         action_payload={'booking_id': str(booking.id)}, status='QUEUED'))
 
 
+def payer_for(provider, user, details):
+    """Details the provider needs for this payment: name, email and phone from the account, the rest from the Pay screen."""
+    details = details.model_dump() if details else {}
+    payer = {'full_name': user.full_name, 'email': user.email or details.get('email'), 'phone': user.phone_e164 or details.get('phone'),
+             'address': details.get('address'), 'city': details.get('city')}
+    missing = [name for name in provider.payer_required(user) if not payer.get(name)]
+    if missing:
+        raise ApiError(422, 'PAYER_DETAILS_REQUIRED', 'Enter the details the payment provider needs.',
+                       [{'field': f'payer.{name}', 'message': 'This field is required.'} for name in missing])
+    return payer
+
+
 # --------------------------------------------------------------------------- 65 create intent
 
 @router.post('/bookings/{booking_id}/payment-intents', status_code=201)
@@ -116,7 +129,9 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
         db.commit()
         if replay.booking_id != booking.id:
             raise ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'This request key was already used for another payment.')
-        return JSONResponse(status_code=200, content={**payment_out(replay), 'checkout': PROVIDERS[replay.provider_name].checkout(replay)})
+        used = ALL_PROVIDERS[replay.provider_name]
+        checkout = used.checkout(replay, booking, payer_for(used, user, body.payer)) if replay.status in OPEN else None
+        return JSONResponse(status_code=200, content={**payment_out(replay), 'checkout': checkout})
     if booking.payment_status_snapshot == 'PAID' or booking.status == 'CONFIRMED':
         db.commit()
         raise ApiError(409, 'BOOKING_ALREADY_PAID', 'This booking is already paid.')
@@ -134,6 +149,7 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
         raise ApiError(409, 'PAYMENT_PROVIDER_UNAVAILABLE', 'Online payment is not available right now.')
     if body.method not in provider.methods:
         raise ApiError(422, 'PAYMENT_METHOD_UNAVAILABLE', 'Choose one of: ' + ', '.join(provider.methods) + '.')
+    payer = payer_for(provider, user, body.payer)
     waiting = db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
                                                  Payment.status.in_(OPEN)))
     if waiting:
@@ -152,7 +168,20 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
     booking.payment_status_snapshot = 'PENDING'
     touch(booking); booking.updated_by = user.id
     db.commit()
-    return {**payment_out(payment), 'checkout': provider.checkout(payment)}
+    return {**payment_out(payment), 'checkout': provider.checkout(payment, booking, payer)}
+
+
+@router.post('/payments/{payment_id}/checkout')
+def resume_checkout(payment_id: UUID, body: CheckoutRequest, user=Depends(current), db: Session = Depends(get_db)):
+    """Checkout details again for a payment that is still waiting, for example after the Pay page was reopened."""
+    payment = db.get(Payment, payment_id)
+    booking = db.get(Booking, payment.booking_id) if payment else None
+    if not payment or not booking or booking.passenger_user_id != user.id or payment.transaction_type != 'PAYMENT':
+        raise ApiError(404, 'PAYMENT_NOT_FOUND', 'Payment not found.')
+    if payment.status not in OPEN:
+        raise ApiError(409, 'PAYMENT_NOT_PENDING', 'This payment is no longer waiting. Start a new payment.')
+    used = ALL_PROVIDERS[payment.provider_name]
+    return {**payment_out(payment), 'checkout': used.checkout(payment, booking, payer_for(used, user, body.payer))}
 
 
 # --------------------------------------------------------------------------- 66 provider event (shared by webhook and Sandbox)
@@ -233,6 +262,8 @@ def capture(db, payment, booking, provider, event, actor, moment):
     commission, fee, net = split(payment.amount, db.get(ServiceType, booking.service_type_id), event.get('fee'))
     payment.status = 'PAID'
     payment.provider_reference = event['provider_reference']
+    if event.get('method'):
+        payment.payment_method = event['method']  # what the Passenger actually chose on the provider page
     payment.authorized_at = payment.authorized_at or moment
     payment.captured_at = moment
     payment.commission_amount = commission
@@ -246,16 +277,23 @@ def capture(db, payment, booking, provider, event, actor, moment):
 
 @router.post('/payments/webhooks/{provider_name}')
 async def provider_webhook(provider_name: str, request: Request, db: Session = Depends(get_db)):
-    provider = PROVIDERS.get(provider_name.upper())
+    provider = ALL_PROVIDERS.get(provider_name.upper())
     if provider is None:
         raise ApiError(404, 'PROVIDER_NOT_FOUND', 'Unknown payment provider.')
     raw = await request.body()
     try:
         event = provider.parse(raw, request.headers)
-    except (ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError):
         raise ApiError(422, 'VALIDATION_ERROR', 'The provider event is not valid.') from None
     if event is None:
         raise ApiError(401, 'INVALID_SIGNATURE', 'The provider signature is not valid.')
+    if event['outcome'] is None:
+        # Pending or chargeback notices: acknowledged, nothing changes here (chargebacks belong to the refunds slice).
+        payment = db.scalar(select(Payment).where(Payment.payment_reference == event['payment_reference'],
+                                                  Payment.provider_name == provider.name))
+        if not payment:
+            raise ApiError(404, 'PAYMENT_NOT_FOUND', 'Payment not found.')
+        return {'payment_reference': payment.payment_reference, 'status': payment.status}
     payment = apply_event(db, provider, event)
     return {'payment_reference': payment.payment_reference, 'status': payment.status}
 
@@ -268,7 +306,7 @@ def sandbox_outcome(payment_id: UUID, body: SandboxOutcome, user=Depends(current
     booking = db.get(Booking, payment.booking_id) if payment else None
     if not payment or not booking or booking.passenger_user_id != user.id or payment.provider_name != 'SANDBOX':
         raise ApiError(404, 'PAYMENT_NOT_FOUND', 'Payment not found.')
-    provider = PROVIDERS['SANDBOX']
+    provider = SANDBOX
     applied = apply_event(db, provider, provider.event(payment, body.outcome, None if body.outcome == 'SUCCEEDED' else 'SANDBOX_DECLINED'),
                           actor=user.id, sandbox=True)
     return {**payment_out(applied), 'booking_status': db.get(Booking, applied.booking_id).status}
@@ -292,7 +330,7 @@ def booking_payments(booking_id: UUID, user=Depends(current), db: Session = Depe
 
 def settings_out(row):
     return {'id': str(row.id), 'code': row.code, 'name': row.name, 'category': row.category, 'is_active': row.is_active,
-            'version': row.version, **payment_settings(row), 'available_providers': sorted(PROVIDERS)}
+            'version': row.version, **payment_settings(row), 'available_providers': sorted(providers())}
 
 
 @router.get('/admin/payment-settings')
@@ -304,8 +342,8 @@ def list_payment_settings(user=Depends(admin), db: Session = Depends(get_db)):
 @router.patch('/admin/service-types/{service_id}/payment-settings')
 def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Request, user=Depends(admin),
                             db: Session = Depends(get_db)):
-    if body.payment_provider not in PROVIDERS:
-        raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Use SANDBOX for now.',
+    if body.payment_provider not in providers():
+        raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Add its credentials first, or use SANDBOX.',
                        [{'field': 'payment_provider', 'message': 'Not connected yet.'}])
     if Decimal(body.commission_percent) + Decimal(body.gateway_fee_percent) > 100:
         # The Owner must always keep something: commission and the gateway fee both come out of the fare.

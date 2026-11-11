@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     mail_daily_limit: int = Field(default=250, ge=1)
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
+    # PayHere (Sandbox now, live later: same code, different credentials and mode). Leave empty to hide PayHere.
+    payhere_merchant_id: str = ''
+    payhere_merchant_secret: str = Field(default='', repr=False)
+    payhere_mode: str = 'sandbox'
+    # Public HTTPS address of this API (for example an ngrok URL) so PayHere can reach the notify endpoint.
+    public_api_url: str = ''
     private_document_root: Path | None = None
     operational_media_root: Path | None = None
     vehicle_photo_root: Path | None = None
@@ -59,6 +65,8 @@ class Settings(BaseSettings):
         for secret in (self.jwt_secret, self.jwt_refresh_secret):
             if len(secret.encode()) < 32 or secret.startswith('REPLACE_'):
                 raise ValueError('Set independent random JWT secrets of at least 32 bytes.')
+        if self.payhere_mode not in ('sandbox', 'live'):
+            raise ValueError('PAYHERE_MODE must be sandbox or live.')
         if self.jwt_secret == self.jwt_refresh_secret:
             raise ValueError('Access and refresh JWT secrets must be different.')
         if self.environment == 'production':

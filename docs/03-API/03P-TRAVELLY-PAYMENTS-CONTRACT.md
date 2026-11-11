@@ -1,10 +1,11 @@
-# Travelly — Payments API contract, slice 1 (online Ticket seats, Sandbox)
+# Travelly — Payments API contract, slice 1 (online Ticket seats: Sandbox and PayHere)
 
-Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 388 passed. This is the contract the UI
+Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 395 passed. This is the contract the UI
 branch builds the **Pay button** and the **Admin payment settings** screen against. Do not change paths or field names.
 
 Owner decisions (11 Nov 2026): no advance for private hire (paid after the trip, later slice); the gateway fee comes out
-of the Owner's share, never Travelly's; commission is an Admin percentage per service type; Sandbox now, PayHere later.
+of the Owner's share, never Travelly's; commission is an Admin percentage per service type; built-in Sandbox and PayHere (Sandbox credentials now, live later)
+are both available, chosen by Admin per service type. PayHere's address and city are asked on the Pay screen and never stored.
 PRD 6.6: an online Ticket seat is BOOKED only after the **full** amount is paid. Ticket cash sale is Phase 2.
 
 ## Common rules
@@ -61,7 +62,11 @@ Request (all required):
 ```
 
 - `amount` / `currency`: send the booking's `total_amount` and `currency` exactly.
-- `method`: `"SANDBOX"` today (later `CARD`, `BANK`, `MOBILE` with PayHere).
+- `method`: `"SANDBOX"` when the service uses the built-in Sandbox; `"CARD"` when it uses PayHere (the Passenger picks
+  card, HelaPay or a wallet on PayHere's page; the server records what they actually used).
+- `payer` (optional object, **required for PayHere**): `{"address": "12 Galle Road", "city": "Colombo"}`, plus `"phone"`
+  (E.164, e.g. `"+94771234567"`) only if the account has no phone and `"email"` only if it has no email. Name, email and
+  phone otherwise come from the Travelly account. Sent to PayHere, not stored by Travelly. Ignored by the Sandbox.
 - `idempotency_key`: 8–40 chars `[A-Za-z0-9_-]`. Make **one key per button press** and reuse it if you retry the same
   request after a network error; the server then returns the same payment instead of a second one.
 
@@ -91,7 +96,41 @@ Request (all required):
 | 422 | `PAYMENT_METHOD_UNAVAILABLE` | method not offered by the provider | send `SANDBOX` |
 | 409 | `PAYMENT_PROVIDER_UNAVAILABLE` | no provider configured | "Online payment is not available right now" |
 | 409 | `IDEMPOTENCY_KEY_REUSED` | key used for another booking | make a new key |
+| 422 | `PAYER_DETAILS_REQUIRED` | PayHere needs details the request did not give | `field_errors[].field` lists them: `payer.address`, `payer.city`, maybe `payer.phone`, `payer.email` |
 | 422 | `VALIDATION_ERROR` | bad body | show field errors |
+
+#### A2b. When the service uses PayHere, `checkout` looks like this
+
+```json
+"checkout": {
+  "provider": "PAYHERE", "mode": "SANDBOX", "method": "POST",
+  "action": "https://sandbox.payhere.lk/pay/checkout",
+  "fields": { "merchant_id": "1211149", "return_url": "http://127.0.0.1:5173/travel/book/tickets?booking=<booking_id>&payment=returned",
+              "cancel_url": "http://127.0.0.1:5173/travel/book/tickets?booking=<booking_id>&payment=cancelled",
+              "notify_url": "https://<public api>/api/v1/payments/webhooks/payhere", "order_id": "PAY-C21DF5A47987440F879E",
+              "items": "Travelly booking TKT-08AE4837304A4896", "currency": "LKR", "amount": "3000.00",
+              "first_name": "Test", "last_name": "Person", "email": "...", "phone": "+9477...", "address": "12 Galle Road",
+              "city": "Colombo", "country": "Sri Lanka", "custom_1": "<booking_id>", "hash": "3C7A...UPPERCASE MD5" },
+  "message": "You will be taken to PayHere to pay. Your seats are confirmed only after PayHere reports success."
+}
+```
+
+The Pay button **builds an HTML form** with `action`, `method="POST"` and one hidden input per entry in `fields`
+(names and values exactly as given), then submits it. Do not change or recompute any field — `hash` is
+made on the server so the merchant secret never reaches the browser. In live mode `action` is
+`https://www.payhere.lk/pay/checkout` and `mode` is `"LIVE"`.
+
+PayHere sends the browser back to `return_url` (`&payment=returned`) or `cancel_url` (`&payment=cancelled`). **Neither
+proves payment.** On that page read A1 again: the seats are confirmed only when PayHere's signed server notice has
+arrived (`status: "CONFIRMED"`, `payment_status: "PAID"`). If it still says `latest_payment.status: "PENDING"`, show
+"Waiting for PayHere to confirm…" and re-read A1 every few seconds for about a minute.
+
+#### A2c. Reopen a waiting payment — `POST /payments/{payment_id}/checkout`
+
+For a payment still `PENDING` (e.g. the Passenger closed PayHere and came back while the hold is active). Body:
+`{"payer": {"address": "...", "city": "..."}}` for PayHere, `{}` for the Sandbox. **200** returns the payment plus a fresh
+`checkout` (same order id, same amount). Errors: 404 `PAYMENT_NOT_FOUND`, 409 `PAYMENT_NOT_PENDING`, 422
+`PAYER_DETAILS_REQUIRED`. Use this instead of A2 when A2 answers `PAYMENT_IN_PROGRESS`.
 
 ### A3. Finish a Sandbox payment — `POST /payments/{payment_id}/sandbox-outcome`
 
@@ -121,6 +160,8 @@ notification runs.
 | 410 | `HOLD_EXPIRED` | the hold ended before success; payment marked FAILED, seats released | "Hold ended — choose seats again" |
 | 409 | `PAYMENT_NOT_PENDING` | payment already FAILED | start a new payment (A2) |
 
+A3 works only for payments whose `provider_name` is `"SANDBOX"`; a PayHere payment answers 404 here.
+
 ### A4. Payment history — `GET /bookings/{booking_id}/payments`
 
 Passenger, the booking's Owner, or an Admin. **200**:
@@ -142,7 +183,9 @@ Owner and Admin also get, per item: `commission_amount`, `gateway_fee_amount`, `
 | A1 says | Show |
 |---|---|
 | `status: "REQUESTED"`, `hold_active: true`, `payment_status` null or `"FAILED"` | **Pay LKR {total_amount}** button + countdown to `hold_expires_at`. If FAILED, show `latest_payment.failure_message` above it. |
-| `hold_active: true`, `latest_payment.status: "PENDING"` | the Sandbox choice for `latest_payment.id` (do not call A2 again) |
+| `hold_active: true`, `latest_payment.status: "PENDING"`, `provider_name: "SANDBOX"` | the Sandbox choice for `latest_payment.id` (do not call A2 again) |
+| `hold_active: true`, `latest_payment.status: "PENDING"`, `provider_name: "PAYHERE"` | "Waiting for PayHere…" + a **Continue to PayHere** button → A2c, then submit the form |
+| Before Pay when the service uses PayHere | ask **Address** and **City** (and Phone/Email only if A2 answers `PAYER_DETAILS_REQUIRED` for them); one short line: "Needed by PayHere for this payment. Travelly does not keep it." |
 | Sandbox choice (after A2 or the row above) | two buttons: **Pay successfully** → A3 `SUCCEEDED`; **Simulate failure** → A3 `FAILED`; plus `checkout.message` |
 | `status: "CONFIRMED"`, `payment_status: "PAID"` | "Seats confirmed" + `latest_payment.payment_reference`; no Pay button |
 | `status: "CANCELLED"` | "Hold ended — choose seats again" |
@@ -166,7 +209,9 @@ Admin only (approved ADMIN). Non-admins get **403**.
 ```
 
 One row per service type (ordered by display order). Unset settings read as Sandbox / 0.00 / 0.00.
-Fill the provider dropdown from `available_providers` (today only `SANDBOX`).
+Fill the provider dropdown from `available_providers`: `["SANDBOX"]`, or `["PAYHERE", "SANDBOX"]` once the server has
+PayHere credentials and a public HTTPS address. When the provider is PayHere, set the gateway fee % to PayHere's plan
+rate (Lite 3.30) so the Owner's share is right; PayHere's notice does not report the fee.
 
 ### B2. Save one row — `PATCH /admin/service-types/{service_id}/payment-settings`
 
@@ -183,7 +228,7 @@ Fill the provider dropdown from `available_providers` (today only `SANDBOX`).
 |---|---|---|---|
 | 409 | `VERSION_CONFLICT` | someone else saved first | "Changed by someone else — reload", re-read B1 |
 | 422 | `PAYMENT_SETTINGS_INVALID` | commission + fee > 100 | show on the fee field (`field_errors[0].field = "gateway_fee_percent"`) |
-| 422 | `PAYMENT_PROVIDER_UNAVAILABLE` | `PAYHERE` chosen (not connected yet) | show on the provider field |
+| 422 | `PAYMENT_PROVIDER_UNAVAILABLE` | `PAYHERE` chosen but the server has no PayHere credentials | show on the provider field |
 | 422 | `VALIDATION_ERROR` | bad percentage format or > 100 | show on that field (`field_errors[].field`) |
 | 404 | `SERVICE_NOT_FOUND` | unknown service | re-read B1 |
 | 403 | — | not an approved Admin | — |
@@ -196,14 +241,28 @@ is taken from the Owner's share and is never Travelly income; Travelly earns onl
 
 ## C. Server-only (no UI)
 
-`POST /payments/webhooks/{provider}` — signed provider notification (`x-travelly-signature`, HMAC-SHA256 of the raw body).
-401 `INVALID_SIGNATURE`; retries are idempotent. If real money arrives after a hold ended, the payment is recorded PAID
+`POST /payments/webhooks/sandbox` — JSON, signed with `x-travelly-signature` (HMAC-SHA256 of the raw body).
+
+`POST /payments/webhooks/payhere` — PayHere's `application/x-www-form-urlencoded` notice. Accepted only when
+`merchant_id` is ours and `md5sig` = UPPER(MD5(merchant_id + order_id + payhere_amount + payhere_currency + status_code +
+UPPER(MD5(merchant_secret)))). `status_code` 2 → PAID; −1 → FAILED `PAYHERE_CANCELLED`; −2 → FAILED `PAYHERE_FAILED`;
+0 (pending) and −3 (chargeback) change nothing yet. The method PayHere reports becomes `payment_method`
+(cards → `CARD`, HelaPay/Vishwa → `BANK`, wallets → `MOBILE`).
+
+Both: 401 `INVALID_SIGNATURE`; retries are idempotent. If real money arrives after a hold ended, the payment is recorded PAID
 with `failure_code: "SEATS_RELEASED_REFUND_DUE"` and no seat is given (refunds are a later slice).
 
 ## Not in this slice
 
 Private hire payment after the trip (online/cash with two-sided cash confirmation), refunds (waiting for the
-cancellation-band decision CF08–09), Admin payments list, Owner payout marking (OWNER_PAID), PayHere.
+cancellation-band decision CF08–09; PayHere Refund API needs an API key), Admin payments list, Owner payout marking
+(OWNER_PAID), PayHere live mode (needs business registration, bank account and live credentials — configuration only).
+
+## Server setup for PayHere (project owner, once)
+
+`Backend/.env` (see `.env.example`): `PAYHERE_MERCHANT_ID`, `PAYHERE_MERCHANT_SECRET`, `PAYHERE_MODE=sandbox`,
+`PUBLIC_API_URL=https://<your ngrok domain>`. PayHere cannot reach localhost, so run ngrok to port 8000 and register that
+domain in PayHere > Integrations > Add Domain/App. Restart the backend; PayHere then appears in the Admin dropdown.
 
 ## Translations
 

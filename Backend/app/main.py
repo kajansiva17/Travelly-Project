@@ -148,7 +148,9 @@ def create_app(settings=None, engine=None, store=None):
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
                 if request.method in ('POST', 'PATCH', 'PUT'):
-                    media = 'multipart/form-data' if multipart else 'application/json'
+                    # PayHere notifies with a form post, every other JSON API stays JSON-only.
+                    media = 'multipart/form-data' if multipart else 'application/x-www-form-urlencoded' \
+                        if request.url.path == '/api/v1/payments/webhooks/payhere' else 'application/json'
                     if request.headers.get('content-type', '').split(';')[0].lower() != media:
                         raise ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Use ' + media + '.')
                     chunks, length = [], 0
@@ -168,7 +170,7 @@ def create_app(settings=None, engine=None, store=None):
                                 raise ValueError()
                             result[key] = value
                         return result
-                    if raw and not multipart:
+                    if raw and media == 'application/json':
                         try:
                             parsed = json.loads(raw, object_pairs_hook=unique_keys, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
                         except (ValueError, UnicodeError):

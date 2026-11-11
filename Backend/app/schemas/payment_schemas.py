@@ -3,6 +3,7 @@ import re
 from decimal import Decimal
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.schemas import email_address
 
 
 class Strict(BaseModel):
@@ -15,17 +16,35 @@ def amount_text(value, name):
     return Decimal(value)
 
 
+class PayerDetails(Strict):
+    """Passed straight to PayHere for this payment and never stored by Travelly (owner decision, 11 Nov 2026)."""
+    address: Optional[str] = Field(None, min_length=1, max_length=100)
+    city: Optional[str] = Field(None, min_length=1, max_length=50)
+    phone: Optional[str] = Field(None, pattern=r'^\+[1-9][0-9]{7,14}$')
+    email: Optional[str] = Field(None, max_length=254)
+
+    @field_validator('email')
+    @classmethod
+    def valid_email(cls, value):
+        return email_address(value) if value is not None else value
+
+
 class PaymentIntentRequest(Strict):
     amount: str
     currency: str = Field(pattern=r'^[A-Z]{3}$')
     method: Literal['CARD', 'BANK', 'MOBILE', 'SANDBOX']
     idempotency_key: str = Field(min_length=8, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+    payer: Optional[PayerDetails] = None
 
     @field_validator('amount')
     @classmethod
     def valid_amount(cls, value):
         amount_text(value, 'the amount')
         return value
+
+
+class CheckoutRequest(Strict):
+    payer: Optional[PayerDetails] = None
 
 
 class SandboxOutcome(Strict):

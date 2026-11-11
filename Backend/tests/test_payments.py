@@ -12,7 +12,7 @@ from sqlalchemy import select, update
 from app.models.hire_models import Booking, Notification
 from app.models.payment_models import Payment
 from app.models.seat_models import ScheduledTripSeat
-from app.services.payment_providers import PROVIDERS
+from app.services.payment_providers import SANDBOX
 from test_ticket_holds import api, person, ticket, configure_hold, hold_body
 from test_departure_trips import drivable, journey, at_departure
 
@@ -132,7 +132,7 @@ def signed(client, body, signature=None):
     raw = json.dumps(body).encode()
     return client.post('/api/v1/payments/webhooks/sandbox', content=raw,
                        headers={'content-type': 'application/json',
-                                'x-travelly-signature': signature or PROVIDERS['SANDBOX'].sign(raw)})
+                                'x-travelly-signature': signature or SANDBOX.sign(raw)})
 
 
 def test_provider_events_must_be_signed_and_a_retry_never_charges_twice(client, held):
