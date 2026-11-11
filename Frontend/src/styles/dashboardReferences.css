@@ -6,10 +6,6 @@ body .workspace-shell {
  background:url('/images/travelly/heroes/passenger-hero-1920.webp') center bottom / auto 125dvh fixed #03152d;
 }
 body .workspace-shell[data-workspace="driver"] {background-image:url('/images/travelly/heroes/cta-landscape-1920.webp');background-size:cover;}
-body .workspace-shell .workspace-topbar {background:transparent;border:0;backdrop-filter:none;}
-body .workspace-shell .workspace-topbar .site-header {padding:10px 4.2% 0;}
-body .workspace-shell .workspace-topbar .header-inner {min-height:58px;padding:5px 22px;border:1px solid #8dcaff;border-radius:20px;background:var(--ui-glass-strong);box-shadow:inset 0 1px 4px #dcf5ff,0 0 12px #197bff,inset 0 0 18px #1875ff80;}
-body .workspace-shell .workspace-topbar .brand.travelly-brand {width:225px;height:45px;}
 body .workspace-shell .workspace-header .navigation {gap:clamp(12px,1.8vw,30px);font-size:14px;flex:1;justify-content:space-between;min-width:0;}
 body .workspace-shell[data-workspace] .workspace-header .navigation {justify-content:flex-end;gap:24px;}
 body .workspace-shell .workspace-header .navigation>a {display:inline-flex;align-items:center;gap:7px;}
@@ -53,7 +49,6 @@ body .workspace-shell .reference-help {position:relative;bottom:auto;right:auto;
 /* Full-width navbar above a pinned sidebar, as in all three references. */
 @media(min-width:1100px) and (min-height:760px) {
  body .workspace-shell {grid-template-columns:var(--workspace-sidebar-width) minmax(0,1fr);}
- body .workspace-shell .workspace-topbar {grid-column:1/-1;grid-row:1;}
  body .workspace-shell .workspace-sidebar-link svg {width:24px;height:24px;}
  body .workspace-shell .workspace-sidebar-link.active {background:linear-gradient(110deg,#ff6c7a,#ff324c);border:1px solid #ff96a1;box-shadow:inset 0 1px 8px #ffc4cb99,0 0 12px #ff344b99;}
 }
@@ -63,7 +58,6 @@ body .workspace-shell .workspace-drawer-panel {height:100dvh;min-height:0;paddin
 body .workspace-shell .workspace-drawer .workspace-sidebar-link {min-height:0;height:clamp(22px,calc((100dvh - 90px) / var(--workspace-nav-count,18)),44px);margin:0;padding:2px 8px;font-size:12px;}
 @media(max-width:1399px) {
  body .workspace-shell .workspace-header .navigation {gap:12px;font-size:12px;}
- body .workspace-shell .workspace-topbar .brand.travelly-brand {width:180px;}
  body .workspace-shell .workspace-metric {gap:10px;padding:12px;}
 }
 @media(max-width:1099px) {
@@ -73,9 +67,6 @@ body .workspace-shell .workspace-drawer .workspace-sidebar-link {min-height:0;he
  body .workspace-shell .reference-admin-grid {grid-template-columns:1fr 1fr;grid-template-areas:'map health' 'map pending' 'alerts actions' 'bookings bookings';}
 }
 @media(max-width:767px) {
- body .workspace-shell .workspace-topbar .site-header {padding:8px;}
- body .workspace-shell .workspace-topbar .header-inner {padding:5px 8px;gap:8px;}
- body .workspace-shell .workspace-topbar .brand.travelly-brand {width:140px;height:40px;}
  body .workspace-shell .workspace-header .navigation {gap:8px;}
  body .workspace-shell .workspace-profile {padding-left:0;border:0;}
  body .workspace-shell .workspace-profile-name,body .workspace-shell .language,body .workspace-shell .admin-notifications {display:none;}

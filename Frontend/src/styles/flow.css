@@ -269,9 +269,6 @@ html body .flow-stepper .ui-step-label { white-space: nowrap; font-size: 13px; }
 
 /* Short windows (laptops at 125% scaling): trim the navbar and tab row too. */
 @media (max-height: 820px) {
-  html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
-  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 6px; }
-  html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 2px; }
   html body .flow-top .ui-tabs { padding: 3px; border-radius: 18px; }
   html body .flow-top .ui-tab { min-height: 32px; padding-block: 2px; font-size: 14px; }
 }
@@ -443,9 +440,6 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 
 /* ---------- Very short windows (1280x585 laptops): merge stepper and tabs into one row ---------- */
 @media (max-height: 640px) {
-  html body .workspace-shell[data-workspace] .workspace-topbar { padding-bottom: 4px; }
-  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar:not(.lr-header) { padding-top: 4px; }
-  html body .workspace-shell[data-workspace] .workspace-topbar .header-inner { min-height: 52px; padding-block: 0; }
   html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: 6px 12px; padding-top: 0; }
   html body .flow-top { display: contents; }
   html body .flow-heading { display: none; }
@@ -575,13 +569,6 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 html body .workspace-shell[data-workspace] .workspace-content :is(.document-checklist, .document-requirement) { background: rgb(255 255 255 / .62); color: var(--ui-ink); border-color: rgb(255 255 255 / .9); }
 
 /* Short windows: keep the logo at its normal size and slim the navbar pill instead. */
-@media (max-height: 640px) {
-  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar:not(.lr-header) .header-inner { min-height: 54px; padding-block: 2px; }
-  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 225px; height: 45px; }
-}
-@media (min-width: 1200px) {
-  html body .workspace-shell[data-workspace] .workspace-topbar .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 225px; height: 45px; }
-}
 html body .workspace-shell[data-workspace] .workspace-content :is(.trip-price, .rate-preview-pane, .flow-estimate) :is(thead, thead th, thead tr) { background: #eaf1fb; color: var(--ui-ink); }
 html body .workspace-shell[data-workspace] .workspace-content table :is(thead, thead th) { background: #eaf1fb; color: var(--ui-ink); }
 
@@ -698,7 +685,9 @@ html body .dash-page .dash-tile .workspace-select select { flex: 1 1 auto; min-w
 html body .dash-page .dash-tile .workspace-note, html body .dash-page .dash-tile p { margin: 0; font-size: .95em; color: var(--ui-text); }
 html body .dash-page .dash-timeline { display: grid; gap: 4px; margin: 0; padding: 0; }
 html body .dash-page .dash-timeline > div { display: flex; gap: 8px; padding: .2em .6em; border-radius: 10px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); }
-html body .dash-page .dash-timeline > div > div { display: flex; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
+html body .dash-page .dash-timeline > div > div { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+html body .dash-page .dash-timeline strong { flex: none; }
+html body .dash-page .dash-timeline span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html body .dash-page .dash-timeline small, html body .dash-page .dash-timeline p { display: none; }
 html body .dash-page .dash-timeline strong { font-size: 1em; }
 html body .dash-page .dash-timeline span { font-size: .9em; color: var(--ui-text); }
@@ -790,4 +779,6 @@ html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
   html body .dash-page .dash-vehicles { gap: 4px 8px; }
   html body .dash-page .dash-vehicle { padding: .1em .4em; }
   html body .dash-page .dash-vehicle-art:not(.big) { width: 2.3em; height: 2.3em; }
+  html body .dash-page .dash-tile .workspace-note { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html body .dash-page .dash-tile .workspace-select select { height: 2em; }
 }

@@ -8,12 +8,6 @@
 }
 
 /* Reserve the complete stack before images or the small wordmark font load. */
-.site-header .header-inner {
-  min-height: 82px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-.site-header.auth-header .header-inner { min-height: 84px; }
 
 .site-header .brand.travelly-brand {
   --brand-art-width: clamp(104px, 8vw, 116px);

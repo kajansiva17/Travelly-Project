@@ -7,12 +7,6 @@ html body .workspace-shell[data-workspace] { --workspace-sidebar-width: clamp(20
 
 /* Navbar area: sticky, above all content, with its own frosted background
    and a gap below the pill, so scrolling content never shows above it. */
-html body .workspace-shell[data-workspace] .workspace-topbar {
-  position: sticky; top: 0; z-index: 100;
-  padding-bottom: 10px;
-  background: var(--ui-topbar-band);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
-}
 
 /* Sidebar panel: exactly the visible height under the navbar. */
 html body .workspace-shell[data-workspace] .app-sidebar {

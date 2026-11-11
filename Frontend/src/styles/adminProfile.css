@@ -38,6 +38,5 @@ html body .flow-page .admin-profile-success { margin: 0; color: #1c7a4f; font-si
   .workspace-shell[data-workspace="admin"] .admin-profile-link .dashboard-avatar {width:28px;height:28px;}
 }
 @media(max-width:380px){
-  .workspace-shell[data-workspace="admin"] .workspace-topbar .site-header .brand.travelly-brand {width:112px;}
   .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name {max-width:70px;}
 }

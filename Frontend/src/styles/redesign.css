@@ -4,20 +4,18 @@ body .public-page .hero h1{font-size:clamp(44px,4.6vw,72px);font-weight:600;line
 body .public-page #services{padding-top:20px}
 /* Operational layouts are authored in workspaces.css, without the old dashboard theme. */
 body .workspace-shell{background:var(--ui-glass-strong)}
-body .workspace-topbar .header-inner{border-radius:15px;min-height:64px;padding:8px 20px}
 body .workspace-sidebar-link{min-height:28px;font-size:11px;padding:5px 10px;border-radius:7px}
 body .workspace-content .role-dashboard{padding:25px 30px 40px}
 body .workspace-card .workspace-note,body .workspace-note{font-size:10px}
 body .workspace-quick-actions a{min-height:60px;font-size:11px}
 body .workspace-metric{min-height:112px}
 body .workspace-card-heading h2{font-size:17px}
-@media(min-width:1100px) and (min-height:760px){body .workspace-layout{grid-template-columns:224px minmax(0,1fr)}body .workspace-menu-toggle{display:none}}
-@media(max-width:1099px),(max-height:759px){body .workspace-layout{grid-template-columns:minmax(0,1fr)}body .workspace-menu-toggle{display:inline-flex}body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}}
+@media(min-width:1100px) and (min-height:760px){body .workspace-menu-toggle{display:none}}
+@media(max-width:1099px),(max-height:759px){body .workspace-menu-toggle{display:inline-flex}body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}}
 @media(max-width:767px){
  body .public-page .passenger-hero{height:660px;min-height:660px}
  body .public-page .hero h1{font-size:clamp(36px,7.5vw,54px)}
  body .workspace-content .role-dashboard{padding:18px 14px 30px}
- body .workspace-topbar .header-inner{padding:8px 10px}
  body .workspace-quick-actions a{min-height:60px}
  body .workspace-metric{min-height:90px}
  body .workspace-card-heading h2{font-size:17px}

@@ -4,8 +4,6 @@ body .workspace-shell .workspace-sidebar-link {white-space:nowrap;}
 body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-wrap:normal;word-break:normal;flex:1;min-width:0;}
 @media(min-width:768px) {
  body .workspace-shell[data-workspace] {display:grid;grid-template-columns:var(--workspace-sidebar-width) minmax(0,1fr);grid-template-rows:auto 1fr;align-items:start;}
- body .workspace-shell[data-workspace] .workspace-topbar {grid-column:1/-1;grid-row:1;position:sticky;top:0;}
- body .workspace-shell[data-workspace] .workspace-layout {display:contents;}
  body .workspace-shell[data-workspace] .workspace-content {grid-column:2;grid-row:2;width:100%;min-width:0;}
  body .workspace-shell[data-workspace] .workspace-menu-toggle {display:none;}
 }
@@ -18,7 +16,6 @@ body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-
 }
 @media(max-width:767px) {
  body .workspace-shell[data-workspace] {display:block;}
- body .workspace-shell[data-workspace] .workspace-layout {display:block;}
  body .workspace-shell[data-workspace] .workspace-menu-toggle {display:inline-flex;}
 }
 /* The phone menu also remains one column, including short landscape windows. */

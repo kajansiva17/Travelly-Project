@@ -30,9 +30,6 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 @keyframes travelly-button-sheen{0%{transform:translateX(-130%);opacity:0}18%,82%{opacity:1}100%{transform:translateX(130%);opacity:0}}
 @media(hover:hover) and (pointer:fine){.button:not(:disabled):hover{transform:translateY(-2px);border-color:#d2ab73}.button:not(:disabled):hover::before{animation:travelly-button-sheen .85s ease-out both}}
 @media(prefers-reduced-motion:reduce){.button:not(:disabled):is(:hover,:focus,:focus-visible,:active){transform:none}.button:not(:disabled):is(:hover,:focus,:focus-visible,:active)::before{animation:none;opacity:0;transform:none}}
-
-.site-header{background:linear-gradient(105deg,#f7e9d5,#fcf4eb);border-bottom:1px solid var(--ui-input-border);position:sticky;top:0;z-index:50;box-shadow:0 2px 8px #4c1a110d}
-.header-inner{max-width:1600px;margin:auto;min-height:83px;padding:7px 3.6%;display:flex;align-items:center;justify-content:space-between;gap:30px}
 .brand{display:flex;align-items:center;flex-shrink:0;color:var(--primary-red);gap:5px}
 .navigation{display:flex;align-items:center;gap:25px;font-size:14px;white-space:nowrap}
 .navigation>a:not(.button){padding:10px 0}

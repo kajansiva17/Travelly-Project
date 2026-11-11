@@ -78,6 +78,7 @@ import './styles/travel-booking.css'
 import './styles/flow.css'
 import './styles/passengerBookingFlow.css'
 import './styles/authGlass.css'
+import './styles/frame.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()

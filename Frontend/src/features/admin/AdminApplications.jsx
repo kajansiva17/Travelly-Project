@@ -123,7 +123,7 @@ export default function AdminApplications() {
     : loading ? <p role="status">{t("Loading authorized review data…")}</p>
     : !data ? (!error && <Empty>{t("Review data is unavailable.")}</Empty>)
     : !roleId ? <>
-      {authorized && <div><form className="tk-grid" style={{ '--cols': 4 }} aria-label={t("Application filters")} onSubmit={event => { event.preventDefault(); setFilters({ ...filters, q: search.trim(), page: 1 }) }}>
+      {authorized && <div><form className="tk-grid" style={{ '--cols': 4, gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) auto' }} aria-label={t("Application filters")} onSubmit={event => { event.preventDefault(); setFilters({ ...filters, q: search.trim(), page: 1 }) }}>
         <Field label="Status"><select aria-label={t("Status")} value={filters.status} disabled={busy} onChange={event => setFilters({ ...filters, status: event.target.value, page: 1 })}>{['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'ALL'].map(s => <option value={s} key={s}>{t(s)}</option>)}</select></Field>
         <Field label="Application type"><select aria-label={t("Application type")} value={filters.role_code} onChange={event => setFilters({ ...filters, role_code: event.target.value, page: 1 })}><option value="">{t("Owner and Driver")}</option><option value="OWNER">{t("Owner")}</option><option value="DRIVER">{t("Driver")}</option></select></Field>
         <Field label="Applicant name or reference" optional><input maxLength={100} value={search} onChange={event => setSearch(event.target.value)}/></Field>

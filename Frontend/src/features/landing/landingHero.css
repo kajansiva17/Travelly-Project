@@ -65,6 +65,3 @@ html body .lr-page.lr-home .lr-content { padding-top: clamp(20px, 4vh, 44px); }
   html body .lr-page.lr-home .lr-search form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   html body .lr-page.lr-home .lr-search-submit { grid-column: 1 / -1; }
 }
-
-/* The navbar floats over the photo: it must not push the first screen down (no band above the hero). */
-html body .lr-page > header.lr-header.site-header { position: absolute; }

@@ -4,13 +4,6 @@ body .workspace-shell[data-workspace] {
   background:linear-gradient(120deg,#d9eaf8bc,#daeef28a),url('/images/travelly/heroes/passenger-hero-1920.webp') center top / cover fixed #b9d6eb;
   color:var(--ui-ink);
 }
-body .workspace-shell .workspace-topbar .header-inner {
-  border:1px solid #fffffff2;border-radius:30px;
-  background:linear-gradient(110deg,#ffffffd9,#dbeaffb5);
-  box-shadow:inset 0 1px 8px #fff,0 8px 24px #2850782b;
-  backdrop-filter:blur(20px);color:#071645;
-}
-body .workspace-shell .workspace-topbar .header-inner :is(a,button,summary) {color:#071645}
 body :is(.workspace-shell,.passenger-customer-shell) .site-header .language,
 body :is(.workspace-shell,.passenger-customer-shell) .site-header .language select,
 body :is(.workspace-shell,.passenger-customer-shell) .workspace-profile-name small {color:#233e65}
@@ -79,7 +72,6 @@ body .reference-passenger .reference-help {position:static;display:flex;margin:1
  body .workspace-shell .workspace-metric {min-height:110px;padding:10px}
 }
 @media(max-width:420px){
- body .workspace-shell .workspace-topbar .brand.travelly-brand {width:112px}
  body .workspace-shell .workspace-header .navigation {gap:4px}
  body .workspace-shell .workspace-header .language {gap:2px}
  body .workspace-shell .workspace-header .language select {max-width:66px;font-size:11px}

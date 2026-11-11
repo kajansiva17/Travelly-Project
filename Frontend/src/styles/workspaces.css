@@ -1,9 +1,5 @@
 ﻿/* Operational workspaces: compact navigation and scenic blue cards. */
 .workspace-shell{--workspace-header-height:90px;min-height:100dvh;background:var(--ui-glass-strong);color:var(--ui-ink)}
-.workspace-topbar{position:sticky;top:0;z-index:60;background:var(--ui-glass-strong);backdrop-filter:blur(18px);border-bottom:1px solid #3070b244}
-body .workspace-topbar .site-header{padding:12px 22px}
-body .workspace-topbar .header-inner{min-height:64px;max-width:none;border-radius:15px;background:var(--ui-glass-strong)}
-body .workspace-topbar .site-header .brand.travelly-brand{width:196px;height:44px}
 .workspace-header .navigation{display:flex;position:static;flex-direction:row;align-items:center;gap:24px;padding:0;border:0;box-shadow:none;background:transparent;width:auto}
 .workspace-profile{position:relative}
 .workspace-profile summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:44px}
@@ -15,7 +11,6 @@ body .workspace-topbar .site-header .brand.travelly-brand{width:196px;height:44p
 .dashboard-profile-dropdown{position:absolute;right:0;top:calc(100% + 16px);min-width:220px;padding:8px;background:var(--ui-glass-strong);border:1px solid #5789bd;border-radius:14px;box-shadow:0 20px 40px #0008}
 .dashboard-profile-dropdown a,.dashboard-profile-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;text-decoration:none;text-align:left;border-radius:8px;font-size:13px}
 .dashboard-profile-dropdown a:hover{background:var(--ui-glass-strong)}
-.workspace-layout{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:start}
 body .workspace-sidebar-link{display:flex;align-items:center;gap:10px;min-height:30px;width:100%;margin:1px 0;padding:6px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ui-text);font:11px/1.35 'Travelly Sans',Arial,sans-serif;text-align:left;text-decoration:none}
 .workspace-sidebar-link svg{width:17px;height:17px;flex:none}
 body .workspace-sidebar-link:hover{background:var(--ui-glass-strong);color:var(--ui-ink)}
@@ -102,13 +97,10 @@ body .workspace-card .workspace-warning,.workspace-warning{color:#ffcfb5;backgro
 .application-profile dt{font-size:10px;color:var(--ui-text);margin-bottom:4px}
 .application-profile dd{font-size:12px;overflow-wrap:anywhere}
 @media(max-width:1099px),(max-height:759px){
- body .workspace-layout{grid-template-columns:minmax(0,1fr)}
  body .workspace-menu-toggle{display:inline-flex}
  body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}
- body .workspace-topbar .site-header{padding:10px 14px}
 }
 @media(max-width:767px){
- body .workspace-topbar .site-header .brand.travelly-brand{width:145px;height:42px}
  .workspace-header .navigation{gap:12px}
  .workspace-header .navigation>a,.workspace-header .dashboard-signout,.workspace-profile-name{display:none}
  body .role-dashboard{padding:18px 14px 30px}
@@ -126,4 +118,4 @@ body .workspace-card .workspace-warning,.workspace-warning{color:#ffcfb5;backgro
  .dashboard-application{padding:18px;gap:10px}
  .workspace-heading h1{font-size:28px}
 }
-@media(max-width:380px){.workspace-quick-actions{grid-template-columns:1fr}.workspace-topbar .header-inner{gap:8px}.workspace-header .navigation{gap:6px}.dashboard-avatar{width:32px;height:32px}}
+@media(max-width:380px){.workspace-quick-actions{grid-template-columns:1fr}.workspace-header .navigation{gap:6px}.dashboard-avatar{width:32px;height:32px}}

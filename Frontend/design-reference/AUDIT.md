@@ -133,3 +133,14 @@ All /owner/* routes PASS. /owner/operations rebuilt as FlowShell tabs (My Drivin
 ## Group 3 (admin personal, vehicles, rentals, booking detail; 1280x585 and 1920x1080, busy + empty, all tabs)
 All listed routes PASS. The old failures were the 13-item admin sidebar scroll (372/304), fixed earlier; nothing else was failing.
 
+## Page frame (navbar + sidebar + content) - 1280x585, 1366x768, 1920x1080
+Tokens in `src/styles/frame.css` (--frame-inset-x 48px, --frame-max 1320px, --frame-top 24px, --nav-h 64px, --frame-gap 16px, --frame-bottom 20px; at heights <= 640px: top 12px, nav 56px, gap 10px, bottom 12px). Verified by script for /, /login, /register, /hire, /dashboard, /owner/dashboard, /driver/dashboard, /admin/dashboard, /account:
+
+| Viewport | Navbar left-right | Top | Height | Sidebar left | Content right |
+|---|---|---|---|---|---|
+| 1280x585 | 48 - 1232 | 12 | 56 | 48 | 1232 |
+| 1366x768 | 48 - 1318 | 24 | 64 | 48 | 1318 |
+| 1920x1080 | 300 - 1620 | 24 | 64 | 300 | 1620 |
+
+Identical on every route; sidebar top = content top, bottoms aligned, navbar-sidebar gap = sidebar-content gap; no page scroll except the landing page; no sidebar label cut off (sidebar is 236-264px wide). Full audit at 1280x585 for all four roles and the listed routes at 1920x1080 pass except the legacy rows and the by-design search-button overlap on /travel/book/event.
+

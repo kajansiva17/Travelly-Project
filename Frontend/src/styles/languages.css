@@ -30,15 +30,11 @@ html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wr
   body :is(.public-page, .customer-shell) > .site-header .navigation .nav-cta {font-size:13px;padding-block:8px;}
 }
 @media(min-width:1280px) and (max-width:1536px) {
-  body :is(.public-page, .customer-shell) > .site-header {padding-inline:3%;}
-  body :is(.public-page, .customer-shell) > .site-header .header-inner {gap:24px;padding-inline:18px;}
   body :is(.public-page, .customer-shell) > .site-header .brand.travelly-brand {width:180px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation {gap:10px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation .login-link {padding-inline:10px;}
 }
 @media(min-width:1280px) and (max-width:1359px) {
-  body :is(.public-page, .customer-shell) > .site-header {padding-inline:2%;}
-  body :is(.public-page, .customer-shell) > .site-header .header-inner {padding-inline:12px;gap:20px;}
   body :is(.public-page, .customer-shell) > .site-header .brand.travelly-brand {width:160px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation {gap:8px;}
   body :is(.public-page, .customer-shell) > .site-header .navigation .login-link {padding-inline:8px;}
@@ -51,7 +47,6 @@ html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wr
   }
 }
 @media(max-width:420px) {
-  body .workspace-shell .workspace-topbar .brand.travelly-brand {width:clamp(100px,28vw,118px);}
   body .workspace-shell[data-workspace] .workspace-header .navigation {gap:4px;}
   body .workspace-shell .language select {width:90px;}
 }

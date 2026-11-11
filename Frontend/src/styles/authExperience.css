@@ -1,5 +1,4 @@
 /* Authentication presentation only; every existing control remains in flow. */
-.auth-header .header-inner { padding-inline: clamp(20px, 3vw, 48px); }
 .auth-header .navigation { gap: clamp(14px, 1.6vw, 24px); font-size: 13px; line-height: 1.3; }
 .auth-header .navigation .nav-icon { display: inline-flex; align-items: center; gap: 8px; }
 .auth-header .navigation :is(.nav-icon, .language) { min-height: 44px; }
