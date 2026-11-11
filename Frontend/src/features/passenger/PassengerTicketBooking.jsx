@@ -88,7 +88,8 @@ export default function PassengerTicketBooking(){
         travellers:selected.map(code=>({seat_id:byCode[code].seat_id,full_name:names[code].trim()}))}
       if(stops.boarding)body.boarding_stop_id=stops.boarding
       if(stops.dropoff)body.dropoff_stop_id=stops.dropoff
-      setBooking(await api('/bookings/ticket-holds',{method:'POST',body:JSON.stringify(body)}))
+      const created=await api('/bookings/ticket-holds',{method:'POST',body:JSON.stringify(body)})
+      setBooking(await api(`/bookings/${created.id}/ticket`))   // the ticket read carries payment_provider, payment_method and payer_details_required
       await loadSeats(departure.id)
     }catch(e){
       setError(e)
