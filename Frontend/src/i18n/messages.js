@@ -654,6 +654,8 @@ const rows = [
   ["Choose at least one seat first.","முதலில் குறைந்தது ஒரு இருக்கையைத் தேர்ந்தெடுக்கவும்.","මුලින් අවම වශයෙන් එක් ආසනයක් තෝරන්න."],
   ["{value0} travellers · names are needed for every seat","{value0} பயணிகள் · ஒவ்வொரு இருக்கைக்கும் பெயர் தேவை","මගීන් {value0} ක් · සෑම ආසනයකටම නමක් අවශ්‍යයි"],
   ["Sign in to hold seats","இருக்கைகளைப் பிடிக்க உள்நுழையவும்","ආසන රඳවා ගැනීමට පිවිසෙන්න"],
+  ["Assign","நியமி","පවරන්න"],
+  ["Open trip","பயணத்தைத் திற","ගමන විවෘත කරන්න"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

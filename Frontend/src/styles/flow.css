@@ -780,3 +780,14 @@ html body .flow-page .state-card p { margin: 0; line-height: 1.4; }
 html body .flow-page .state-card .state-card-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
 html body .flow-page .travel-service-label { display: flex; align-items: center; gap: 10px; }
 html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
+
+/* Very short windows (1280x585): the busiest dashboard tiles tighten so their content never clips. */
+@media (max-height: 640px) {
+  html body .dash-page .dash-tile-body { gap: .2em; }
+  html body .dash-page .dash-chart { gap: .12em; }
+  html body .dash-page .dash-chart-row { font-size: .9em; line-height: 1.1; gap: 6px; }
+  html body .dash-page .dash-chart-track { height: .75em; }
+  html body .dash-page .dash-vehicles { gap: 4px 8px; }
+  html body .dash-page .dash-vehicle { padding: .1em .4em; }
+  html body .dash-page .dash-vehicle-art:not(.big) { width: 2.3em; height: 2.3em; }
+}

@@ -2,7 +2,7 @@ import { t, getLanguage } from '../i18n/language.js'
 import React,{useEffect,useState} from 'react'
 import {Link,useLocation,useNavigate} from 'react-router-dom'
 import {api} from '../services/api'
-import {Asset,ErrorNotice,Icon} from './components'
+import {Asset,ErrorNotice,Header,Icon} from './components'
 import {BookingPipeline} from './TravellyVisuals'
 import {ItineraryPreview,PlatformMapPlaceholder,TravellyAiPanel,TravellyHelp,UnavailableFeature} from './ReferenceWidgets'
 import VehiclePhoto from './VehiclePhoto'
@@ -135,14 +135,8 @@ function OwnerOperationActions({booking,onChanged}){
   <Link className="button outline" to={withWorkspace('/bookings/'+booking.id,'OWNER')}>{t('Review booking')}<Icon name="arrow" size={16}/></Link>
  </div>
 }
-function OperationTrip({booking,vehicle,userId}){
- const ownerDrive=booking.trip?.driver_user_id===userId&&booking.owner_user_id===userId
- const assignedDrive=booking.trip?.driver_user_id===userId&&!ownerDrive
- const vehicleLabel=vehicle?.label||(booking.owner_user_id===userId?t('Your assigned vehicle'):t('Assigned vehicle'))
- return <article className="owner-operation-trip"><div><span className={'workspace-badge '+(booking.status==='IN_PROGRESS'?'positive':'')}>{t(words(booking.trip?.status||booking.status))}</span><h3>{tripRoute(booking)}</h3><p>{booking.reference} · {displayTime(booking.start_at)}</p></div><dl className="owner-operation-facts"><div><dt>{t('Vehicle')}</dt><dd>{vehicleLabel}</dd></div><div><dt>{t('Driver')}</dt><dd>{ownerDrive?t('You are driving'):assignedDrive?t('You are assigned to drive'):t('Assigned Driver')}</dd></div><div><dt>{t('Operational progress')}</dt><dd>{t(words(booking.trip?.status||booking.status))}</dd></div></dl><p className="workspace-note">{t('Live location appears here while the assigned operator is sharing it.')}</p><Link className="button outline" to={booking.trip?.driver_user_id===userId?withWorkspace('/trips/'+booking.trip.id+'/operation','OWNER'):withWorkspace('/bookings/'+booking.id,'OWNER')}>{t(booking.trip?.driver_user_id===userId?'Operate trip':'Open trip')}<Icon name="arrow" size={16}/></Link></article>
-}
 export function OwnerOperations(){
- const {user}=useWorkspace()
+ const {user}=useWorkspace(),[tab,setTab]=useState(0),[openId,setOpenId]=useState(null)
  const operations=useWorkspaceData(async()=>{
   const listed=await api('/bookings'),items=listed.items||[],details=new Array(items.length);let next=0
   await Promise.all(Array.from({length:Math.min(4,items.length)},async()=>{while(next<items.length){const index=next++;details[index]=await api('/bookings/'+items[index].id)}}))
@@ -150,15 +144,37 @@ export function OwnerOperations(){
  },[user.id])
  const fleet=useWorkspaceData(()=>api('/owners/me/vehicles?page=1&page_size=100'),[user.id])
  const vehicles=new Map((fleet.data?.items||[]).map(vehicle=>[vehicle.id,vehicle]))
- return <Page title="Operations" kicker="VEHICLE OWNER WORKSPACE">
-  <div className="owner-operations-intro"><Icon name="watch" size={31}/><div><strong>{t('Run assigned journeys without leaving your Owner workspace.')}</strong><p>{t('Self-drive and Driver-assignment controls use the existing booking checks. They never switch you to the Driver sidebar.')}</p></div></div>
-  <div className="owner-operations-grid">
-   <Panel title="My Driving" icon="car" subtitle="Trips you are assigned to operate."><Resource resource={operations}>{items=>{const driving=items.filter(booking=>booking.trip?.driver_user_id===user.id);return driving.length?<div className="owner-operation-list">{driving.map(booking=><OperationTrip key={booking.id} booking={booking} vehicle={vehicles.get(booking.vehicle_id)} userId={user.id}/>)}</div>:<Empty icon="car" title="No driving assignments">{t('When you choose self-drive or another Owner assigns you as the Driver, the journey remains in this Owner workspace.')}</Empty>}}</Resource></Panel>
-   <Panel title="Driver Assignments" icon="users" subtitle="Choose a verified Driver or drive your own vehicle."><Resource resource={operations}>{items=>{const awaiting=items.filter(booking=>booking.owner_user_id===user.id&&booking.accepted_quote_digest&&['REQUESTED','OWNER_ACTION_REQUIRED'].includes(booking.status));return awaiting.length?<div className="owner-operation-list">{awaiting.map(booking=><article className="owner-operation-trip" key={booking.id}><div><span className="workspace-badge">{t(words(booking.status))}</span><h3>{tripRoute(booking)}</h3><p>{booking.reference} · {displayTime(booking.start_at)}</p></div><p>{t('Confirm an operator only after the Passenger has accepted the current price. Travelly rechecks Driver evidence, compatibility and conflicting commitments.')}</p><OwnerOperationActions booking={booking} onChanged={operations.reload}/></article>)}</div>:<Empty icon="users" title="No operator decisions waiting">{t('Passenger-accepted bookings that need an Owner operator decision will appear here.')}</Empty>}}</Resource></Panel>
-   <Panel title="Live Fleet Trips" icon="route" subtitle="Current operational status from accessible trip records."><Resource resource={operations}>{items=>{const live=items.filter(booking=>booking.owner_user_id===user.id&&booking.trip&&['READY','IN_PROGRESS'].includes(booking.trip.status));return live.length?<div className="owner-operation-list">{live.map(booking=><OperationTrip key={booking.id} booking={booking} vehicle={vehicles.get(booking.vehicle_id)} userId={user.id}/>)}</div>:<Empty icon="route" title="No live fleet trips">{t('Confirmed and in-progress trips will appear here when the existing API returns them. No vehicle location is assumed.')}</Empty>}}</Resource></Panel>
-   <Panel title="Vehicle Expenses" icon="wallet" subtitle="Fuel and operational-cost records."><Empty icon="wallet" title="Expense records unavailable">{t('The current API has no expense ledger or receipt storage. No expense can be created, approved or reimbursed from this page yet.')}</Empty><dl className="owner-expense-fields"><div><dt>{t('Receipt')}</dt><dd>{t('Unavailable')}</dd></div><div><dt>{t('Odometer')}</dt><dd>{t('Unavailable')}</dd></div><div><dt>{t('Date and time')}</dt><dd>{t('Unavailable')}</dd></div><div><dt>{t('Payer')}</dt><dd>{t('Unavailable')}</dd></div><div><dt>{t('Approval')}</dt><dd>{t('Unavailable')}</dd></div><div><dt>{t('Reimbursement')}</dt><dd>{t('Unavailable')}</dd></div></dl></Panel>
-  </div>
- </Page>
+ const items=operations.data||[]
+ const driving=items.filter(booking=>booking.trip?.driver_user_id===user.id)
+ const awaiting=items.filter(booking=>booking.owner_user_id===user.id&&booking.accepted_quote_digest&&['REQUESTED','OWNER_ACTION_REQUIRED'].includes(booking.status))
+ const live=items.filter(booking=>booking.owner_user_id===user.id&&booking.trip&&['READY','IN_PROGRESS'].includes(booking.trip.status))
+ const lists=[driving,awaiting,live]
+ const paged=usePaged(lists[tab]||[],Math.max(2,useRowCount(tab===1?88:68)))
+ const names=['My Driving','Driver Assignments','Live Fleet Trips','Vehicle Expenses']
+ const emptyText=[['No driving assignments','When you choose self-drive or another Owner assigns you as the Driver, the journey remains in this Owner workspace.'],['No operator decisions waiting','Passenger-accepted bookings that need an Owner operator decision will appear here.'],['No live fleet trips','Confirmed and in-progress trips will appear here when the existing API returns them. No vehicle location is assumed.']][tab]
+ const selected=awaiting.find(booking=>booking.id===openId)
+ const tabs=names.map((name,index)=>({label:t(name),icon:['car','users','route','wallet'][index],active:tab===index,onClick:()=>{setTab(index);setOpenId(null)}}))
+ const tripRow=booking=>{
+  const ownerDrive=booking.trip?.driver_user_id===user.id&&booking.owner_user_id===user.id,assignedDrive=booking.trip?.driver_user_id===user.id&&!ownerDrive
+  const vehicle=vehicles.get(booking.vehicle_id),vehicleLabel=vehicle?.label||(booking.owner_user_id===user.id?t('Your assigned vehicle'):t('Assigned vehicle'))
+  return <article className="tk-row" key={booking.id}><div className="tk-row-main"><strong>{tripRoute(booking)}</strong><span>{booking.reference} · {displayTime(booking.start_at)} · {vehicleLabel} · {ownerDrive?t('You are driving'):assignedDrive?t('You are assigned to drive'):t('Assigned Driver')}</span></div>
+   <div className="tk-row-actions"><Chip tone={booking.status==='IN_PROGRESS'?'success':'muted'}>{t(words(booking.trip?.status||booking.status))}</Chip>
+    <Link className="ui-button ui-button-secondary" to={booking.trip?.driver_user_id===user.id?withWorkspace('/trips/'+booking.trip.id+'/operation','OWNER'):withWorkspace('/bookings/'+booking.id,'OWNER')}>{t(booking.trip?.driver_user_id===user.id?'Operate trip':'Open trip')}</Link></div></article>
+ }
+ return <><Header/><FlowShell heading={t('Operations')} title={t(names[tab])} icon="watch" tabs={tabs} info={t('Run assigned journeys without leaving your Owner workspace.')+' '+t('Self-drive and Driver-assignment controls use the existing booking checks. They never switch you to the Driver sidebar.')}>
+  <ErrorNotice error={operations.error}/>
+  {tab===3?<div className="tk-pane"><p className="tk-line">{t('The current API has no expense ledger or receipt storage. No expense can be created, approved or reimbursed from this page yet.')}</p>
+    <dl className="tk-facts">{['Receipt','Odometer','Date and time','Payer','Approval','Reimbursement'].map(label=><div key={label}><dt>{t(label)}</dt><dd>{t('Unavailable')}</dd></div>)}</dl></div>
+  :operations.loading?<p role="status">{t(" Loading…")}</p>
+  :<div className="tk-pane">
+    {lists[tab].length?<div className="tk-rows">{paged.slice.map(booking=>tab===1
+      ?<article className="tk-row" key={booking.id}><div className="tk-row-main"><strong>{tripRoute(booking)}</strong><span>{booking.reference} · {displayTime(booking.start_at)}</span></div><div className="tk-row-actions"><Chip tone="muted">{t(words(booking.status))}</Chip><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpenId(openId===booking.id?null:booking.id)}>{t(openId===booking.id?'Hide':'Assign')}</button></div></article>
+      :tripRow(booking))}</div>
+     :<p className="flow-note" role="status"><strong>{t(emptyText[0])}.</strong> {t(emptyText[1])}</p>}
+    {selected&&<div className="tk-hold"><p className="tk-line">{t('Confirm an operator only after the Passenger has accepted the current price. Travelly rechecks Driver evidence, compatibility and conflicting commitments.')}</p><OwnerOperationActions booking={selected} onChanged={operations.reload}/></div>}
+    <div className="flow-actions"><span/>{paged.pages>1?paged.pager:null}</div>
+   </div>}
+ </FlowShell></>
 }
 
 export function WorkspaceBookings({kind='bookings',personal=false}){

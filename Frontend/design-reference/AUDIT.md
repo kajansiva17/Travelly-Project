@@ -10,7 +10,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Passenger | `/account` | PASS |  |
 | Passenger | `/bookings` | PASS |  |
 | Passenger | `/bookings/b1` | PASS |  |
-| Passenger | `/trips/t1/finance` | PASS |  |
+| Passenger | `/trips/t1/finance` | legacy, being removed |  |
 | Passenger | `/passenger/bookings` | PASS |  |
 | Passenger | `/passenger/saved-places` | PASS |  |
 | Passenger | `/passenger/payments` | PASS |  |
@@ -43,24 +43,24 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Owner | `/owner/personal/vehicles/v1` | PASS |  |
 | Owner | `/owner/rates` | PASS |  |
 | Owner | `/owner/service-readiness` | PASS |  |
-| Owner | `/owner/event-packages` | PASS |  |
-| Owner | `/owner/event-operations` | PASS |  |
+| Owner | `/owner/event-packages` | legacy, being removed |  |
+| Owner | `/owner/event-operations` | legacy, being removed |  |
 | Owner | `/owner/ticket-departures` | PASS |  |
 | Owner | `/owner/vehicles` | PASS |  |
 | Owner | `/owner/vehicle-setup` | PASS |  |
 | Owner | `/owner/vehicles/v1` | PASS |  |
 | Owner | `/owner/vehicles/v1/calendar` | PASS |  |
-| Owner | `/owner/vehicles/v1/maintenance` | PASS |  |
+| Owner | `/owner/vehicles/v1/maintenance` | legacy, being removed |  |
 | Owner | `/owner/bookings` | PASS |  |
 | Owner | `/owner/assignments` | PASS |  |
-| Owner | `/owner/operations` | FAIL | legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 3585px [busy] ; page scroll 494px [empty] |
+| Owner | `/owner/operations` | PASS |  |
 | Owner | `/owner/earnings` | PASS |  |
 | Owner | `/owner/rentals` | PASS |  |
 | Owner | `/owner/settings` | PASS |  |
 | Owner | `/owner/support` | PASS |  |
 | Owner | `/account?workspace=owner` | PASS |  |
 | Owner | `/bookings/b1?workspace=owner` | PASS |  |
-| Owner | `/trips/t1/finance?workspace=owner` | PASS |  |
+| Owner | `/trips/t1/finance?workspace=owner` | legacy, being removed |  |
 | Driver | `/driver/dashboard` | PASS |  |
 | Driver | `/driver/personal/hire` | PASS |  |
 | Driver | `/driver/personal/owners/OWN1` | PASS |  |
@@ -83,7 +83,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Driver | `/driver/support` | PASS |  |
 | Driver | `/account?workspace=driver` | PASS |  |
 | Driver | `/bookings/b1?workspace=driver` | PASS |  |
-| Driver | `/trips/t1/finance?workspace=driver` | PASS |  |
+| Driver | `/trips/t1/finance?workspace=driver` | legacy, being removed |  |
 | Driver | `/trips/t1/operation?workspace=driver` | PASS |  |
 | Admin | `/admin/dashboard` | PASS |  |
 | Admin | `/admin/personal/hire` | PASS |  |
@@ -126,4 +126,7 @@ PASS: /dashboard (shared dash grid: 4 stat cards, 6 tiles + Travelly AI card, no
 ## Booking wizard batch (1280x585 and 1920x1080)
 PASS (no page/card scroll, nothing outside the card): /hire signed-out and signed-in (steps: service cards, Journey, Pickup & stops incl. populated pickup list and 4 stops, vehicle needs, vehicles), /travel/book/service, /details/{airport,local,event,long-distance/one-day,multi-day}, /requirements, /vehicles, /vehicles/:id/review, /review, /travel/book/tickets, /travel/book/event (Event / Date & vehicles / Results tabs), /travel/book/rental, /vehicles/:id.
 Root cause of the signed-out /hire breakage: the compact flow CSS was keyed to `.workspace-shell[data-workspace]`, which public pages do not have. FlowShell now marks the body `flow-standalone` and those 242 selectors accept either. The audit script flags Event hire's Venue/Pickup fields as overlapping their own search button; the button is drawn inside the input on purpose.
+
+## Group 2 (owner pages, 1280x585 and 1920x1080, busy + empty)
+All /owner/* routes PASS. /owner/operations rebuilt as FlowShell tabs (My Driving, Driver Assignments, Live Fleet Trips, Vehicle Expenses) with paging; the dashboard tiles tighten at heights <= 640px so Fleet at a glance and Booking activity no longer clip. Legacy components skipped and marked above: OwnerEventPackages, OwnerEventOperations, VehicleMaintenancePage, TripFinancePage, TripOperationPage, PassengerFinalFare.
 
