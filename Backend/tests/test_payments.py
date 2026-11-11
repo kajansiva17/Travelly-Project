@@ -60,6 +60,8 @@ def test_paying_in_full_books_the_seats_and_confirms_the_booking(client, held):
     assert paid.json()['status'] == 'PAID' and paid.json()['booking_status'] == 'CONFIRMED'
     assert set(seat_states(client, held).values()) == {'BOOKED'}
     ticket_view = api(client, held['passenger'], 'get', f"/bookings/{held['booking']['id']}/ticket").json()
+    assert (ticket_view['payment_provider'], ticket_view['payment_method'], ticket_view['payer_details_required']) == \
+        ('SANDBOX', 'SANDBOX', [])
     assert ticket_view['status'] == 'CONFIRMED' and ticket_view['payment_status'] == 'PAID' and not ticket_view['hold_active']
     with client.app.state.sessions() as db:
         kinds = sorted(db.scalars(select(Notification.notification_type)

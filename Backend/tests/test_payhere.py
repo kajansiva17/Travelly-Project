@@ -71,6 +71,8 @@ def test_payhere_is_offered_only_when_its_credentials_are_set(client, ticket, mo
 
 
 def test_address_and_city_come_from_the_pay_screen(client, payhere):
+    view = api(client, payhere['passenger'], 'get', f"/bookings/{payhere['booking']['id']}/ticket").json()
+    assert (view['payment_provider'], view['payment_method'], view['payer_details_required']) == ('PAYHERE', 'CARD', ['address', 'city'])
     missing = intent(client, payhere, payer=None)
     assert missing.status_code == 422 and missing.json()['code'] == 'PAYER_DETAILS_REQUIRED'
     assert [f['field'] for f in missing.json()['field_errors']] == ['payer.address', 'payer.city']
