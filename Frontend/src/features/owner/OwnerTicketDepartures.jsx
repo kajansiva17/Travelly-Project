@@ -10,6 +10,25 @@ import {Field,Compact} from './OwnerRates'
 import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
 
+// "Who will drive?" choices: the Owner's own listed Drivers (GET /owners/me/drivers), never a typed user ID.
+function DriverOptions({drivers,me,self=true}){
+  const others=(drivers||[]).filter(d=>d.id!==me.id)
+  return <>
+    {self&&me.driver&&<option value="me">{t('I will drive (self-drive)')}</option>}
+    {others.length>0&&<optgroup label={t('My drivers')}>{others.map(d=><option key={d.id} value={d.id} disabled={!d.eligible}>{d.display_name}{d.reference&&d.display_name!==d.reference?` · ${d.reference}`:''}{d.eligible?'':` · ${t('Not an approved Driver')}`}</option>)}</optgroup>}
+  </>
+}
+function DriverInfo({choice,drivers,me,onSelf}){
+  const picked=(drivers||[]).find(d=>d.id===choice)
+  const none=drivers!==null&&!(drivers||[]).some(d=>d.id!==me.id)
+  if(picked)return <p className="tk-line"><Chip tone={picked.eligible?'success':'danger'} icon={picked.eligible?undefined:'alert'}>{picked.eligible?t('Approved Driver'):t('Not an approved Driver')}</Chip> {t(picked.how_you_know_them)}</p>
+  if(choice==='me')return <p className="tk-line"><Chip tone="success">{t('Approved Driver')}</Chip> {t('You are named as the Driver for this departure.')}</p>
+  if(none)return <p className="tk-line">{t('You have no other Drivers listed yet.')} {me.driver
+      ?<button type="button" className="ui-button ui-button-secondary" onClick={onSelf}>{t('Drive it myself')}</button>
+      :<>{t('Save the draft and assign a Driver later, or')} <Link to="/driver/onboarding">{t('apply to drive')}</Link>.</>}</p>
+  return null
+}
+
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
   fulfilment_policy:'FIXED_GUARANTEED',minimum_confirmed_seats:'',decision_deadline:'',accepted_time_window_minutes:'0',driver_choice:'later'}
 const iso=v=>v?new Date(v).toISOString():null
@@ -49,7 +68,7 @@ export default function OwnerTicketDepartures(){
   const [vehicles,setVehicles]=useState([]),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(null)
   const [preset,setPreset]=useState('van'),[left,setLeft]=useState(2),[right,setRight]=useState(1),[rowCount,setRowCount]=useState(3),[back,setBack]=useState(4),[front,setFront]=useState(1),[sellFront,setSellFront]=useState(true),[off,setOff]=useState(new Set())
-  const [form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
+  const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
   const [tab,setTab]=useState(0),lw=useWizard(2),dw=useWizard(3),panes=[useRef(null),useRef(null),useRef(null)]
   const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
   const loadDepartures=()=>api('/scheduled-trips?mine=true&limit=100').then(x=>setItems(x.items||[])).catch(setError)
@@ -58,6 +77,7 @@ export default function OwnerTicketDepartures(){
     api('/owners/me/routes').then(x=>setRoutes((x.items||[]).filter(r=>r.status==='ACTIVE'))).catch(setError)
     // The Owner may drive only when they hold an approved Driver role (the same check the Account page uses).
     Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,roles])=>setMe({id:user.id,driver:(user.approved_roles||[]).includes('DRIVER')&&(roles.items||[]).some(r=>r.role_code==='DRIVER'&&r.approval_status==='APPROVED')})).catch(()=>{})
+    api('/owners/me/drivers').then(x=>setDrivers(x.items||[])).catch(()=>setDrivers([]))
     loadDepartures()
   },[])
   const vehicle=vehicles.find(v=>v.id===layoutVehicle)
@@ -100,9 +120,24 @@ export default function OwnerTicketDepartures(){
         booking_cutoff_at:cutoffIso,fare_per_seat:String(form.fare_per_seat),fulfilment_policy:form.fulfilment_policy,
         minimum_confirmed_seats:protectedPolicy?Number(form.minimum_confirmed_seats):null,decision_deadline:protectedPolicy?iso(form.decision_deadline):null,
         accepted_time_window_minutes:Number(form.accepted_time_window_minutes||0),accepted_replacement_terms:{},
-        operator_driver_user_id:form.driver_choice==='me'&&me.driver?me.id:null})})
+        operator_driver_user_id:chosenDriver(form.driver_choice)})})
       setForm(emptyDeparture);setNotice(t('Departure saved as a draft. Press Publish below when you are ready.'));loadDepartures();dw.setStep(0);setTab(2)
-    }catch(e){setError(e)}finally{setBusy(false)}
+    }catch(e){setError(e.code==='DRIVER_NOT_ELIGIBLE'?{message:t('That person is not an approved Driver. Choose another Driver or drive it yourself.')}:e)}finally{setBusy(false)}
+  }
+  const chosenDriver=choice=>choice==='me'?(me.driver?me.id:null):choice==='later'?null:choice
+  const driverName=x=>!x.operator_driver_user_id?null:x.operator_driver_user_id===me.id?t('You (self-drive)'):(drivers||[]).find(d=>d.id===x.operator_driver_user_id)?.display_name||t('Driver assigned')
+  async function assign(){
+    const trip=assigning,driver=chosenDriver(driverPick)
+    if(!driver){setError({message:t('Choose a Driver first.')});return}
+    setBusy(true);setError(null);setNotice('')
+    try{await api(`/scheduled-trips/${trip.id}`,{method:'PATCH',body:JSON.stringify({expected_version:trip.version,operator_driver_user_id:driver})});setNotice(t('Driver assigned. You can publish this departure now.'));setAssigning(null);setPickDriver('later');loadDepartures()}
+    catch(e){
+      if(e.code==='VERSION_CONFLICT'){setAssigning(null);loadDepartures();setError({message:t('This departure changed while you were choosing. It has been refreshed, so choose the Driver again.')})}
+      else if(e.code==='DRIVER_NOT_ELIGIBLE')setError({message:t('That person is not an approved Driver. Choose another Driver or drive it yourself.')})
+      else if(e.code==='DEPARTURE_NOT_FOUND'||e.status===404){setAssigning(null);loadDepartures();setError({message:t('This departure no longer exists. The list has been refreshed.')})}
+      else if(e.code==='DEPARTURE_NOT_DRAFT'){setAssigning(null);loadDepartures();setError({message:t('Only a draft departure can change its Driver. The list has been refreshed.')})}
+      else setError(e)
+    }finally{setBusy(false)}
   }
   async function publish(x){
     setError(null);setNotice('')
@@ -217,14 +252,15 @@ export default function OwnerTicketDepartures(){
               <option value="FIXED_GUARANTEED">{t('Fixed, guaranteed departure')}</option>
               <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">{t('Minimum seats with protected fulfilment')}</option></select></Field>
           <Field label="Accepted time window (minutes)" optional help="Leave 0 if the departure time is fixed."><input name="window" min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/></Field>
-          <Field label="Who will drive?" help={me.driver?'Assign later: you are an approved Driver, so Travelly assigns you automatically. I will drive: you are named as the Driver now.':'Assign later: a Driver must be assigned before you can publish this departure.'}>
+          <Field label="Who will drive?" help="Choose yourself (if you are an approved Driver) or one of your Drivers. You can also assign a Driver later, but one is needed before you publish.">
             <select name="driver" value={form.driver_choice} onChange={set('driver_choice')}>
               <option value="later">{t('Assign later')}</option>
-              {me.driver&&<option value="me">{t('I will drive')}</option>}</select></Field>
+              <DriverOptions drivers={drivers} me={me}/></select></Field>
           {protectedPolicy&&<>
             <Field label="Minimum confirmed seats" help="How many seats must be booked for this departure to be confirmed."><input required name="minseats" min="1" type="number" value={form.minimum_confirmed_seats} onChange={set('minimum_confirmed_seats')}/></Field>
             <DateTimeFields dateLabel="Decision deadline date" timeLabel="Decision deadline time" help="You decide by this time." value={form.decision_deadline} min={toLocal(new Date()).slice(0,10)} onChange={v=>setForm(f=>({...f,decision_deadline:v}))}/></>}
         </div>
+        <DriverInfo choice={form.driver_choice} drivers={drivers} me={me} onSelf={()=>setForm(f=>({...f,driver_choice:'me'}))}/>
       </div>
       <div className="flow-actions">
         {dw.step>0?<button type="button" className="ui-button ui-button-secondary" onClick={dw.back}>{t('Back')}</button>:<span/>}
@@ -235,16 +271,28 @@ export default function OwnerTicketDepartures(){
     </form>
 
     <div className="tk-pane" hidden={tab!==2}>
+      {assigning?<>
+        <p className="tk-line"><strong>{assigning.route?.origin_name} → {assigning.route?.destination_name}</strong> · {nice(assigning.departure_at)}</p>
+        <div className="tk-grid" style={{'--cols':2}}>
+          <Field label="Driver" help="Only people you have worked with are listed. A Driver must be approved by Travelly."><select name="assign-driver" value={driverPick} onChange={e=>setPickDriver(e.target.value)}>
+            <option value="later">{t('Choose a Driver')}</option><DriverOptions drivers={drivers} me={me}/></select></Field>
+        </div>
+        <DriverInfo choice={driverPick} drivers={drivers} me={me} onSelf={()=>setPickDriver('me')}/>
+        <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setAssigning(null);setPickDriver('later')}}>{t('Back to list')}</button>
+          <button type="button" className="ui-button ui-button-primary" disabled={busy||driverPick==='later'} onClick={assign}>{busy?t('Saving…'):t('Assign driver')}</button></div>
+      </>:<>
       {items===null?<p role="status">{t('Loading departures…')}</p>:items.length
         ?<div className="tk-rows">{departureList.slice.map(x=><article className="tk-row" key={x.id}>
           <div className="tk-row-main"><strong>{x.route?.origin_name} → {x.route?.destination_name}</strong>
-            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}</span></div>
+            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
           <div className="tk-row-actions">
             {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
             <Chip tone={x.status==='PUBLISHED'?'success':'muted'}>{statusLabel(x.status)}</Chip>
+            {x.status==='DRAFT'&&!x.operator_driver_user_id&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setPickDriver('later');setAssigning(x)}}>{t('Assign driver')}</button>}
             {x.status==='DRAFT'&&<button type="button" className="ui-button ui-button-primary" onClick={()=>publish(x)}>{t('Publish')}</button>}</div></article>)}</div>
         :<Empty>{t('No ticket departures. Save a seat layout, then create a draft departure.')}</Empty>}
       <div className="flow-actions">{departureList.pages>1?departureList.pager:<span/>}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{t('New departure')}</button></div>
+      </>}
     </div>
     </Compact.Provider>
   </FlowShell></>
