@@ -106,8 +106,8 @@ export default function PassengerTicketBooking(){
       </div>
       {items?.items?.length===0&&<Empty>{t('No matching departures. No published departure matches these requirements.')}</Empty>}
       <div className="tk-rows">{results.slice.map(d=><article className="tk-row" key={d.id}>
-        <div className="tk-row-main"><strong>{d.route.route_name}</strong>
-          <span>{new Date(d.departure_at).toLocaleString()} · {d.vehicle.make} {d.vehicle.model}{d.vehicle.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
+        <div className="tk-row-main"><strong>{d.route?.route_name}</strong>
+          <span>{new Date(d.departure_at).toLocaleString()} · {d.vehicle?.make} {d.vehicle?.model}{d.vehicle?.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
         <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>{t('Select departure')}</button></div></article>)}</div>
       <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">{t('Search departures')}</button></div>
     </form>

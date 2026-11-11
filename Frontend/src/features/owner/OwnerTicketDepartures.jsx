@@ -237,8 +237,8 @@ export default function OwnerTicketDepartures(){
     <div className="tk-pane" hidden={tab!==2}>
       {items===null?<p role="status">{t('Loading departures…')}</p>:items.length
         ?<div className="tk-rows">{departureList.slice.map(x=><article className="tk-row" key={x.id}>
-          <div className="tk-row-main"><strong>{x.route.origin_name} → {x.route.destination_name}</strong>
-            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle.make} {x.vehicle.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}</span></div>
+          <div className="tk-row-main"><strong>{x.route?.origin_name} → {x.route?.destination_name}</strong>
+            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}</span></div>
           <div className="tk-row-actions">
             {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
             <Chip tone={x.status==='PUBLISHED'?'success':'muted'}>{statusLabel(x.status)}</Chip>

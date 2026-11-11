@@ -16,7 +16,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Passenger | `/passenger/payments` | PASS |  |
 | Passenger | `/passenger/support` | PASS |  |
 | Passenger | `/passenger/settings` | PASS |  |
-| Passenger | `/passenger/trips/t1/finance` | FAIL | legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 212px [busy] |
+| Passenger | `/passenger/trips/t1/finance` | legacy, being removed (PassengerFinalFare) |  |
 | Passenger | `/travel/book/service` | PASS |  |
 | Passenger | `/travel/book/event` | PASS |  |
 | Passenger | `/travel/book/tickets` | PASS |  |
@@ -45,7 +45,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Owner | `/owner/service-readiness` | PASS |  |
 | Owner | `/owner/event-packages` | PASS |  |
 | Owner | `/owner/event-operations` | PASS |  |
-| Owner | `/owner/ticket-departures` | FAIL | card scroll/clip: travelly-glass-panel 1640/430 [busy] ; legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 20px [busy] ; page scroll 20px [empty] |
+| Owner | `/owner/ticket-departures` | PASS |  |
 | Owner | `/owner/vehicles` | PASS |  |
 | Owner | `/owner/vehicle-setup` | PASS |  |
 | Owner | `/owner/vehicles/v1` | PASS |  |
@@ -73,7 +73,7 @@ Admin: every route also fails on sidebar menu scroll (372/304px).
 | Driver | `/driver/trips/t1/verify-passenger` | PASS |  |
 | Driver | `/driver/trips/t1/live` | PASS |  |
 | Driver | `/driver/trips/t1/cash` | PASS |  |
-| Driver | `/driver/ticket-boarding` | FAIL | legacy layout (role-dashboard) [busy] ; legacy layout (role-dashboard) [empty] ; page scroll 20px [busy] ; page scroll 20px [empty] |
+| Driver | `/driver/ticket-boarding` | PASS |  |
 | Driver | `/driver/rentals` | PASS |  |
 | Driver | `/driver/trip-history` | PASS |  |
 | Driver | `/driver/settings` | PASS |  |
