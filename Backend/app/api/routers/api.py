@@ -13,6 +13,7 @@ from app.models import User, UserRole
 from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, RoleRequest, UserResponse, RoleResponse, RolesResponse, TokenResponse
 from app.schemas.profile import ProfileUpdate
 from app.core.security import hasher, verify_password, DUMMY_HASH, decode_token, issue_tokens
+from app.core import session_cookie
 
 router = APIRouter(prefix='/api/v1')
 logger = logging.getLogger('travelly.audit')
@@ -129,16 +130,31 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     touch(user)
     db.commit()
     store.clear_failures(body.identifier)
-    tokens, sid, expires = issue_tokens(user.id, settings, auth_version=user.auth_version)
+    tokens, sid, expires = issue_tokens(user.id, settings, auth_version=user.auth_version, remember=body.remember_me)
     store.create(sid, user.id, tokens['refresh_token'], expires)
+    session_cookie.keep(request, tokens, body.remember_me)
     logger.info('login user=%s session=%s trace=%s', user.id, sid, request.state.trace_id)
     return tokens
 
 
 @router.post('/auth/refresh', response_model=TokenResponse, tags=['Auth'])
 def refresh(body: RefreshRequest, request: Request, db: Session = Depends(get_db)):
+    token = body.refresh_token or session_cookie.read(request)
+    try:
+        if not token:
+            raise unauthorized('INVALID_REFRESH_TOKEN')
+        return renew(token, request, db)
+    except ApiError as exc:
+        # A refused token's cookie is cleared so the browser stops offering it. Busy (429) or unavailable (503)
+        # answers keep it, so a short outage does not sign anyone out.
+        if exc.status in (401, 403):
+            session_cookie.forget(request)
+        raise
+
+
+def renew(token, request, db):
     store, settings = request.app.state.store, request.app.state.settings
-    claims = decode_token(body.refresh_token, settings, 'refresh')
+    claims = decode_token(token, settings, 'refresh')
     try:
         record = store.get(claims['sid'], claims['sub'])
     except ApiError:
@@ -151,8 +167,10 @@ def refresh(body: RefreshRequest, request: Request, db: Session = Depends(get_db
     if claims.get('av', 0) != user.auth_version or (user.email_login_required and not user.email_verified_at):
         store.revoke(claims['sid'])
         raise unauthorized('INVALID_REFRESH_TOKEN')
-    tokens, _, _ = issue_tokens(user.id, settings, claims['sid'], int(record['exp']), auth_version=user.auth_version)
-    store.rotate(claims['sid'], user.id, body.refresh_token, tokens['refresh_token'])
+    remember = bool(claims.get('rm'))
+    tokens, _, _ = issue_tokens(user.id, settings, claims['sid'], int(record['exp']), auth_version=user.auth_version, remember=remember)
+    store.rotate(claims['sid'], user.id, token, tokens['refresh_token'])
+    session_cookie.keep(request, tokens, remember)
     return tokens
 
 
@@ -162,11 +180,15 @@ def logout(body: RefreshRequest, request: Request):
     scheme, _, token = header.partition(' ')
     if scheme.lower() != 'bearer' or not token:
         raise unauthorized()
+    session_cookie.forget(request)
     claims = decode_token(token, request.app.state.settings)
-    refresh_claims = decode_token(body.refresh_token, request.app.state.settings, 'refresh')
+    refresh_token = body.refresh_token or session_cookie.read(request)
+    if not refresh_token:
+        raise unauthorized('INVALID_SESSION')
+    refresh_claims = decode_token(refresh_token, request.app.state.settings, 'refresh')
     if (claims['sid'], claims['sub']) != (refresh_claims['sid'], refresh_claims['sub']):
         raise unauthorized('INVALID_SESSION')
-    request.app.state.store.logout(claims['sid'], claims['sub'], body.refresh_token)
+    request.app.state.store.logout(claims['sid'], claims['sub'], refresh_token)
     logger.info('logout user=%s session=%s trace=%s', claims['sub'], claims['sid'], request.state.trace_id)
     return Response(status_code=204)
 

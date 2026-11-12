@@ -99,7 +99,7 @@ export default function AuthPage({ signup = false }) {
         setAuthFlow({...result,journey})
         navigate(journeyLink('/check-email',journey),{replace:true})
       } else {
-        const result = await login({identifier:values.identifier,password:values.password,...(['OWNER','DRIVER'].includes(journey)?{journey}:{})})
+        const result = await login({identifier:values.identifier,password:values.password,remember_me:remember,...(['OWNER','DRIVER'].includes(journey)?{journey}:{})})
         if (result.status === 'verification_required') { setAuthFlow({...getAuthFlow(),journey}); navigate(journeyLink('/check-email',journey), { replace:true }); return }
         // Confirm current identity and membership before entering private UI.
         // Dashboard entry revalidates these reads rather than storing profile
@@ -134,7 +134,7 @@ export default function AuthPage({ signup = false }) {
         {!signup&&(
           <>
             <div className="login-options"><label><input type="checkbox" checked={remember} onChange={event=>setRemember(event.target.checked)} aria-describedby={remember?'remember-hint':undefined}/>{t("Remember me")}</label><Link className="inline-link" to={journeyLink('/forgot-password',journey)}>{t("Forgot password?")}</Link></div>
-            {remember && <small className="remember-hint" id="remember-hint">{t("Remember your email on this device. Your password and session are never saved.")}</small>}
+            {remember && <small className="remember-hint" id="remember-hint">{t("Remember your email and stay signed in on this device for up to 7 days. Your password is never saved.")}</small>}
           </>
         )}
         {fields.accept_terms && <p className="field-error" role="alert">{t(fields.accept_terms)}</p>}
