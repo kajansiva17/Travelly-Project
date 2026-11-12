@@ -96,3 +96,14 @@ class DriverLookup(Strict):
         if not isinstance(value, str) or not re.fullmatch(r'USR-[0-9A-F]{16}', value):
             raise ValueError('Enter a public reference like USR-0123456789ABCDEF.')
         return value
+
+
+# --------------------------------------------------------------------------- protected fulfilment (matrix 54-58, D08)
+
+class DepartureCommit(Strict):
+    expected_version: int = Field(ge=1)
+
+
+class DepartureProblem(Strict):
+    expected_version: int = Field(ge=1)
+    reason: str = Field(min_length=5, max_length=1000)

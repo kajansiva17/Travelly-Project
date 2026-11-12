@@ -106,8 +106,3 @@ class UserRole(Base):
 User.__table__.primary_key.name = 'pk_users'
 UserRole.__table__.primary_key.name = 'pk_user_roles'
 
-# Stage 3 tables are declared separately to keep operational records isolated.
-from app.models.trip_operation_models import (TripOperationRun,TripPickupCredential,TripOperationEvent,TripOdometerReading,TripWaitingSession,TripExtraStop,VehicleOperationalExpense,TripMedia,TripFareCalculation,TripFareLineItem)
-from app.models.stage4_models import PlatformFeePolicy,TripPayment,OwnerSettlement,VehicleMaintenanceSchedule
-from app.models.stage5_models import VehicleTypeCatalog,AdminManualFulfilmentEvent
-from app.models.event_hire_models import EventBookingGroup,EventVehicleAllocation

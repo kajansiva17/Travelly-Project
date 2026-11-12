@@ -443,7 +443,7 @@ def start_departure(db, trip, departure, body, user):
     from app.models.rate_models import ServiceType as Service
     locked_departure = departure_of(db, trip, lock=True)
     locked = locked_trip(db, trip.id, body.expected_version)
-    if locked.assignment_status != 'ACCEPTED' or locked.status != 'READY' or locked_departure.status not in ('PUBLISHED', 'READY'):
+    if locked.assignment_status != 'ACCEPTED' or locked.status != 'READY' or locked_departure.status not in ('PUBLISHED', 'COMMITTED', 'READY'):
         raise ApiError(409, 'TRIP_NOT_READY', 'Only an accepted assignment on a published departure can start.')
     moment = datetime.now(timezone.utc)
     if moment < locked_departure.departure_at:

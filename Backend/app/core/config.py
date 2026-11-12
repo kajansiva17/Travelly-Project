@@ -34,7 +34,6 @@ class Settings(BaseSettings):
     # Public HTTPS address of this API (for example an ngrok URL) so PayHere can reach the notify endpoint.
     public_api_url: str = ''
     private_document_root: Path | None = None
-    operational_media_root: Path | None = None
     vehicle_photo_root: Path | None = None
     review_audit_root: Path | None = None
     review_database_identity: str | None = None

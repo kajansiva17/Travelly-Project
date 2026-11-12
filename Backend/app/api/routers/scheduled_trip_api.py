@@ -29,7 +29,7 @@ from app.services.availability import no_vehicle_conflict
 router = APIRouter(prefix='/api/v1', tags=['Ticket departures'])
 ZONE = ZoneInfo('Asia/Colombo')
 CURRENCY = 'LKR'
-LISTED = ('PUBLISHED', 'BOOKING_OPEN')          # statuses a Passenger can search and book
+LISTED = ('PUBLISHED', 'BOOKING_OPEN', 'COMMITTED')  # statuses a Passenger can search and book (commitment does not close sales)
 HIDDEN = ('DRAFT',)                              # never publicly readable
 REQUIRED_FIELDS = ('route_id', 'vehicle_id', 'departure_at', 'estimated_arrival_at', 'booking_cutoff_at',
                    'fare_per_seat', 'fulfilment_policy', 'accepted_time_window_minutes', 'accepted_replacement_terms')
@@ -99,6 +99,8 @@ def trip_out(trip, route, vehicle, available=None, stops=None, owner_view=False)
                          'scheduled_offset_minutes': s.scheduled_offset_minutes} for s in stops]
     if owner_view:
         out.update({'version': trip.version, 'vehicle_id': str(trip.current_vehicle_id),
+                    'committed_at': trip.committed_at.isoformat() if trip.committed_at else None,
+                    'replacement_status': trip.replacement_status, 'cancellation_reason': trip.cancellation_reason,
                     'operator_driver_user_id': str(trip.operator_driver_user_id) if trip.operator_driver_user_id else None})
     return out
 
@@ -378,6 +380,9 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
     if mine:
         user = current(request, db)
         require_role(db, user, 'OWNER')
+        from app.api.routers.fulfilment_api import escalate_missed_deadlines
+        if escalate_missed_deadlines(db):  # D08: a passed decision deadline shows as DECISION_REQUIRED, nothing else
+            db.commit()
         query = query.where(ScheduledTrip.owner_user_id == user.id)
     elif driving:
         # The departures this Driver is assigned to drive, so they can board the Travellers waiting for them.
