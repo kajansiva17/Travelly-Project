@@ -7,6 +7,7 @@ import Chip from '../../components/ui/Chip'
 import AdminList,{Facts} from './AdminList'
 import AdminPaymentSettings from './AdminPaymentSettings'
 import AdminRefunds from './AdminRefunds'
+import AdminAttention from './AdminAttention'
 
 const scopes=[['AIRPORT','Airport Hire'],['LOCAL','Local Hire'],['LONG_DISTANCE','Long Distance'],['EVENT','Event Hire']]
 const tone={ACTIVE:'success',INACTIVE:'muted',DRAFT:'info',NEEDS_REVIEW:'danger'}
@@ -19,12 +20,13 @@ export default function AdminServiceCatalogue(){
  useEffect(()=>{load()},[])
  async function create(event){event.preventDefault();setBusy('create');setError(null);try{const row=await api('/admin/service-types',{method:'POST',body:JSON.stringify({code:codeFor(form.scope),name:form.name,default_pricing_basis:'DISTANCE',is_active:false,pricing_scope:form.scope})});await api(`/admin/service-types/${row.id}/catalogue`,{method:'PATCH',body:JSON.stringify({expected_version:row.version,pricing_scope:form.scope,status:form.status})});await load();setTab(0)}catch(problem){setError(problem)}finally{setBusy('')}}
  async function save(row,status,pricing_scope=row.pricing_scope){setBusy(row.id);setError(null);try{await api(`/admin/service-types/${row.id}/catalogue`,{method:'PATCH',body:JSON.stringify({expected_version:row.version,pricing_scope,status})});await load()}catch(problem){setError(problem)}finally{setBusy('')}}
- const tabs=[{label:t('Services'),icon:'settings',active:tab===0,onClick:()=>setTab(0)},{label:t('Create supported service'),icon:'calendar',active:tab===1,onClick:()=>setTab(1)},{label:t('Payments'),icon:'wallet',active:tab===2,onClick:()=>setTab(2)},{label:t('Refunds'),icon:'wallet',active:tab===3,onClick:()=>setTab(3)}]
+ const tabs=[{label:t('Services'),icon:'settings',active:tab===0,onClick:()=>setTab(0)},{label:t('Create supported service'),icon:'calendar',active:tab===1,onClick:()=>setTab(1)},{label:t('Payments'),icon:'wallet',active:tab===2,onClick:()=>setTab(2)},{label:t('Refunds'),icon:'wallet',active:tab===3,onClick:()=>setTab(3)},{label:t('Needs attention'),icon:'alert',active:tab===4,onClick:()=>setTab(4)}]
  const ticket=<><Link className="ui-button ui-button-secondary" to="/admin/services-routes/routes">{t('Routes & stops')}</Link><Link className="ui-button ui-button-secondary" to="/admin/services-routes/ticket-settings">{t('Seat hold time')}</Link></>
  const base={heading:t('Private-hire service readiness'),icon:'settings',tabs,error,
    info:t('Create and control only Airport Hire, Local Hire, and Long Distance. Deactivation preserves referenced service records.')+' '+t('Scheduled seat tickets use Admin-approved routes. Owners publish departures and set the fare; Passengers hold numbered seats for the time set here.')}
  if(tab===2)return <AdminPaymentSettings base={base}/>
  if(tab===3)return <AdminRefunds base={base}/>
+ if(tab===4)return <AdminAttention base={base} onOpenRefunds={()=>setTab(3)}/>
  if(tab===1)return <AdminList {...base} title={t('Create supported service')} custom={<form className="flow-wizard-form tk-pane" onSubmit={create}>
    <div className="tk-grid" style={{'--cols':3}}>
     <Field label="Service scope"><select value={form.scope} onChange={event=>{const scope=event.target.value;setForm({...form,scope,name:scopes.find(item=>item[0]===scope)[1]})}}>{scopes.map(([value,label])=><option value={value} key={value}>{t(label)}</option>)}</select></Field>

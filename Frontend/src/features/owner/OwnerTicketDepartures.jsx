@@ -10,6 +10,7 @@ import {Field,Compact} from './OwnerRates'
 import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
 import {formatDateTime} from '../../i18n/dateTime.js'
+import DepartureFulfilment,{statusChip,canManage} from './DepartureFulfilment'
 
 // "Who will drive?" choices: the Owner's own listed Drivers (GET /owners/me/drivers), never a typed user ID.
 function DriverOptions({drivers,me,self=true}){
@@ -102,7 +103,7 @@ export default function OwnerTicketDepartures(){
   const [vehicles,setVehicles]=useState([]),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(null)
   const [preset,setPreset]=useState('van'),[left,setLeft]=useState(2),[right,setRight]=useState(1),[rowCount,setRowCount]=useState(3),[back,setBack]=useState(4),[front,setFront]=useState(1),[sellFront,setSellFront]=useState(true),[off,setOff]=useState(new Set())
-  const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[retiming,setRetiming]=useState(null),[newStart,setNewStart]=useState(''),[draftSeats,setDraftSeats]=useState({}),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
+  const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[retiming,setRetiming]=useState(null),[managing,setManaging]=useState(null),[newStart,setNewStart]=useState(''),[draftSeats,setDraftSeats]=useState({}),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
   const [tab,setTab]=useState(0),lw=useWizard(2),dw=useWizard(3),panes=[useRef(null),useRef(null),useRef(null)]
   const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
   const loadDepartures=()=>api('/scheduled-trips?mine=true&limit=100').then(x=>setItems(x.items||[])).catch(setError)
@@ -242,7 +243,6 @@ export default function OwnerTicketDepartures(){
   const nextDeparture=()=>{if(checkPane(panes[dw.step].current).valid)dw.forward()}
   const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
   const stepNames=tab===0?[t('Vehicle and type'),t('Seats')]:[t('Route and time'),t('Arrival and price'),t('Type and driver')]
-  const statusLabel=status=>status==='PUBLISHED'?t('Published'):status==='DRAFT'?t('Draft'):status
 
   return <><Header/><FlowShell heading={t('Ticket departures')} icon="ticket" title={[t('Vehicle seat layout'),t('Create a departure draft'),t('Your departures')][tab]}
     info={[t('Describe each vehicle’s seats once, then publish scheduled departures. Passengers see exactly the seats you define.'),t('Save a draft, then publish it from Your departures when you are ready.'),t('Publish a draft when you are ready for passengers to book it.')][tab]}
@@ -346,7 +346,10 @@ export default function OwnerTicketDepartures(){
     </form>
 
     <div className="tk-pane" hidden={tab!==2}>
-      {retiming?<>
+      {managing?<DepartureFulfilment key={`${managing.id}-${managing.version}`} departure={items?.find(i=>i.id===managing.id)||managing} onBack={()=>setManaging(null)}
+        onProblem={text=>{setManaging(null);setNotice('');setError({message:text});loadDepartures()}}
+        onDone={async(action,result)=>{setManaging(null);setError(null);setNotice(action==='commit'?t('Departure committed. Passengers who paid are told it will run.'):result?.status==='CANCELLED'?t('Departure withdrawn. Nobody had paid for it.'):t('Reported. Selling has stopped and Travelly will arrange the journey for passengers who paid.'));await loadDepartures()}}/>
+      :retiming?<>
         <p className="tk-line"><strong>{retiming.route?.origin_name} → {retiming.route?.destination_name}</strong> · {t('Now')}: {nice(retiming.departure_at)}</p>
         <div className="tk-grid" style={{'--cols':2}}>
           <DateTimeFields dateLabel="New departure date" timeLabel="New departure time" help="Arrival and the booking cut-off move by the same amount." value={newStart} min={toLocal(new Date()).slice(0,10)} onChange={setNewStart}/>
@@ -370,7 +373,8 @@ export default function OwnerTicketDepartures(){
             <span>{nice(x.departure_at)} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{seatsText(x)&&` · ${seatsText(x)}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
           <div className="tk-row-actions">
             {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
-            <Chip tone={x.status==='PUBLISHED'?'success':'muted'}>{statusLabel(x.status)}</Chip>
+            <Chip tone={statusChip(x.status).tone}>{statusChip(x.status).label}</Chip>
+            {canManage(x)&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setManaging(x)}}>{t('Manage')}</button>}
             {x.status==='DRAFT'&&!x.operator_driver_user_id&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setPickDriver('later');setAssigning(x)}}>{t('Assign driver')}</button>}
             {passedKind(x)&&<><Chip tone="danger" icon="alert">{passedKind(x)==='departure'?t('Departure time has passed'):t('Booking cut-off has passed')}</Chip><InfoTip>{t('Create a new departure with a later time, or use Edit time to move this draft.')}</InfoTip>
               <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setNewStart('');setRetiming(x)}}>{t('Edit time')}</button></>}

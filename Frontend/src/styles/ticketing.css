@@ -104,3 +104,8 @@ html body .flow-page .tk-finder .tk-line .ui-button { min-height: 32px; padding:
 /* Number, date and time inputs must never be wider than their grid cell (the "Accepted time window" input spilled into the Driver column) */
 html body .flow-page .tk-grid .rate-field input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; box-sizing: border-box; }
 html body .flow-page .tk-grid .rate-field { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+
+/* Protected-fulfilment notices on the ticket page: compact, one block */
+html body .flow-page .tk-notices { display: flex; flex-direction: column; gap: 4px; }
+html body .flow-page .tk-notice { display: flex; align-items: flex-start; gap: 8px; padding: 6px 10px; border-radius: 12px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); font-size: 13.5px; line-height: 1.35; }
+html body .flow-page .tk-notice > .ui-chip { flex: none; }

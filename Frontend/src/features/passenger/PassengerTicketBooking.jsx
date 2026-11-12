@@ -11,6 +11,7 @@ import {useLocation} from 'react-router-dom'
 import TicketPayment from './TicketPayment'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
+import FulfilmentNotice from './FulfilmentNotice'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
@@ -159,13 +160,14 @@ export default function PassengerTicketBooking(){
 
     {departure&&<div className="tk-pane" hidden={w.step!==2}>
       {locked
-        ?cancelledPaid?<CancelledTicket booking={booking} result={cancelResult}/>
+        ?cancelledPaid?<><FulfilmentNotice bookingId={booking.id} version={booking.version}/><CancelledTicket booking={booking} result={cancelResult}/></>
         :confirmed&&cancelOpen?<TicketCancel booking={booking} departureAt={booking.itinerary?.departure_at||departure.departure_at} refresh={refresh} onDone={cancelDone} onClose={()=>setCancelOpen(false)}/>
         :<div className="tk-hold">
           {held&&<Chip tone="success">{t('Seats held')}</Chip>}
           <h3>{t('Booking {value0}',{value0:booking.booking_reference})}</h3>
           <p className="tk-line">{t('Seats {value0} · Total {value1} {value2}',{value0:booking.travellers.map(x=>x.seat_code).join(', '),value1:booking.currency,value2:booking.total_amount})}</p>
           {held&&<p className="tk-line" role="timer" aria-live="off">{t('Held for')} <strong>{clock}</strong>. {t('The seats are released automatically when the timer ends.')}</p>}
+          {confirmed&&<FulfilmentNotice bookingId={booking.id} version={booking.version}/>}
           <TicketPayment booking={booking} refresh={refresh} returned={returned} onChooseSeats={chooseAgain}/>
         </div>
         :<>
