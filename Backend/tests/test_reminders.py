@@ -87,7 +87,8 @@ def test_maintenance_reminders_once_per_cycle_and_stage(client, fleet):
     run(client)
     assert len(notices(client, fleet['owner'], 'MAINTENANCE_DUE')) == 1
     # A calendar limit three days away is "due soon".
-    soon = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
+    from zoneinfo import ZoneInfo
+    soon = (datetime.now(ZoneInfo('Asia/Colombo')).date() + timedelta(days=2)).isoformat()   # Sri Lanka's date, not UTC
     add(client, fleet, {'record_type': 'BRAKE_SERVICE', 'recorded_at': at(0, 0), 'genuine_calendar_due_date': soon})
     run(client)
     stages = {n.action_payload['task']: n.action_payload['stage'] for n in notices(client, fleet['owner'], 'MAINTENANCE_DUE')}

@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     road_alert_removed_after_denials: int = Field(default=2, ge=1, le=20)
     # Seconds the app listens for the Driver's spoken yes/no after asking "Send a Police alert?"; silence = not sent.
     road_alert_confirm_seconds: int = Field(default=10, ge=3, le=30)
+    # Odometer photo proof (owner decision 13 Nov 2026): a live photo plus the typed reading at trip start and finish.
+    # Photos are private files (no PRD table), deleted this many days after the trip ends; the numbers stay in trips.
+    odometer_photo_required: bool = True
+    odometer_photo_root: Path | None = None       # default: <PRIVATE_DOCUMENT_ROOT>/../odometer-photos
+    odometer_photo_keep_days: int = Field(default=7, ge=1, le=90)
+    odometer_pickup_radius_km: float = Field(default=2.0, ge=0.1, le=50)
+    odometer_match_tolerance_km: float = Field(default=1.0, ge=0, le=20)
+    odometer_unreadable_tries: int = Field(default=3, ge=1, le=10)
     # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
     # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
     # answer too.

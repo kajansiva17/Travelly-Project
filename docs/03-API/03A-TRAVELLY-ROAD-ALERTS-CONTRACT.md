@@ -141,7 +141,8 @@ Nearby people get a `ROAD_ALERT` notification:
 
 ## Screens (UI Claude)
 
-**Driver's live trip map (Driver workspace and "My driving"):**
+**Driver's live trip map (Driver workspace and "My driving"). It opens by itself when the trip starts. The alert
+buttons appear only here, never on the dashboards (owner decision 13 Nov 2026). Map layout: 03O section C.**
 - **Alert button:** one round button on the side of the map.
   - It opens five big buttons: Police, Speed check, Accident, Roadblock, Road hazard, with icons.
   - Tapping one sends it with the current position and heading (section 1, `BUTTON`).

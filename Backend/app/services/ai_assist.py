@@ -303,6 +303,16 @@ def gemini(settings, prompt, schema):
     return json.loads(text)
 
 
+def gemini_image(settings, prompt, schema, image_b64, mime='image/jpeg'):
+    """Same as gemini() with one photo (odometer reading). The photo is sent only for this one answer."""
+    url = f'https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent'
+    body = {'contents': [{'role': 'user', 'parts': [{'inlineData': {'mimeType': mime, 'data': image_b64}}, {'text': prompt}]}],
+            'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json', 'responseSchema': schema}}
+    reply = httpx.post(url, json=body, headers={'x-goog-api-key': settings.gemini_api_key}, timeout=max(settings.gemini_timeout_seconds, 15))
+    reply.raise_for_status()
+    return json.loads(reply.json()['candidates'][0]['content']['parts'][0]['text'])
+
+
 def gemini_allowed(store, settings):
     if not settings.gemini_api_key.strip() or settings.gemini_daily_limit <= 0:
         return False

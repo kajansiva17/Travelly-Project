@@ -405,7 +405,7 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
     trip = db.get(Trip, trip_id)
     if not trip or trip.driver_user_id != user.id: raise missing()
     departure = departure_of(db, trip)
-    if departure is not None: return start_departure(db, trip, departure, body, user)
+    if departure is not None: return start_departure(db, trip, departure, body, user, request)
     with request.app.state.audit.coordinated():
         before = db.get(Booking, trip.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
@@ -414,11 +414,22 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
         if datetime.now(timezone.utc) < row.start_at: raise ApiError(409, 'TRIP_NOT_READY', 'The scheduled pickup time has not arrived.')
         if datetime.now(timezone.utc) >= row.end_at: raise ApiError(409, 'TRIP_NOT_READY', 'The reserved interval has ended. Resolve the itinerary before starting; no reservation was released.')
         eligible_vehicle(db, vehicle); compatible_driver(db, user, vehicle, service_for(db, row.service_type_id, False), datetime.now(timezone.utc))
+        odometer_rules(request, trip, vehicle, 'START', body.start_odometer_km)
         no_conflict(db, vehicle.id, row.start_at, row.end_at, exclude=row.id, driver_id=user.id)
         previous = booking_summary(row); row.status = 'IN_PROGRESS'; trip.status = 'IN_PROGRESS'; trip.actual_start_at = datetime.now(timezone.utc); trip.start_odometer_km = body.start_odometer_km; touch(trip)
         notify(db, row, 'Trip started', 'The assigned Driver started this confirmed journey.', user.id)
         audited(request, db, user, row, previous, 'Assigned eligible Driver started the trip')
     return booking_summary(row)
+
+
+def odometer_rules(request, trip, vehicle, stage, km):
+    """Owner decision 13 Nov 2026: the start reading is never below the vehicle's last odometer, and start/finish need a
+    fresh live photo for exactly this reading (app/services/odometer_proof.py)."""
+    from app.services import odometer_proof
+    if stage == 'START':
+        odometer_proof.below_last(vehicle, km)
+    if request is not None:
+        odometer_proof.require_proof(request.app.state.settings, trip, stage, km)
 
 
 def driving_trip(db, trip_id, user):
@@ -456,7 +467,7 @@ def running(trip):
         raise ApiError(409, 'TRIP_NOT_READY', 'The trip has not started or has already finished.')
 
 
-def start_departure(db, trip, departure, body, user):
+def start_departure(db, trip, departure, body, user, request=None):
     """A published departure starts the same way a private hire does, against the departure itself."""
     from app.models.rate_models import ServiceType as Service
     locked_departure = departure_of(db, trip, lock=True)
@@ -471,6 +482,7 @@ def start_departure(db, trip, departure, body, user):
     vehicle = db.scalar(select(Vehicle).where(Vehicle.id == locked.vehicle_id).with_for_update().execution_options(populate_existing=True))
     eligible_vehicle(db, vehicle)
     compatible_driver(db, user, vehicle, db.get(Service, locked_departure.service_type_id), moment)
+    odometer_rules(request, locked, vehicle, 'START', body.start_odometer_km)
     # The departure itself holds this vehicle's slot, so only the Driver's own calendar is rechecked.
     clash = db.scalar(select(Trip.id).where(Trip.driver_user_id == user.id, Trip.assignment_status == 'ACCEPTED',
                                             Trip.status.notin_(('COMPLETED', 'CANCELLED')), Trip.id != locked.id,
@@ -498,7 +510,7 @@ def breakdown_departure(db, trip, body, user):
     return {'trip': trip_summary(locked)}
 
 
-def complete_departure(db, trip, body, user):
+def complete_departure(db, trip, body, user, request=None):
     """Finishing the journey closes the departure and the travellers who boarded it."""
     from app.models.seat_models import BookingTraveller, ScheduledTripSeat
     locked_departure = departure_of(db, trip, lock=True)
@@ -506,6 +518,7 @@ def complete_departure(db, trip, body, user):
     running(locked)
     if locked.start_odometer_km is None or body.end_odometer_km < locked.start_odometer_km:
         raise ApiError(422, 'VALIDATION_ERROR', 'The closing odometer cannot be lower than the odometer recorded at the start.')
+    odometer_rules(request, locked, None, 'END', body.end_odometer_km)
     locked.actual_end_at = datetime.now(timezone.utc)
     locked.end_odometer_km = body.end_odometer_km
     locked.calculated_distance_km = body.end_odometer_km - locked.start_odometer_km
@@ -553,6 +566,57 @@ def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_
     return trip_summary(trip)
 
 
+@router.get('/trips/{trip_id}/map')
+def trip_map(trip_id: UUID, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """What the live trip map draws (owner decision 13 Nov 2026): the stops from start to end, the road line between
+    them when the route service answers (cached 12 hours), and the latest position. Same people as GET /trips/{id}."""
+    trip_detail(trip_id, user, db)
+    trip = db.get(Trip, trip_id)
+    departure = departure_of(db, trip)
+    points = []
+    if departure is not None:
+        from app.models.hire_models import Route, RouteStop
+        route = db.get(Route, departure.route_id)
+        points.append({'label': route.origin_name, 'latitude': str(route.origin_latitude), 'longitude': str(route.origin_longitude), 'kind': 'START'})
+        for stop in db.scalars(select(RouteStop).where(RouteStop.route_id == route.id, RouteStop.is_active.is_(True)).order_by(RouteStop.stop_order)):
+            points.append({'label': stop.stop_name, 'latitude': str(stop.latitude), 'longitude': str(stop.longitude), 'kind': 'STOP'})
+        points.append({'label': route.destination_name, 'latitude': str(route.destination_latitude), 'longitude': str(route.destination_longitude), 'kind': 'END'})
+    else:
+        stops = (db.get(Booking, trip.booking_id).itinerary_snapshot.get('itinerary') or {}).get('stops') or []
+        for index, stop in enumerate(stops):
+            place = stop['place']
+            kind = 'START' if index == 0 else 'END' if index == len(stops) - 1 else 'STOP'
+            points.append({'label': place['label'], 'latitude': str(place['latitude']), 'longitude': str(place['longitude']), 'kind': kind})
+    return {'trip_id': str(trip.id), 'status': trip.status, 'points': points, 'line': road_line(request, trip.id, points),
+            'position': None if trip.current_latitude is None else {
+                'latitude': str(trip.current_latitude), 'longitude': str(trip.current_longitude),
+                'updated_at': trip.location_updated_at.isoformat() if trip.location_updated_at else None}}
+
+
+def road_line(request, trip_id, points):
+    """[[lng, lat], ...] along the roads, or None (the map then draws straight lines between the points)."""
+    import json as _json
+    import httpx
+    settings, store = request.app.state.settings, request.app.state.store
+    if len(points) < 2 or not settings.routing_api_key:
+        return None
+    key = store.key(f'trip-map-line:{trip_id}')
+    cached = store.client.get(key)
+    if cached:
+        return _json.loads(cached)
+    try:
+        reply = httpx.post(settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/driving-car/geojson',
+                           headers={'Authorization': settings.routing_api_key}, timeout=10,
+                           json={'coordinates': [[float(p['longitude']), float(p['latitude'])] for p in points][:50]})
+        reply.raise_for_status()
+        line = reply.json()['features'][0]['geometry']['coordinates']
+        if not line or len(line) > 100000: return None
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+        return None
+    store.client.set(key, _json.dumps(line), ex=43200)
+    return line
+
+
 @router.patch('/trips/{trip_id}/location')
 def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: Session = Depends(get_db)):
     driving_trip(db, trip_id, user)
@@ -592,7 +656,7 @@ def trip_breakdown(trip_id: UUID, body: Breakdown, request: Request, user=Depend
 @router.post('/trips/{trip_id}/complete')
 def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     first = driving_trip(db, trip_id, user)
-    if first.scheduled_trip_id: return complete_departure(db, first, body, user)
+    if first.scheduled_trip_id: return complete_departure(db, first, body, user, request)
     with request.app.state.audit.coordinated():
         before = db.get(Booking, first.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
@@ -601,6 +665,7 @@ def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depe
         if row.status != 'IN_PROGRESS': raise ApiError(409, 'TRIP_NOT_READY', 'Only a started booking can be completed.')
         if trip.start_odometer_km is None or body.end_odometer_km < trip.start_odometer_km:
             raise ApiError(422, 'VALIDATION_ERROR', 'The closing odometer cannot be lower than the odometer recorded at the start.')
+        odometer_rules(request, trip, None, 'END', body.end_odometer_km)
         previous = booking_summary(row)
         trip.actual_end_at = datetime.now(timezone.utc)
         trip.end_odometer_km = body.end_odometer_km
