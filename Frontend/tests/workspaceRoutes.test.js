@@ -20,13 +20,20 @@ test('workspace query is an allowlisted UI selection and preserves existing URL 
  assert.equal(menuActive(documents,'/account','?workspace=owner&documents=owner'),true)
  assert.equal(menuActive(profile,'/account','?workspace=owner&documents=owner'),false)
 })
-test('login uses current approval, Owner priority for dual roles and explicit journey intent',()=>{
+test('login uses current approval and explicit journey intent; plain sign-in opens the Passenger workspace (session contract 03S)',()=>{
  const route=(codes,journey,status='ACTIVE',rows)=>loginDestination({account_status:status,approved_roles:codes},rows||codes.map(role_code=>({role_code,approval_status:'APPROVED'})),journey)
- assert.equal(route(['PASSENGER','OWNER']),'/owner/dashboard')
- assert.equal(route(['PASSENGER','DRIVER']),'/driver/dashboard')
- assert.equal(route(['PASSENGER','OWNER','DRIVER']),'/owner/dashboard')
+ // Plain sign-in (no Owner/Driver/Admin entry) opens the Passenger dashboard for everyone; other workspaces are a switch away.
+ assert.equal(route(['PASSENGER']),'/dashboard')
+ assert.equal(route(['PASSENGER','OWNER']),'/dashboard')
+ assert.equal(route(['PASSENGER','DRIVER']),'/dashboard')
+ assert.equal(route(['PASSENGER','OWNER','DRIVER']),'/dashboard')
+ assert.equal(route(['PASSENGER','ADMIN','OWNER']),'/dashboard')
+ // Owner priority for dual roles now comes from the entry the person used: the Owner entry opens the Owner workspace.
+ assert.equal(route(['PASSENGER','OWNER'],'OWNER'),'/owner/dashboard')
+ assert.equal(route(['PASSENGER','OWNER','DRIVER'],'OWNER'),'/owner/dashboard')
  assert.equal(route(['PASSENGER','OWNER','DRIVER'],'DRIVER'),'/driver/dashboard')
- assert.equal(route(['PASSENGER','ADMIN','OWNER']),'/admin/dashboard')
+ assert.equal(route(['PASSENGER','ADMIN','OWNER'],'ADMIN'),'/admin/dashboard')
+ assert.equal(route(['PASSENGER','OWNER'],'ADMIN'),'/dashboard')
  assert.equal(route(['PASSENGER'],'OWNER'),'/owner/onboarding')
  assert.equal(route(['PASSENGER'],'DRIVER'),'/driver/onboarding')
  assert.equal(route(['PASSENGER','OWNER'],null,'BLOCKED'),'/dashboard')

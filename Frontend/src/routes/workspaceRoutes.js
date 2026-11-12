@@ -6,7 +6,7 @@ export function eligibleWorkspaces(user,roles){
 }
 export function loginDestination(user,roles,journey){
  const allowed=eligibleWorkspaces(user,roles)
- if(journey==='ADMIN')return '/admin/dashboard'
+ if(journey==='ADMIN')return allowed.includes('ADMIN')?'/admin/dashboard':'/dashboard'   // only an approved Admin enters the Admin workspace
  if(['OWNER','DRIVER'].includes(journey))return allowed.includes(journey)?workspaceRoles[journey].home:`/${journey.toLowerCase()}/onboarding`
  // Plain sign-in (home page, no Owner/Driver/Admin entry) opens the Passenger workspace; other workspaces are a switch away.
  return '/dashboard'

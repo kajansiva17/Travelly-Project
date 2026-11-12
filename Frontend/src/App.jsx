@@ -126,6 +126,8 @@ function ReturnToRequestedPage(){
     if(!signedIn||pathname==='/login'||pathname==='/register')return
     const target=readReturn()
     if(!target)return
+    // Landing on an onboarding page means this person is not approved for that workspace: never push them on to its private pages.
+    if(pathname.endsWith('/onboarding')){writeReturn(null);tries.current=0;return}
     if(workspaceOf(target)!==workspaceOf(here)||target===here||target.split('#')[0]===pathname+search||tries.current>=4){writeReturn(null);tries.current=0;return}
     tries.current+=1
     navigate(target,{replace:true})
