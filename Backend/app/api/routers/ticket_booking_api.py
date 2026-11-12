@@ -32,7 +32,7 @@ from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleS
 from app.schemas.ticket_booking_schemas import HoldRelease, TicketHoldRequest, TicketHoldSettings
 
 router = APIRouter(prefix='/api/v1', tags=['Ticket holds'])
-BOOKABLE = ('PUBLISHED', 'BOOKING_OPEN')
+BOOKABLE = ('PUBLISHED', 'BOOKING_OPEN', 'COMMITTED')
 EXPIRED_REASON = 'Seat hold expired.'
 ASSURANCE = {'FIXED_GUARANTEED': 'FIXED_DEPARTURE', 'MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT': 'TRAVELLY_PROTECTED'}
 
