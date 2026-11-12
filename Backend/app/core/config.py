@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     road_alert_active_after_confirmations: int = Field(default=1, ge=1, le=20)
     road_alert_verified_after_confirmations: int = Field(default=3, ge=1, le=50)
     road_alert_removed_after_denials: int = Field(default=2, ge=1, le=20)
+    # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
+    # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
+    # answer too.
+    gemini_api_key: str = Field(default='', repr=False)
+    gemini_model: str = 'gemini-2.5-flash'
+    gemini_daily_limit: int = Field(default=200, ge=0, le=100000)
+    gemini_timeout_seconds: int = Field(default=8, ge=1, le=60)
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
     # HeiGIT shut down api.openrouteservice.org on 2-6 Nov 2026; the same key works on api.heigit.org (no trailing slash).

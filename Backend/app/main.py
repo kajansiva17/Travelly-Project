@@ -19,6 +19,7 @@ from app.core.sessions import SessionStore
 from app.core import session_cookie
 from app.api.routers.fulfilment_api import router as fulfilment_router
 from app.api.routers.road_alerts_api import router as road_alerts_router
+from app.api.routers.ai_api import router as ai_router
 from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
 from app.api.routers.auth_extension import router as auth_extension_router
 from app.services.auth_services import AuthState, Mailer, GoogleIdentity
@@ -218,6 +219,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(stage5_admin_router)
     app.include_router(fulfilment_router)
     app.include_router(road_alerts_router)
+    app.include_router(ai_router)
     app.include_router(ticket_router)
     app.include_router(route_router)
     app.include_router(scheduled_trip_router)
