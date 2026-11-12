@@ -7,6 +7,8 @@ import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
 import {Button,Checkbox,FormField,Input,Select,InfoCallout} from '../../components/ui'
 import HirePayment from '../booking/HirePayment'
+import InfoTip from '../../components/ui/InfoTip'
+import {RoadAlertsPanel,useRoadAlerts,useSpeaker} from './RoadAlerts'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
    report a problem on the road, and finish. Everything uses the trip the Owner committed. */
@@ -29,6 +31,8 @@ export default function DriverTripPage(){
   const [sharing,setSharing]=useState(false),[sentAt,setSentAt]=useState(null)
   const [scanning,setScanning]=useState(false),[pin,setPin]=useState('')
   const latest=useRef(null),video=useRef(null)
+  // Road alerts (contract 03A): nearby alerts are polled while the trip runs, and spoken once when the Driver switched the speaker on.
+  const [alertsOpen,setAlertsOpen]=useState(false),speaker=useSpeaker(),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
   useEffect(()=>{latest.current=trip},[trip])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return()=>clearTimeout(timer)},[notice])
 
@@ -157,21 +161,17 @@ export default function DriverTripPage(){
       <div className="flow-actions"><Button type="submit" disabled={busy||!ready||!odometer} arrow>{busy?t('Starting…'):t('Start the trip')}</Button></div>
     </form>}
 
-    {open==='live'&&<div className="flow-fields">
-      <FlowBanner tone={trip.location?'success':'info'} icon="pin" title={trip.location?t('Your position is shared'):t('Position not shared yet')}
-        aside={sharing?<Button variant="secondary" onClick={()=>setSharing(false)}>{t('Stop sharing')}</Button>
-          :<Button onClick={()=>setSharing(true)}>{t('Share every 30 seconds')}</Button>}>
+    {open==='live'&&<div className="flow-fields ra-live">
+      {!alertsOpen&&<FlowBanner tone={trip.location?'success':'info'} icon="pin" title={trip.location?t('Your position is shared'):t('Position not shared yet')}
+        aside={<div className="ra-banner-actions">{sharing?<Button variant="secondary" onClick={()=>setSharing(false)}>{t('Stop sharing')}</Button>
+          :<Button onClick={()=>setSharing(true)}>{t('Share every 30 seconds')}</Button>}<Button variant="secondary" disabled={busy} onClick={()=>sendPosition()}>{t('Send my position now')}</Button></div>}>
         {trip.location
           ?t('Last sent at ')+clock(sentAt||trip.location.updated_at)+t(' Sri Lanka time.')
           :t('Only the Passenger, the Owner and Travelly Admin can see it.')}
-      </FlowBanner>
-      {trip.location&&<dl className="flow-review">
-        <div><dt>{t('Map position')}</dt><dd>{trip.location.latitude}, {trip.location.longitude}</dd></div>
-        {trip.location.accuracy_m&&<div><dt>{t('Accuracy')}</dt><dd>{Math.round(Number(trip.location.accuracy_m))} m</dd></div>}
-        {trip.location.speed_kph&&<div><dt>{t('Speed')}</dt><dd>{Math.round(Number(trip.location.speed_kph))} {t('km/h')}</dd></div>}
-      </dl>}
-      <div className="flow-actions"><Button variant="secondary" disabled={busy} onClick={()=>sendPosition()}>{t('Send my position now')}</Button></div>
-      <InfoCallout>{t('Sharing stops by itself when the trip is completed.')}</InfoCallout>
+        <InfoTip>{t('Sharing stops by itself when the trip is completed.')}</InfoTip>
+        {trip.location&&<span className="ra-position"> · {t('Map position')}: {trip.location.latitude}, {trip.location.longitude}{trip.location.accuracy_m?` · ${t('Accuracy')} ${Math.round(Number(trip.location.accuracy_m))} m`:''}{trip.location.speed_kph?` · ${t('Speed')} ${Math.round(Number(trip.location.speed_kph))} ${t('km/h')}`:''}</span>}
+      </FlowBanner>}
+      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen}/>
     </div>}
 
     {open==='problem'&&<form className="flow-fields" onSubmit={report}>
