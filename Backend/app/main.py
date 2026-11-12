@@ -18,6 +18,7 @@ from app.core.errors import ApiError
 from app.core.sessions import SessionStore
 from app.core import session_cookie
 from app.api.routers.fulfilment_api import router as fulfilment_router
+from app.api.routers.road_alerts_api import router as road_alerts_router
 from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
 from app.api.routers.auth_extension import router as auth_extension_router
 from app.services.auth_services import AuthState, Mailer, GoogleIdentity
@@ -148,6 +149,10 @@ def create_app(settings=None, engine=None, store=None):
                     query_route = True
                 if request.method == 'GET' and request.url.path == '/api/v1/bookings' and set(request.query_params) <= {'as'}:
                     query_route = True
+                if request.method == 'GET' and request.url.path == '/api/v1/road-alerts' and set(request.query_params) <= {'trip_id'}:
+                    query_route = True
+                if request.method == 'GET' and request.url.path == '/api/v1/admin/road-alerts' and set(request.query_params) <= {'status'}:
+                    query_route = True
                 if (request.method == 'GET' and request.url.path.startswith('/api/v1/scheduled-trips/')
                         and request.url.path.endswith('/replacement-options') and set(request.query_params) <= {'reference'}):
                     query_route = True
@@ -212,6 +217,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(vehicle_router)
     app.include_router(stage5_admin_router)
     app.include_router(fulfilment_router)
+    app.include_router(road_alerts_router)
     app.include_router(ticket_router)
     app.include_router(route_router)
     app.include_router(scheduled_trip_router)

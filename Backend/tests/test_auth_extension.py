@@ -297,7 +297,7 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
             connection.execute(text("INSERT INTO users (public_user_reference, full_name, email, password_hash) VALUES (:ref, 'New Passenger', 'new@example.com', :password)"), {'ref': 'USR-' + uuid4().hex[:16].upper(), 'password': encoded})
             assert connection.scalar(text("SELECT email_login_required FROM users WHERE email = 'new@example.com'")) is True
             tables = set(connection.scalars(text('SELECT tablename FROM pg_tables WHERE schemaname = :schema'), {'schema': schema}))
-            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'alembic_version'}
+            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'road_alerts', 'alembic_version'}
     finally:
         engine.dispose()
         with control.begin() as connection:

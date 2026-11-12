@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     # also used for "maintenance due soon"; email copies are off until real delivery is configured.
     reminder_working_days: int = Field(default=5, ge=1, le=30)
     reminder_email_enabled: bool = False
+    # Road alerts (owner decisions 12 Nov 2026): minutes an alert stays up per type, relevance radius, and how many
+    # nearby Drivers' answers change its status.
+    road_alert_minutes_police_presence: int = Field(default=60, ge=5, le=1440)
+    road_alert_minutes_speed_check: int = Field(default=60, ge=5, le=1440)
+    road_alert_minutes_accident: int = Field(default=120, ge=5, le=1440)
+    road_alert_minutes_road_hazard: int = Field(default=120, ge=5, le=1440)
+    road_alert_minutes_roadblock: int = Field(default=180, ge=5, le=1440)
+    road_alert_radius_km: int = Field(default=15, ge=1, le=100)
+    road_alert_active_after_confirmations: int = Field(default=1, ge=1, le=20)
+    road_alert_verified_after_confirmations: int = Field(default=3, ge=1, le=50)
+    road_alert_removed_after_denials: int = Field(default=2, ge=1, le=20)
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
     # HeiGIT shut down api.openrouteservice.org on 2-6 Nov 2026; the same key works on api.heigit.org (no trailing slash).
