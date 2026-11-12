@@ -23,7 +23,7 @@ from app.models.hire_models import Booking, Route, RouteStop, ScheduledTrip, Tri
 from app.models.rate_models import ServiceType
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
-from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, PublishRequest, SeatLayoutIn
+from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, DriverLookup, PublishRequest, SeatLayoutIn
 from app.services.availability import no_vehicle_conflict
 
 router = APIRouter(prefix='/api/v1', tags=['Ticket departures'])
@@ -248,8 +248,8 @@ def owner_drivers(user=Depends(current), db: Session = Depends(get_db)):
 
     There is no standing Owner-Driver network, so this is only the people the Owner has already
     worked with: a vehicle's preferred Driver, a Driver on one of their trips or departures, and
-    the Owner themselves when they hold an approved Driver role. Anyone else is still chosen by
-    public reference through /drivers/eligible-lookup. Contact details are never listed here.
+    the Owner themselves when they hold an approved Driver role. Anyone else is found by public
+    reference through POST /owners/me/drivers/lookup. Contact details are never listed here.
     """
     require_role(db, user, 'OWNER')
     sources = {}
@@ -273,6 +273,26 @@ def owner_drivers(user=Depends(current), db: Session = Depends(get_db)):
               'eligible': has_role(db, row.id, 'DRIVER'), 'how_you_know_them': sources[row.id]} for row in rows]
     items.sort(key=lambda item: (not item['eligible'], item['display_name'].lower()))
     return {'items': items, 'message': 'Only Drivers you have already worked with. Add anyone else by public reference.'}
+
+
+@router.post('/owners/me/drivers/lookup')
+def lookup_driver(body: DriverLookup, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Find a Driver for a departure by their public reference (USR-...), for Owners with no Driver history.
+
+    Eligibility is exactly the rule POST/PATCH /scheduled-trips apply to operator_driver_user_id: an APPROVED Driver
+    role. Only the public reference, the display name and eligibility are returned; the user id only when eligible,
+    because it is only useful to assign them. No contact details, documents or other roles. Rate-limited per Owner.
+    """
+    require_role(db, user, 'OWNER')
+    request.app.state.store.rate(f'owner-driver-lookup:{user.id}', 30, 300)
+    row = db.scalar(select(User).where(User.public_user_reference == body.driver_reference))
+    if not row:
+        raise ApiError(404, 'DRIVER_NOT_FOUND', 'No Travelly user has this reference. Check it with the Driver.')
+    eligible = has_role(db, row.id, 'DRIVER')
+    return {'id': str(row.id) if eligible else None, 'reference': row.public_user_reference,
+            'display_name': row.display_name or row.public_user_reference, 'eligible': eligible,
+            'message': 'Approved Driver. You can assign them to this departure.' if eligible
+            else 'This person is not an approved Driver yet, so they cannot drive a departure.'}
 
 
 @router.post('/scheduled-trips', status_code=201)

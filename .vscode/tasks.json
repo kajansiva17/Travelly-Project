@@ -98,12 +98,37 @@
       }
     },
     {
+      "label": "Travelly: ngrok (PayHere)",
+      "type": "shell",
+      "command": "Start-Sleep -Seconds 10; $line = Get-Content 'Backend\\.env' -ErrorAction SilentlyContinue | Where-Object { $_ -match '^PUBLIC_API_URL=https://' } | Select-Object -First 1; if (-not $line) { 'ngrok not started: PayHere testing is off (no PUBLIC_API_URL=https://... in Backend\\.env). This is fine for normal work.' } elseif (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) { 'ngrok not started: ngrok is not installed.' } elseif (Get-Process ngrok -ErrorAction SilentlyContinue) { 'ngrok is already running.' } else { $domain = ($line -replace '^PUBLIC_API_URL=https://', '').Trim().TrimEnd('/'); ngrok http --url=$domain 8000 }",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "travelly",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
       "label": "Travelly: Start all",
       "dependsOn": [
         "Travelly: Redis",
         "Travelly: Review Writer",
         "Travelly: Backend",
-        "Travelly: Frontend"
+        "Travelly: Frontend",
+        "Travelly: ngrok (PayHere)"
       ],
       "dependsOrder": "parallel",
       "problemMatcher": [],

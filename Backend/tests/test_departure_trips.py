@@ -203,3 +203,41 @@ def test_the_driver_lists_the_departures_they_are_assigned_to_drive(client, tick
     other = person(client, 'DRIVER')
     assert api(client, other, 'get', '/scheduled-trips?driving=true').json()['items'] == []
     assert api(client, person(client), 'get', '/scheduled-trips?driving=true').status_code == 403
+
+
+def reference_of(client, who):
+    from app.models import User
+    with client.app.state.sessions() as db:
+        return db.get(User, UUID(who['id'])).public_user_reference
+
+
+def test_a_new_owner_finds_a_driver_by_public_reference_and_assigns_them(client, ticket):
+    owner, driver = person(client, 'OWNER'), person(client, 'DRIVER')
+    found = api(client, owner, 'post', '/owners/me/drivers/lookup', {'driver_reference': reference_of(client, driver).lower()})
+    assert found.status_code == 200, found.text
+    body = found.json()
+    assert set(body) == {'id', 'reference', 'display_name', 'eligible', 'message'}
+    assert body['id'] == driver['id'] and body['eligible'] is True and body['reference'] == reference_of(client, driver)
+    with client.app.state.sessions() as db:
+        vehicle = db.get(Vehicle, UUID(ticket['trip']['vehicle_id']))
+        vehicle.owner_user_id = UUID(owner['id'])
+        db.commit()
+    draft = api(client, owner, 'post', '/scheduled-trips', {
+        'route_id': ticket['route']['id'], 'vehicle_id': ticket['trip']['vehicle_id'], 'departure_at': iso(timedelta(days=3)),
+        'estimated_arrival_at': iso(timedelta(days=3, hours=3)), 'booking_cutoff_at': iso(timedelta(days=2)),
+        'fare_per_seat': '1500.00', 'fulfilment_policy': 'FIXED_GUARANTEED', 'accepted_time_window_minutes': 0,
+        'accepted_replacement_terms': {}, 'operator_driver_user_id': body['id']})
+    assert draft.status_code == 201, draft.text
+    assert draft.json()['operator_driver_user_id'] == driver['id']
+
+
+def test_the_driver_lookup_says_no_for_non_drivers_and_unknown_references(client, ticket):
+    owner = person(client, 'OWNER')
+    passenger = person(client)
+    not_driver = api(client, owner, 'post', '/owners/me/drivers/lookup', {'driver_reference': reference_of(client, passenger)})
+    assert not_driver.status_code == 200 and not_driver.json()['eligible'] is False and not_driver.json()['id'] is None
+    unknown = api(client, owner, 'post', '/owners/me/drivers/lookup', {'driver_reference': 'USR-0000000000000000'})
+    assert unknown.status_code == 404 and unknown.json()['code'] == 'DRIVER_NOT_FOUND'
+    malformed = api(client, owner, 'post', '/owners/me/drivers/lookup', {'driver_reference': 'kajan'})
+    assert malformed.status_code == 422 and malformed.json()['field_errors'][0]['field'] == 'driver_reference'
+    assert api(client, passenger, 'post', '/owners/me/drivers/lookup', {'driver_reference': reference_of(client, owner)}).status_code == 403

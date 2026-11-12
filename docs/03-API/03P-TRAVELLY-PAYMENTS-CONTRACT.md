@@ -1,6 +1,6 @@
-# Travelly — Payments API contract (Ticket seats, private hire, refunds; Sandbox and PayHere)
+# Travelly — Payments API contract (Ticket seats, private hire, refunds, Owner settlement; Sandbox and PayHere)
 
-Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 410 passed. This is the contract the UI
+Status: **built and tested** on `claude-work` (11 Nov 2026). Backend suite 416 passed. This is the contract the UI
 branch builds the **Pay button** and the **Admin payment settings** screen against. Do not change paths or field names.
 
 Owner decisions (11 Nov 2026): no advance for private hire (paid after the trip, later slice); the gateway fee comes out
@@ -404,6 +404,64 @@ When the refunds add up to the whole payment its status becomes `REFUNDED`, othe
 booking's `payment_status` follows. The Passenger gets a `REFUND` notification when money goes back. Every Admin decision
 is audited with its reason.
 
+## F. Admin payments and Owner settlement
+
+Money Travelly holds for an Owner is paid out only after the trip (PRD 6.6). Settlement status on each `PAYMENT` row
+(`owner_settlement_status`): `OWNER_PAYABLE` (online money held for the Owner — ticket: once the departure completes;
+private hire: when paid) → `OWNER_PAID`; cash: `COMMISSION_DUE` (the Owner collected the cash and owes the commission)
+→ `COMMISSION_PAID`. A payout is a new `OWNER_PAYOUT` row linked to the payment. Payments with a **partial refund** are
+never made payable automatically (who bears a refund is not decided yet); they are listed under `needs_review`.
+
+Row shape used below (`row`): `{ "id", "payment_reference", "booking_id", "booking_reference", "booking_type",
+"original_payment_id", "payee_owner_user_id", "transaction_type", "payment_method", "provider_name", "amount", "currency",
+"status", "commission_amount", "owner_net_amount", "owner_settlement_status", "created_at", "captured_at",
+"owner_payable_at", "owner_paid_at", "provider_reference", "version" }` (amounts strings or null).
+
+### F1. Admin payments screen — `GET /admin/payments`
+
+```json
+{ "items": [ "row", "…latest 200, every transaction type…" ],
+  "totals": { "currency": "LKR", "collected_online": "…", "collected_cash": "…", "refunded": "…", "refunds_waiting": "…",
+              "commission_earned": "…", "owner_payable": "…", "owner_paid": "…", "commission_due_from_owners": "…" } }
+```
+
+### F2. Owner settlement list — `GET /admin/owner-settlements`
+
+```json
+{ "items": [ { "owner_user_id": "…", "owner_reference": "USR-…", "owner_name": "…", "currency": "LKR",
+               "payable_amount": "2625.00", "payable": [ "row" ],
+               "commission_due_amount": "690.00", "commission_due": [ "row" ],
+               "needs_review": [ "row" ], "settled": [ "row (latest 50)" ] } ] }
+```
+Owners with something payable, owed or to review; biggest payable first.
+
+### F3. Record a payout — `POST /admin/owner-settlements/{owner_id}/payouts`
+
+After the Admin has made the bank transfer:
+```json
+{ "payment_ids": ["<row id>", "…"], "bank_reference": "BOC-TRF-001", "idempotency_key": "p4y0ut123456" }
+```
+**201** `{ "payouts": [ "OWNER_PAYOUT row per payment (amount = owner_net_amount, provider_reference = bank_reference)" ], "total": "2625.00" }`.
+The payments become `OWNER_PAID`; the Owner gets a "Payout sent" notification; audited. The same key again → **200**
+with the same payouts. Error **409 `SETTLEMENT_NOT_ALLOWED`** (`field_errors` list the ids) when a payment is not
+`OWNER_PAYABLE` for this Owner — already paid, cash, refunded or another Owner's.
+
+### F4. Record commission received from an Owner — `POST /admin/owner-settlements/{owner_id}/commission-receipts`
+
+```json
+{ "payment_ids": ["<COMMISSION_DUE row id>"], "reference": "Cash deposit 12 Nov", "idempotency_key": "c0mm1ss10n12" }
+```
+**200** `{ "payments": [ "row now COMMISSION_PAID" ], "total": "<commission>" }`. Repeating it → 200 unchanged.
+409 `SETTLEMENT_NOT_ALLOWED` for rows that are not `COMMISSION_DUE` for this Owner.
+
+### F5. Owner's own view — `GET /owners/me/settlements`
+
+Owner only. Same object as one F2 item, for the caller: what Travelly owes them (`payable_amount`, `payable`), what they
+owe Travelly (`commission_due_amount`, `commission_due`), items waiting for Admin review, and recent settled rows.
+Suits the Owner's Finance page.
+
+All F endpoints except F5 are Admin only (403 otherwise).
+
 ## C. Server-only (no UI)
 
 `POST /payments/webhooks/sandbox` — JSON, signed with `x-travelly-signature` (HMAC-SHA256 of the raw body).
@@ -420,7 +478,8 @@ with `failure_code: "SEATS_RELEASED_REFUND_DUE"` and no seat is given (refunds a
 ## Not in this slice
 
 Owner cancelling a whole departure (with full refunds — part of protected fulfilment), the PayHere Refund API (needs a
-PayHere API key; until then PayHere refunds are done in the portal and recorded with E4), Admin payments list, Owner payout marking
+PayHere API key; until then PayHere refunds are done in the portal and recorded with E4), payout of partly refunded
+payments (needs the decision who bears a refund)
 (OWNER_PAID), PayHere live mode (needs business registration, bank account and live credentials — configuration only).
 
 ## Server setup for PayHere (project owner, once)

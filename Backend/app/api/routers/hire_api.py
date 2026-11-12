@@ -17,6 +17,7 @@ from app.models.rate_models import ServiceType, VehicleService
 from app.api.routers.rate_api import persist_rates
 from app.schemas.rate_schemas import RateRule
 from app.models.hire_models import Booking, ScheduledTrip, Trip, Notification
+from app.services.vehicle_odometer import advance_odometer
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
     ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
     PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
@@ -490,6 +491,7 @@ def complete_departure(db, trip, body, user):
     locked.actual_end_at = datetime.now(timezone.utc)
     locked.end_odometer_km = body.end_odometer_km
     locked.calculated_distance_km = body.end_odometer_km - locked.start_odometer_km
+    advance_odometer(db, locked.vehicle_id, body.end_odometer_km, user.id, locked.actual_end_at)  # PRD: finish updates the odometer
     locked.completion_notes = body.completion_notes
     locked.status = 'COMPLETED'
     locked.tracking_status = 'ENDED'
@@ -583,6 +585,7 @@ def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depe
         trip.actual_end_at = datetime.now(timezone.utc)
         trip.end_odometer_km = body.end_odometer_km
         trip.calculated_distance_km = body.end_odometer_km - trip.start_odometer_km
+        advance_odometer(db, trip.vehicle_id, body.end_odometer_km, user.id, trip.actual_end_at)  # PRD: finish updates the odometer
         trip.completion_notes = body.completion_notes
         trip.status = 'COMPLETED'
         trip.tracking_status = 'ENDED'
