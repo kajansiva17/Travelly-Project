@@ -11,3 +11,12 @@ export function formatDateTime(value, options = {}) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { ...base, hour12: true }).formatToParts(date).map(p => [p.type, p.value]))
   return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} ${String(parts.dayPeriod || '').toUpperCase()}`.trim()
 }
+
+// Date only, e.g. "17 Nov 2026". A plain "YYYY-MM-DD" is read as that calendar day (no time zone shift).
+export function formatDate(value, options = {}) {
+  if (!value) return ''
+  const text = String(value)
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(text) ? new Date(Number(text.slice(0, 4)), Number(text.slice(5, 7)) - 1, Number(text.slice(8, 10)), 12) : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat(getLanguage() === 'en' ? 'en-GB' : getLocale(), { day: 'numeric', month: 'short', year: 'numeric', ...options }).format(date)
+}
