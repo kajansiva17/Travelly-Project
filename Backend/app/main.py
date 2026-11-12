@@ -39,6 +39,7 @@ from app.api.routers.scheduled_trip_api import router as scheduled_trip_router
 from app.api.routers.payment_api import router as payment_router
 from app.api.routers.refund_api import router as refund_router
 from app.api.routers.settlement_api import router as settlement_router
+from app.api.routers.vehicle_records_api import router as vehicle_records_router
 from app.services.vehicle_media import VehiclePhotos
 from starlette.concurrency import run_in_threadpool
 
@@ -216,6 +217,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(payment_router)
     app.include_router(refund_router)
     app.include_router(settlement_router)
+    app.include_router(vehicle_records_router)
     from app.api.routers.calendar_api import router as calendar_router
     app.include_router(calendar_router)
     def contracted_openapi():
