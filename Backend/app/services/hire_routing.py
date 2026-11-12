@@ -31,7 +31,7 @@ class HireRouting:
         if not self.settings.routing_api_key:
             raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Trip pricing needs the configured route service. Request a quote once route measurements are available.')
         try:
-            response = httpx.post('https://api.openrouteservice.org/v2/directions/' + profile + '/geojson',
+            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/' + profile + '/geojson',
                 headers={'Authorization': self.settings.routing_api_key}, timeout=15,
                 json={'coordinates': [[float(s.place.longitude), float(s.place.latitude)] for s in itinerary.stops], 'instructions': True})
             response.raise_for_status()

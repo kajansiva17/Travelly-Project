@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     mail_daily_limit: int = Field(default=250, ge=1)
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
+    # HeiGIT shut down api.openrouteservice.org on 2-6 Nov 2026; the same key works on api.heigit.org (no trailing slash).
+    routing_base_url: str = 'https://api.heigit.org'
     # PayHere (Sandbox now, live later: same code, different credentials and mode). Leave empty to hide PayHere.
     payhere_merchant_id: str = ''
     payhere_merchant_secret: str = Field(default='', repr=False)

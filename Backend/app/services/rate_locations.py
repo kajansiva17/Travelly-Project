@@ -35,7 +35,7 @@ class RateLocations:
             raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Location search is not available yet. Please try again later.')
         try:
             # Fixed provider endpoint, server-only credential, no user-selected URL.
-            response = httpx.get('https://api.openrouteservice.org/geocode/search',
+            response = httpx.get(self.settings.routing_base_url.rstrip('/') + '/pelias/v1/search',
                 headers={'Authorization': self.settings.routing_api_key},
                 params={'text': query, 'boundary.country': 'LK', 'size': 5}, timeout=10)
             response.raise_for_status()
