@@ -27,6 +27,18 @@ function placeOfAlert(trip){
   })
 }
 
+// Runs `load` now and every 45 seconds while `active`, only while the tab is visible, and again when it becomes visible.
+function usePoll(load,active){
+  useEffect(()=>{
+    if(!active)return undefined
+    const tick=()=>{if(document.visibilityState==='visible')load()}
+    tick()
+    const timer=setInterval(tick,POLL_MS)
+    document.addEventListener('visibilitychange',tick)
+    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',tick)}
+  },[active,load])
+}
+
 /* Nearby alerts for the trip. Polls while the trip runs and the tab is visible, one request at a time. */
 export function useRoadAlerts({tripId,running,onNew}){
   const [state,setState]=useState({items:[],note:null,error:null,loaded:false})
@@ -46,17 +58,29 @@ export function useRoadAlerts({tripId,running,onNew}){
     }catch(error){setState(current=>({...current,error,loaded:true}))}
     finally{inFlight.current=false}
   },[tripId])
-  useEffect(()=>{
-    if(!running)return undefined
-    const visible=()=>document.visibilityState==='visible'
-    const tick=()=>{if(visible())load()}
-    tick()
-    const timer=setInterval(tick,POLL_MS)
-    document.addEventListener('visibilitychange',tick)
-    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',tick)}
-  },[running,load])
+  usePoll(load,running)
   const replace=useCallback(item=>setState(current=>({...current,items:current.items.map(x=>x.id===item.id?item:x)})),[])
   return {...state,reload:load,replace}
+}
+
+/* New ROAD_ALERT notifications (contract 03A, section 5): GET /notifications carries notification_type. The first answer is what
+   already exists; only notifications that appear later are new, so each one is spoken once. */
+export function useRoadAlertNotifications({running,onNew}){
+  const inFlight=useRef(false),seen=useRef(null),newer=useRef(onNew)
+  useEffect(()=>{newer.current=onNew},[onNew])
+  const load=useCallback(async()=>{
+    if(inFlight.current)return
+    inFlight.current=true
+    try{
+      const result=await api('/notifications')
+      const alerts=(result.items||[]).filter(note=>note.notification_type==='ROAD_ALERT')
+      const fresh=seen.current===null?[]:alerts.filter(note=>!seen.current.has(note.id))
+      seen.current=new Set([...(seen.current||[]),...alerts.map(note=>note.id)])
+      fresh.forEach(note=>newer.current&&newer.current(note))
+    }catch{/* The nearby-alerts list still works; the next poll tries again. */}
+    finally{inFlight.current=false}
+  },[])
+  usePoll(load,running)
 }
 
 /* "Speak road alerts": on or off, kept on this device. Each alert is spoken once, in the language the server sent it. */
@@ -64,14 +88,19 @@ export function useSpeaker(){
   const [enabled,setEnabledState]=useState(()=>readSetting()),[textOnly,setTextOnly]=useState(false),spoken=useRef(new Set())
   const setEnabled=on=>{setEnabledState(on);saveSetting(on);if(!on){setTextOnly(false);globalThis.speechSynthesis?.cancel?.()}}
   const enabledRef=useRef(enabled);useEffect(()=>{enabledRef.current=enabled},[enabled])
-  const say=useCallback(item=>{
-    if(!enabledRef.current||!item||spoken.current.has(item.id))return
-    const lang=speechLang(item.language||getLanguage()),text=item.action_payload?.speak||item.message
-    if(!text)return
-    spoken.current.add(item.id)
-    if(!speak(text,lang))setTextOnly(true)   // no voice for this language: the text stays on screen
+  // One alert is spoken once, whether it arrives in the nearby list (id = the alert) or as a notification (action_payload.road_alert_id).
+  const sayText=useCallback((key,text,language)=>{
+    if(!enabledRef.current||!text||spoken.current.has(key))return
+    spoken.current.add(key)
+    if(!speak(text,speechLang(language||getLanguage())))setTextOnly(true)   // no voice for this language: the text stays on screen
   },[])
-  return {enabled,setEnabled,say,textOnly}
+  const say=useCallback(item=>{if(item)sayText('alert:'+item.id,item.action_payload?.speak||item.message,item.language)},[sayText])
+  const sayNotification=useCallback(note=>{
+    if(!note||note.notification_type!=='ROAD_ALERT'||(note.expires_at&&new Date(note.expires_at)<new Date()))return
+    const payload=note.action_payload||{}
+    sayText(payload.road_alert_id?'alert:'+payload.road_alert_id:'note:'+note.id,payload.speak||note.message||note.body,payload.language)
+  },[sayText])
+  return {enabled,setEnabled,say,sayNotification,textOnly}
 }
 
 const errorText=error=>error.message||t('The alert could not be sent. Please try again.')

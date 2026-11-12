@@ -8,7 +8,7 @@ import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
 import {Button,Checkbox,FormField,Input,Select,InfoCallout} from '../../components/ui'
 import HirePayment from '../booking/HirePayment'
 import InfoTip from '../../components/ui/InfoTip'
-import {RoadAlertsPanel,useRoadAlerts,useSpeaker} from './RoadAlerts'
+import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useSpeaker} from './RoadAlerts'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
    report a problem on the road, and finish. Everything uses the trip the Owner committed. */
@@ -33,6 +33,7 @@ export default function DriverTripPage(){
   const latest=useRef(null),video=useRef(null)
   // Road alerts (contract 03A): nearby alerts are polled while the trip runs, and spoken once when the Driver switched the speaker on.
   const [alertsOpen,setAlertsOpen]=useState(false),speaker=useSpeaker(),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
+  useRoadAlertNotifications({running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.sayNotification})
   useEffect(()=>{latest.current=trip},[trip])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return()=>clearTimeout(timer)},[notice])
 
