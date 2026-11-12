@@ -58,15 +58,20 @@ class Mailer:
 
     def send(self, recipient, token, purpose):
         s = self.settings
+        route = 'verify-email' if purpose == 'verify' else 'reset-password'
+        subject = 'Verify your Travelly email' if purpose == 'verify' else 'Reset your Travelly password'
+        link = s.frontend_url.rstrip('/') + '/' + route + '#token=' + quote(token, safe='')
+        body = f'{subject}\n\nOpen this link and confirm the action within 30 minutes:\n{link}\n\nThis link can be used once. If you did not request it, ignore this email.'
+        return self.deliver(recipient, subject, body)
+
+    def deliver(self, recipient, subject, body):
+        """Send one plain-text email through the configured backend (shared daily limit). Returns the outcome."""
+        s = self.settings
         day = datetime.now(timezone.utc).date().isoformat()
         try:
             self.store.rate('mail-day:' + day, s.mail_daily_limit, 86400)
         except ApiError:
             return 'daily_limit'
-        route = 'verify-email' if purpose == 'verify' else 'reset-password'
-        subject = 'Verify your Travelly email' if purpose == 'verify' else 'Reset your Travelly password'
-        link = s.frontend_url.rstrip('/') + '/' + route + '#token=' + quote(token, safe='')
-        body = f'{subject}\n\nOpen this link and confirm the action within 30 minutes:\n{link}\n\nThis link can be used once. If you did not request it, ignore this email.'
         if s.mail_backend == 'capture':
             if s.environment == 'production':
                 return 'failed'

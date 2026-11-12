@@ -209,8 +209,12 @@ def readings(db, vehicle, since):
 
 @router.get('/vehicles/{vehicle_id}/maintenance-summary')
 def maintenance_summary(vehicle_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
-    vehicle = viewable(db, vehicle_id, user)
-    moment = now()
+    return summarise(db, viewable(db, vehicle_id, user))
+
+
+def summarise(db, vehicle, moment=None):
+    """PRD 4.16 maintenance summary of one vehicle; also used by the reminders job."""
+    moment = moment or now()
     today = moment.astimezone(COLOMBO).date()
     since = moment - timedelta(days=ROLLING_DAYS)
     points = readings(db, vehicle, since)
@@ -227,11 +231,11 @@ def maintenance_summary(vehicle_id: UUID, user=Depends(current), db: Session = D
             continue
         last = db.scalar(select(VehicleRecord).where(VehicleRecord.vehicle_id == vehicle.id, VehicleRecord.record_type == task)
                          .order_by(VehicleRecord.recorded_at.desc(), VehicleRecord.created_at.desc()).limit(1))
-        item = {'task': task, 'last_done_at': None, 'last_odometer_km': None, 'next_due_odometer_km': None, 'remaining_km': None,
+        item = {'task': task, 'last_record_id': None, 'last_done_at': None, 'last_odometer_km': None, 'next_due_odometer_km': None, 'remaining_km': None,
                 'estimated_due_date': None, 'estimate_note': None, 'genuine_calendar_due_date': None, 'days_to_calendar_due': None,
                 'due_by': None, 'status': 'NOT_RECORDED'}
         if last:
-            item.update({'last_done_at': last.recorded_at.isoformat(), 'last_odometer_km': km(last.odometer_km),
+            item.update({'last_record_id': str(last.id), 'last_done_at': last.recorded_at.isoformat(), 'last_odometer_km': km(last.odometer_km),
                          'next_due_odometer_km': km(last.next_due_odometer_km),
                          'genuine_calendar_due_date': last.genuine_calendar_due_date.isoformat() if last.genuine_calendar_due_date else None,
                          'status': 'NO_LIMIT_SET'})

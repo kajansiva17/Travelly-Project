@@ -3,7 +3,8 @@
     POST /bookings/{id}/ticket-cancellation   Passenger cancels a paid ticket -> seats freed, refund queued by schedule
     GET  /admin/refunds                       Admin: refunds waiting first, then recent ones
     POST /admin/refunds/{id}/decision         Admin approves (Sandbox: money back at once; PayHere: PROCESSING) or rejects
-    POST /admin/refunds/{id}/complete         Admin records a PayHere refund done in the PayHere portal
+    POST /admin/refunds/{id}/complete         Admin records a PayHere refund done in the PayHere portal (or by bank transfer)
+    POST /admin/refunds/{id}/payhere          Admin sends a refused PayHere refund through the Refund API again
     POST /payments/{id}/refunds               Admin refunds a payment directly (full or part), approved at once
 
 Lock order as everywhere: scheduled_trips -> bookings -> scheduled_trip_seats (by id) -> payments.
@@ -25,6 +26,7 @@ from app.models.payment_models import Payment
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
 from app.schemas.payment_schemas import RefundCompletion, RefundDecision, RefundRequest, TicketCancellation
 from app.services.payment_providers import money
+from app.services import payhere_refunds
 from app.services.refunds import POLICY, REFUNDS, already_refunded, cause_of, finish_refund, queue_refund, refund_percent
 
 router = APIRouter(prefix='/api/v1', tags=['Refunds'])
@@ -45,7 +47,7 @@ def refund_out(row, booking=None, original=None):
             'currency': row.currency, 'provider_name': row.provider_name, 'payment_method': row.payment_method,
             'status': row.status, 'version': row.version, 'created_at': row.created_at.isoformat(),
             'refunded_at': row.refunded_at.isoformat() if row.refunded_at else None,
-            'provider_reference': row.provider_reference, 'failure_code': row.failure_code,
+            'provider_reference': row.provider_reference, 'failure_code': row.failure_code, 'failure_message': row.failure_message,
             'cancellation': booking.cancellation_policy_snapshot if booking and booking.cancellation_policy_snapshot else None}
 
 
@@ -161,7 +163,40 @@ def decide_refund(refund_id: UUID, body: RefundDecision, request: Request, user=
             refund.failure_message = 'Rejected by Admin.'
             touch(refund); refund.updated_by = user.id
         audit(request, db, user, refund, before, previous, body.reason or 'Refund approved by Admin.')
+    return after_approval(request, db, user, refund, booking, original)
+
+
+def after_approval(request, db, user, refund, booking, original):
+    """Once the approval is committed, a PayHere refund is sent through the Refund API when it is configured."""
+    if refund.status == 'PROCESSING' and refund.provider_name == 'PAYHERE':
+        payhere_refunds.push(request.app.state.sessions, refund.id, user.id)
+        for row in (refund, original, booking):
+            db.refresh(row)
     return refund_out(refund, booking, original)
+
+
+@router.post('/admin/refunds/{refund_id}/payhere')
+def retry_payhere(refund_id: UUID, request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    """Send an approved PayHere refund again after PayHere refused it (PAYHERE_REFUND_FAILED). A refund already sent
+    and still waiting for PayHere's answer (PAYHERE_REQUESTED) is never sent twice: check the portal and record it."""
+    refund = db.get(Payment, refund_id)
+    if not refund or refund.transaction_type not in REFUNDS:
+        raise ApiError(404, 'REFUND_NOT_FOUND', 'Refund not found.')
+    if not payhere_refunds.configured():
+        raise ApiError(409, 'PAYHERE_REFUND_API_OFF', 'The PayHere Refund API is not set up (PAYHERE_APP_ID, PAYHERE_APP_SECRET).')
+    if refund.status != 'PROCESSING' or refund.provider_name != 'PAYHERE' or refund.failure_code not in (None, 'PAYHERE_REFUND_FAILED'):
+        raise ApiError(409, 'REFUND_NOT_RETRYABLE', 'Only an approved PayHere card refund that PayHere refused can be sent again.')
+    db.rollback()
+    if refund.failure_code == 'PAYHERE_REFUND_FAILED':
+        with request.app.state.sessions() as fresh:
+            row = fresh.scalar(select(Payment).where(Payment.id == refund_id).with_for_update())
+            if row.failure_code == 'PAYHERE_REFUND_FAILED':
+                row.failure_code = None
+                fresh.commit()
+    payhere_refunds.push(request.app.state.sessions, refund_id, user.id)
+    db.expire_all()
+    refund = db.get(Payment, refund_id)
+    return refund_out(refund, db.get(Booking, refund.booking_id), db.get(Payment, refund.original_payment_id))
 
 
 @router.post('/admin/refunds/{refund_id}/complete')
@@ -203,4 +238,4 @@ def admin_refund(payment_id: UUID, body: RefundRequest, request: Request, user=D
         before = refund.version
         approve(db, refund, paid, booking, user.id)
         audit(request, db, user, refund, before, 'PENDING', body.reason)
-    return refund_out(refund, booking, paid)
+    return after_approval(request, db, user, refund, booking, paid)

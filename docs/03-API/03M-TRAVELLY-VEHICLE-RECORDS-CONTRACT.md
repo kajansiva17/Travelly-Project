@@ -81,7 +81,7 @@ Errors: 422 `RECORD_NOT_COMPATIBLE` (type or fuel does not fit the vehicle's pow
   "average_daily_km": "100.0",
   "data_period": { "from": "…", "to": "…", "days": 30, "readings": 3 },
   "estimate_note": null,
-  "items": [ { "task": "OIL_CHANGE", "last_done_at": "…", "last_odometer_km": "49000.0", "next_due_odometer_km": "50500.0",
+  "items": [ { "task": "OIL_CHANGE", "last_record_id": "…", "last_done_at": "…", "last_odometer_km": "49000.0", "next_due_odometer_km": "50500.0",
                "remaining_km": "500.0", "estimated_due_date": "2026-11-17", "estimate_note": null,
                "genuine_calendar_due_date": null, "days_to_calendar_due": null, "due_by": "DISTANCE", "status": "UPCOMING" },
              { "task": "WHEEL_ALIGNMENT", "status": "NOT_RECORDED", "…": null } ] }
@@ -105,5 +105,5 @@ Finishing a trip (`POST /trips/{id}/complete`, private hire and departures) now 
 to the closing reading (PRD: trip finish updates the odometer). The vehicle form's `current_odometer_km` stays as an
 optional starting value.
 
-Not built yet: `MAINTENANCE_DUE` reminder notifications (need a scheduled job), receipts, Driver entries, Owner
+`MAINTENANCE_DUE` reminders: see `03R-TRAVELLY-REMINDERS-CONTRACT.md`. Not built yet: receipts, Driver entries, Owner
 reports/exports.
