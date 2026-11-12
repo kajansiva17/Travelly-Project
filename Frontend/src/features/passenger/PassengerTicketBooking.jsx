@@ -9,6 +9,7 @@ import {FlowShell,useWizard,usePaged,useRowCount} from '../booking/flow/FlowPart
 import {Empty} from '../ticketing/TicketParts'
 import {useLocation} from 'react-router-dom'
 import TicketPayment from './TicketPayment'
+import TicketCancel,{CancelledTicket} from './TicketCancel'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
@@ -26,7 +27,7 @@ export default function PassengerTicketBooking(){
   const signedIn=useSession()
   const [query,setQuery]=useState({origin:'',destination:'',date:'',travellers:1}),[items,setItems]=useState(null),[departure,setDeparture]=useState(null),
     [seats,setSeats]=useState([]),[selected,setSelected]=useState([]),[error,setError]=useState(null)
-  const [names,setNames]=useState({}),[stops,setStops]=useState({boarding:'',dropoff:''}),[booking,setBooking]=useState(null),[busy,setBusy]=useState(false),[key,setKey]=useState(newKey)
+  const [names,setNames]=useState({}),[stops,setStops]=useState({boarding:'',dropoff:''}),[booking,setBooking]=useState(null),[busy,setBusy]=useState(false),[key,setKey]=useState(newKey),[cancelOpen,setCancelOpen]=useState(false),[cancelResult,setCancelResult]=useState(null)
   const left=useCountdown(booking?.hold_active?booking.hold_expires_at:null)
   const w=useWizard(3)
   // PayHere sends the passenger back to ?booking=<id>&payment=returned|cancelled. That is not proof of payment:
@@ -76,10 +77,14 @@ export default function PassengerTicketBooking(){
   const travellers=Math.max(1,Number(query.travellers)||1)
   const namesReady=selected.length>0&&selected.every(code=>(names[code]||'').trim())
   const fareBad=partFare!=null&&partFare<=0
-  const held=booking?.hold_active,confirmed=booking?.status==='CONFIRMED'||booking?.payment_status==='PAID',locked=held||confirmed
+  const held=booking?.hold_active,cancelled=booking?.status==='CANCELLED'
+  // A cancelled booking that was paid keeps its own screen (cancelled state and refund); a released hold goes back to seat choice.
+  const cancelledPaid=cancelled&&Boolean(cancelResult||['PAID','PARTIALLY_REFUNDED','REFUNDED'].includes(booking.payment_status)||booking.latest_payment?.status==='PAID')
+  const confirmed=!cancelled&&(booking?.status==='CONFIRMED'||booking?.payment_status==='PAID'),locked=held||confirmed||cancelledPaid
   const refresh=async()=>{const ticket=await api(`/bookings/${booking.id}/ticket`);setBooking(ticket);if(departure)loadSeats(departure.id).catch(()=>{});return ticket}
   const chooseAgain=()=>{setBooking(null);setSelected([]);w.setStep(1);if(departure)loadSeats(departure.id).catch(setError)}
-  const bookMore=()=>{setBooking(null);setDeparture(null);setSelected([]);setSeats([]);setNames({});w.setStep(0)}
+  const cancelDone=async result=>{setCancelResult(result);setCancelOpen(false);await refresh()}
+  const bookMore=()=>{setCancelOpen(false);setCancelResult(null);setBooking(null);setDeparture(null);setSelected([]);setSeats([]);setNames({});w.setStep(0)}
 
   async function hold(){
     setBusy(true);setError(null)
@@ -153,7 +158,9 @@ export default function PassengerTicketBooking(){
 
     {departure&&<div className="tk-pane" hidden={w.step!==2}>
       {locked
-        ?<div className="tk-hold">
+        ?cancelledPaid?<CancelledTicket booking={booking} result={cancelResult}/>
+        :confirmed&&cancelOpen?<TicketCancel booking={booking} departureAt={booking.itinerary?.departure_at||departure.departure_at} refresh={refresh} onDone={cancelDone} onClose={()=>setCancelOpen(false)}/>
+        :<div className="tk-hold">
           {held&&<Chip tone="success">{t('Seats held')}</Chip>}
           <h3>{t('Booking {value0}',{value0:booking.booking_reference})}</h3>
           <p className="tk-line">{t('Seats {value0} · Total {value1} {value2}',{value0:booking.travellers.map(x=>x.seat_code).join(', '),value1:booking.currency,value2:booking.total_amount})}</p>
@@ -171,10 +178,10 @@ export default function PassengerTicketBooking(){
           {nameRows.pages>1&&<div className="tk-bar">{nameRows.pager}<span className="tk-line">{t('{value0} travellers · names are needed for every seat',{value0:selected.length})}</span></div>}
         </>}
       <div className="flow-actions">
-        {locked?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>}
-        {held
+        {confirmed&&!cancelOpen?<button type="button" className="ui-button ui-button-secondary" onClick={()=>setCancelOpen(true)}>{t('Cancel ticket')}</button>:locked?<span/>:<button type="button" className="ui-button ui-button-secondary" onClick={w.back}>{t('Back')}</button>}
+        {cancelOpen?<span/>:held
           ?<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={release}>{busy?'Releasing…':'Release seats'}</button>
-          :confirmed?<button type="button" className="ui-button ui-button-primary" onClick={bookMore}>{t('Find another departure')}</button>
+          :confirmed||cancelledPaid?<button type="button" className="ui-button ui-button-primary" onClick={bookMore}>{t('Find another departure')}</button>
           :signedIn
             ?<button type="button" className="ui-button ui-button-primary" disabled={busy||!namesReady||!stopsReady||fareBad} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
             :<ButtonLink to="/login">{t('Sign in to hold seats')}</ButtonLink>}
