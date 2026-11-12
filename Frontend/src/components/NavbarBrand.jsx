@@ -35,13 +35,22 @@ export function useNeedleEvents(ref) {
       setNeedleTarget(NEEDLE_REST + fraction * (NEEDLE_PEAK - NEEDLE_REST))
     }
     const leave = () => setNeedleTarget(NEEDLE_REST)
-    const click = event => { if (event.target instanceof Element && event.target.closest('a, button, summary, select')) { setNeedleTarget(NEEDLE_REST); sweepNavbarNeedle() } }
+    // The logo has its own one-turn sweep (CSS, see Brand below); every other control keeps the quick sweep to full and back.
+    const click = event => { if (event.target instanceof Element && !event.target.closest('.travelly-brand') && event.target.closest('a, button, summary, select')) { setNeedleTarget(NEEDLE_REST); sweepNavbarNeedle() } }
     element.addEventListener('pointermove', move)
     element.addEventListener('pointerleave', leave)
     element.addEventListener('click', click, true)
     return () => { element.removeEventListener('pointermove', move); element.removeEventListener('pointerleave', leave); element.removeEventListener('click', click, true); setNeedleTarget(NEEDLE_REST) }
   }, [ref])
 }
+
+// One full turn of the needle on a click of the logo. The turn itself is a CSS animation (rotate property); this only switches it on,
+// and ignores further clicks until it has finished. Reduced motion never starts it.
+const startTurn = element => {
+  if (!element || element.classList.contains('is-turning') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  element.classList.add('is-turning')
+}
+const endTurn = event => { if (event.animationName === 'brand-needle-turn') event.currentTarget.classList.remove('is-turning') }
 
 export default function TravellyBrand() {
   const needleElement = useRef(null)
@@ -110,12 +119,13 @@ export default function TravellyBrand() {
     }
   }, [])
 
-  return <Link className="brand travelly-brand" to="/" aria-label={t("Travelly home")}>
+  return <Link className="brand travelly-brand" to="/" aria-label={t("Travelly home")} onClick={() => startTurn(needleElement.current)}>
     <span className="brand-mark is-ready" aria-hidden="true">
+      <span className="brand-zone brand-zone-left"/><span className="brand-zone brand-zone-right"/>
       <img src={brandAssets + 'wordmark.png'} className="brand-wordmark-art" width="1579" height="428" alt="" fetchPriority="high" draggable="false"/>
       <span className="brand-speedometer">
         <img className="brand-speedometer-dial" src={dial} alt="" draggable="false"/>
-        <img ref={needleElement} className="brand-gauge-needle" src={needle} alt="" draggable="false" style={{transform:`rotate(${initialAngle.current}deg)`}}/>
+        <img ref={needleElement} className="brand-gauge-needle" src={needle} alt="" draggable="false" onAnimationEnd={endTurn} style={{transform:`rotate(${initialAngle.current}deg)`}}/>
         <svg className="brand-gauge-hub" viewBox="435.5 649 250 250" focusable="false">
           <image href={needle} width="1536" height="1024"/>
         </svg>

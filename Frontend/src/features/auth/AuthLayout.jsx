@@ -8,6 +8,7 @@ const fleet = '/images/travelly/vehicles/'
 // "Your journey, your way" ticket card shown beside every sign-in form (presentation only).
 export function JourneyCard() {
   return <div className="journey-pass-frame"><div className="journey-pass">
+    <span className="journey-sun" aria-hidden="true"><i/></span>
     <h2>{t('Your journey,')} <span>{t('your way')}</span></h2>
     <i className="journey-rule" aria-hidden="true"/>
     <div className="journey-fleet" aria-hidden="true">

@@ -87,3 +87,36 @@
     transform: rotate(-132deg) !important;
   }
 }
+
+/* ---- Logo needle: hover swing, focus swing, one full turn on click (CSS only; the click only adds .is-turning) ----
+   Uses the separate `rotate` property, so it adds to the angle the script sets through `transform` and never fights it. */
+.site-header .brand.travelly-brand .brand-mark .brand-zone {
+  position: absolute; top: 0; bottom: 0; z-index: 3; width: 50%; background: none; pointer-events: auto;
+}
+.site-header .brand.travelly-brand .brand-mark .brand-zone-left { left: 0; }
+.site-header .brand.travelly-brand .brand-mark .brand-zone-right { right: 0; }
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle {
+  rotate: 0deg;
+  transition: rotate .45s cubic-bezier(.22, 1.2, .36, 1);   /* a small overshoot, then it settles back */
+  will-change: transform, rotate;
+}
+@media (hover: hover) {
+  .site-header .brand.travelly-brand .brand-mark .brand-zone-left:hover ~ .brand-speedometer .brand-gauge-needle { rotate: -14deg; }
+  .site-header .brand.travelly-brand .brand-mark .brand-zone-right:hover ~ .brand-speedometer .brand-gauge-needle { rotate: 14deg; }
+}
+.site-header .brand.travelly-brand:focus-visible .brand-mark .brand-speedometer .brand-gauge-needle { rotate: 14deg; }
+@keyframes brand-needle-turn {
+  0% { rotate: 0deg; }
+  80% { rotate: 368deg; }
+  100% { rotate: 360deg; }
+}
+.site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle.is-turning {
+  animation: brand-needle-turn .9s cubic-bezier(.45, .05, .25, 1) 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle,
+  .site-header .brand.travelly-brand .brand-mark .brand-speedometer .brand-gauge-needle.is-turning {
+    rotate: 0deg !important; transition: none !important; animation: none !important; will-change: auto;
+  }
+  .site-header .brand.travelly-brand .brand-mark .brand-zone { display: none; }
+}
