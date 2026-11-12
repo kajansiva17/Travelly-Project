@@ -237,10 +237,28 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
 
 
 @router.get('/bookings')
-def bookings(user=Depends(current), db: Session = Depends(get_db)):
-    driver_booking_ids = select(Trip.booking_id).where(Trip.driver_user_id == user.id, Trip.assignment_status.in_(('PENDING', 'ACCEPTED')))
-    rows = db.scalars(select(Booking).where(or_(Booking.passenger_user_id == user.id, Booking.owner_user_id == user.id, Booking.id.in_(driver_booking_ids))).order_by(Booking.created_at.desc()).limit(100)).all()
-    return {'items': [booking_summary(r) for r in rows]}
+def bookings(request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Every booking the caller takes part in. Each item says how (`viewer_roles`: PASSENGER = booked it, OWNER = runs it,
+    DRIVER = drives it), so one workspace can show its own trips, its vehicles' bookings and its driving together.
+    `?as=passenger|owner|driver` narrows the list to one of those."""
+    view = (request.query_params.get('as') or '').upper()
+    if view and view not in ('PASSENGER', 'OWNER', 'DRIVER'):
+        raise ApiError(422, 'VALIDATION_ERROR', 'as must be passenger, owner or driver.', [{'field': 'as', 'message': 'passenger, owner or driver'}])
+    driven = set(db.scalars(select(Trip.booking_id).where(Trip.driver_user_id == user.id, Trip.booking_id.is_not(None),
+                                                          Trip.assignment_status.in_(('PENDING', 'ACCEPTED', 'NOT_REQUIRED')),
+                                                          Trip.status != 'CANCELLED')).all())
+    ticket_driven = select(Booking.id).where(Booking.current_scheduled_trip_id.in_(
+        select(Trip.scheduled_trip_id).where(Trip.driver_user_id == user.id, Trip.scheduled_trip_id.is_not(None), Trip.status != 'CANCELLED')))
+    driven |= set(db.scalars(ticket_driven).all())
+    conditions = {'PASSENGER': Booking.passenger_user_id == user.id, 'OWNER': Booking.owner_user_id == user.id,
+                  'DRIVER': Booking.id.in_(driven) if driven else Booking.id.is_(None)}
+    where = conditions[view] if view else or_(*conditions.values())
+    rows = db.scalars(select(Booking).where(where).order_by(Booking.created_at.desc()).limit(100)).all()
+
+    def roles(r):
+        return [name for name, yes in (('PASSENGER', r.passenger_user_id == user.id), ('OWNER', r.owner_user_id == user.id),
+                                        ('DRIVER', r.id in driven)) if yes]
+    return {'items': [{**booking_summary(r), 'viewer_roles': roles(r)} for r in rows]}
 
 
 @router.get('/bookings/{booking_id}')

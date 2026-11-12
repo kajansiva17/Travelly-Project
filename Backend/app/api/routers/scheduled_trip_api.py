@@ -394,7 +394,8 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
             db.commit()
         query = query.where(ScheduledTrip.owner_user_id == user.id)
     elif driving:
-        # The departures this Driver is assigned to drive, so they can board the Travellers waiting for them.
+        # The departures this Driver is assigned to drive, so they can board the Travellers waiting for them. Driving
+        # (also an Owner driving their own vehicle) always needs the approved DRIVER role, so this stays Driver-only.
         user = current(request, db)
         require_role(db, user, 'DRIVER')
         query = query.where(ScheduledTrip.id.in_(
