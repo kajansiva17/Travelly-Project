@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     odometer_pickup_radius_km: float = Field(default=2.0, ge=0.1, le=50)
     odometer_match_tolerance_km: float = Field(default=1.0, ge=0, le=20)
     odometer_unreadable_tries: int = Field(default=3, ge=1, le=10)
+    # Travel Reels (PRD tables 18-19; owner decisions 13 Nov 2026): posts are public at once (Admin can hide), reels up
+    # to 60 seconds and 50 MB. Media folder default: <PRIVATE_DOCUMENT_ROOT>/../social-media.
+    social_media_root: Path | None = None
+    social_reel_max_seconds: int = Field(default=60, ge=5, le=600)
+    social_reel_max_mb: int = Field(default=50, ge=5, le=500)
     # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
     # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
     # answer too.

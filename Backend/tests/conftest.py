@@ -48,7 +48,8 @@ def client(postgres_engine, tmp_path):
         'mail_backend': 'capture', 'mail_capture_dir': tmp_path / 'mail',
         'google_client_id': 'test-client.apps.googleusercontent.com',
         # Trip tests start and finish without photos; test_odometer_proof switches the photo rule on.
-        'odometer_photo_required': False, 'odometer_photo_root': tmp_path / 'odometer-photos'})
+        'odometer_photo_required': False, 'odometer_photo_root': tmp_path / 'odometer-photos',
+        'social_media_root': tmp_path / 'social-media'})
     initialize(settings, restrict_acl=False)
     store = SessionStore(settings.redis_url, prefix='travelly-test:' + uuid4().hex + ':')
     assert store.client.ping()
