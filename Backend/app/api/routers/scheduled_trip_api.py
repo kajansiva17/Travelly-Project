@@ -443,7 +443,8 @@ def read_departure(trip_id: UUID, request: Request, db: Session = Depends(get_db
 def read_seats(trip_id: UUID, request: Request, db: Session = Depends(get_db)):
     trip = readable_trip(db, request, trip_id)
     rows = db.execute(select(ScheduledTripSeat, VehicleSeat).join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
-                      .where(ScheduledTripSeat.scheduled_trip_id == trip.id)
+                      .where(ScheduledTripSeat.scheduled_trip_id == trip.id,
+                             VehicleSeat.vehicle_id == trip.current_vehicle_id)  # after a replacement only the vehicle that runs
                       .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
     moment = now()
     items = []

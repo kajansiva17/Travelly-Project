@@ -136,6 +136,7 @@ def booking_out(db, booking):
                 'failure_code': latest.failure_code, 'failure_message': latest.failure_message},
             'assurance_type': booking.assurance_type, 'itinerary': booking.itinerary_snapshot,
             'cancellation_reason': booking.cancellation_reason,
+            'pending_change': booking.pending_change,
             'travellers': [{'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status,
                             'seat_id': str(inv.id), 'seat_code': seat.seat_code, 'fare': fares.get(str(inv.id))}
                            for t, inv, seat in rows]}

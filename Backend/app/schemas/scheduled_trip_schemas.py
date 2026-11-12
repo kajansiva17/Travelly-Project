@@ -107,3 +107,13 @@ class DepartureCommit(Strict):
 class DepartureProblem(Strict):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=5, max_length=1000)
+
+
+class ReplacementVehicle(Strict):
+    expected_version: int = Field(ge=1)
+    vehicle_id: UUID
+
+
+class ReplacementDecision(Strict):
+    expected_version: int = Field(ge=1)
+    decision: Literal['ACCEPT', 'REJECT']
