@@ -346,9 +346,9 @@ export default function OwnerTicketDepartures(){
     </form>
 
     <div className="tk-pane" hidden={tab!==2}>
-      {managing?<DepartureFulfilment key={`${managing.id}-${managing.version}`} departure={items?.find(i=>i.id===managing.id)||managing} onBack={()=>setManaging(null)}
+      {managing?<DepartureFulfilment key={`${managing.id}-${managing.version}`} departure={items?.find(i=>i.id===managing.id)||managing} vehicles={vehicles} onBack={()=>setManaging(null)}
         onProblem={text=>{setManaging(null);setNotice('');setError({message:text});loadDepartures()}}
-        onDone={async(action,result)=>{setManaging(null);setError(null);setNotice(action==='commit'?t('Departure committed. Passengers who paid are told it will run.'):result?.status==='CANCELLED'?t('Departure withdrawn. Nobody had paid for it.'):t('Reported. Selling has stopped and Travelly will arrange the journey for passengers who paid.'));await loadDepartures()}}/>
+        onDone={async(action,result)=>{setManaging(null);setError(null);setNotice(action==='commit'?t('Departure committed. Passengers who paid are told it will run.'):action==='replace'?t('Replacement vehicle set. {value0} seats moved. Passengers who paid can accept the change or reject it for a full refund.',{value0:result?.moved_seats??0}):result?.status==='CANCELLED'?t('Departure withdrawn. Nobody had paid for it.'):t('Reported. Selling has stopped and Travelly will arrange the journey for passengers who paid.'));await loadDepartures()}}/>
       :retiming?<>
         <p className="tk-line"><strong>{retiming.route?.origin_name} → {retiming.route?.destination_name}</strong> · {t('Now')}: {nice(retiming.departure_at)}</p>
         <div className="tk-grid" style={{'--cols':2}}>

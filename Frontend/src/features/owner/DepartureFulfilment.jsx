@@ -20,6 +20,8 @@ const beforeDeparture=x=>new Date(x.departure_at).getTime()>Date.now()
 // "Commit to run": minimum-seats departures until committed, and any departure waiting for Travelly (contract section 1 and Screens).
 export const canCommit=x=>COMMITTABLE.includes(x.status)&&beforeDeparture(x)&&(['DECISION_REQUIRED','DISRUPTED'].includes(x.status)||(x.fulfilment?.policy===MINIMUM&&!x.committed_at))
 export const canReport=x=>REPORTABLE.includes(x.status)&&beforeDeparture(x)
+// "Use another of my vehicles": only while the departure waits for Travelly, before it starts (contract section 5).
+export const canReplace=x=>['DECISION_REQUIRED','DISRUPTED'].includes(x.status)&&beforeDeparture(x)
 export const canManage=x=>x.status!=='DRAFT'
 
 function explain(error,action){
@@ -31,27 +33,30 @@ function explain(error,action){
   if(code==='DEPARTURE_ALREADY_GUARANTEED')return {reload:true,text:t('This departure is already promised to passengers. Nothing more is needed from you.')}
   if(code==='DEPARTURE_NOT_COMMITTABLE')return {reload:true,text:t('This departure cannot be committed in its current state. The list has been refreshed.')}
   if(code==='DEPARTURE_NOT_REPORTABLE')return {reload:true,text:t('A problem can no longer be reported for this departure. The list has been refreshed.')}
+  if(code==='REPLACEMENT_NOT_ALLOWED'||code==='REPLACEMENT_VEHICLE_UNAVAILABLE'||code==='VEHICLE_SCHEDULE_CONFLICT'){return {reload:code==='REPLACEMENT_NOT_ALLOWED',text:t(error.message)}}
+  if(code==='REPLACEMENT_TOO_SMALL'){const m=/has (\d+) bookable seats; (\d+) passengers/.exec(error.message||'');return {text:m?t('This vehicle has {value0} bookable seats; {value1} passengers are booked.',{value0:m[1],value1:m[2]}):t(error.message)}}
   if(error.status===403)return {text:t('Only the Owner of this departure can do this.')}
   if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
   return {text:error.message||(action==='commit'?t('The departure could not be committed. Please try again.'):t('The problem could not be reported. Please try again.'))}
 }
 
-export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack}){
-  const [mode,setMode]=useState(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[errors,setErrors]=useState({}),[message,setMessage]=useState('')
+export default function DepartureFulfilment({departure:x,vehicles=[],onDone,onProblem,onBack}){
+  const [mode,setMode]=useState(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[errors,setErrors]=useState({}),[message,setMessage]=useState(''),[pick,setPick]=useState('')
   const {tone,label}=statusChip(x.status)
   const text=reason.trim(),reasonOk=text.length>=5&&text.length<=1000
   async function send(action){
     setBusy(true);setMessage('');setErrors({})
     try{
-      const body=action==='commit'?{expected_version:x.version}:{expected_version:x.version,reason:text}
-      const result=await api(`/scheduled-trips/${x.id}/${action==='commit'?'commit':'problem'}`,{method:'POST',body:JSON.stringify(body)})
+      const body=action==='commit'?{expected_version:x.version}:action==='replace'?{expected_version:x.version,vehicle_id:pick}:{expected_version:x.version,reason:text}
+      const result=await api(`/scheduled-trips/${x.id}/${action==='commit'?'commit':action==='replace'?'replacement-vehicle':'problem'}`,{method:'POST',body:JSON.stringify(body)})
       await onDone(action,result)
     }catch(error){
       const out=explain(error,action)
       if(out.reload){onProblem(out.text);return}
-      setMessage(out.text);setErrors(out.fields||{});if(out.fields)setMode('report-form')
+      setMessage(out.text);setErrors(out.fields||{});if(out.fields)setMode('report-form');else if(action==='replace')setMode('vehicle')
     }finally{setBusy(false)}
   }
+  const candidates=vehicles.filter(v=>v.id!==x.vehicle_id),chosen=candidates.find(v=>v.id===pick)
   const route=`${x.route?.origin_name||''} → ${x.route?.destination_name||''}`
   return <RateErrors.Provider value={errors}><div className="tk-pane">
     <p className="tk-line"><strong>{route}</strong> · {formatDateTime(x.departure_at)} <Chip tone={tone}>{label}</Chip>
@@ -65,9 +70,17 @@ export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack
 
     {!mode&&<div className="tk-bar">
       {canCommit(x)&&<button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>setMode('commit')}>{t('Commit to run')}</button>}
+      {canReplace(x)&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setPick('');setMode('vehicle')}}>{t('Use another of my vehicles')}</button>}
       {canReport(x)&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setReason('');setMode('report-form')}}>{t('I can’t run this departure')}</button>}
       <InfoTip>{t('Committing tells passengers who paid that the departure will run. If you cannot run it, report it before the journey starts so Travelly can arrange the passengers’ journey.')}</InfoTip></div>}
 
+    {(mode==='vehicle'||mode==='vehicle-confirm')&&<div className="tk-hold">
+      <Field label="Replacement vehicle" help="Only your own approved vehicles are listed. The server checks that it is active, free at that time and has enough bookable seats."><select name="replacement" value={pick} disabled={mode==='vehicle-confirm'} onChange={e=>{setPick(e.target.value);setMessage('')}}>
+        <option value="">{t('Choose a vehicle')}</option>{candidates.map(v=><option key={v.id} value={v.id} disabled={v.availability_status!=='ACTIVE'}>{v.label||v.reference} · {t('{value0} seats',{value0:v.seat_capacity??'?'})} · {t(String(v.availability_status||'').replaceAll('_',' '))}</option>)}</select></Field>
+      {mode==='vehicle-confirm'&&<p className="tk-line is-warn"><strong>{t('Use {value0} for this departure?',{value0:chosen?.label||chosen?.reference||''})}</strong> {t('Passengers who paid move to the new vehicle automatically: the same seat when it has it, otherwise the next free seat. Open seat holds end. Each passenger can accept the change or reject it for a full refund.')}</p>}
+      <div className="tk-bar">{mode==='vehicle-confirm'
+        ?<><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('replace')}>{busy?t('Please wait…'):t('Yes, use this vehicle')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('vehicle')}>{t('Back')}</button></>
+        :<><button type="button" className="ui-button ui-button-primary" disabled={!pick} onClick={()=>{setMessage('');setMode('vehicle-confirm')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(null);setMessage('')}}>{t('Not yet')}</button></>}</div></div>}
     {mode==='commit'&&<div className="tk-hold"><p className="tk-line"><strong>{t('Commit to run this departure?')}</strong> {t('Passengers who paid are told it will run.')}{x.status==='DECISION_REQUIRED'||x.status==='DISRUPTED'?` ${t('The Admin is told it is resolved.')}`:''}</p>
       <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('commit')}>{busy?t('Please wait…'):t('Yes, commit')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode(null)}>{t('Not yet')}</button></div></div>}
 

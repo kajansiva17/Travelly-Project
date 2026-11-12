@@ -12,6 +12,7 @@ import TicketPayment from './TicketPayment'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
 import FulfilmentNotice from './FulfilmentNotice'
+import ReplacementCard,{isPending,vehicleLine} from './ReplacementCard'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
@@ -167,7 +168,9 @@ export default function PassengerTicketBooking(){
           <h3>{t('Booking {value0}',{value0:booking.booking_reference})}</h3>
           <p className="tk-line">{t('Seats {value0} · Total {value1} {value2}',{value0:booking.travellers.map(x=>x.seat_code).join(', '),value1:booking.currency,value2:booking.total_amount})}</p>
           {held&&<p className="tk-line" role="timer" aria-live="off">{t('Held for')} <strong>{clock}</strong>. {t('The seats are released automatically when the timer ends.')}</p>}
-          {confirmed&&<FulfilmentNotice bookingId={booking.id} version={booking.version}/>}
+          {confirmed&&isPending(booking)&&<ReplacementCard booking={booking} refresh={refresh} onRejected={result=>setCancelResult({refund_percent:100,refund:result.refund?{...result.refund,currency:booking.currency}:null})}/>}
+          {confirmed&&!isPending(booking)&&booking.pending_change?.kind==='REPLACEMENT_VEHICLE'&&booking.pending_change.status==='ACCEPTED'&&<p className="tk-line"><Chip tone="success">{t('Vehicle change accepted')}</Chip> {vehicleLine(booking.pending_change.replacement_vehicle)}</p>}
+          {confirmed&&!isPending(booking)&&<FulfilmentNotice bookingId={booking.id} version={booking.version}/>}
           <TicketPayment booking={booking} refresh={refresh} returned={returned} onChooseSeats={chooseAgain}/>
         </div>
         :<>

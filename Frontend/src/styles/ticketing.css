@@ -109,3 +109,10 @@ html body .flow-page .tk-grid .rate-field { grid-template-columns: minmax(0, 1fr
 html body .flow-page .tk-notices { display: flex; flex-direction: column; gap: 4px; }
 html body .flow-page .tk-notice { display: flex; align-items: flex-start; gap: 8px; padding: 6px 10px; border-radius: 12px; background: rgb(255 255 255 / .7); border: 1px solid rgb(255 255 255 / .95); font-size: 13.5px; line-height: 1.35; }
 html body .flow-page .tk-notice > .ui-chip { flex: none; }
+
+/* Replacement vehicle decision card: vehicles on the left, seat moves on the right, one answer row */
+html body .flow-page .tk-replace { gap: 6px; }
+html body .flow-page .tk-replace-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+html body .flow-page .tk-replace-seats { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+html body .flow-page .tk-replace-seats .tk-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) { html body .flow-page .tk-replace-body { grid-template-columns: minmax(0, 1fr); } }

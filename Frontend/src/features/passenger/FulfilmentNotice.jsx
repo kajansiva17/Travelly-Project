@@ -10,7 +10,8 @@ const KINDS={
   'We are arranging your journey':'REPLACEMENT',
   'Departure cancelled - full refund':'REFUND',
   'Refund sent':'REFUND',
-  'Booking cancelled':'REFUND'
+  'Booking cancelled':'REFUND',
+  'Booking cancelled - full refund':'REFUND'
 }
 export default function FulfilmentNotice({bookingId,version}){
   const [notes,setNotes]=useState([])
