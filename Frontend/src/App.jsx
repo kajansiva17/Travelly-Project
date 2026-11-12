@@ -21,7 +21,8 @@ import PassengerEventHire from './features/passenger/PassengerEventHire'
 import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import {RentalRoleUi} from './features/rental/RentalUi'
-import OwnerTicketDepartures from './features/owner/OwnerTicketDepartures'
+import OwnerTicketDepartures,{OwnerReplacementRequests} from './features/owner/OwnerTicketDepartures'
+import OwnerDriving from './features/owner/OwnerDriving'
 import OwnerRoutes from './features/owner/OwnerRoutes'
 import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
 import OwnerFinanceOverview from './features/owner/OwnerFinanceOverview'
@@ -38,7 +39,7 @@ const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPre
 import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
 import {useWorkspace} from './context/workspaceContext'
-import {accountPath} from './routes/workspaceRoutes'
+import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder,ManualFulfilment} from './components/RoleDashboards'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
@@ -134,6 +135,35 @@ function ReturnToRequestedPage(){
   },[signedIn,here])
   return null
 }
+// Owner and Driver workspaces hold every Passenger page under <prefix>/travel (contract 03W). The pages are the same components.
+const travelRoutes=prefix=>[
+ <Route key="home" path={prefix+'/travel'} element={<PassengerServiceSelection/>}/>,
+ <Route key="hire" path={prefix+'/travel/hire'} element={<HireSearchPage/>}/>,
+ <Route key="owners" path={prefix+'/travel/owners/:ownerReference'} element={<HireSearchPage/>}/>,
+ <Route key="vehicle" path={prefix+'/travel/vehicles/:vehicleId'} element={<PublicVehicle/>}/>,
+ <Route key="trips" path={prefix+'/travel/bookings'} element={<WorkspaceBookings personal/>}/>,
+ <Route key="trip" path={prefix+'/travel/bookings/:bookingId'} element={<BookingPage/>}/>,
+ <Route key="service" path={prefix+'/travel/book/service'} element={<PassengerServiceSelection/>}/>,
+ <Route key="event" path={prefix+'/travel/book/event'} element={<PassengerEventHire/>}/>,
+ <Route key="tickets" path={prefix+'/travel/book/tickets'} element={<PassengerTicketBooking/>}/>,
+ <Route key="rental" path={prefix+'/travel/book/rental'} element={<PassengerRental/>}/>,
+ <Route key="airport" path={prefix+'/travel/book/details/airport'} element={<PassengerTripDetails variant="airport"/>}/>,
+ <Route key="local" path={prefix+'/travel/book/details/local'} element={<PassengerTripDetails variant="local"/>}/>,
+ <Route key="devent" path={prefix+'/travel/book/details/event'} element={<PassengerTripDetails variant="event"/>}/>,
+ <Route key="one" path={prefix+'/travel/book/details/long-distance/one-day'} element={<PassengerLongDistanceDetails/>}/>,
+ <Route key="multi" path={prefix+'/travel/book/details/long-distance/multi-day'} element={<PassengerLongDistanceDetails multiDay/>}/>,
+ <Route key="req" path={prefix+'/travel/book/requirements'} element={<PassengerRequirements/>}/>,
+ <Route key="veh" path={prefix+'/travel/book/vehicles'} element={<PassengerVehicleMatching/>}/>,
+ <Route key="review1" path={prefix+'/travel/book/vehicles/:vehicleId/review'} element={<PassengerVehicleReview/>}/>,
+ <Route key="review" path={prefix+'/travel/book/review'} element={<PassengerRequestReview/>}/>,
+ <Route key="status" path={prefix+'/travel/trips/:tripId/request-status'} element={<PassengerRequestStatus/>}/>,
+ <Route key="confirmed" path={prefix+'/travel/trips/:tripId/confirmed'} element={<PassengerRideConfirmed/>}/>,
+ <Route key="old" path={prefix+'/personal/*'} element={<OldPersonalPath/>}/>
+]
+// Earlier links to <prefix>/personal/... keep working and land on the same page under /travel.
+function OldPersonalPath(){const {pathname,search}=useLocation();return <Navigate to={pathname.replace('/personal/','/travel/')+search} replace/>}
+// My driving needs both approved roles (an Owner-only person never drives).
+function DrivingGate({children}){const {user}=useWorkspace();return canDriveAsOwner(user)?children:<Navigate to="/owner/dashboard" replace/>}
 function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="PASSENGER"/>:<Outlet/>}
 const placeholders={
  OWNER:['ticket-departures','seat-inventory','earnings','reviews','support','reports'],
@@ -191,11 +221,10 @@ export default function App() {
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
           </Route>
           <Route element={<WorkspaceShell role="OWNER"/>}>
-            <Route path="/owner/personal/hire" element={<HireSearchPage/>}/>
-            <Route path="/owner/personal/owners/:ownerReference" element={<HireSearchPage/>}/>
-            <Route path="/owner/personal/bookings" element={<WorkspaceBookings personal/>}/>
-            <Route path="/owner/personal/bookings/:bookingId" element={<BookingPage/>}/>
-            <Route path="/owner/personal/vehicles/:vehicleId" element={<PublicVehicle/>}/>
+            {travelRoutes('/owner')}
+            <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
+            <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
+            <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
             <Route path="/owner/rates" element={<OwnerRates/>}/>
             <Route path="/owner/service-readiness" element={<OwnerServiceReadiness/>}/>
@@ -214,11 +243,7 @@ export default function App() {
             {placeholders.OWNER.map(path=><Route key={path} path={'/owner/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="DRIVER"/>}>
-            <Route path="/driver/personal/hire" element={<HireSearchPage/>}/>
-            <Route path="/driver/personal/owners/:ownerReference" element={<HireSearchPage/>}/>
-            <Route path="/driver/personal/bookings" element={<WorkspaceBookings personal/>}/>
-            <Route path="/driver/personal/bookings/:bookingId" element={<BookingPage/>}/>
-            <Route path="/driver/personal/vehicles/:vehicleId" element={<PublicVehicle/>}/>
+            {travelRoutes('/driver')}
             <Route path="/driver/dashboard" element={<DriverDashboard/>}/>
             <Route path="/driver/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/driver/operate-trip" element={<WorkspaceBookings kind="operate"/>}/>

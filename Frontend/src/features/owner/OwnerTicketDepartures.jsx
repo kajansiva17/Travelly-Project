@@ -74,7 +74,7 @@ function replacementProblem(error){
   if(code==='VALIDATION_ERROR'&&fields.length)return {keep:true,text:t('Please check the highlighted fields.'),fields:Object.fromEntries(fields.map(f=>[f.field,f.message]))}
   return {text:error.message||t('Your answer could not be sent. Please try again.')}
 }
-function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onNotice}){
+export function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onNotice}){
   const [items,setItems]=useState(null),[error,setError]=useState(null),[open,setOpen]=useState(null),[choice,setChoice]=useState('later'),[reason,setReason]=useState(''),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[errors,setErrors]=useState({})
   const load=()=>api('/owners/me/replacement-requests').then(r=>{setItems(r.items||[]);setError(null)}).catch(setError)
   useEffect(()=>{if(active)load()},[active])
@@ -124,6 +124,21 @@ function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onNotice})
       :items&&<EmptyState icon="route" title={t('No replacement requests')}>{t('When another Owner asks you to run a departure with your vehicle, it appears here.')}</EmptyState>}
     <div className="flow-actions">{list.pages>1?list.pager:<span/>}<span/></div>
   </>
+}
+
+/* Its own sidebar entry (contract 03W): the same Replacement requests component, with its own Driver list. */
+export function OwnerReplacementRequests(){
+  const [drivers,setDrivers]=useState(null),[me,setMe]=useState({id:'',driver:false}),[notice,setNotice]=useState('')
+  useEffect(()=>{
+    Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,roles])=>setMe({id:user.id,driver:(user.approved_roles||[]).includes('DRIVER')&&(roles.items||[]).some(r=>r.role_code==='DRIVER'&&r.approval_status==='APPROVED')})).catch(()=>{})
+    api('/owners/me/drivers').then(x=>setDrivers(x.items||[])).catch(()=>setDrivers([]))
+  },[])
+  const useFound=choose=>driver=>{setDrivers(list=>(list||[]).some(d=>d.id===driver.id)?list:[...(list||[]),driver]);choose(driver.id)}
+  const chosenDriver=choice=>choice==='me'?(me.driver?me.id:null):choice==='later'?null:choice
+  return <><Header/><FlowShell heading={t('Replacement requests')} title={t('Requests from other Owners')} icon="clock" info={t('When another Owner asks you to run a departure with your vehicle, it appears here.')}>
+    <Notice>{notice}</Notice>
+    <Compact.Provider value={true}><ReplacementRequests active drivers={drivers} me={me} useFound={useFound} chosenDriver={chosenDriver} onNotice={setNotice}/></Compact.Provider>
+  </FlowShell></>
 }
 
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
@@ -304,7 +319,7 @@ export default function OwnerTicketDepartures(){
     createDeparture()
   }
   const nextDeparture=()=>{if(checkPane(panes[dw.step].current).valid)dw.forward()}
-  const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'},{label:t('Replacement requests'),icon:'clock'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
+  const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
   const stepNames=tab===0?[t('Vehicle and type'),t('Seats')]:[t('Route and time'),t('Arrival and price'),t('Type and driver')]
 
   return <><Header/><FlowShell heading={t('Ticket departures')} icon="ticket" title={[t('Vehicle seat layout'),t('Create a departure draft'),t('Your departures')][tab]}
@@ -446,7 +461,6 @@ export default function OwnerTicketDepartures(){
       <div className="flow-actions">{departureList.pages>1?departureList.pager:<span/>}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{t('New departure')}</button></div>
       </>}
     </div>
-    <div className="tk-pane" hidden={tab!==3}><ReplacementRequests active={tab===3} drivers={drivers} me={me} useFound={useFound} chosenDriver={chosenDriver} onNotice={text=>{setError(null);setNotice(text)}}/></div>
     </Compact.Provider>
   </FlowShell></>
 }

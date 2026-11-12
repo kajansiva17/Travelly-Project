@@ -13,13 +13,13 @@ export const words=value=>(value||'Not reported').replaceAll('_',' ')
 export const displayTime=value=>value?new Date(value).toLocaleString(getLocale(),{timeZone:'Asia/Colombo',dateStyle:'medium',timeStyle:'short'}):'Time not reported'
 export const tripRoute=booking=>(booking.itinerary?.itinerary?.stops||[]).map(stop=>stop.place?.label).filter(Boolean).join(' → ')||booking.reference
 export const pendingBooking=booking=>!['COMPLETED','CANCELLED','REJECTED'].includes(booking.status)
+// Contract 03W: every booking carries viewer_roles and GET /bookings takes ?as=passenger|owner|driver, so the server decides
+// which list a booking belongs to (My trips, Bookings for my vehicles, My driving).
 export async function loadBookings(userId,role){
  if(role==='ADMIN')throw new Error('Global Admin bookings are not available. Use My Trips for your personal journeys.')
- const result=await api('/bookings'),items=result.items||[]
- if(role==='OWNER')return items.filter(b=>b.owner_user_id===userId)
- if(role==='PASSENGER')return items.filter(b=>b.passenger_user_id===userId)
- // The list also contains this user's Passenger/Owner bookings. Only an exact
- // current trip assignment qualifies for the Driver workspace. Bound concurrency.
+ const result=await api('/bookings?as='+role.toLowerCase()),items=result.items||[]
+ if(role==='OWNER'||role==='PASSENGER')return items
+ // The Driver list needs each booking's trip record (assignment and trip ids). Bound concurrency.
  const details=new Array(items.length);let next=0
  await Promise.all(Array.from({length:Math.min(4,items.length)},async()=>{while(next<items.length){const i=next++;details[i]=await api('/bookings/'+items[i].id)}}))
  return details.filter(b=>b.trip?.driver_user_id===userId)

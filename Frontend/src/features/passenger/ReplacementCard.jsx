@@ -1,6 +1,6 @@
 import { t } from '../../i18n/language.js'
 import React,{useEffect,useState} from 'react'
-import {Link} from 'react-router-dom'
+import {Link} from './travelRouter'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'

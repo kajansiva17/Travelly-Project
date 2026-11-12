@@ -1,6 +1,7 @@
 import { t } from '../../i18n/language.js'
 import React,{useCallback,useEffect,useRef,useState} from 'react'
 import {Link,Navigate,useParams} from 'react-router-dom'
+import {useWorkspace} from '../../context/workspaceContext'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
@@ -19,7 +20,7 @@ const request=(path,body,method='POST')=>api(path,{method,body:JSON.stringify(bo
 const canScan=()=>typeof window!=='undefined'&&'BarcodeDetector'in window&&navigator.mediaDevices?.getUserMedia
 
 export default function DriverTripPage(){
-  const {tripId}=useParams()
+  const {tripId}=useParams(),workspace=useWorkspace()
   const [trip,setTrip]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [notice,setNotice]=useState(''),[tab,setTab]=useState(null)
   const [odometer,setOdometer]=useState(''),[ready,setReady]=useState(false)
@@ -208,7 +209,7 @@ export default function DriverTripPage(){
         <div><dt>{t('Distance')}</dt><dd>{trip.calculated_distance_km} {t('km')}</dd></div>
       </dl>
       {trip.status==='COMPLETED'&&trip.booking_id&&<HirePayment asCollector bookingId={trip.booking_id}/>}
-      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/driver/trip-history">{t('My trips')}</Link></div>
+      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link></div>
     </div>}
 
     {!panels.length&&!finished&&<InfoCallout>{t('This trip is not ready to operate yet.')}</InfoCallout>}

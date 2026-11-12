@@ -1,6 +1,6 @@
 import { t } from '../../../i18n/language.js'
 import React, { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../../passenger/travelRouter'
 import { Icon } from '../../../components/components'
 import VehiclePhoto from '../../../components/VehiclePhoto'
 import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'

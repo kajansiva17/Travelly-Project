@@ -1,6 +1,6 @@
 import { t } from '../../i18n/language.js'
 import React,{useEffect,useRef,useState} from 'react'
-import {useNavigate} from 'react-router-dom'
+import {useNavigate} from './travelRouter'
 import {api,hasSession,publicRead,publicRequest} from '../../services/api'
 import {PlaceSearch,Field,Compact} from '../owner/OwnerRates'
 import {ErrorNotice} from '../../components/components'
