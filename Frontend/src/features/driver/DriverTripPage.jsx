@@ -5,6 +5,7 @@ import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
 import {Button,Checkbox,FormField,Input,Select,InfoCallout} from '../../components/ui'
+import HirePayment from '../booking/HirePayment'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
    report a problem on the road, and finish. Everything uses the trip the Owner committed. */
@@ -206,6 +207,7 @@ export default function DriverTripPage(){
         <div><dt>{t('Odometer')}</dt><dd>{trip.start_odometer_km} → {trip.end_odometer_km} {t('km')}</dd></div>
         <div><dt>{t('Distance')}</dt><dd>{trip.calculated_distance_km} {t('km')}</dd></div>
       </dl>
+      {trip.status==='COMPLETED'&&trip.booking_id&&<HirePayment asCollector bookingId={trip.booking_id}/>}
       <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/driver/trip-history">{t('My trips')}</Link></div>
     </div>}
 

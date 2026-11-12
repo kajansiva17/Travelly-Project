@@ -7,7 +7,7 @@ import {Field} from '../owner/OwnerRates'
 
 // Pay button for a held Ticket booking (Payments contract 03P, section A). The screen is drawn only from the
 // ticket read (GET /bookings/{id}/ticket): payment_status and latest_payment. Nothing here proves payment by itself.
-const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
+export const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 const WAIT_MS=120000,POLL_MS=4000
 
 // Build a hidden form from the server's checkout object and submit it (full navigation). Fields are sent exactly as given.
@@ -18,14 +18,15 @@ function submitCheckout(checkout){
   document.body.appendChild(form);form.submit()
 }
 
-export default function TicketPayment({booking,refresh,returned,onChooseSeats}){
+// hire=true: the same Pay flow for a private-hire booking after the trip (amount comes from the payment summary).
+export default function TicketPayment({booking,refresh,returned,onChooseSeats,hire=false}){
   const [busy,setBusy]=useState(false),[message,setMessage]=useState(null)
   const [payer,setPayer]=useState({address:'',city:'',phone:'',email:''}),[payerFor,setPayerFor]=useState(null),[sandbox,setSandbox]=useState(null)
   const [unavailable,setUnavailable]=useState(false),[waitedOut,setWaitedOut]=useState(false),[cancelledSeen,setCancelledSeen]=useState(returned==='cancelled')
   const lastNetwork=useRef(null),startedAt=useRef(Date.now())
   // The ticket tells us which flow to use: payment_provider, payment_method and payer_details_required.
   const provider=booking.payment_provider||null,method=booking.payment_method||null
-  const latest=booking.latest_payment||null,paid=booking.payment_status==='PAID'||booking.status==='CONFIRMED'
+  const latest=booking.latest_payment||null,paid=booking.payment_status==='PAID'||(!hire&&booking.status==='CONFIRMED')
   const pendingSandbox=latest&&latest.status==='PENDING'&&latest.provider_name==='SANDBOX'?latest.id:null
   const pendingPayHere=latest&&latest.status==='PENDING'&&latest.provider_name!=='SANDBOX'
   const sandboxId=sandbox?.id||pendingSandbox
@@ -48,7 +49,8 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats}){
     if(error.status===410||code==='HOLD_EXPIRED'){refresh().catch(()=>{});return {tone:'warn',text:t('Hold ended — choose seats again'),seats:true}}
     if(code==='PAYMENT_AMOUNT_MISMATCH'){refresh().catch(()=>{});return {tone:'warn',text:t('The amount changed. It is now {value0}.',{value0:fields[0]?.message||''})}}
     if(code==='BOOKING_ALREADY_PAID'||code==='HOLD_NOT_ACTIVE'){refresh().catch(()=>{});return {tone:'info',text:code==='BOOKING_ALREADY_PAID'?t('This booking is already paid.'):t('This hold is no longer active.')}}
-    if(code==='PAYMENT_IN_PROGRESS'){if(provider==='SANDBOX'&&fields[0]?.message)setSandbox({id:fields[0].message});refresh().catch(()=>{});return {tone:'info',text:t('A payment for this booking is already waiting. Finish it below.')}}
+    if(code==='PAYMENT_NOT_DUE'){refresh().catch(()=>{});return {tone:'info',text:t('Payment opens when the trip is completed.')}}
+    if(code==='PAYMENT_IN_PROGRESS'){if(provider==='SANDBOX'&&fields[0]?.message)setSandbox({id:fields[0].message});refresh().catch(()=>{});return {tone:'info',text:hire?t('A payment for this booking is already waiting. Finish or wait for it first.'):t('A payment for this booking is already waiting. Finish it below.')}}
     if(code==='PAYMENT_PROVIDER_UNAVAILABLE'){return {tone:'warn',text:t('Online payment is not available right now.')}}
     if(code==='PAYMENT_NOT_AVAILABLE'){setUnavailable(true);return null}
     return {tone:'warn',text:error.message||t('The payment could not be started. Please try again.')}
@@ -98,7 +100,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats}){
   const statusChip=booking.payment_status==='PAID'?<Chip tone="success">{t('Paid')}</Chip>:booking.payment_status==='PENDING'?<Chip tone="info" icon="clock">{t('Payment pending')}</Chip>:booking.payment_status==='FAILED'?<Chip tone="danger" icon="alert">{t('Payment failed')}</Chip>:null
 
   if(paid)return <div className="tk-pay">
-    <p className="tk-line"><Chip tone="success">{t('Seats confirmed')}</Chip> {latest?.payment_reference&&<strong>{latest.payment_reference}</strong>}</p>
+    <p className="tk-line"><Chip tone="success">{hire?t('Paid'):t('Seats confirmed')}</Chip> {latest?.payment_reference&&<strong>{latest.payment_reference}</strong>}</p>
   </div>
   if(booking.status==='CANCELLED')return <div className="tk-pay"><p className="tk-line is-warn" role="status">{t('Hold ended — choose seats again')}</p>{onChooseSeats&&<button type="button" className="ui-button ui-button-secondary" onClick={onChooseSeats}>{t('Choose seats again')}</button>}</div>
   if(unavailable)return <p className="tk-line">{t('Online payment is not available for this booking.')}</p>
@@ -106,7 +108,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats}){
 
   return <div className="tk-pay">
     {message&&<p className={`tk-line${message.tone==='warn'?' is-warn':''}`} role="status">{message.text} {message.seats&&onChooseSeats&&<button type="button" className="tk-link" onClick={onChooseSeats}>{t('Choose seats again')}</button>}</p>}
-    {cancelledSeen&&!pendingSandbox&&<p className="tk-line is-warn" role="status">{t('The payment was cancelled. No money was taken. You can try again while the seats are held.')}</p>}
+    {cancelledSeen&&!pendingSandbox&&<p className="tk-line is-warn" role="status">{hire?t('The payment was cancelled. No money was taken. You can try again.'):t('The payment was cancelled. No money was taken. You can try again while the seats are held.')}</p>}
     {booking.payment_status==='FAILED'&&latest?.failure_message&&!message&&<p className="tk-line is-warn" role="status">{latest.failure_message}</p>}
     {sandboxId&&provider==='SANDBOX'&&<>
         <p className="tk-line"><Chip tone="info" icon="alert">{t('Sandbox / test payment, no real money')}</Chip> {sandbox?.checkout?.message}</p>
@@ -128,7 +130,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats}){
       {pendingPayHere
         ?<button type="button" className="ui-button ui-button-primary" disabled={busy||missing} onClick={continuePayHere}>{t('Continue to PayHere')}</button>
         :<button type="button" className="ui-button ui-button-primary" disabled={busy||!method||missing} onClick={pay}>{busy?t('Please wait…'):t('Pay {value0} {value1}',{value0:booking.currency||'LKR',value1:booking.total_amount})}</button>}
-      <InfoTip>{t('Your seats are confirmed only after the payment is received.')}</InfoTip>
+      <InfoTip>{hire?t('Your booking is marked paid only after the payment is received.'):t('Your seats are confirmed only after the payment is received.')}</InfoTip>
     </div>}
   </div>
 }
