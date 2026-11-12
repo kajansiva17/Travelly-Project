@@ -32,6 +32,37 @@ function DriverInfo({choice,drivers,me,onSelf}){
   return <div className="tk-driver-card" role="status"><span className="tk-driver-icon"><Icon name={icon} size={22} aria-hidden="true"/></span><div className="tk-driver-text"><strong>{title}</strong><p>{sub}</p></div>{action&&<div className="tk-driver-action">{action}</div>}</div>
 }
 
+// "Find a Driver by reference" (contract 03T, section 2): POST /owners/me/drivers/lookup. The Owner types the public reference
+// (USR-...), never a user ID. The id in the answer is used only when eligible, as operator_driver_user_id, like a listed Driver.
+function DriverFinder({onUse}){
+  const [reference,setReference]=useState(''),[busy,setBusy]=useState(false),[found,setFound]=useState(null),[problem,setProblem]=useState('')
+  async function find(){
+    const value=reference.trim()
+    if(!value||busy)return
+    setBusy(true);setFound(null);setProblem('')
+    try{setFound(await api('/owners/me/drivers/lookup',{method:'POST',body:JSON.stringify({driver_reference:value})}))}
+    catch(error){
+      const code=error.code
+      if(error instanceof TypeError||code==='API_TIMEOUT')setProblem(t('We could not reach Travelly. Please try again.'))
+      else if(code==='DRIVER_NOT_FOUND'||error.status===404)setProblem(t('No Driver has this reference. Check it with the Driver and try again.'))
+      else if(error.status===429||code==='RATE_LIMITED')setProblem(t('Too many lookups. Please try again in a few minutes.'))
+      else if(error.status===403)setProblem(t('Only an approved Owner can look up a Driver.'))
+      else if(code==='VALIDATION_ERROR'||error.status===422)setProblem(t('That does not look like a Driver reference. It starts with USR- followed by 16 letters or numbers, for example USR-0123456789ABCDEF.'))
+      else setProblem(error.message||t('The Driver could not be looked up. Please try again.'))
+    }finally{setBusy(false)}
+  }
+  const eligible=found&&found.eligible&&found.id
+  return <div className="tk-finder">
+    <div className="tk-bar tk-finder-row">
+      <div className="tk-grow"><Field label="Find a Driver by reference" optional help="Ask the Driver for the reference on their Travelly profile. It starts with USR-."><input name="driver_reference" maxLength="40" autoComplete="off" placeholder="USR-0123456789ABCDEF" value={reference} onChange={e=>{setReference(e.target.value);setFound(null);setProblem('')}} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();find()}}}/></Field></div>
+      <button type="button" className="ui-button ui-button-secondary" disabled={busy||!reference.trim()} onClick={find}>{busy?t('Please wait…'):t('Find')}</button>
+    </div>
+    {problem&&<p className="tk-line is-warn" role="status">{problem}</p>}
+    {found&&<p className="tk-line" role="status"><Chip tone={eligible?'success':'danger'} icon={eligible?'check':'alert'}>{eligible?t('Approved Driver'):t('Not approved')}</Chip> <strong>{found.display_name}</strong> <span>{t(found.message)}</span>
+      {eligible&&<button type="button" className="ui-button ui-button-primary" onClick={()=>{onUse({id:found.id,reference:found.reference,display_name:found.display_name,eligible:true,how_you_know_them:'Found by reference'});setReference('');setFound(null)}}>{t('Use this Driver')}</button>}</p>}
+  </div>
+}
+
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
   fulfilment_policy:'FIXED_GUARANTEED',minimum_confirmed_seats:'',decision_deadline:'',accepted_time_window_minutes:'0',driver_choice:'later'}
 const iso=v=>v?new Date(v).toISOString():null
@@ -127,6 +158,8 @@ export default function OwnerTicketDepartures(){
       setForm(emptyDeparture);setNotice(t('Departure saved as a draft. Press Publish below when you are ready.'));loadDepartures();dw.setStep(0);setTab(2)
     }catch(e){setError(e.code==='DRIVER_NOT_ELIGIBLE'?{message:t('That person is not an approved Driver. Choose another Driver or drive it yourself.')}:e)}finally{setBusy(false)}
   }
+  // A Driver found by reference joins the list like a listed Driver and becomes the choice.
+  const useFound=choose=>driver=>{setDrivers(list=>(list||[]).some(d=>d.id===driver.id)?list:[...(list||[]),driver]);choose(driver.id)}
   const chosenDriver=choice=>choice==='me'?(me.driver?me.id:null):choice==='later'?null:choice
   const driverName=x=>!x.operator_driver_user_id?null:x.operator_driver_user_id===me.id?t('You (self-drive)'):(drivers||[]).find(d=>d.id===x.operator_driver_user_id)?.display_name||t('Driver assigned')
   async function assign(){
@@ -289,7 +322,7 @@ export default function OwnerTicketDepartures(){
             <select name="policy" value={form.fulfilment_policy} onChange={set('fulfilment_policy')}>
               <option value="FIXED_GUARANTEED">{t('Fixed, guaranteed departure')}</option>
               <option value="MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT">{t('Minimum seats with protected fulfilment')}</option></select></Field>
-          <Field label="Accepted time window (minutes)" optional help="Leave 0 if the departure time is fixed."><input name="window" min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/></Field>
+          <Field label="Time window (min)" optional help="How many minutes the departure time may move. Leave 0 if the departure time is fixed."><input name="window" min="0" max="1440" type="number" value={form.accepted_time_window_minutes} onChange={set('accepted_time_window_minutes')}/></Field>
           {protectedPolicy&&<>
             <Field label="Minimum confirmed seats" help="How many seats must be booked for this departure to be confirmed."><input required name="minseats" min="1" type="number" value={form.minimum_confirmed_seats} onChange={set('minimum_confirmed_seats')}/></Field>
             <DateTimeFields dateLabel="Decision deadline date" timeLabel="Decision deadline time" help="You decide by this time." value={form.decision_deadline} min={toLocal(new Date()).slice(0,10)} onChange={v=>setForm(f=>({...f,decision_deadline:v}))}/></>}
@@ -299,6 +332,7 @@ export default function OwnerTicketDepartures(){
             <select name="driver" value={form.driver_choice} onChange={set('driver_choice')}>
               <option value="later">{t('Assign later')}</option>
               <DriverOptions drivers={drivers} me={me}/></select></Field>
+          <DriverFinder onUse={useFound(id=>setForm(f=>({...f,driver_choice:id})))}/>
           <DriverInfo choice={form.driver_choice} drivers={drivers} me={me} onSelf={()=>setForm(f=>({...f,driver_choice:'me'}))}/>
         </div>
         </div>
@@ -325,6 +359,7 @@ export default function OwnerTicketDepartures(){
           <Field label="Driver" help="Only people you have worked with are listed. A Driver must be approved by Travelly."><select name="assign-driver" value={driverPick} onChange={e=>setPickDriver(e.target.value)}>
             <option value="later">{t('Choose a Driver')}</option><DriverOptions drivers={drivers} me={me}/></select></Field>
         </div>
+        <DriverFinder onUse={useFound(setPickDriver)}/>
         <DriverInfo choice={driverPick} drivers={drivers} me={me} onSelf={()=>setPickDriver('me')}/>
         <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setAssigning(null);setPickDriver('later')}}>{t('Back to list')}</button>
           <button type="button" className="ui-button ui-button-primary" disabled={busy||driverPick==='later'} onClick={assign}>{busy?t('Saving…'):t('Assign driver')}</button></div>

@@ -94,3 +94,13 @@ html body .ui-switch input:focus-visible + .ui-switch-track { outline: 2px solid
 html body .ui-switch input:disabled + .ui-switch-track { opacity: .55; }
 html body .flow-page .tk-cash-status { font-size: 13.5px; color: var(--ui-text); }
 html body .flow-page .tk-cash-status .is-error { color: #a3160c; font-weight: 600; }
+
+/* Find a Driver by reference: input and Find button on one row, result line under it */
+html body .flow-page .tk-finder { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+html body .flow-page .tk-finder-row { align-items: flex-end; flex-wrap: nowrap; }
+html body .flow-page .tk-finder-row .tk-grow { min-width: 0; }
+html body .flow-page .tk-finder .tk-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+html body .flow-page .tk-finder .tk-line .ui-button { min-height: 32px; padding: 0 12px; }
+/* Number, date and time inputs must never be wider than their grid cell (the "Accepted time window" input spilled into the Driver column) */
+html body .flow-page .tk-grid .rate-field input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; box-sizing: border-box; }
+html body .flow-page .tk-grid .rate-field { grid-template-columns: minmax(0, 1fr); min-width: 0; }
