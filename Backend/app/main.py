@@ -16,6 +16,7 @@ from app.core.config import get_settings
 from app.dependencies.database import make_engine, session_factory
 from app.core.errors import ApiError
 from app.core.sessions import SessionStore
+from app.core import session_cookie
 from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
 from app.api.routers.auth_extension import router as auth_extension_router
 from app.services.auth_services import AuthState, Mailer, GoogleIdentity
@@ -194,6 +195,7 @@ def create_app(settings=None, engine=None, store=None):
             # Do not log exception text: driver errors can contain sensitive data.
             logger.error('internal_failure trace=%s', request.state.trace_id)
             response = error_response(request, ApiError(500, 'INTERNAL_ERROR', 'An unexpected error occurred.'))
+        session_cookie.apply(request, response, app.state.settings)
         response.headers['Cache-Control'] = 'no-store'
         response.headers['Pragma'] = 'no-cache'
         response.headers['X-Request-ID'] = request.state.trace_id

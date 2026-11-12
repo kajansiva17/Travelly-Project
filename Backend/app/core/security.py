@@ -41,15 +41,16 @@ def decode_token(token, settings, kind='access'):
         raise unauthorized('INVALID_REFRESH_TOKEN' if kind == 'refresh' else 'UNAUTHENTICATED') from None
 
 
-def issue_tokens(user_id, settings, sid=None, expires=None, auth_version=0):
+def issue_tokens(user_id, settings, sid=None, expires=None, auth_version=0, remember=False):
     now = int(time.time())
     sid = sid or str(uuid4())
     expires = expires or now + 604800
     access_exp = min(now + 900, expires)
-    def encode(kind, exp, key, audience):
+    def encode(kind, exp, key, audience, extra=None):
         return jwt.encode({'sub': str(user_id), 'sid': sid, 'jti': str(uuid4()), 'iat': now, 'exp': exp,
-                           'iss': 'travelly-api', 'aud': audience, 'token_type': kind, 'av': auth_version}, key, algorithm='HS256', headers={'typ': 'JWT'})
+                           'iss': 'travelly-api', 'aud': audience, 'token_type': kind, 'av': auth_version, **(extra or {})},
+                          key, algorithm='HS256', headers={'typ': 'JWT'})
     response = {'access_token': encode('access', access_exp, settings.jwt_secret, 'travelly-web'),
-                'refresh_token': encode('refresh', expires, settings.jwt_refresh_secret, 'travelly-refresh'),
+                'refresh_token': encode('refresh', expires, settings.jwt_refresh_secret, 'travelly-refresh', {'rm': True} if remember else None),
                 'token_type': 'bearer', 'expires_in': access_exp - now, 'refresh_expires_in': expires - now}
     return response, sid, expires

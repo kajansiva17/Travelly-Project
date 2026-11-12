@@ -10,7 +10,10 @@ let authFlow = null
 export function setAuthFlow(value) { authFlow = value }
 export function getAuthFlow() { return authFlow }
 
-export function clearSession() { credentials = null; authFlow = null; generation += 1; sessionChanged() }
+// Why the last session ended: 'logout' (the person chose to leave) or 'expired' (it could not be renewed).
+let endReason = null
+export function sessionEndReason() { return endReason }
+export function clearSession(reason = 'expired') { credentials = null; authFlow = null; generation += 1; endReason = reason; sessionChanged() }
 export function hasSession() { return Boolean(credentials) }
 
 async function send(path, options = {}, accessToken) {
@@ -56,7 +59,7 @@ export const publicAuth = (path, data) => send('/auth/' + path, { method: 'POST'
 export const publicRead = path => send(path)
 export const publicRequest = (path, data) => send(path, { method: 'POST', body: JSON.stringify(data) })
 export function acceptAuthResult(result) {
-  if (result.access_token && result.refresh_token) { credentials = result; generation += 1; authFlow = null; sessionChanged() }
+  if (result.access_token && result.refresh_token) { credentials = result; generation += 1; authFlow = null; endReason = null; sessionChanged() }
   else { authFlow = result }
   return result
 }
@@ -66,17 +69,35 @@ export async function login(data) {
   return acceptAuthResult(tokens)
 }
 
+// The refresh token lives in an HttpOnly cookie that page scripts cannot read; it rotates on every use.
+// Requests send an empty body so the newest cookie is always used, and a cross-tab lock makes tabs take turns,
+// so two tabs never present the same token (which the server treats as a replay and ends the session).
+function renew(timeoutMs) {
+  const call = () => send('/auth/refresh', { method: 'POST', body: '{}', ...(timeoutMs ? { timeoutMs } : {}) })
+  return navigator.locks?.request ? navigator.locks.request('travelly-session-refresh', call) : call()
+}
+
 async function refreshSession() {
   if (!credentials) throw new Error('Please sign in again.')
   if (!refreshing) {
     const version = generation
-    const token = credentials.refresh_token
-    refreshing = send('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: token }) })
+    refreshing = renew()
       .then((tokens) => { if (generation === version) credentials = tokens; return tokens })
-      .catch((error) => { if (generation === version) clearSession(); throw error })
+      .catch((error) => { if (generation === version && [401, 403].includes(error.status)) clearSession(); throw error })
       .finally(() => { refreshing = null })
   }
   return refreshing
+}
+
+// On page load: sign back in from the session cookie if there is one. Never throws.
+export async function restoreSession() {
+  if (credentials) return true
+  const version = generation
+  try {
+    const tokens = await renew(5_000)
+    if (generation === version && !credentials) acceptAuthResult(tokens)
+    return true
+  } catch { return false }
 }
 
 export async function api(path, options = {}) {
@@ -91,15 +112,15 @@ export async function api(path, options = {}) {
 }
 
 export async function logout() {
-  // Settle a concurrent refresh before selecting the matching access/refresh pair.
-  if (refreshing) await refreshing
+  // Settle a concurrent refresh before ending the session.
+  if (refreshing) await refreshing.catch(() => {})
   if (!credentials) return
   try {
-    await send('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: credentials.refresh_token }) }, credentials.access_token)
+    await send('/auth/logout', { method: 'POST', body: '{}' }, credentials.access_token)
   } catch (error) {
     if (error.status !== 401) throw error
     await refreshSession()
-    await send('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: credentials.refresh_token }) }, credentials.access_token)
+    await send('/auth/logout', { method: 'POST', body: '{}' }, credentials.access_token)
   }
-  clearSession()
+  clearSession('logout')
 }

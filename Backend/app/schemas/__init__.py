@@ -116,6 +116,7 @@ class LoginRequest(RequestModel):
     identifier: str = Field(min_length=1, max_length=254)
     password: str = Field(min_length=1, max_length=128)
     journey: Literal['PASSENGER', 'OWNER', 'DRIVER'] = 'PASSENGER'
+    remember_me: bool = False
 
     @field_validator('identifier')
     @classmethod
@@ -124,7 +125,8 @@ class LoginRequest(RequestModel):
 
 
 class RefreshRequest(RequestModel):
-    refresh_token: str = Field(min_length=1, max_length=2048)
+    # Optional: the web app sends {} and the HttpOnly session cookie carries the token.
+    refresh_token: str | None = Field(default=None, min_length=1, max_length=2048)
 
 
 class RoleRequest(RequestModel):

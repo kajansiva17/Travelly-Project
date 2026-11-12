@@ -14,6 +14,7 @@ from app.core.errors import ApiError, unauthorized
 from app.models import User, UserRole
 from app.schemas import RequestModel, email_address, phone_number, clean_text, new_password
 from app.core.security import hasher, verify_password, issue_tokens
+from app.core import session_cookie
 
 router = APIRouter(prefix='/api/v1', tags=['Auth extension'])
 DELIVERY = {
@@ -230,6 +231,7 @@ def session_for(request, db, user, journey='PASSENGER'):
     user.last_login_at = datetime.now(timezone.utc); touch(user); db.commit()
     tokens, sid, expires = issue_tokens(user.id, request.app.state.settings, auth_version=user.auth_version)
     request.app.state.store.create(sid, user.id, tokens['refresh_token'], expires)
+    session_cookie.keep(request, tokens)
     return tokens
 
 

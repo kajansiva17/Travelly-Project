@@ -33,6 +33,7 @@ import AdminOversight from './features/admin/AdminOversight'
 import AdminDocuments from './features/admin/AdminDocuments'
 import DriverTripPage from './features/driver/DriverTripPage'
 import WorkspaceShell from './components/WorkspaceShell'
+import { hasSession, sessionEndReason } from './services/api'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
 import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
@@ -94,36 +95,37 @@ function LegacyApplicationBoundary({children}){
  const {hash,pathname,search}=useLocation(),signedIn=useSession(),q=new URLSearchParams(search),documents=q.get('documents'),legacyDocuments=!signedIn&&pathname==='/account'&&(!q.has('workspace')||q.get('workspace')==='passenger')&&(documents==='owner'||documents==='driver')?documents.toUpperCase():null,role=legacyApplicationRole(hash)||legacyDocuments
  return role&&['/dashboard','/account','/passenger/dashboard'].includes(pathname)?<Navigate to={onboardingPath(role)} replace/>:children
 }
-// A full page reload (or signing out) clears the in-memory sign-in by design: tokens are never stored in the browser.
-// Remember only the PAGE ADDRESS the person was on (never a token) so that after they sign in again
-// they land on that page instead of the dashboard.
+// A reload keeps the sign-in (main.jsx renews it from the HttpOnly session cookie). This only helps when a session
+// EXPIRED, or a signed-out person opened a private link: after signing in they return to that page. It never applies
+// after a deliberate logout, and only when the page belongs to the workspace they signed in to, so signing in as
+// someone else (or as another role) never lands on the previous person's page.
 const RETURN_KEY='travelly-return-to'
 const RETURN_PREFIXES=['/owner/','/driver/','/admin/','/travel/','/bookings','/trips/','/account','/passenger/']
 const returnable=pathname=>RETURN_PREFIXES.some(prefix=>pathname.startsWith(prefix))&&!pathname.endsWith('/onboarding')
+const workspaceOf=path=>{const [url]=path.split('#'),[base,query]=url.split('?'),role=['owner','driver','admin'].find(r=>base.startsWith('/'+r+'/'))
+ return role?role.toUpperCase():base==='/account'?(new URLSearchParams(query).get('workspace')||'passenger').toUpperCase():'PASSENGER'}
+const readReturn=()=>{try{return sessionStorage.getItem(RETURN_KEY)}catch{return null}}
+const writeReturn=value=>{try{if(value)sessionStorage.setItem(RETURN_KEY,value);else sessionStorage.removeItem(RETURN_KEY)}catch{/* Without browser storage the person simply lands on their dashboard. */}}
 ;(function rememberRequestedPage(){
-  try{
-    const {pathname,search,hash}=window.location
-    if(returnable(pathname))sessionStorage.setItem(RETURN_KEY,pathname+search+hash);else sessionStorage.removeItem(RETURN_KEY)
-  }catch{/* Without browser storage the person simply lands on their dashboard. */}
+  if(hasSession())return writeReturn(null)
+  const {pathname,search,hash}=window.location
+  writeReturn(returnable(pathname)?pathname+search+hash:null)
 })()
 function ReturnToRequestedPage(){
   const signedIn=useSession(),navigate=useNavigate(),{pathname,search,hash}=useLocation(),here=pathname+search+hash
   const last=React.useRef(null),was=React.useRef(signedIn),tries=React.useRef(0)
-  const read=()=>{try{return sessionStorage.getItem(RETURN_KEY)}catch{return null}}
-  const clear=()=>{try{sessionStorage.removeItem(RETURN_KEY)}catch{/* ignore */}}
-  // Signing out from inside the app: remember the page they were on.
+  // The session ended while on a page: remember it only if it expired, never after choosing to log out.
   useEffect(()=>{
-    if(was.current&&!signedIn&&last.current){try{sessionStorage.setItem(RETURN_KEY,last.current)}catch{/* ignore */}}
+    if(was.current&&!signedIn)writeReturn(sessionEndReason()==='expired'?last.current:null)
     was.current=signedIn
     if(signedIn&&returnable(pathname))last.current=here
   },[signedIn,here])
-  // After signing in, go back to that page. Some pages redirect once on arrival, so try a few times.
+  // After signing in, wait for the landing page, then go back only within the same workspace.
   useEffect(()=>{
-    if(!signedIn||pathname==='/login')return
-    const target=read()
+    if(!signedIn||pathname==='/login'||pathname==='/register')return
+    const target=readReturn()
     if(!target)return
-    if(target===here||target.split('#')[0]===pathname+search){clear();tries.current=0;return}
-    if(tries.current>=4){clear();tries.current=0;return}
+    if(workspaceOf(target)!==workspaceOf(here)||target===here||target.split('#')[0]===pathname+search||tries.current>=4){writeReturn(null);tries.current=0;return}
     tries.current+=1
     navigate(target,{replace:true})
   },[signedIn,here])

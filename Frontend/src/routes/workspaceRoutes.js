@@ -8,8 +8,8 @@ export function loginDestination(user,roles,journey){
  const allowed=eligibleWorkspaces(user,roles)
  if(journey==='ADMIN')return '/admin/dashboard'
  if(['OWNER','DRIVER'].includes(journey))return allowed.includes(journey)?workspaceRoles[journey].home:`/${journey.toLowerCase()}/onboarding`
- const preferred=['ADMIN','OWNER','DRIVER'].find(role=>allowed.includes(role))
- return preferred?workspaceRoles[preferred].home:'/dashboard'
+ // Plain sign-in (home page, no Owner/Driver/Admin entry) opens the Passenger workspace; other workspaces are a switch away.
+ return '/dashboard'
 }
 export function accountPath(role,documents){const q=new URLSearchParams({workspace:role.toLowerCase()});if(documents)q.set('documents',documents);return '/account?'+q}
 export function withWorkspace(path,role){const [url,hash]=path.split('#'),[base,search]=url.split('?'),q=new URLSearchParams(search);q.set('workspace',role.toLowerCase());return base+'?'+q+(hash?'#'+hash:'')}
