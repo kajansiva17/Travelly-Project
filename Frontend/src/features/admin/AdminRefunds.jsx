@@ -5,13 +5,14 @@ import {Field,RateErrors} from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
 import {newKey} from '../passenger/TicketPayment'
 import {money,REFUND_STATUS} from '../passenger/TicketCancel'
+import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
 
 // Admin refunds (Payments contract 03P, section E2 to E5). Lists never show tokens, card or bank details:
 // only references, amounts, status and dates that the refund item itself carries.
 const causes={PASSENGER_CANCELLATION:'Passenger cancelled',PAYMENT_AFTER_HOLD:'Paid after the hold ended',ADMIN:'Admin refund'}
 const filters=[['','All refunds'],['WAITING','Waiting'],['PAID','Refunded'],['FAILED','Declined']]
-const when=value=>value?new Date(value).toLocaleString():'—'
+const when=value=>formatDateTime(value)||'—'
 const isWaiting=row=>row.status==='PENDING'||row.status==='PROCESSING'
 
 // Friendly text for every error code in E3 to E5. Returns {field?, text}.

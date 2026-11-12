@@ -9,6 +9,7 @@ import SeatMap from '../../components/SeatMap'
 import {Field,Compact} from './OwnerRates'
 import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
+import {formatDateTime} from '../../i18n/dateTime.js'
 
 // "Who will drive?" choices: the Owner's own listed Drivers (GET /owners/me/drivers), never a typed user ID.
 function DriverOptions({drivers,me,self=true}){
@@ -37,7 +38,7 @@ const iso=v=>v?new Date(v).toISOString():null
 const pad=n=>String(n).padStart(2,'0')
 const toLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 const STOP_OPTIONS=[['30','30 minutes before departure'],['60','1 hour before departure'],['120','2 hours before departure']]
-const nice=v=>v?new Date(v).toLocaleString([],{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):''
+const nice=formatDateTime
 
 // Vehicle types the Owner can start from, then adjust with the + / - buttons.
 const PRESETS={
@@ -70,7 +71,7 @@ export default function OwnerTicketDepartures(){
   const [vehicles,setVehicles]=useState([]),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(null)
   const [preset,setPreset]=useState('van'),[left,setLeft]=useState(2),[right,setRight]=useState(1),[rowCount,setRowCount]=useState(3),[back,setBack]=useState(4),[front,setFront]=useState(1),[sellFront,setSellFront]=useState(true),[off,setOff]=useState(new Set())
-  const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
+  const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[retiming,setRetiming]=useState(null),[newStart,setNewStart]=useState(''),[draftSeats,setDraftSeats]=useState({}),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
   const [tab,setTab]=useState(0),lw=useWizard(2),dw=useWizard(3),panes=[useRef(null),useRef(null),useRef(null)]
   const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
   const loadDepartures=()=>api('/scheduled-trips?mine=true&limit=100').then(x=>setItems(x.items||[])).catch(setError)
@@ -143,7 +144,30 @@ export default function OwnerTicketDepartures(){
   }
   async function publish(x){
     setError(null);setNotice('')
-    try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice(t('Departure published. Passengers can now book it.'));loadDepartures()}catch(e){setError(e)}
+    try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice(t('Departure published. Passengers can now book it.'));loadDepartures()}
+    catch(e){
+      const text=String(e.message||'')
+      if(/cut-off has already passed/i.test(text))setError({message:t('The booking cut-off has passed. Choose a later departure time.')})
+      else if(/departure must be in the future/i.test(text))setError({message:t('The departure time has passed. Choose a later departure time.')})
+      else setError(e)
+    }
+  }
+  const passedKind=x=>{if(x.status!=='DRAFT')return null;const now=Date.now();return new Date(x.departure_at).getTime()<=now?'departure':x.booking_cutoff_at&&new Date(x.booking_cutoff_at).getTime()<=now?'cutoff':null}
+  // Move a draft to a later time: arrival and booking cut-off move by the same amount (PATCH /scheduled-trips/{id}, draft only).
+  async function retime(){
+    const trip=retiming,start=new Date(newStart)
+    if(!(start>new Date())){setError({message:t('Choose a departure date and time in the future.')});return}
+    const shift=start.getTime()-new Date(trip.departure_at).getTime()
+    const cutoff=new Date(new Date(trip.booking_cutoff_at).getTime()+shift)
+    if(cutoff<=new Date()){setError({message:t('The booking cut-off would still be in the past. Choose a later departure time.')});return}
+    setBusy(true);setError(null);setNotice('')
+    try{await api(`/scheduled-trips/${trip.id}`,{method:'PATCH',body:JSON.stringify({expected_version:trip.version,departure_at:start.toISOString(),estimated_arrival_at:new Date(new Date(trip.estimated_arrival_at).getTime()+shift).toISOString(),booking_cutoff_at:cutoff.toISOString()})});setNotice(t('Departure time changed. You can publish this departure now.'));setRetiming(null);loadDepartures()}
+    catch(e){
+      if(e.code==='VERSION_CONFLICT'){setRetiming(null);loadDepartures();setError({message:t('This departure changed while you were editing. It has been refreshed, so choose the time again.')})}
+      else if(e.code==='DEPARTURE_NOT_DRAFT'){setRetiming(null);loadDepartures();setError({message:t('Only a draft departure can change its time. The list has been refreshed.')})}
+      else if(e.code==='DEPARTURE_NOT_FOUND'||e.status===404){setRetiming(null);loadDepartures();setError({message:t('This departure no longer exists. The list has been refreshed.')})}
+      else setError(e)
+    }finally{setBusy(false)}
   }
   const set=k=>e=>setForm({...form,[k]:e.target.value})
   // A route with a price for each stop fixes the whole-trip price to its last stop's price.
@@ -162,6 +186,17 @@ export default function OwnerTicketDepartures(){
       if(vehicleId&&vehicleLayout[vehicleId]===undefined){setVehicleLayout(c=>({...c,[vehicleId]:null}));api(`/vehicles/${vehicleId}/seat-layout`).then(r=>setVehicleLayout(c=>({...c,[vehicleId]:signature(r.seats)}))).catch(()=>{})}
     })
   },[visibleKey])
+  // A draft has no seat rows yet (they are created on publish), so its list entry carries available_seats 0 which is not a real count.
+  // Show the bookable seats of the vehicle's saved layout instead, or a neutral line when that is not known.
+  const draftKey=tab===2?departureList.slice.filter(x=>x.status==='DRAFT'&&x.vehicle_id).map(x=>x.vehicle_id).join(','):''
+  useEffect(()=>{
+    draftKey.split(',').filter(Boolean).forEach(id=>{
+      if(draftSeats[id]!==undefined)return
+      setDraftSeats(c=>({...c,[id]:null}))
+      api(`/vehicles/${id}/seat-layout`).then(r=>setDraftSeats(c=>({...c,[id]:(r.seats||[]).filter(x=>x.bookable).length}))).catch(()=>{})
+    })
+  },[draftKey])
+  const seatsText=x=>x.status==='DRAFT'?(draftSeats[x.vehicle_id]>0?t('{value0} seats when published',{value0:draftSeats[x.vehicle_id]}):t('Seats are created when you publish')):x.available_seats!=null?t('{value0} seats open',{value0:x.available_seats}):''
   const isOlder=x=>x.status!=='DRAFT'&&tripLayout[x.id]&&vehicleLayout[x.vehicle_id]&&tripLayout[x.id]!==vehicleLayout[x.vehicle_id]
   // Every step is checked again when the draft is saved: the first step with a problem is shown.
   const badPane=()=>panes.findIndex(p=>p.current&&[...p.current.querySelectorAll('input,select,textarea')].some(el=>!el.disabled&&!el.checkValidity()))
@@ -277,7 +312,14 @@ export default function OwnerTicketDepartures(){
     </form>
 
     <div className="tk-pane" hidden={tab!==2}>
-      {assigning?<>
+      {retiming?<>
+        <p className="tk-line"><strong>{retiming.route?.origin_name} → {retiming.route?.destination_name}</strong> · {t('Now')}: {nice(retiming.departure_at)}</p>
+        <div className="tk-grid" style={{'--cols':2}}>
+          <DateTimeFields dateLabel="New departure date" timeLabel="New departure time" help="Arrival and the booking cut-off move by the same amount." value={newStart} min={toLocal(new Date()).slice(0,10)} onChange={setNewStart}/>
+        </div>
+        <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setRetiming(null)}>{t('Back to list')}</button>
+          <button type="button" className="ui-button ui-button-primary" disabled={busy||!newStart} onClick={retime}>{busy?t('Saving…'):t('Save new time')}</button></div>
+      </>:assigning?<>
         <p className="tk-line"><strong>{assigning.route?.origin_name} → {assigning.route?.destination_name}</strong> · {nice(assigning.departure_at)}</p>
         <div className="tk-grid" style={{'--cols':2}}>
           <Field label="Driver" help="Only people you have worked with are listed. A Driver must be approved by Travelly."><select name="assign-driver" value={driverPick} onChange={e=>setPickDriver(e.target.value)}>
@@ -290,12 +332,14 @@ export default function OwnerTicketDepartures(){
       {items===null?<p role="status">{t('Loading departures…')}</p>:items.length
         ?<div className="tk-rows">{departureList.slice.map(x=><article className="tk-row" key={x.id}>
           <div className="tk-row-main"><strong>{x.route?.origin_name} → {x.route?.destination_name}</strong>
-            <span>{new Date(x.departure_at).toLocaleString()} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{x.available_seats!=null&&` · ${t('{value0} seats open',{value0:x.available_seats})}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
+            <span>{nice(x.departure_at)} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{seatsText(x)&&` · ${seatsText(x)}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
           <div className="tk-row-actions">
             {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
             <Chip tone={x.status==='PUBLISHED'?'success':'muted'}>{statusLabel(x.status)}</Chip>
             {x.status==='DRAFT'&&!x.operator_driver_user_id&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setPickDriver('later');setAssigning(x)}}>{t('Assign driver')}</button>}
-            {x.status==='DRAFT'&&<button type="button" className="ui-button ui-button-primary" onClick={()=>publish(x)}>{t('Publish')}</button>}</div></article>)}</div>
+            {passedKind(x)&&<><Chip tone="danger" icon="alert">{passedKind(x)==='departure'?t('Departure time has passed'):t('Booking cut-off has passed')}</Chip><InfoTip>{t('Create a new departure with a later time, or use Edit time to move this draft.')}</InfoTip>
+              <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setNotice('');setNewStart('');setRetiming(x)}}>{t('Edit time')}</button></>}
+            {x.status==='DRAFT'&&<span title={passedKind(x)?t('The time has passed. Edit the time or create a new departure with a later time.'):undefined}><button type="button" className="ui-button ui-button-primary" disabled={Boolean(passedKind(x))} onClick={()=>publish(x)}>{t('Publish')}</button></span>}</div></article>)}</div>
         :<Empty>{t('No ticket departures. Save a seat layout, then create a draft departure.')}</Empty>}
       <div className="flow-actions">{departureList.pages>1?departureList.pager:<span/>}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{t('New departure')}</button></div>
       </>}

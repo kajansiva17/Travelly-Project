@@ -1,5 +1,6 @@
 import { getLocale } from '../../i18n/language.js'
 import HirePayment from './HirePayment'
+import { formatDateTime } from '../../i18n/dateTime.js'
 import { t } from '../../i18n/language.js'
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -19,7 +20,7 @@ const serviceIcon=name=>{const n=(name||'').toLowerCase();return n.includes('air
 
 const blankStop = () => ({ place: null, wait_minutes: '0', overnight_rest: false })
 const localTime = value => value ? new Date(new Date(value).getTime() + 330 * 60000).toISOString().slice(0, 16) : ''
-const showTime = value => new Date(value).toLocaleString(getLocale(), { timeZone: 'Asia/Colombo' })
+const showTime = value => formatDateTime(value, { timeZone: 'Asia/Colombo' })
 // One-line date and time for the summary, e.g. 19 Nov 2026, 8:24 PM (Sri Lanka time).
 const shortWhen = value => { const d = new Date(value); if (isNaN(d)) return ''; const loc = getLocale(), en = loc.startsWith('en'); return `${d.toLocaleDateString(en ? 'en-GB' : loc, { timeZone: 'Asia/Colombo', day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString(en ? 'en-US' : loc, { timeZone: 'Asia/Colombo', hour: 'numeric', minute: '2-digit' })}` }
 

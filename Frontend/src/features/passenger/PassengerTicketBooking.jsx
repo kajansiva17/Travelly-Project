@@ -9,6 +9,7 @@ import {FlowShell,useWizard,usePaged,useRowCount} from '../booking/flow/FlowPart
 import {Empty} from '../ticketing/TicketParts'
 import {useLocation} from 'react-router-dom'
 import TicketPayment from './TicketPayment'
+import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
@@ -129,14 +130,14 @@ export default function PassengerTicketBooking(){
       {items?.items?.length===0&&<Empty>{t('No matching departures. No published departure matches these requirements.')}</Empty>}
       <div className="tk-rows">{results.slice.map(d=><article className="tk-row" key={d.id}>
         <div className="tk-row-main"><strong>{d.route?.route_name}</strong>
-          <span>{new Date(d.departure_at).toLocaleString()} · {d.vehicle?.make} {d.vehicle?.model}{d.vehicle?.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
+          <span>{formatDateTime(d.departure_at)} · {d.vehicle?.make} {d.vehicle?.model}{d.vehicle?.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
         <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>{t('Select departure')}</button></div></article>)}</div>
       <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">{t('Search departures')}</button></div>
     </form>
 
     {departure&&<div className="tk-split" hidden={w.step!==1}>
       <div className="tk-side">
-        <p className="tk-line"><strong>{departure.route.origin_name} → {departure.route.destination_name}</strong> · {new Date(departure.departure_at).toLocaleString()}</p>
+        <p className="tk-line"><strong>{departure.route.origin_name} → {departure.route.destination_name}</strong> · {formatDateTime(departure.departure_at)}</p>
         <p className="tk-line">{departure.stop_prices_enabled
           ?<>{t('Price per seat {value0} {value1} for {value2} → {value3}',{value0:departure.currency,value1:partFare!=null?partFare.toFixed(2):departure.fare_per_seat,value2:onStop?.stop_name,value3:offStop?.stop_name})}</>
           :<>{t('Fare per seat {value0} {value1}',{value0:departure.currency,value1:departure.fare_per_seat})}</>}</p>
