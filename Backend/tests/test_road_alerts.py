@@ -133,3 +133,15 @@ def test_admin_takes_an_alert_down_and_old_alerts_expire(client, running, ticket
     assert client.get(f"/api/v1/road-alerts?trip_id={running.trip['id']}", headers=bearer(running.ctx.owner)).json()['items'] == []
     with client.app.state.sessions() as db:
         assert db.get(RoadAlert, UUID(other['id'])).status == 'EXPIRED'
+
+
+def test_notification_list_carries_type_and_payload(client, running):
+    live(client, running)
+    alert = report(client, running).json()
+    items = client.get('/api/v1/notifications', headers=bearer(running.ctx.passenger)).json()['items']
+    road = [i for i in items if i['notification_type'] == 'ROAD_ALERT']
+    assert len(road) == 1
+    item = road[0]
+    assert item['action_payload']['road_alert_id'] == alert['id'] and item['trip_id'] == running.trip['id']
+    assert item['expires_at'] and item['created_at'] and item['read_at'] is None and item['channel']
+    assert {'booking_id', 'scheduled_trip_id', 'action_required', 'response_code', 'support_vehicle_id'} <= item.keys()

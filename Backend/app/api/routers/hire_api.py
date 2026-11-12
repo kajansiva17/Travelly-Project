@@ -860,8 +860,20 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
 @router.get('/notifications')
 def own_notifications(user=Depends(current), db: Session = Depends(get_db)):
     rows = db.scalars(select(Notification).where(Notification.recipient_user_id == user.id).order_by(Notification.created_at.desc()).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'title': r.title, 'body': r.body, 'booking_id': str(r.booking_id) if r.booking_id else None, 'status': r.status,
-        'support_vehicle_id': r.action_payload.get('vehicle_id') if r.notification_type == 'ADMIN_ACTION' else None} for r in rows]}
+    return {'items': [notification_out(r) for r in rows]}
+
+
+def notification_out(r):
+    """One notification for its recipient. The UI picks wording and links from notification_type and action_payload."""
+    text = lambda v: str(v) if v is not None else None
+    when = lambda v: v.isoformat() if v else None
+    return {'id': str(r.id), 'notification_type': r.notification_type, 'channel': r.channel, 'title': r.title, 'body': r.body,
+            'status': r.status, 'action_required': r.action_required, 'action_payload': dict(r.action_payload or {}),
+            'booking_id': text(r.booking_id), 'scheduled_trip_id': text(r.scheduled_trip_id), 'trip_id': text(r.trip_id),
+            'response_code': r.response_code, 'created_at': when(r.created_at), 'read_at': when(r.read_at),
+            'expires_at': when(r.expires_at),
+            # kept for screens built before notification_type was returned
+            'support_vehicle_id': (r.action_payload or {}).get('vehicle_id') if r.notification_type == 'ADMIN_ACTION' else None}
 
 
 @router.put('/admin/service-types/{service_id}/licence-compatibility')
