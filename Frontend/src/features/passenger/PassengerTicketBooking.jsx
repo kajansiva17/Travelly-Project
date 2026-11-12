@@ -171,7 +171,7 @@ export default function PassengerTicketBooking(){
           {confirmed&&isPending(booking)&&<ReplacementCard booking={booking} refresh={refresh} onRejected={result=>setCancelResult({refund_percent:100,refund:result.refund?{...result.refund,currency:booking.currency}:null})}/>}
           {confirmed&&!isPending(booking)&&booking.pending_change?.kind==='REPLACEMENT_VEHICLE'&&booking.pending_change.status==='ACCEPTED'&&<p className="tk-line"><Chip tone="success">{t('Vehicle change accepted')}</Chip> {vehicleLine(booking.pending_change.replacement_vehicle)}</p>}
           {confirmed&&!isPending(booking)&&<FulfilmentNotice bookingId={booking.id} version={booking.version}/>}
-          <TicketPayment booking={booking} refresh={refresh} returned={returned} onChooseSeats={chooseAgain}/>
+          {!(confirmed&&isPending(booking))&&<TicketPayment booking={booking} refresh={refresh} returned={returned} onChooseSeats={chooseAgain}/>}
         </div>
         :<>
           {booking?.status==='CANCELLED'&&<p className="tk-line is-warn" role="status"><strong>{booking.cancellation_reason==='Seat hold expired.'?t('Hold expired.'):t('Hold released.')}</strong> {t('Seats {value0} are free again. You can select seats and hold them again.',{value0:booking.travellers.map(x=>x.seat_code).join(', ')})}</p>}

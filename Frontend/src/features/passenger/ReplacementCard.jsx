@@ -42,6 +42,7 @@ export default function ReplacementCard({booking,refresh,onRejected}){
       <dl className="tk-facts" style={{'--cols':1}}>
         <div><dt>{t('Was')}</dt><dd title={vehicleLine(was)}>{vehicleLine(was)}</dd></div>
         <div><dt>{t('Now')}</dt><dd title={vehicleLine(now)}><strong>{vehicleLine(now)}</strong></dd></div>
+        {change.operator_changed&&now?.operator_name&&<div><dt>{t('New operator')}</dt><dd title={now.operator_name}><strong>{now.operator_name}</strong></dd></div>}
       </dl>
       <div className="tk-replace-seats"><strong className="tk-line">{t('Your seats')}</strong>
         {seats.slice(current*size,(current+1)*size).map(s=><span className="tk-line" key={`${s.seat_id}-${s.from_seat}`}>{s.full_name}: {s.from_seat} → <strong>{s.to_seat}</strong></span>)}

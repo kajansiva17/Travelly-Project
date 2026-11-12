@@ -6,11 +6,12 @@ import {Header,ErrorNotice,Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import SeatMap from '../../components/SeatMap'
-import {Field,Compact} from './OwnerRates'
+import {Field,Compact,RateErrors} from './OwnerRates'
 import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import DepartureFulfilment,{statusChip,canManage} from './DepartureFulfilment'
+import EmptyState from '../../components/ui/EmptyState'
 
 // "Who will drive?" choices: the Owner's own listed Drivers (GET /owners/me/drivers), never a typed user ID.
 function DriverOptions({drivers,me,self=true}){
@@ -62,6 +63,67 @@ function DriverFinder({onUse}){
     {found&&<p className="tk-line" role="status"><Chip tone={eligible?'success':'danger'} icon={eligible?'check':'alert'}>{eligible?t('Approved Driver'):t('Not approved')}</Chip> <strong>{found.display_name}</strong> <span>{t(found.message)}</span>
       {eligible&&<button type="button" className="ui-button ui-button-primary" onClick={()=>{onUse({id:found.id,reference:found.reference,display_name:found.display_name,eligible:true,how_you_know_them:'Found by reference'});setReference('');setFound(null)}}>{t('Use this Driver')}</button>}</p>}
   </div>
+}
+
+// Replacement requests (contract 03F2, sections 9 and 10): another Owner asks me to run a departure with my vehicle.
+function replacementProblem(error){
+  const code=error.code,fields=error.fields||[]
+  if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
+  if(code==='REPLACEMENT_TOO_SMALL'){const m=/has (\d+) bookable seats; (\d+) passengers/.exec(error.message||'');return {text:m?t('This vehicle has {value0} bookable seats; {value1} passengers are booked.',{value0:m[1],value1:m[2]}):t(error.message)}}
+  if(['NO_REPLACEMENT_REQUEST','REPLACEMENT_NOT_ALLOWED','VEHICLE_SCHEDULE_CONFLICT','VERSION_CONFLICT','DRIVER_NOT_ELIGIBLE'].includes(code)||error.status===404)return {keep:code==='DRIVER_NOT_ELIGIBLE',text:t(error.message)}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {keep:true,text:t('Please check the highlighted fields.'),fields:Object.fromEntries(fields.map(f=>[f.field,f.message]))}
+  return {text:error.message||t('Your answer could not be sent. Please try again.')}
+}
+function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onNotice}){
+  const [items,setItems]=useState(null),[error,setError]=useState(null),[open,setOpen]=useState(null),[choice,setChoice]=useState('later'),[reason,setReason]=useState(''),[confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[errors,setErrors]=useState({})
+  const load=()=>api('/owners/me/replacement-requests').then(r=>{setItems(r.items||[]);setError(null)}).catch(setError)
+  useEffect(()=>{if(active)load()},[active])
+  const list=usePaged(items||[],Math.max(2,useRowCount(64)))
+  const close=()=>{setOpen(null);setChoice('later');setReason('');setConfirm(false);setMessage('');setErrors({})}
+  async function send(){
+    const {item,kind}=open
+    setBusy(true);setMessage('');setErrors({})
+    const body=kind==='accept'?{expected_version:item.version,decision:'ACCEPT',operator_driver_user_id:choice==='me'?null:chosenDriver(choice)}:{expected_version:item.version,decision:'DECLINE',reason:reason.trim()}
+    try{
+      await api(`/scheduled-trips/${item.id}/replacement-answer`,{method:'POST',body:JSON.stringify(body)})
+      close();onNotice(kind==='accept'?t('Request accepted. The passengers move to your vehicle and can accept the change or reject it for a full refund.'):t('Request declined. The other Owner and the Admin are told.'));await load()
+    }catch(problem){
+      const out=replacementProblem(problem)
+      setMessage(out.text);setErrors(out.fields||{})
+      if(out.keep){setConfirm(false)}else{setOpen(null);setConfirm(false);setChoice('later');setReason('');load()}
+    }finally{setBusy(false)}
+  }
+  const reasonOk=reason.trim().length>=3&&reason.trim().length<=1000
+  const route=r=>`${r.route?.origin_name||''} → ${r.route?.destination_name||''}`
+  if(open){
+    const {item,kind}=open
+    return <RateErrors.Provider value={errors}><div className="tk-pane">
+      <p className="tk-line"><strong>{item.original_departure_reference} · {route(item)}</strong> · {formatDateTime(item.departure_at)} · {item.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:item.booked_seats})}</p>
+      {message&&<p className="tk-line is-warn" role="status">{message}</p>}
+      {kind==='accept'
+        ?<div className="tk-driver-split">
+          <div className="tk-driver-col"><Field label="Who will drive?" help="Choose yourself (if you are an approved Driver) or one of your Drivers. An outside Driver must still accept the trip."><select name="replacement-driver" disabled={confirm} value={choice} onChange={e=>setChoice(e.target.value)}><option value="later">{t('Choose a Driver')}</option><DriverOptions drivers={drivers} me={me}/></select></Field>
+            {!confirm&&<DriverFinder onUse={useFound(setChoice)}/>}</div>
+          <div className="tk-driver-col"><DriverInfo choice={choice} drivers={drivers} me={me} onSelf={()=>setChoice('me')}/></div></div>
+        :<Field label="Why can’t you run it?" help="Between 3 and 1000 characters. The other Owner and the Admin see this reason."><input name="reason" maxLength="1000" disabled={confirm} value={reason} onChange={e=>setReason(e.target.value)}/></Field>}
+      {confirm&&<p className="tk-line is-warn"><strong>{kind==='accept'?t('Accept and run this departure?'):t('Decline this request?')}</strong> {kind==='accept'?t('{value0} seats move to your vehicle and the departure becomes committed. After the journey, the payment for these seats appears in your settlements.',{value0:item.booked_seats}):t('The other Owner and the Admin are told. The departure stays with its Owner, who can try another vehicle.')}</p>}
+      <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>confirm?setConfirm(false):close()}>{confirm?t('Back'):t('Back to list')}</button>
+        {confirm?<button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Please wait…'):kind==='accept'?t('Yes, accept'):t('Yes, decline')}</button>
+          :<button type="button" className="ui-button ui-button-primary" disabled={kind==='accept'?choice==='later':!reasonOk} onClick={()=>{setMessage('');setConfirm(true)}}>{t('Continue')}</button>}</div>
+    </div></RateErrors.Provider>
+  }
+  return <>
+    {error&&<p className="tk-line is-warn" role="status">{error.message}</p>}
+    {items===null&&!error?<p role="status">{t('Loading requests…')}</p>:items&&items.length
+      ?<div className="tk-rows">{list.slice.map(r=><article className="tk-row" key={r.id}>
+        <div className="tk-row-main"><strong>{r.original_departure_reference} · {route(r)}</strong>
+          <span>{formatDateTime(r.departure_at)} · {r.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:r.booked_seats})} · {t('LKR {value0} per seat',{value0:r.fare_per_seat})}{r.requested_by?` · ${t('Asked by')} ${r.requested_by}`:''}</span></div>
+        <div className="tk-row-actions">{r.answer_pending
+          ?<><Chip tone="info" icon="clock">{t('Waiting for your answer')}</Chip><button type="button" className="ui-button ui-button-primary" onClick={()=>{setChoice('later');setOpen({item:r,kind:'accept'})}}>{t('Accept')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen({item:r,kind:'decline'})}>{t('Decline')}</button></>
+          :<Chip tone={statusChip(r.status).tone}>{statusChip(r.status).label}</Chip>}</div></article>)}</div>
+      :items&&<EmptyState icon="route" title={t('No replacement requests')}>{t('When another Owner asks you to run a departure with your vehicle, it appears here.')}</EmptyState>}
+    <div className="flow-actions">{list.pages>1?list.pager:<span/>}<span/></div>
+  </>
 }
 
 const emptyDeparture={route_id:'',vehicle_id:'',departure_at:'',estimated_arrival_at:'',arrival_auto:true,stop_before:'60',fare_per_seat:'',
@@ -181,7 +243,8 @@ export default function OwnerTicketDepartures(){
     try{await api(`/scheduled-trips/${x.id}/publish`,{method:'POST',body:JSON.stringify({expected_version:x.version,publish_confirmed:true})});setNotice(t('Departure published. Passengers can now book it.'));loadDepartures()}
     catch(e){
       const text=String(e.message||'')
-      if(/cut-off has already passed/i.test(text))setError({message:t('The booking cut-off has passed. Choose a later departure time.')})
+      if(e.code==='REPLACEMENT_REQUEST_DRAFT')setError({message:t(e.message)})
+      else if(/cut-off has already passed/i.test(text))setError({message:t('The booking cut-off has passed. Choose a later departure time.')})
       else if(/departure must be in the future/i.test(text))setError({message:t('The departure time has passed. Choose a later departure time.')})
       else setError(e)
     }
@@ -241,7 +304,7 @@ export default function OwnerTicketDepartures(){
     createDeparture()
   }
   const nextDeparture=()=>{if(checkPane(panes[dw.step].current).valid)dw.forward()}
-  const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
+  const tabs=[{label:t('Seat layout'),icon:'car'},{label:t('New departure'),icon:'calendar'},{label:t('Your departures'),icon:'route'},{label:t('Replacement requests'),icon:'clock'}].map((x,i)=>({...x,active:tab===i,onClick:()=>setTab(i)}))
   const stepNames=tab===0?[t('Vehicle and type'),t('Seats')]:[t('Route and time'),t('Arrival and price'),t('Type and driver')]
 
   return <><Header/><FlowShell heading={t('Ticket departures')} icon="ticket" title={[t('Vehicle seat layout'),t('Create a departure draft'),t('Your departures')][tab]}
@@ -346,9 +409,9 @@ export default function OwnerTicketDepartures(){
     </form>
 
     <div className="tk-pane" hidden={tab!==2}>
-      {managing?<DepartureFulfilment key={`${managing.id}-${managing.version}`} departure={items?.find(i=>i.id===managing.id)||managing} vehicles={vehicles} onBack={()=>setManaging(null)}
+      {managing?<DepartureFulfilment key={`${managing.id}-${managing.version}`} departure={items?.find(i=>i.id===managing.id)||managing} onBack={()=>setManaging(null)}
         onProblem={text=>{setManaging(null);setNotice('');setError({message:text});loadDepartures()}}
-        onDone={async(action,result)=>{setManaging(null);setError(null);setNotice(action==='commit'?t('Departure committed. Passengers who paid are told it will run.'):action==='replace'?t('Replacement vehicle set. {value0} seats moved. Passengers who paid can accept the change or reject it for a full refund.',{value0:result?.moved_seats??0}):result?.status==='CANCELLED'?t('Departure withdrawn. Nobody had paid for it.'):t('Reported. Selling has stopped and Travelly will arrange the journey for passengers who paid.'));await loadDepartures()}}/>
+        onDone={async(action,result)=>{setManaging(null);setError(null);setNotice(action==='commit'?t('Departure committed. Passengers who paid are told it will run.'):action==='replace'?t('Replacement vehicle set. {value0} seats moved. Passengers who paid can accept the change or reject it for a full refund.',{value0:result?.moved_seats??0}):action==='request'?t('Request sent. Waiting for the other Owner to answer.'):result?.status==='CANCELLED'?t('Departure withdrawn. Nobody had paid for it.'):t('Reported. Selling has stopped and Travelly will arrange the journey for passengers who paid.'));await loadDepartures()}}/>
       :retiming?<>
         <p className="tk-line"><strong>{retiming.route?.origin_name} → {retiming.route?.destination_name}</strong> · {t('Now')}: {nice(retiming.departure_at)}</p>
         <div className="tk-grid" style={{'--cols':2}}>
@@ -383,6 +446,7 @@ export default function OwnerTicketDepartures(){
       <div className="flow-actions">{departureList.pages>1?departureList.pager:<span/>}<button type="button" className="ui-button ui-button-primary" onClick={()=>setTab(1)}>{t('New departure')}</button></div>
       </>}
     </div>
+    <div className="tk-pane" hidden={tab!==3}><ReplacementRequests active={tab===3} drivers={drivers} me={me} useFound={useFound} chosenDriver={chosenDriver} onNotice={text=>{setError(null);setNotice(text)}}/></div>
     </Compact.Provider>
   </FlowShell></>
 }
