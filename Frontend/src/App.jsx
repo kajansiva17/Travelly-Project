@@ -17,7 +17,6 @@ import VehicleWorkspace,{PublicVehicle} from './features/owner/VehicleWorkspace'
 import VehicleCalendar from './features/owner/VehicleCalendar'
 import AdminWorkflowPage from './features/admin/AdminWorkflowPage'
 import AdminServiceCatalogue from './features/admin/AdminServiceCatalogue'
-import PassengerEventHire from './features/passenger/PassengerEventHire'
 import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import {RentalRoleUi} from './features/rental/RentalUi'
@@ -144,7 +143,7 @@ const travelRoutes=prefix=>[
  <Route key="trips" path={prefix+'/travel/bookings'} element={<WorkspaceBookings personal/>}/>,
  <Route key="trip" path={prefix+'/travel/bookings/:bookingId'} element={<BookingPage/>}/>,
  <Route key="service" path={prefix+'/travel/book/service'} element={<PassengerServiceSelection/>}/>,
- <Route key="event" path={prefix+'/travel/book/event'} element={<PassengerEventHire/>}/>,
+ <Route key="event" path={prefix+'/travel/book/event'} element={<Navigate to={prefix+'/travel/book/details/event'} replace/>}/>,
  <Route key="tickets" path={prefix+'/travel/book/tickets'} element={<PassengerTicketBooking/>}/>,
  <Route key="rental" path={prefix+'/travel/book/rental'} element={<PassengerRental/>}/>,
  <Route key="airport" path={prefix+'/travel/book/details/airport'} element={<PassengerTripDetails variant="airport"/>}/>,
@@ -205,7 +204,7 @@ export default function App() {
             <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/settings" element={<WorkspaceSettings/>}/>
             <Route path="/travel/book/service" element={<PassengerServiceSelection/>}/>
-            <Route path="/travel/book/event" element={<PassengerEventHire/>}/>
+            <Route path="/travel/book/event" element={<Navigate to="/travel/book/details/event" replace/>}/>
             <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
             <Route path="/travel/book/rental" element={<PassengerRental/>}/>
             <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>

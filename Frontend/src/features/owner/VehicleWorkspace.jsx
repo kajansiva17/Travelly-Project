@@ -14,6 +14,7 @@ import VehiclePhoto from '../../components/VehiclePhoto'
 import {useWorkspace} from '../../context/workspaceContext'
 import {personalHirePath} from '../../routes/workspaceRoutes'
 import VehicleMaintenance from './VehicleMaintenance'
+import {vehicleTabFromSearch} from '../notifications/reminders'
 import {vehiclePayload,vehicleTypes,labels,validatePhoto} from './vehicleValidation'
 import '../../styles/rates.css'
 import '../../styles/vehicles.css'
@@ -100,14 +101,14 @@ function PreferredDriver({vehicle,onChanged}){
 }
 
 export default function VehicleWorkspace({reviewer=false}){
-  const navigate=useNavigate()
+  const navigate=useNavigate(),location=useLocation()
   const {vehicleId}=useParams(),[user,setUser]=useState(null),[vehicle,setVehicle]=useState(null),[items,setItems]=useState(null),[error,setError]=useState(null),[registration,setRegistration]=useState(''),[page,setPage]=useState(1),[hasNext,setHasNext]=useState(false),[status,setStatus]=useState('SUBMITTED'),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
   useEffect(()=>{const show=e=>setNotice(e.detail);window.addEventListener('travelly-notice',show);return ()=>window.removeEventListener('travelly-notice',show)},[])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return ()=>clearTimeout(timer)},[notice])
   async function load(){setBusy(true);setError(null);try{const u=await api('/users/me');setUser(u);if(!u.approved_roles.includes(reviewer?'ADMIN':'OWNER'))return;if(vehicleId)setVehicle(await api(`${reviewer?'/admin/vehicles':'/owners/me/vehicles'}/${vehicleId}`));else{const data=await api(`${reviewer?'/admin/vehicles':'/owners/me/vehicles'}?page=${page}&page_size=20${reviewer?'&verification_status='+status:''}`);setItems(data.items);setHasNext(data.has_next)}}catch(e){setError(e)}finally{setBusy(false)}}
   useEffect(()=>{if(hasSession())load()},[vehicleId,page,status,reviewer])
   async function create(e){e.preventDefault();setBusy(true);setError(null);try{const row=await request('/vehicles',{registration_number:registration.trim()},'POST');setRegistration('');navigate(`/owner/vehicles/${row.id}`)}catch(e){setError(e)}finally{setBusy(false)}}
-  const [tab,setTab]=useState(0),[slot,setSlot]=useState(null),paged=usePaged(items,useRowCount(66))
+  const [tab,setTab]=useState(()=>reviewer?0:vehicleTabFromSearch(location.search)),[slot,setSlot]=useState(null),paged=usePaged(items,useRowCount(66))
   async function action(suffix,body,method='PATCH'){setBusy(true);setError(null);try{await request(`/vehicles/${vehicle.id}/${suffix}`,{expected_version:vehicle.version,...body},method);await load();notify(suffix==='submit'?'Vehicle submitted. Admin will review it.':suffix==='publish'?(body.published?'Vehicle published. Passengers can now see it.':'Vehicle unpublished.'):body.availability_status==='INACTIVE'?'Vehicle marked inactive.':'Vehicle marked active.')}catch(e){setError(e)}finally{setBusy(false)}}
   if(!hasSession())return <Navigate to="/login" replace/>
   if(user&&!user.approved_roles.includes(reviewer?'ADMIN':'OWNER'))return <Navigate to="/" replace/>
