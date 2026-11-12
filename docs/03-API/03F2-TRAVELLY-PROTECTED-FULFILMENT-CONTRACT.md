@@ -1,4 +1,4 @@
-# Travelly — Protected fulfilment of Ticket departures (matrix 54–58), slice 1
+# Travelly — Protected fulfilment of Ticket departures (matrix 54–58), slices 1 and 2
 
 Status: built on `claude-work` (12 Nov 2026). Binding sources: PRD Final Decisions **D08**, data dictionary
 `scheduled_trips` lifecycle, and owner decisions of 12 Nov 2026. Base `/api/v1`, Bearer token, JSON.
@@ -11,11 +11,13 @@ Errors: `{ "code", "message", "field_errors", "trace_id" }`. No new table.
 - An Owner who cannot run a sold departure reports a problem. The departure becomes `DISRUPTED`, sales stop, and
   open seat holds end. Paid bookings stay `CONFIRMED` while Travelly arranges the journey.
 - Refund for non-fulfilment happens **only** when Travelly cannot fulfil: 100% of every paid seat.
-- Next slice (not built yet), from the owner decisions:
-  - Replacement vehicle: any type, but with enough seats for every booked passenger.
+- Replacement vehicle (owner decisions 12 Nov 2026, built in slice 2, sections 5–6):
+  - Any vehicle type, but enough bookable seats for every booked passenger.
   - Seats are assigned automatically.
   - Passengers see the change. If one rejects it, that passenger gets a 100% refund; otherwise they travel in the
     replacement vehicle.
+- A replacement from **another Owner** is not built: NBP excludes automatic cross-owner settlement. Until then the
+  Admin's choices are the Owner's own replacement or "cannot fulfil".
 - `COMMITTED` departures keep selling until the booking cut-off; commitment does not close sales.
   A committed departure can start like a published one.
 
@@ -99,6 +101,63 @@ Admin only; anyone else gets 403 `ADMIN_REQUIRED`.
 
 Refunded payments drop out of Owner payouts automatically (they are no longer `PAID`).
 
+## 5. Owner replacement vehicle — `POST /scheduled-trips/{id}/replacement-vehicle`
+
+```json
+{ "expected_version": 6, "vehicle_id": "…" }
+```
+
+- **Who:** the departure's Owner.
+- **Allowed:** only while the departure waits for Travelly (`DECISION_REQUIRED` or `DISRUPTED`), before it starts.
+- **Vehicle:** one of the Owner's own. It must be approved and active, not the current one, have enough bookable
+  seats in its newest seat layout for every booked passenger, and be free at that time.
+- **Seats move automatically:** the same seat code when the replacement has it, otherwise the next free seat
+  (front to back). The replacement's other bookable seats are offered for sale. The original vehicle's seats stay
+  as history (`BLOCKED`). Open holds end.
+- **Departure:** status `COMMITTED`, `replacement_status` `APPROVED`. The journey's vehicle changes. The Admin is
+  told it is resolved. Audited.
+- **Each paid booking** gets `pending_change` (shown on `GET /bookings/{id}/ticket`) and an action-required
+  `REPLACEMENT` notice:
+
+```json
+{ "kind": "REPLACEMENT_VEHICLE", "status": "PENDING", "proposed_at": "…", "scheduled_trip_id": "…",
+  "previous_vehicle": { "public_vehicle_reference": "…", "vehicle_type_code": "VAN", "make": "Toyota", "model": "Hiace",
+                        "colour": "White", "air_conditioned": true, "seat_capacity": 14 },
+  "replacement_vehicle": { "…": "same fields" },
+  "seats": [ { "full_name": "Traveller A2", "from_seat": "A2", "to_seat": "B1", "seat_id": "…" } ],
+  "refund_if_rejected_percent": 100, "decided_at": null }
+```
+
+- **Response:** the attention item plus `moved_seats`.
+- **Errors:**
+  - 409 `REPLACEMENT_NOT_ALLOWED`
+  - 409 `REPLACEMENT_VEHICLE_UNAVAILABLE`
+  - 409 `REPLACEMENT_TOO_SMALL` (message names the seat counts)
+  - 409 `VEHICLE_SCHEDULE_CONFLICT`
+  - 409 `VERSION_CONFLICT`
+  - 404
+
+## 6. Passenger answers the change — `POST /bookings/{id}/replacement-decision`
+
+```json
+{ "expected_version": 9, "decision": "ACCEPT" }
+```
+
+- **Who:** the booking's Passenger.
+- **When:** while `pending_change.status` is `PENDING` and before the departure starts. **No answer means the
+  passenger travels.**
+- **`ACCEPT`:** `pending_change.status` becomes `ACCEPTED`. Nothing else changes.
+- **`REJECT`:**
+  - The booking is `CANCELLED` and its seats go back on sale.
+  - `cancellation_policy_snapshot` is `{ "policy": "REPLACEMENT_REJECTED_2026_11", "refund_percent": 100 }`.
+  - A `FULL_REFUND` (cause `REPLACEMENT_REJECTED`) is queued `PENDING` for Admin approval in the refunds screen, as
+    for any Passenger cancellation.
+  - The Passenger gets a `REFUND` notice; the Owner is told.
+- **Response:** `{ booking_id, status, version, pending_change, refund: { id, amount, status } | null }`.
+- **Errors:** 409 `NO_PENDING_CHANGE`, 409 `DEPARTURE_STARTED`, 409 `VERSION_CONFLICT`, 404 `BOOKING_NOT_FOUND`.
+
+The seat map (`GET /scheduled-trips/{id}/seats`) shows only the vehicle that runs.
+
 ## Scheduled job
 
 `scripts/escalate_departure_deadlines.py` runs the same deadline check, for example every 15 minutes. It is safe to
@@ -111,6 +170,10 @@ run repeatedly.
   - "Commit to run" button for minimum-seats departures until committed, and when the departure is waiting for
     Travelly.
   - "I can't run this departure" button with a reason box.
+- **Owner, departure that waits for Travelly:** "Use another of my vehicles" picker. Show the error message as is
+  (for example "This vehicle has 12 bookable seats; 14 passengers are booked").
+- **Passenger ticket page:** when `pending_change.status` is `PENDING`, show a card with the old and new vehicle and
+  each seat move, plus two buttons: "Travel in the new vehicle" and "Reject and get a full refund" (confirm first).
 - **Admin:** a "Departures needing attention" list with a "Cannot fulfil, refund everyone" action (reason required,
   confirmation step).
 - **Passenger booking page:** show the `REPLACEMENT` / `REFUND` notices.

@@ -137,3 +137,86 @@ def test_when_travelly_cannot_fulfil_every_paid_seat_is_refunded_in_full(client,
 
 def test_only_admins_see_the_attention_list(client, ticket):
     assert api(client, ticket['owner'], 'get', '/admin/departures/attention').status_code == 403
+
+
+# --------------------------------------------------------------------------- slice 2: replacement vehicle
+
+from test_vehicles import approve, submitted
+
+
+def spare_vehicle(client, t, codes, owner=None):
+    actors = {'owner': owner or t['owner'], 'admin': t['admin']}
+    vehicle = approve(client, actors, submitted(client, actors))
+    seats = [{'code': 'DRV', 'row': 0, 'column': 1, 'type': 'CREW', 'bookable': False}] + [
+        {'code': code, 'row': 1 + i // 2, 'column': i % 2} for i, code in enumerate(codes)]
+    layout = api(client, actors['owner'], 'put', f"/vehicles/{vehicle['id']}/seat-layout", {'layout_version': 1, 'seats': seats})
+    assert layout.status_code == 200, layout.text
+    return vehicle
+
+
+def replace(client, t, vehicle):
+    return api(client, t['owner'], 'post', f"/scheduled-trips/{t['trip']['id']}/replacement-vehicle",
+               {'expected_version': departure(client, t).version, 'vehicle_id': vehicle['id']})
+
+
+def ticket_of(client, t):
+    return api(client, t['passenger'], 'get', f"/bookings/{t['booking']['id']}/ticket").json()
+
+
+def decide(client, t, decision):
+    return api(client, t['passenger'], 'post', f"/bookings/{t['booking']['id']}/replacement-decision",
+               {'expected_version': ticket_of(client, t)['version'], 'decision': decision})
+
+
+def test_a_replacement_vehicle_moves_every_passenger_and_the_departure_runs(client, paid):
+    spare = spare_vehicle(client, paid, ['A1', 'B1', 'B2'])
+    early = replace(client, paid, spare)
+    assert early.status_code == 409 and early.json()['code'] == 'REPLACEMENT_NOT_ALLOWED'
+    assert problem(client, paid).status_code == 200
+    done = replace(client, paid, spare)
+    assert done.status_code == 200, done.text
+    assert done.json()['status'] == 'COMMITTED' and done.json()['replacement_status'] == 'APPROVED' and done.json()['moved_seats'] == 2
+    booking = ticket_of(client, paid)
+    change = booking['pending_change']
+    assert booking['status'] == 'CONFIRMED' and change['status'] == 'PENDING' and change['refund_if_rejected_percent'] == 100
+    assert {(s['from_seat'], s['to_seat']) for s in change['seats']} == {('A1', 'A1'), ('A2', 'B1')}
+    assert sorted(t['seat_code'] for t in booking['travellers']) == ['A1', 'B1'] and all(t['fare'] == '1500.00' for t in booking['travellers'])
+    seat_map = client.get(f"/api/v1/scheduled-trips/{paid['trip']['id']}/seats").json()['seats']
+    sellable = {s['code']: s['status'] for s in seat_map if s.get('seat_id')}
+    assert sellable == {'A1': 'BOOKED', 'B1': 'BOOKED', 'B2': 'AVAILABLE'}
+    with client.app.state.sessions() as db:
+        run = db.scalar(select(Trip).where(Trip.scheduled_trip_id == UUID(paid['trip']['id'])))
+    assert str(run.vehicle_id) == spare['id']
+    assert notices(client, paid['passenger'], 'REPLACEMENT') and listed(client, paid)
+
+
+def test_the_replacement_must_seat_everyone_and_belong_to_the_owner(client, paid):
+    assert problem(client, paid).status_code == 200
+    small = replace(client, paid, spare_vehicle(client, paid, ['A1']))
+    assert small.status_code == 409 and small.json()['code'] == 'REPLACEMENT_TOO_SMALL'
+    foreign = replace(client, paid, spare_vehicle(client, paid, ['A1', 'A2'], owner=person(client, 'OWNER')))
+    assert foreign.status_code == 409 and foreign.json()['code'] == 'REPLACEMENT_VEHICLE_UNAVAILABLE'
+
+
+def test_a_passenger_who_accepts_keeps_the_booking(client, paid):
+    assert problem(client, paid).status_code == 200
+    assert replace(client, paid, spare_vehicle(client, paid, ['A1', 'A2'])).status_code == 200
+    accepted = decide(client, paid, 'ACCEPT')
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()['status'] == 'CONFIRMED' and accepted.json()['pending_change']['status'] == 'ACCEPTED'
+    again = decide(client, paid, 'REJECT')
+    assert again.status_code == 409 and again.json()['code'] == 'NO_PENDING_CHANGE'
+
+
+def test_a_passenger_who_rejects_gets_a_full_refund_queued(client, paid):
+    assert problem(client, paid).status_code == 200
+    assert replace(client, paid, spare_vehicle(client, paid, ['A1', 'A2', 'A3'])).status_code == 200
+    rejected = decide(client, paid, 'REJECT')
+    assert rejected.status_code == 200, rejected.text
+    body = rejected.json()
+    assert body['status'] == 'CANCELLED' and body['refund']['amount'] == '3000.00' and body['refund']['status'] == 'PENDING'
+    refunds = api(client, paid['admin'], 'get', '/admin/refunds').json()['items']
+    assert any(r['cause'] == 'REPLACEMENT_REJECTED' and r['transaction_type'] == 'FULL_REFUND' for r in refunds)
+    seat_map = client.get(f"/api/v1/scheduled-trips/{paid['trip']['id']}/seats").json()['seats']
+    assert all(s['status'] == 'AVAILABLE' for s in seat_map if s.get('seat_id'))
+    assert notices(client, paid['passenger'], 'REFUND')
