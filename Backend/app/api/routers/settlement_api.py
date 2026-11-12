@@ -11,11 +11,13 @@ Settlement status on a PAYMENT row (owner_settlement_status, catalogue not froze
     OWNER_PAID     paid out to the Owner; an OWNER_PAYOUT row (original_payment_id = the payment) records the transfer
     COMMISSION_DUE cash the Owner collected; they owe Travelly the commission (owner decision, 11 Nov 2026)
     COMMISSION_PAID that commission was received
-Payments with a partial refund are never made payable automatically: who bears a refund is not decided yet, so they
-are listed under needs_review for the Admin.
+Partly refunded payments (owner decision 12 Nov 2026): the Owner is paid in proportion to the money Travelly keeps,
+i.e. owner_net_amount x (amount - refunded) / amount, so commission and gateway fee shrink in the same proportion
+(PayHere also returns its fee on the refunded part). A payment whose refund is still pending or processing is listed
+under needs_review and cannot be paid out until that refund is settled. Fully refunded payments are never paid out.
 """
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
@@ -74,6 +76,29 @@ def row_out(p, booking=None):
             'provider_reference': p.provider_reference, 'version': p.version}
 
 
+def captured_id(p):
+    return p.original_payment_id if p.transaction_type == 'REALLOCATION' else p.id
+
+
+def refunded(db, p, statuses=('PAID',)):
+    return db.scalar(select(func.coalesce(func.sum(Payment.amount), 0)).where(
+        Payment.original_payment_id == captured_id(p), Payment.transaction_type.in_(REFUNDS), Payment.status.in_(statuses))) or ZERO
+
+
+def refund_in_flight(db, p):
+    return refunded(db, p, ('PENDING', 'PROCESSING')) > 0
+
+
+def payable_share(db, p):
+    """What the Owner is owed for this row: the whole Owner share, or its pro-rata part after a partial refund."""
+    if p.status == 'PAID':
+        return p.owner_net_amount or ZERO
+    if p.status != 'PARTIALLY_REFUNDED' or not p.amount:
+        return ZERO
+    kept = max(p.amount - refunded(db, p), ZERO)
+    return ((p.owner_net_amount or ZERO) * kept / p.amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
 def bookings_for(db, rows):
     ids = {r.booking_id for r in rows}
     return {b.id: b for b in db.scalars(select(Booking).where(Booking.id.in_(ids)))} if ids else {}
@@ -95,7 +120,8 @@ def admin_payments(user=Depends(admin), db: Session = Depends(get_db)):
         'refunded': money(total(db, Payment.transaction_type.in_(REFUNDS), Payment.status == 'PAID')),
         'refunds_waiting': money(total(db, Payment.transaction_type.in_(REFUNDS), Payment.status.in_(('PENDING', 'PROCESSING')))),
         'commission_earned': money(total(db, *paid, column=Payment.commission_amount)),
-        'owner_payable': money(total(db, Payment.owner_settlement_status == 'OWNER_PAYABLE', column=Payment.owner_net_amount)),
+        'owner_payable': money(sum((payable_share(db, p) for p in db.scalars(select(Payment).where(
+            Payment.owner_settlement_status == 'OWNER_PAYABLE'))), ZERO)),
         'owner_paid': money(total(db, Payment.transaction_type == 'OWNER_PAYOUT', Payment.status == 'PAID')),
         'commission_due_from_owners': money(total(db, Payment.owner_settlement_status == 'COMMISSION_DUE', column=Payment.commission_amount))}}
 
@@ -104,15 +130,18 @@ def settlement_for(db, owner_id):
     payments = db.scalars(select(Payment).where(Payment.payee_owner_user_id == owner_id, Payment.transaction_type.in_(OWNER_SHARE))
                           .order_by(Payment.created_at)).all()
     books = bookings_for(db, payments)
-    payable = [p for p in payments if p.owner_settlement_status == 'OWNER_PAYABLE' and p.status == 'PAID']
+    waiting = {p.id for p in payments if p.owner_settlement_status in (None, 'OWNER_PAYABLE') and refund_in_flight(db, p)}
+    payable = [p for p in payments if p.owner_settlement_status == 'OWNER_PAYABLE' and p.status in ('PAID', 'PARTIALLY_REFUNDED')
+               and p.id not in waiting]
     due = [p for p in payments if p.owner_settlement_status == 'COMMISSION_DUE']
-    review = [p for p in payments if p.status == 'PARTIALLY_REFUNDED' and p.owner_settlement_status in (None, 'OWNER_PAYABLE')]
+    review = [p for p in payments if p.id in waiting]
+    shares = {p.id: payable_share(db, p) for p in payable}
     paid = [p for p in payments if p.owner_settlement_status in ('OWNER_PAID', 'COMMISSION_PAID')]
     owner = db.get(User, owner_id)
     return {'owner_user_id': str(owner_id), 'owner_reference': owner.public_user_reference if owner else None,
             'owner_name': (owner.display_name or owner.full_name) if owner else None, 'currency': 'LKR',
-            'payable_amount': money(sum((p.owner_net_amount or ZERO for p in payable), ZERO)),
-            'payable': [row_out(p, books.get(p.booking_id)) for p in payable],
+            'payable_amount': money(sum(shares.values(), ZERO)),
+            'payable': [{**row_out(p, books.get(p.booking_id)), 'payable_amount': money(shares[p.id])} for p in payable],
             'commission_due_amount': money(sum((p.commission_amount or ZERO for p in due), ZERO)),
             'commission_due': [row_out(p, books.get(p.booking_id)) for p in due],
             'needs_review': [row_out(p, books.get(p.booking_id)) for p in review],
@@ -163,12 +192,13 @@ def record_payout(owner_id: UUID, body: Payout, request: Request, user=Depends(a
         moment = datetime.now(timezone.utc)
         payouts = []
         for p in payments:
-            if p.status != 'PAID':
-                raise ApiError(409, 'SETTLEMENT_NOT_ALLOWED', f'{p.payment_reference} has a refund; review it first.')
+            share = payable_share(db, p)
+            if refund_in_flight(db, p) or share <= 0:
+                raise ApiError(409, 'SETTLEMENT_NOT_ALLOWED', f'{p.payment_reference} has a refund that is not settled yet, or nothing left to pay.')
             payout = Payment(payment_reference='OPY-' + p.payment_reference[4:], booking_id=p.booking_id, original_payment_id=p.id,
                              payee_owner_user_id=owner_id, transaction_type='OWNER_PAYOUT', payment_method='BANK',
                              provider_reference=body.bank_reference, idempotency_key=f'payout:{body.idempotency_key}:{p.id}',
-                             amount=p.owner_net_amount, currency=p.currency, status='PAID', captured_at=moment,
+                             amount=share, currency=p.currency, status='PAID', captured_at=moment,
                              created_by=user.id, updated_by=user.id)
             db.add(payout)
             payouts.append(payout)

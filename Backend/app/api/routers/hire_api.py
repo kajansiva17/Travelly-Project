@@ -508,7 +508,8 @@ def complete_departure(db, trip, body, user):
     paid_here = select(Booking.id).where(Booking.current_scheduled_trip_id == locked_departure.id)
     # A reallocated payment (another Owner took over the journey) is paid out through its REALLOCATION row.
     for payment in db.scalars(select(Payment).where(Payment.booking_id.in_(paid_here), Payment.transaction_type.in_(('PAYMENT', 'REALLOCATION')),
-                                                    Payment.status == 'PAID', Payment.owner_settlement_status.is_(None),
+                                                    Payment.status.in_(('PAID', 'PARTIALLY_REFUNDED')),  # partial: paid out pro rata
+                                                    Payment.owner_settlement_status.is_(None),
                                                     Payment.failure_code.is_(None)).order_by(Payment.id).with_for_update()):
         payment.owner_settlement_status = 'OWNER_PAYABLE'
         payment.owner_payable_at = locked.actual_end_at

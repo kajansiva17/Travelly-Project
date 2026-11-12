@@ -1,5 +1,6 @@
 """Admin payments overview and Owner settlement (payouts and cash commission) on the PRD payments table."""
 from datetime import datetime, timedelta
+from decimal import Decimal
 from uuid import UUID, uuid4
 from sqlalchemy import select
 from app.models.hire_models import Notification
@@ -74,16 +75,48 @@ def test_cash_commission_is_owed_then_recorded_as_received(client, completed):
     assert payout.status_code == 409  # cash is never paid out: the Owner already holds it
 
 
-def test_partly_refunded_payments_wait_for_review(client, paid, monkeypatch):
+def payable_now(client, t):
+    """What finishing the departure does to its paid seat payments."""
+    with client.app.state.sessions() as db:
+        row = db.get(Payment, UUID(t['payment']['id']))
+        row.owner_settlement_status = 'OWNER_PAYABLE'
+        db.commit()
+        return row.owner_net_amount
+
+
+def owner_row(client, t):
+    return next(i for i in api(client, t['admin'], 'get', '/admin/owner-settlements').json()['items']
+                if i['owner_user_id'] == t['owner']['id'])
+
+
+def test_a_partly_refunded_payment_is_paid_out_pro_rata(client, paid, monkeypatch):
+    """Owner decision 12 Nov 2026: the Owner gets the Owner share in proportion to the money Travelly keeps."""
     at(monkeypatch, paid, 48)
+    cancel(client, paid)                         # 50% refund queued, not decided yet
+    net = payable_now(client, paid)
+    waiting = owner_row(client, paid)
+    assert [p['id'] for p in waiting['needs_review']] == [paid['payment']['id']] and waiting['payable'] == []
+    url = f"/admin/owner-settlements/{paid['owner']['id']}/payouts"
+    blocked = api(client, paid['admin'], 'post', url, {'payment_ids': [paid['payment']['id']], 'bank_reference': 'X', 'idempotency_key': uuid4().hex})
+    assert blocked.status_code == 409            # never pay out while a refund is still open
+    decide(client, paid, refunds(client, paid)['items'][0])     # Sandbox: half goes back now
+    ready = owner_row(client, paid)
+    half = (net / 2).quantize(Decimal('0.01'))
+    assert ready['needs_review'] == [] and ready['payable_amount'] == format(half, '.2f')
+    assert ready['payable'][0]['payable_amount'] == format(half, '.2f') and ready['payable'][0]['status'] == 'PARTIALLY_REFUNDED'
+    done = api(client, paid['admin'], 'post', url, {'payment_ids': [paid['payment']['id']], 'bank_reference': 'BANK-9', 'idempotency_key': uuid4().hex})
+    assert done.status_code == 201, done.text
+    assert done.json()['total'] == format(half, '.2f') and done.json()['payouts'][0]['amount'] == format(half, '.2f')
+
+
+def test_a_fully_refunded_payment_is_never_paid_out(client, paid, monkeypatch):
+    at(monkeypatch, paid, 100)
     cancel(client, paid)
     decide(client, paid, refunds(client, paid)['items'][0])
-    mine = next(i for i in api(client, paid['admin'], 'get', '/admin/owner-settlements').json()['items']
-                if i['owner_user_id'] == paid['owner']['id'])
-    assert [p['id'] for p in mine['needs_review']] == [paid['payment']['id']] and mine['payable'] == []
-    blocked = api(client, paid['admin'], 'post', f"/admin/owner-settlements/{paid['owner']['id']}/payouts",
-                  {'payment_ids': [paid['payment']['id']], 'bank_reference': 'X', 'idempotency_key': uuid4().hex})
-    assert blocked.status_code == 409
+    payable_now(client, paid)
+    row = owner_row(client, paid) if any(i['owner_user_id'] == paid['owner']['id'] for i in
+                                         api(client, paid['admin'], 'get', '/admin/owner-settlements').json()['items']) else None
+    assert row is None or (row['payable'] == [] and row['payable_amount'] == '0.00')
 
 
 def test_only_admins_see_everything_and_owners_see_their_own(client, completed):

@@ -441,8 +441,17 @@ is audited with its reason.
 Money Travelly holds for an Owner is paid out only after the trip (PRD 6.6). Settlement status on each `PAYMENT` row
 (`owner_settlement_status`): `OWNER_PAYABLE` (online money held for the Owner — ticket: once the departure completes;
 private hire: when paid) → `OWNER_PAID`; cash: `COMMISSION_DUE` (the Owner collected the cash and owes the commission)
-→ `COMMISSION_PAID`. A payout is a new `OWNER_PAYOUT` row linked to the payment. Payments with a **partial refund** are
-never made payable automatically (who bears a refund is not decided yet); they are listed under `needs_review`.
+→ `COMMISSION_PAID`. A payout is a new `OWNER_PAYOUT` row linked to the payment. **Partly refunded**
+payments (owner decision 12 Nov 2026) are paid out **pro rata**:
+
+- **Formula:** Owner share × (amount − refunded) / amount. Commission and gateway fee shrink in the same proportion;
+  PayHere returns its fee on the refunded part.
+  - Example: a 3000 LKR ticket with a 50% refund, where the Owner share was 2901, pays 1450.50.
+- **Each `payable` row** gains `payable_amount`, the amount the payout will use. `payable_amount` on the Owner object
+  is their sum.
+- **`needs_review`** now lists only payments whose refund is still `PENDING`/`PROCESSING`. They cannot be paid out
+  until the refund is settled (409 `SETTLEMENT_NOT_ALLOWED`).
+- **Fully refunded** payments are never paid out.
 
 Row shape used below (`row`): `{ "id", "payment_reference", "booking_id", "booking_reference", "booking_type",
 "original_payment_id", "payee_owner_user_id", "transaction_type", "payment_method", "provider_name", "amount", "currency",
@@ -509,9 +518,7 @@ with `failure_code: "SEATS_RELEASED_REFUND_DUE"` and no seat is given (refunds a
 
 ## Not in this slice
 
-Payout of partly refunded
-payments (needs the decision who bears a refund)
-(OWNER_PAID), PayHere live mode (needs business registration, bank account and live credentials — configuration only).
+A refund made after the Owner was already paid out (OWNER_PAID) is not taken back from the Owner automatically; PayHere live mode (needs business registration, bank account and live credentials — configuration only).
 
 ## Server setup for PayHere (project owner, once)
 
