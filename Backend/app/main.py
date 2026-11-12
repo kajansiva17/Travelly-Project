@@ -29,12 +29,8 @@ from app.services.rate_locations import RateLocations
 from app.api.routers.hire_api import router as hire_router
 from app.services.hire_routing import HireRouting
 from app.api.routers.vehicle_api import router as vehicle_router
-from app.api.routers.trip_operations_api import router as trip_operations_router
-from app.api.routers.stage4_finance_api import router as stage4_finance_router
 from app.api.routers.stage5_admin_api import router as stage5_admin_router
-from app.api.routers.event_hire_api import router as event_hire_router
 from app.api.routers.ticket_booking_api import router as ticket_router
-from app.api.routers.operational_media_api import router as operational_media_router
 from app.api.routers.route_api import router as route_router
 from app.api.routers.scheduled_trip_api import router as scheduled_trip_router
 from app.api.routers.payment_api import router as payment_router
@@ -142,7 +138,7 @@ def create_app(settings=None, engine=None, store=None):
                     limit, seconds = (30, 900)
                 group = 'profile' if request.url.path in ('/api/v1/users/me', '/api/v1/users/me/roles') else name
                 review_path = request.url.path.startswith(('/api/v1/admin/', '/api/v1/documents'))
-                multipart = request.method == 'POST' and (request.url.path in ('/api/v1/documents','/api/v1/operational-media') or (request.url.path.startswith('/api/v1/vehicles/') and name=='photos'))
+                multipart = request.method == 'POST' and (request.url.path == '/api/v1/documents' or (request.url.path.startswith('/api/v1/vehicles/') and name=='photos'))
                 if review_path:
                     group, limit, seconds = ('files', 100, 60) if name == 'file' else ('review', 100, 60) if request.method == 'PATCH' else ('upload', 30, 900) if multipart else ('metadata', 300, 60)
                 app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
@@ -208,12 +204,8 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(rate_router)
     app.include_router(hire_router)
     app.include_router(vehicle_router)
-    app.include_router(trip_operations_router)
-    app.include_router(stage4_finance_router)
     app.include_router(stage5_admin_router)
-    app.include_router(event_hire_router)
     app.include_router(ticket_router)
-    app.include_router(operational_media_router)
     app.include_router(route_router)
     app.include_router(scheduled_trip_router)
     app.include_router(payment_router)
