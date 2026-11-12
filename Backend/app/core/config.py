@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     road_alert_active_after_confirmations: int = Field(default=1, ge=1, le=20)
     road_alert_verified_after_confirmations: int = Field(default=3, ge=1, le=50)
     road_alert_removed_after_denials: int = Field(default=2, ge=1, le=20)
+    # Seconds the app listens for the Driver's spoken yes/no after asking "Send a Police alert?"; silence = not sent.
+    road_alert_confirm_seconds: int = Field(default=10, ge=3, le=30)
     # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
     # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
     # answer too.

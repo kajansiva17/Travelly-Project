@@ -81,6 +81,7 @@ def test_voice_is_understood_in_three_languages_but_never_sent_alone(client, run
     owner = running.ctx.owner
     ta = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(owner), json={'transcript': 'முன்னால போலீஸ் நிக்குது', 'language': 'ta'}).json()
     assert ta['alert_type'] == 'POLICE_PRESENCE' and ta['confirm_prompt'] == 'போலீஸ் எச்சரிக்கை அனுப்பவா?'
+    assert ta['confirm_seconds'] == 10 and 'ஆம்' in ta['yes_words'] and 'வேண்டாம்' in ta['no_words'] and ta['not_sent_text']
     si = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(owner), json={'transcript': 'ඉස්සරහ අනතුරක් වෙලා', 'language': 'si'}).json()
     assert si['alert_type'] == 'ACCIDENT'
     en = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(owner), json={'transcript': 'police speed check ahead', 'language': 'en'}).json()
