@@ -234,6 +234,13 @@ def apply_values(trip, values, driver_id):
     trip.operator_driver_user_id = driver_id
 
 
+def pending_replacement(db, trip):
+    """A draft made for this Owner by another Owner's replacement request is answered, not edited or published."""
+    if db.scalar(select(ScheduledTrip.id).where(ScheduledTrip.replacement_scheduled_trip_id == trip.id,
+                                                ScheduledTrip.replacement_status == 'AWAITING_OTHER_OWNER')):
+        raise ApiError(409, 'REPLACEMENT_REQUEST_DRAFT', 'This is a replacement request from another Owner. Accept or decline it instead.')
+
+
 def owned_trip(db, trip_id, user, *, lock=False):
     query = select(ScheduledTrip).where(ScheduledTrip.id == trip_id)
     if lock:
@@ -320,6 +327,7 @@ def update_departure(trip_id: UUID, body: DeparturePatch, user=Depends(current),
     trip = owned_trip(db, trip_id, user, lock=True)
     if trip.status != 'DRAFT':
         raise ApiError(409, 'DEPARTURE_NOT_DRAFT', 'Only a draft departure can be edited.')
+    pending_replacement(db, trip)
     if trip.version != body.expected_version:
         raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Refresh before saving.')
     values = {**trip_values(trip), **changes}
@@ -337,6 +345,7 @@ def publish_departure(trip_id: UUID, body: PublishRequest, user=Depends(current)
     trip = owned_trip(db, trip_id, user, lock=True)
     if trip.status != 'DRAFT':
         raise ApiError(409, 'DEPARTURE_NOT_DRAFT', 'This departure is not a draft.')
+    pending_replacement(db, trip)
     if trip.version != body.expected_version:
         raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Refresh before publishing.')
     db.scalar(select(Vehicle.id).where(Vehicle.id == trip.current_vehicle_id).with_for_update())

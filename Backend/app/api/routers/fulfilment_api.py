@@ -24,8 +24,9 @@ A replacement from another Owner is not built: NBP excludes automatic cross-owne
 Lock order as everywhere: scheduled_trips -> bookings (by id) -> scheduled_trip_seats (by id) -> payments.
 """
 import copy
+import secrets
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -40,7 +41,7 @@ from app.models.hire_models import Booking, Notification, Route, ScheduledTrip, 
 from app.models.payment_models import Payment
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
-from app.schemas.scheduled_trip_schemas import DepartureCommit, DepartureProblem, ReplacementDecision, ReplacementVehicle
+from app.schemas.scheduled_trip_schemas import DepartureCommit, DepartureProblem, ReplacementAnswer, ReplacementDecision, ReplacementVehicle
 from app.services.availability import no_vehicle_conflict
 from app.services.refunds import queue_refund
 
@@ -170,6 +171,8 @@ def commit_departure(trip_id: UUID, body: DepartureCommit, request: Request, use
             raise ApiError(409, 'DEPARTURE_ALREADY_GUARANTEED', 'A fixed departure is already guaranteed; there is nothing to commit.')
         if departure.departure_at <= now():
             raise ApiError(409, 'DEPARTURE_STARTED', 'The departure time has passed.')
+        if departure.replacement_status == 'AWAITING_OTHER_OWNER':
+            raise ApiError(409, 'REPLACEMENT_PENDING', 'Another Owner is still answering a replacement request for this departure.')
         before_version, before_status = departure.version, departure.status
         departure.status = 'COMMITTED'
         departure.committed_at = departure.committed_at or now()
@@ -306,6 +309,12 @@ def cannot_fulfil(trip_id: UUID, body: DepartureProblem, request: Request, user=
         if run:
             run.status = 'CANCELLED'
             touch(run); run.updated_by = user.id
+        if departure.replacement_status == 'AWAITING_OTHER_OWNER' and departure.replacement_scheduled_trip_id:
+            offer = lock_trip(db, departure.replacement_scheduled_trip_id)
+            if offer and offer.status == 'DRAFT':
+                offer.status = 'CANCELLED'
+                offer.cancellation_reason = 'Travelly closed the original departure as not fulfilled.'
+                touch(offer); offer.updated_by = user.id
         departure.status = 'CANCELLED'
         departure.replacement_status = 'FAILED'
         departure.cancellation_reason = body.reason
@@ -319,10 +328,13 @@ def cannot_fulfil(trip_id: UUID, body: DepartureProblem, request: Request, user=
 
 # --------------------------------------------------------------------------- slice 2: replacement vehicle
 
-def summary(vehicle):
-    return {'public_vehicle_reference': vehicle.public_vehicle_reference, 'vehicle_type_code': vehicle.vehicle_type_code,
-            'make': vehicle.make, 'model': vehicle.model, 'colour': vehicle.colour, 'air_conditioned': vehicle.air_conditioned,
-            'seat_capacity': vehicle.seat_capacity}
+def summary(vehicle, owner=None):
+    out = {'public_vehicle_reference': vehicle.public_vehicle_reference, 'vehicle_type_code': vehicle.vehicle_type_code,
+           'make': vehicle.make, 'model': vehicle.model, 'colour': vehicle.colour, 'air_conditioned': vehicle.air_conditioned,
+           'seat_capacity': vehicle.seat_capacity}
+    if owner is not None:
+        out['operator_name'] = owner.display_name or owner.full_name
+    return out
 
 
 def bookable_seats(db, vehicle_id):
@@ -335,6 +347,142 @@ def bookable_seats(db, vehicle_id):
                       .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
 
 
+def booked_count(db, departure):
+    return counts(db, departure)[0]
+
+
+def vehicle_fits(db, vehicle, departure, needed, *, other_owner):
+    """None when the vehicle can take this departure, otherwise (code, message)."""
+    if (not vehicle or vehicle.verification_status != 'APPROVED' or vehicle.availability_status != 'ACTIVE'
+            or vehicle.id == departure.current_vehicle_id
+            or (vehicle.owner_user_id == departure.owner_user_id) == other_owner
+            or (other_owner and not vehicle.is_published)):
+        return ('REPLACEMENT_VEHICLE_UNAVAILABLE', 'Choose another approved, active vehicle.' if other_owner
+                else 'Choose another approved, active vehicle that you own.')
+    seats = len(bookable_seats(db, vehicle.id))
+    if seats < needed:
+        return ('REPLACEMENT_TOO_SMALL', f'This vehicle has {seats} bookable seats; {needed} passengers are booked.')
+    try:
+        no_vehicle_conflict(db, vehicle.id, departure.departure_at, departure.estimated_arrival_at)
+    except ApiError as exc:
+        return (exc.code, exc.message)
+    return None
+
+
+def require_fit(db, vehicle, departure, needed, *, other_owner):
+    problem_found = vehicle_fits(db, vehicle, departure, needed, other_owner=other_owner)
+    if problem_found:
+        raise ApiError(409, problem_found[0], problem_found[1])
+
+
+def waiting_for_travelly(departure, run):
+    if departure.status not in ATTENTION or (run and run.status != 'READY') or departure.departure_at <= now():
+        raise ApiError(409, 'REPLACEMENT_NOT_ALLOWED', 'A replacement vehicle can be set only for a departure waiting for a decision, before it starts.')
+    if departure.replacement_status == 'AWAITING_OTHER_OWNER':
+        raise ApiError(409, 'REPLACEMENT_PENDING', 'Another Owner is still answering a replacement request for this departure.')
+
+
+def move_passengers(db, actor, source, target, vehicle, moment):
+    """Move every paid passenger of `source` onto `vehicle`, running as departure `target` (the same departure for the
+    Owner's own vehicle, a new one for another Owner's vehicle). Seats: the same seat code when the vehicle has it,
+    otherwise the next free seat, front to back. The source inventory stays as BLOCKED history; open holds end.
+    Returns the number of moved seats. Lock order: departures already locked -> bookings -> seats."""
+    holds = bookings_of(db, source, ('REQUESTED',), lock=True)
+    confirmed = bookings_of(db, source, ('CONFIRMED',), lock=True)
+    old_rows = db.execute(select(ScheduledTripSeat, VehicleSeat).join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
+                          .where(ScheduledTripSeat.scheduled_trip_id == source.id, VehicleSeat.vehicle_id == source.current_vehicle_id)
+                          .order_by(ScheduledTripSeat.id).with_for_update(of=ScheduledTripSeat)
+                          .execution_options(populate_existing=True)).all()
+    booked = sorted([(inv, seat) for inv, seat in old_rows if inv.seat_status == 'BOOKED'],
+                    key=lambda pair: (pair[1].deck_number, pair[1].row_number, pair[1].column_number))
+    targets = bookable_seats(db, vehicle.id)
+    if len(targets) < len(booked):
+        raise ApiError(409, 'REPLACEMENT_TOO_SMALL', f'This vehicle has {len(targets)} bookable seats; {len(booked)} passengers are booked.')
+    previous = db.get(Vehicle, source.current_vehicle_id)
+    operator = db.get(User, target.owner_user_id) if target.owner_user_id != source.owner_user_id else None
+    for inv, _ in old_rows:
+        if inv.seat_status == 'HELD':
+            free(inv, actor)
+    for booking in holds:
+        cancel_booking(db, booking, actor, 'The departure changed vehicle.', moment)
+    by_code = {seat.seat_code: seat for seat in targets}
+    taken, plan = set(), {}
+    for inv, seat in booked:
+        if seat.seat_code in by_code and by_code[seat.seat_code].id not in taken:
+            plan[inv.id] = by_code[seat.seat_code]
+            taken.add(plan[inv.id].id)
+    for inv, seat in booked:
+        if inv.id not in plan:
+            plan[inv.id] = next(t for t in targets if t.id not in taken)
+            taken.add(plan[inv.id].id)
+    new_rows = {}
+    for item in targets:
+        owner_of = next((inv.booked_booking_id for inv, _ in booked if plan[inv.id].id == item.id), None)
+        row = ScheduledTripSeat(scheduled_trip_id=target.id, vehicle_seat_id=item.id, seat_status='BOOKED' if owner_of else 'AVAILABLE',
+                                booked_booking_id=owner_of, created_by=actor, updated_by=actor)
+        db.add(row)
+        new_rows[item.id] = row
+    for inv, _ in old_rows:
+        inv.seat_status = 'BLOCKED'
+        touch(inv); inv.updated_by = actor
+    db.flush()
+    moved = {inv.id: (seat.seat_code, plan[inv.id].seat_code, new_rows[plan[inv.id].id].id) for inv, seat in booked}
+    for booking in confirmed:
+        changes = []
+        for traveller in db.scalars(select(BookingTraveller).where(BookingTraveller.booking_id == booking.id,
+                                                                    BookingTraveller.traveller_status == 'ACTIVE')
+                                    .order_by(BookingTraveller.id).with_for_update()).all():
+            if traveller.scheduled_trip_seat_id in moved:
+                old_code, new_code, new_id = moved[traveller.scheduled_trip_seat_id]
+                changes.append({'full_name': traveller.full_name, 'from_seat': old_code, 'to_seat': new_code,
+                                'old_seat_id': str(traveller.scheduled_trip_seat_id), 'seat_id': str(new_id)})
+                traveller.scheduled_trip_seat_id = new_id
+                touch(traveller); traveller.updated_by = actor
+        ids = {c['old_seat_id']: c['seat_id'] for c in changes}
+        snapshot = copy.deepcopy(booking.price_snapshot)
+        for item in snapshot.get('seats', []):
+            if item.get('seat_id') in ids:
+                item['original_seat_id'] = item.get('original_seat_id') or item['seat_id']
+                item['seat_id'] = ids[item['seat_id']]
+        booking.price_snapshot = snapshot
+        booking.vehicle_id = vehicle.id
+        booking.requested_owner_user_id = booking.requested_owner_user_id or booking.owner_user_id  # the Owner first chosen
+        booking.current_scheduled_trip_id = target.id
+        booking.owner_user_id = target.owner_user_id
+        booking.pending_change = {'kind': 'REPLACEMENT_VEHICLE', 'status': 'PENDING', 'proposed_at': moment.isoformat(),
+                                  'scheduled_trip_id': str(target.id), 'operator_changed': operator is not None,
+                                  'previous_vehicle': summary(previous), 'replacement_vehicle': summary(vehicle, operator),
+                                  'seats': [{k: v for k, v in c.items() if k != 'old_seat_id'} for c in changes],
+                                  'refund_if_rejected_percent': 100, 'decided_at': None}
+        touch(booking); booking.updated_by = actor
+        if operator is not None:
+            reallocate(db, booking, target.owner_user_id, target, actor)
+        notify(db, booking.passenger_user_id, target, 'REPLACEMENT', 'Your journey has a replacement vehicle',
+               f'Your departure will run with a different vehicle ({vehicle.vehicle_type_code.title()}, {vehicle.make} {vehicle.model})'
+               + (f' operated by {operator.display_name or operator.full_name}' if operator else '')
+               + '. Check your new seat. If you do not want to travel in it, reject the change for a full refund.', booking, action=True)
+    return len(booked)
+
+
+def reallocate(db, booking, new_owner_id, target, actor):
+    """PRD: append linked reallocation events, never rewrite captured payments. The Owner share of each paid seat payment
+    moves to the Owner who now runs the journey; Travelly's Admin pays it out as usual after completion (no automatic
+    cross-owner settlement). The row it replaces is marked REALLOCATED."""
+    rows = db.scalars(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type.in_(('PAYMENT', 'REALLOCATION')),
+                                            Payment.status.in_(('PAID', 'PARTIALLY_REFUNDED')), Payment.owner_settlement_status.is_(None))
+                      .order_by(Payment.id).with_for_update().execution_options(populate_existing=True)).all()
+    for row in rows:
+        captured = row.original_payment_id if row.transaction_type == 'REALLOCATION' else row.id
+        row.owner_settlement_status = 'REALLOCATED'
+        touch(row); row.updated_by = actor
+        db.add(Payment(payment_reference='RAL-' + uuid4().hex[:20].upper(), booking_id=booking.id, original_payment_id=captured,
+                       payee_owner_user_id=new_owner_id, transaction_type='REALLOCATION', payment_method=row.payment_method,
+                       provider_name=row.provider_name, provider_reference=row.provider_reference,
+                       idempotency_key=f'reallocation:{captured}:{target.id}', amount=row.amount,
+                       commission_amount=row.commission_amount, owner_net_amount=row.owner_net_amount, currency=row.currency,
+                       status=row.status, captured_at=row.captured_at, created_by=actor, updated_by=actor))
+
+
 @router.post('/scheduled-trips/{trip_id}/replacement-vehicle')
 def replacement_vehicle(trip_id: UUID, body: ReplacementVehicle, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
@@ -344,87 +492,13 @@ def replacement_vehicle(trip_id: UUID, body: ReplacementVehicle, request: Reques
         if departure.version != body.expected_version:
             raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Refresh before choosing a vehicle.')
         run = journey(db, departure)
-        if departure.status not in ATTENTION or (run and run.status != 'READY') or departure.departure_at <= now():
-            raise ApiError(409, 'REPLACEMENT_NOT_ALLOWED', 'A replacement vehicle can be set only for a departure waiting for a decision, before it starts.')
+        waiting_for_travelly(departure, run)
         vehicle = db.scalar(select(Vehicle).where(Vehicle.id == body.vehicle_id).with_for_update())
-        if (not vehicle or vehicle.owner_user_id != user.id or vehicle.verification_status != 'APPROVED'
-                or vehicle.availability_status != 'ACTIVE' or vehicle.id == departure.current_vehicle_id):
-            raise ApiError(409, 'REPLACEMENT_VEHICLE_UNAVAILABLE', 'Choose another approved, active vehicle that you own.')
+        require_fit(db, vehicle, departure, booked_count(db, departure), other_owner=False)
         moment = now()
-        holds = bookings_of(db, departure, ('REQUESTED',), lock=True)
-        confirmed = bookings_of(db, departure, ('CONFIRMED',), lock=True)
-        old_rows = db.execute(select(ScheduledTripSeat, VehicleSeat).join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
-                              .where(ScheduledTripSeat.scheduled_trip_id == departure.id, VehicleSeat.vehicle_id == departure.current_vehicle_id)
-                              .order_by(ScheduledTripSeat.id).with_for_update(of=ScheduledTripSeat)
-                              .execution_options(populate_existing=True)).all()
-        booked = sorted([(inv, seat) for inv, seat in old_rows if inv.seat_status == 'BOOKED'],
-                        key=lambda pair: (pair[1].deck_number, pair[1].row_number, pair[1].column_number))
-        targets = bookable_seats(db, vehicle.id)
-        if len(targets) < len(booked):
-            raise ApiError(409, 'REPLACEMENT_TOO_SMALL',
-                           f'This vehicle has {len(targets)} bookable seats; {len(booked)} passengers are booked.')
-        no_vehicle_conflict(db, vehicle.id, departure.departure_at, departure.estimated_arrival_at)
         before_version, before_status = departure.version, departure.status
         previous = db.get(Vehicle, departure.current_vehicle_id)
-        # Open holds end first (sales are stopped while Travelly decides).
-        for inv, _ in old_rows:
-            if inv.seat_status == 'HELD':
-                free(inv, user.id)
-        for booking in holds:
-            cancel_booking(db, booking, user.id, 'The departure changed vehicle.', moment)
-        # Seat mapping: the same seat code when the replacement has it, otherwise the next free seat in order.
-        by_code = {seat.seat_code: seat for seat in targets}
-        taken, plan = set(), {}
-        for inv, seat in booked:
-            if seat.seat_code in by_code and by_code[seat.seat_code].id not in taken:
-                plan[inv.id] = by_code[seat.seat_code]
-                taken.add(plan[inv.id].id)
-        for inv, seat in booked:
-            if inv.id not in plan:
-                plan[inv.id] = next(t for t in targets if t.id not in taken)
-                taken.add(plan[inv.id].id)
-        new_rows = {}
-        for target in targets:
-            owner_of = next((inv.booked_booking_id for inv, _ in booked if plan[inv.id].id == target.id), None)
-            row = ScheduledTripSeat(scheduled_trip_id=departure.id, vehicle_seat_id=target.id,
-                                    seat_status='BOOKED' if owner_of else 'AVAILABLE', booked_booking_id=owner_of,
-                                    created_by=user.id, updated_by=user.id)
-            db.add(row)
-            new_rows[target.id] = row
-        for inv, _ in old_rows:
-            inv.seat_status = 'BLOCKED'   # the original vehicle's inventory stays as history
-            touch(inv); inv.updated_by = user.id
-        db.flush()
-        moved = {inv.id: (seat.seat_code, plan[inv.id].seat_code, new_rows[plan[inv.id].id].id) for inv, seat in booked}
-        for booking in confirmed:
-            changes = []
-            for traveller in db.scalars(select(BookingTraveller).where(BookingTraveller.booking_id == booking.id,
-                                                                        BookingTraveller.traveller_status == 'ACTIVE')
-                                        .order_by(BookingTraveller.id).with_for_update()).all():
-                if traveller.scheduled_trip_seat_id in moved:
-                    old_code, new_code, new_id = moved[traveller.scheduled_trip_seat_id]
-                    changes.append({'full_name': traveller.full_name, 'from_seat': old_code, 'to_seat': new_code,
-                                    'old_seat_id': str(traveller.scheduled_trip_seat_id), 'seat_id': str(new_id)})
-                    traveller.scheduled_trip_seat_id = new_id
-                    touch(traveller); traveller.updated_by = user.id
-            ids = {c['old_seat_id']: c['seat_id'] for c in changes}
-            snapshot = copy.deepcopy(booking.price_snapshot)
-            for item in snapshot.get('seats', []):
-                if item.get('seat_id') in ids:
-                    item['original_seat_id'] = item.get('original_seat_id') or item['seat_id']
-                    item['seat_id'] = ids[item['seat_id']]
-            booking.price_snapshot = snapshot
-            booking.vehicle_id = vehicle.id
-            booking.pending_change = {'kind': 'REPLACEMENT_VEHICLE', 'status': 'PENDING', 'proposed_at': moment.isoformat(),
-                                      'scheduled_trip_id': str(departure.id), 'previous_vehicle': summary(previous),
-                                      'replacement_vehicle': summary(vehicle),
-                                      'seats': [{k: v for k, v in c.items() if k != 'old_seat_id'} for c in changes],
-                                      'refund_if_rejected_percent': 100, 'decided_at': None}
-            touch(booking); booking.updated_by = user.id
-            notify(db, booking.passenger_user_id, departure, 'REPLACEMENT', 'Your journey has a replacement vehicle',
-                   f'Departure {departure.departure_reference} will run with a different vehicle '
-                   f'({vehicle.vehicle_type_code.title()}, {vehicle.make} {vehicle.model}). Check your new seat. '
-                   'If you do not want to travel in it, reject the change for a full refund.', booking, action=True)
+        moved = move_passengers(db, user.id, departure, departure, vehicle, moment)
         if run:
             run.vehicle_id = vehicle.id
             touch(run); run.updated_by = user.id
@@ -439,7 +513,185 @@ def replacement_vehicle(trip_id: UUID, body: ReplacementVehicle, request: Reques
                    f'The Owner replaced the vehicle of {departure.departure_reference}. Passengers can accept or reject the change.')
         audit(request, db, user, departure, before_version, before_status,
               f'Owner replacement vehicle {vehicle.public_vehicle_reference} instead of {previous.public_vehicle_reference}.')
-    return {**departure_out(db, departure), 'moved_seats': len(booked)}
+    return {**departure_out(db, departure), 'moved_seats': moved}
+
+
+# --------------------------------------------------------------------------- slice 3: another Owner's vehicle
+
+@router.get('/scheduled-trips/{trip_id}/replacement-options')
+def replacement_options(trip_id: UUID, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Vehicles that can take this departure: the Owner's own and other Owners' published ones. `reference` narrows the
+    list to one vehicle the Owner knows (its public vehicle reference)."""
+    require_role(db, user, 'OWNER')
+    departure = db.get(ScheduledTrip, trip_id)
+    if not departure or departure.owner_user_id != user.id:
+        raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+    reference = (request.query_params.get('reference') or '').strip().upper()
+    needed = booked_count(db, departure)
+    query = select(Vehicle).where(Vehicle.verification_status == 'APPROVED', Vehicle.availability_status == 'ACTIVE',
+                                  Vehicle.id != departure.current_vehicle_id,
+                                  (Vehicle.owner_user_id == user.id) | Vehicle.is_published.is_(True))
+    if reference:
+        query = query.where(func.upper(Vehicle.public_vehicle_reference) == reference)
+    items = []
+    for vehicle in db.scalars(query.order_by(Vehicle.owner_user_id != user.id, Vehicle.public_vehicle_reference).limit(200)):
+        own = vehicle.owner_user_id == user.id
+        if vehicle_fits(db, vehicle, departure, needed, other_owner=not own):
+            continue
+        owner = db.get(User, vehicle.owner_user_id)
+        items.append({'vehicle_id': str(vehicle.id), 'own': own, **summary(vehicle),
+                      'bookable_seats': len(bookable_seats(db, vehicle.id)),
+                      'owner_name': None if own else (owner.display_name or owner.full_name)})
+        if len(items) >= 30:
+            break
+    return {'scheduled_trip_id': str(departure.id), 'booked_seats': needed, 'items': items}
+
+
+def eligible_driver(db, owner_id, driver_id):
+    from app.api.routers.scheduled_trip_api import has_role
+    driver_id = driver_id or (owner_id if has_role(db, owner_id, 'DRIVER') else None)
+    if not driver_id or not has_role(db, driver_id, 'DRIVER'):
+        raise ApiError(422, 'DRIVER_NOT_ELIGIBLE', 'Choose an approved Driver (or be an approved Driver yourself).')
+    return driver_id
+
+
+@router.post('/scheduled-trips/{trip_id}/replacement-request', status_code=201)
+def replacement_request(trip_id: UUID, body: ReplacementVehicle, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """The Owner asks another Owner to run this departure with that Owner's vehicle. The price stays the same. A draft
+    departure is made for the other Owner (linked through replacement_scheduled_trip_id); nothing moves until they accept."""
+    require_role(db, user, 'OWNER')
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id, require_admin=False)
+        departure = owned(db, trip_id, user)
+        if departure.version != body.expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Refresh before choosing a vehicle.')
+        waiting_for_travelly(departure, journey(db, departure))
+        vehicle = db.scalar(select(Vehicle).where(Vehicle.id == body.vehicle_id).with_for_update())
+        require_fit(db, vehicle, departure, booked_count(db, departure), other_owner=True)
+        before_version, before_status = departure.version, departure.status
+        offer = ScheduledTrip(departure_reference='DEP-' + uuid4().hex[:16].upper(), owner_user_id=vehicle.owner_user_id,
+                              service_type_id=departure.service_type_id, route_id=departure.route_id,
+                              original_vehicle_id=vehicle.id, current_vehicle_id=vehicle.id,
+                              departure_at=departure.departure_at, estimated_arrival_at=departure.estimated_arrival_at,
+                              booking_cutoff_at=departure.booking_cutoff_at, fare_per_seat=departure.fare_per_seat,
+                              currency=departure.currency, fulfilment_policy='FIXED_GUARANTEED',
+                              accepted_time_window_minutes=departure.accepted_time_window_minutes,
+                              accepted_replacement_terms=copy.deepcopy(departure.accepted_replacement_terms or {}),
+                              status='DRAFT', replacement_status='NOT_REQUIRED', created_by=user.id, updated_by=user.id)
+        db.add(offer)
+        db.flush()
+        departure.replacement_scheduled_trip_id = offer.id
+        departure.replacement_status = 'AWAITING_OTHER_OWNER'
+        touch(departure); departure.updated_by = user.id
+        needed = booked_count(db, departure)
+        notify(db, vehicle.owner_user_id, offer, 'REPLACEMENT', 'Can you run a departure?',
+               f'Another Owner asks you to run departure {departure.departure_reference} with {vehicle.public_vehicle_reference} '
+               f'on {departure.departure_at.isoformat()} for {needed} booked passenger(s) at the same seat price. Accept or decline.',
+               action=True)
+        for admin_id in admins(db):
+            notify(db, admin_id, departure, 'ADMIN_ACTION', 'Replacement requested from another Owner',
+                   f'{departure.departure_reference}: the Owner asked the owner of {vehicle.public_vehicle_reference} to run it.')
+        audit(request, db, user, departure, before_version, before_status,
+              f'Owner asked another Owner to run the departure with {vehicle.public_vehicle_reference}.')
+    return {**departure_out(db, departure), 'replacement_request': request_out(db, departure, offer)}
+
+
+def request_out(db, departure, offer):
+    vehicle = db.get(Vehicle, offer.current_vehicle_id)
+    route = db.get(Route, departure.route_id)
+    requester = db.get(User, departure.owner_user_id)
+    return {'id': str(offer.id), 'departure_reference': offer.departure_reference, 'status': offer.status, 'version': offer.version,
+            'original_scheduled_trip_id': str(departure.id), 'original_departure_reference': departure.departure_reference,
+            'requested_by': requester.display_name or requester.full_name if requester else None,
+            'vehicle': summary(vehicle) if vehicle else None,
+            'route': {'route_name': route.route_name, 'origin_name': route.origin_name, 'destination_name': route.destination_name} if route else None,
+            'departure_at': offer.departure_at.isoformat(), 'estimated_arrival_at': offer.estimated_arrival_at.isoformat(),
+            'fare_per_seat': format(offer.fare_per_seat, '.2f'), 'currency': offer.currency, 'booked_seats': booked_count(db, departure),
+            'answer_pending': departure.replacement_status == 'AWAITING_OTHER_OWNER' and departure.replacement_scheduled_trip_id == offer.id}
+
+
+@router.get('/owners/me/replacement-requests')
+def my_replacement_requests(user=Depends(current), db: Session = Depends(get_db)):
+    require_role(db, user, 'OWNER')
+    offers = db.scalars(select(ScheduledTrip).where(ScheduledTrip.owner_user_id == user.id, ScheduledTrip.status == 'DRAFT',
+                                                    ScheduledTrip.id.in_(select(ScheduledTrip.replacement_scheduled_trip_id).where(
+                                                        ScheduledTrip.replacement_status == 'AWAITING_OTHER_OWNER')))
+                        .order_by(ScheduledTrip.departure_at)).all()
+    items = []
+    for offer in offers:
+        original = db.scalar(select(ScheduledTrip).where(ScheduledTrip.replacement_scheduled_trip_id == offer.id))
+        items.append(request_out(db, original, offer))
+    return {'items': items}
+
+
+@router.post('/scheduled-trips/{trip_id}/replacement-answer')
+def replacement_answer(trip_id: UUID, body: ReplacementAnswer, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """The other Owner accepts (choosing the Driver) or declines. Accepting moves every paid passenger to the new departure,
+    makes the new Owner the operating Owner, and reallocates the Owner share of the seat payments to them."""
+    require_role(db, user, 'OWNER')
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id, require_admin=False)
+        offer_row = db.get(ScheduledTrip, trip_id)
+        if not offer_row or offer_row.owner_user_id != user.id:
+            raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+        original_id = db.scalar(select(ScheduledTrip.id).where(ScheduledTrip.replacement_scheduled_trip_id == offer_row.id))
+        if original_id is None:
+            raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+        original = lock_trip(db, original_id)       # lock order: the original departure, then the offer
+        offer = lock_trip(db, offer_row.id)
+        if offer.version != body.expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'The request changed. Refresh before answering.')
+        if original.replacement_status != 'AWAITING_OTHER_OWNER' or original.replacement_scheduled_trip_id != offer.id or offer.status != 'DRAFT':
+            raise ApiError(409, 'NO_REPLACEMENT_REQUEST', 'This replacement request is no longer waiting for an answer.')
+        before_version, before_status = original.version, original.status
+        moment = now()
+        if body.decision == 'DECLINE':
+            offer.status = 'CANCELLED'
+            offer.cancellation_reason = body.reason or 'Declined by the Owner.'
+            touch(offer); offer.updated_by = user.id
+            original.replacement_status = 'REJECTED'
+            touch(original); original.updated_by = user.id
+            text = f'The other Owner declined to run {original.departure_reference}.' + (f' Reason: {body.reason}' if body.reason else '')
+            notify(db, original.owner_user_id, original, 'REPLACEMENT', 'Replacement declined', text, action=True)
+            for admin_id in admins(db):
+                notify(db, admin_id, original, 'ADMIN_ACTION', 'Replacement declined', text, action=True)
+            audit(request, db, user, original, before_version, before_status, 'Other Owner declined the replacement request.')
+            return {**departure_out(db, original), 'replacement_request': request_out(db, original, offer)}
+        run = journey(db, original)
+        if original.status not in ATTENTION or (run and run.status != 'READY') or original.departure_at <= moment:
+            raise ApiError(409, 'REPLACEMENT_NOT_ALLOWED', 'This departure can no longer be replaced.')
+        vehicle = db.scalar(select(Vehicle).where(Vehicle.id == offer.current_vehicle_id).with_for_update())
+        require_fit(db, vehicle, original, booked_count(db, original), other_owner=True)
+        driver_id = eligible_driver(db, user.id, body.operator_driver_user_id)
+        moved = move_passengers(db, user.id, original, offer, vehicle, moment)
+        if run:
+            run.status = 'CANCELLED'
+            touch(run); run.updated_by = user.id
+        db.add(Trip(trip_reference='TRP-' + secrets.token_hex(10).upper(), scheduled_trip_id=offer.id, vehicle_id=vehicle.id,
+                    operating_owner_user_id=user.id, driver_user_id=driver_id,
+                    assignment_type='OWNER_SELF_DRIVE' if driver_id == user.id else 'EXTERNAL_DRIVER',
+                    assignment_status='ACCEPTED' if driver_id == user.id else 'PENDING', status='READY',
+                    scheduled_start_at=offer.departure_at, scheduled_end_at=offer.estimated_arrival_at,
+                    created_by=user.id, updated_by=user.id))
+        offer.operator_driver_user_id = driver_id
+        offer.status = 'COMMITTED'
+        offer.committed_at = moment
+        offer.final_operating_owner_user_id = user.id
+        touch(offer); offer.updated_by = user.id
+        original.status = 'CANCELLED'
+        original.replacement_status = 'APPROVED'
+        original.final_operating_owner_user_id = user.id
+        original.cancellation_reason = f'Replaced by departure {offer.departure_reference} run by another Owner.'
+        touch(original); original.updated_by = user.id
+        notify(db, original.owner_user_id, original, 'REPLACEMENT', 'Another Owner will run your departure',
+               f'{offer.departure_reference} now carries the passengers of {original.departure_reference}. Their seat payments '
+               'go to the Owner who runs it.')
+        for admin_id in admins(db):
+            notify(db, admin_id, original, 'ADMIN_ACTION', 'Departure moved to another Owner',
+                   f'{original.departure_reference} is now run as {offer.departure_reference}. Owner shares were reallocated.')
+        audit(request, db, user, original, before_version, before_status,
+              f'Other Owner accepted; passengers moved to {offer.departure_reference} ({vehicle.public_vehicle_reference}).')
+    return {**departure_out(db, offer), 'moved_seats': moved, 'original_scheduled_trip_id': str(original.id)}
 
 
 @router.post('/bookings/{booking_id}/replacement-decision')

@@ -73,6 +73,12 @@ def finish_refund(db, refund, original, booking, actor, provider_reference):
     original.status = 'REFUNDED' if done >= original.amount else 'PARTIALLY_REFUNDED'
     original.refunded_at = moment
     touch(original); original.updated_by = actor
+    # The Owner share moved to another Owner follows the captured payment (it must not be paid out).
+    for share in db.scalars(select(Payment).where(Payment.original_payment_id == original.id, Payment.transaction_type == 'REALLOCATION',
+                                                  Payment.status.in_(('PAID', 'PARTIALLY_REFUNDED')))).all():
+        share.status = original.status
+        share.refunded_at = moment
+        touch(share); share.updated_by = actor
     booking.payment_status_snapshot = original.status
     touch(booking); booking.updated_by = actor
     db.add(Notification(recipient_user_id=booking.passenger_user_id, booking_id=booking.id, notification_type='REFUND',
