@@ -379,8 +379,9 @@ PayHere refunds go `PENDING` → `PROCESSING` → `PAID`.
 { "expected_version": 1, "decision": "APPROVE" }
 { "expected_version": 1, "decision": "REJECT", "reason": "Duplicate request" }
 ```
-**200** = the E2 item. Sandbox approve → `PAID` at once. PayHere approve → `PROCESSING`: the Admin refunds it in the
-PayHere portal, then records it with E4. Reject → `FAILED`, `failure_code: "REFUND_REJECTED"`; the payment stays paid.
+**200** = the E2 item. Sandbox approve → `PAID` at once. PayHere approve → `PROCESSING`, then (12 Nov 2026, when the
+Refund API is set up) the refund is sent to PayHere straight away, see E6; otherwise the Admin refunds it in the
+PayHere portal and records it with E4. Reject → `FAILED`, `failure_code: "REFUND_REJECTED"`; the payment stays paid.
 Errors: 422 `REASON_REQUIRED` (reject without reason), 409 `REFUND_ALREADY_DECIDED`, 409 `VERSION_CONFLICT`, 404 `REFUND_NOT_FOUND`.
 
 ### E4. Record a PayHere refund — `POST /admin/refunds/{refund_id}/complete`
@@ -388,7 +389,9 @@ Errors: 422 `REASON_REQUIRED` (reject without reason), 409 `REFUND_ALREADY_DECID
 ```json
 { "expected_version": 2, "provider_reference": "PayHere refund no. from the portal" }
 ```
-Only for `PROCESSING`. **200** → `PAID`. Error 409 `REFUND_NOT_PROCESSING`.
+Only for `PROCESSING`. **200** → `PAID`. Error 409 `REFUND_NOT_PROCESSING`. Use it for a refund done in the PayHere
+portal, a wallet or bank payment refunded by bank transfer (`PAYHERE_MANUAL_REQUIRED`), or a refund whose PayHere
+answer never arrived (`PAYHERE_REQUESTED`).
 
 ### E5. Admin refunds a payment directly — `POST /payments/{payment_id}/refunds` (PRD 68)
 
@@ -399,6 +402,35 @@ Only for `PROCESSING`. **200** → `PAID`. Error 409 `REFUND_NOT_PROCESSING`.
 **201** = E2 item, approved at once (Sandbox `PAID`, PayHere `PROCESSING`). The same key again returns the same refund.
 Errors: 422 `VALIDATION_ERROR` (both `full` and `amount`), 422 `REFUND_AMOUNT_INVALID` (more than is left;
 `field_errors[0].message` = what can still be refunded), 409 `PAYMENT_NOT_REFUNDABLE`.
+
+### E6. PayHere Refund API (automatic, 12 Nov 2026)
+
+Set up with `PAYHERE_APP_ID` and `PAYHERE_APP_SECRET` in `Backend/.env`: PayHere > Settings > API Keys, permission
+"Automatic Charging API" (plus "Payment Retrieval API"), allowed domain as registered. Check with
+`.venv\Scripts\python.exe Backend\scripts\check_payhere_refund_api.py`. It prints only yes/no and makes no refund.
+
+After an approval is committed (E3, E5, and the protected-fulfilment "cannot fulfil"), each PayHere refund in
+`PROCESSING` is sent to PayHere: the full amount, or `amount` for a partial refund (for example the 50% ticket rule).
+The E2 item then shows:
+
+| `status` / `failure_code` | Meaning | Admin action |
+|---|---|---|
+| `PAID`, `provider_reference: "PHR-<PayHere refund no.>"` | PayHere accepted it | none |
+| `PROCESSING` / `PAYHERE_REFUND_FAILED` (+ `failure_message` from PayHere) | PayHere refused it or could not be reached | **Send again** (E7), or refund in the portal and record with E4 |
+| `PROCESSING` / `PAYHERE_MANUAL_REQUIRED` | not a card payment; PayHere refunds cards only | refund by bank transfer, record with E4 |
+| `PROCESSING` / `PAYHERE_REQUESTED` | sent, answer not recorded (timeout or crash). Never sent again automatically | check the PayHere portal, record with E4 |
+| `PROCESSING` / `null` | Refund API not set up | portal + E4, as before |
+
+E2 items now also carry `failure_message`.
+
+### E7. Send again — `POST /admin/refunds/{refund_id}/payhere`
+
+Body `{}`. Only for a PayHere card refund in `PROCESSING` with `failure_code` `PAYHERE_REFUND_FAILED` (or none).
+**200** = the E2 item after the new attempt.
+Errors:
+- 409 `REFUND_NOT_RETRYABLE` (already paid, waiting for PayHere, or not a card payment)
+- 409 `PAYHERE_REFUND_API_OFF`
+- 404 `REFUND_NOT_FOUND`
 
 When the refunds add up to the whole payment its status becomes `REFUNDED`, otherwise `PARTIALLY_REFUNDED`; the
 booking's `payment_status` follows. The Passenger gets a `REFUND` notification when money goes back. Every Admin decision
@@ -477,8 +509,7 @@ with `failure_code: "SEATS_RELEASED_REFUND_DUE"` and no seat is given (refunds a
 
 ## Not in this slice
 
-Owner cancelling a whole departure (with full refunds — part of protected fulfilment), the PayHere Refund API (needs a
-PayHere API key; until then PayHere refunds are done in the portal and recorded with E4), payout of partly refunded
+Payout of partly refunded
 payments (needs the decision who bears a refund)
 (OWNER_PAID), PayHere live mode (needs business registration, bank account and live credentials — configuration only).
 
@@ -487,6 +518,8 @@ payments (needs the decision who bears a refund)
 `Backend/.env` (see `.env.example`): `PAYHERE_MERCHANT_ID`, `PAYHERE_MERCHANT_SECRET`, `PAYHERE_MODE=sandbox`,
 `PUBLIC_API_URL=https://<your ngrok domain>`. PayHere cannot reach localhost, so run ngrok to port 8000 and register that
 domain in PayHere > Integrations > Add Domain/App. Restart the backend; PayHere then appears in the Admin dropdown.
+For automatic refunds also add `PAYHERE_APP_ID` and `PAYHERE_APP_SECRET` (E6). For **live** mode PayHere must first
+whitelist the server's IP address: email support@payhere.lk.
 
 ## Translations
 

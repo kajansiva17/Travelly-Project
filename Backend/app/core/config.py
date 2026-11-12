@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     payhere_merchant_id: str = ''
     payhere_merchant_secret: str = Field(default='', repr=False)
     payhere_mode: str = 'sandbox'
+    # PayHere Refund API (Settings > API Keys, permission "Automatic Charging API"); without them refunds stay manual.
+    payhere_app_id: str = Field(default='', repr=False)
+    payhere_app_secret: str = Field(default='', repr=False)
     # Public HTTPS address of this API (for example an ngrok URL) so PayHere can reach the notify endpoint.
     public_api_url: str = ''
     private_document_root: Path | None = None

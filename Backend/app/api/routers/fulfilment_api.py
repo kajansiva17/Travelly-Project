@@ -43,6 +43,7 @@ from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
 from app.schemas.scheduled_trip_schemas import DepartureCommit, DepartureProblem, ReplacementAnswer, ReplacementDecision, ReplacementVehicle
 from app.services.availability import no_vehicle_conflict
+from app.services import payhere_refunds
 from app.services.refunds import queue_refund
 
 router = APIRouter(prefix='/api/v1', tags=['Protected fulfilment'])
@@ -322,8 +323,14 @@ def cannot_fulfil(trip_id: UUID, body: DepartureProblem, request: Request, user=
         notify(db, departure.owner_user_id, departure, 'ADMIN_ACTION', 'Departure cancelled by Travelly',
                f'Travelly closed {departure.departure_reference} as not fulfilled: {body.reason} Paid seats are refunded in full.')
         audit(request, db, user, departure, before_version, before_status, 'Travelly cannot fulfil the departure: ' + body.reason)
+    # PayHere refunds go out through the Refund API after the decision is committed (when it is set up).
+    waiting = [r.id for r in refunded if r.status == 'PROCESSING' and r.provider_name == 'PAYHERE']
+    if waiting:
+        payhere_refunds.push_many(request.app.state.sessions, waiting, user.id)
+        for r in refunded:
+            db.refresh(r)
     return {**departure_out(db, departure), 'refunds': [{'id': str(r.id), 'booking_id': str(r.booking_id), 'amount': format(r.amount, '.2f'),
-                                                         'status': r.status} for r in refunded]}
+                                                         'status': r.status, 'failure_code': r.failure_code} for r in refunded]}
 
 
 # --------------------------------------------------------------------------- slice 2: replacement vehicle
