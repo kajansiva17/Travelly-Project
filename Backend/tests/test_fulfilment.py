@@ -220,3 +220,118 @@ def test_a_passenger_who_rejects_gets_a_full_refund_queued(client, paid):
     seat_map = client.get(f"/api/v1/scheduled-trips/{paid['trip']['id']}/seats").json()['seats']
     assert all(s['status'] == 'AVAILABLE' for s in seat_map if s.get('seat_id'))
     assert notices(client, paid['passenger'], 'REFUND')
+
+
+# --------------------------------------------------------------------------- slice 3: another Owner's vehicle
+
+from app.models import UserRole as _UserRole  # noqa: E402
+from app.models.review_models import Vehicle  # noqa: E402
+
+
+def other_owner_vehicle(client, t, codes):
+    other = person(client, 'OWNER', 'DRIVER')
+    vehicle = spare_vehicle(client, t, codes, owner=other)
+    with client.app.state.sessions() as db:
+        db.get(Vehicle, UUID(vehicle['id'])).is_published = True
+        db.commit()
+    return other, vehicle
+
+
+def ask(client, t, vehicle):
+    return api(client, t['owner'], 'post', f"/scheduled-trips/{t['trip']['id']}/replacement-request",
+               {'expected_version': departure(client, t).version, 'vehicle_id': vehicle['id']})
+
+
+def answer(client, who, offer, decision, **extra):
+    with client.app.state.sessions() as db:
+        version = db.get(ScheduledTrip, UUID(offer['id'])).version
+    return api(client, who, 'post', f"/scheduled-trips/{offer['id']}/replacement-answer",
+               {'expected_version': version, 'decision': decision, **extra})
+
+
+def test_options_list_own_and_other_owners_vehicles_that_fit(client, paid):
+    assert problem(client, paid).status_code == 200
+    mine = spare_vehicle(client, paid, ['A1', 'A2'])
+    _, theirs = other_owner_vehicle(client, paid, ['A1', 'A2', 'A3'])
+    other_owner_vehicle(client, paid, ['A1'])  # too small, never offered
+    options = api(client, paid['owner'], 'get', f"/scheduled-trips/{paid['trip']['id']}/replacement-options").json()
+    found = {i['vehicle_id']: i for i in options['items']}
+    assert options['booked_seats'] == 2 and found[mine['id']]['own'] and not found[theirs['id']]['own']
+    assert found[theirs['id']]['owner_name'] and len(found) == 2
+    one = api(client, paid['owner'], 'get', f"/scheduled-trips/{paid['trip']['id']}/replacement-options?reference="
+              + found[theirs['id']]['public_vehicle_reference'].lower()).json()['items']
+    assert [i['vehicle_id'] for i in one] == [theirs['id']]
+
+
+def test_another_owner_accepts_and_takes_over_passengers_and_money(client, paid):
+    assert problem(client, paid).status_code == 200
+    other, vehicle = other_owner_vehicle(client, paid, ['A1', 'A2', 'A3'])
+    asked = ask(client, paid, vehicle)
+    assert asked.status_code == 201, asked.text
+    assert asked.json()['replacement_status'] == 'AWAITING_OTHER_OWNER'
+    offer = asked.json()['replacement_request']
+    assert commit(client, paid).json()['code'] == 'REPLACEMENT_PENDING'
+    inbox = api(client, other, 'get', '/owners/me/replacement-requests').json()['items']
+    assert [i['id'] for i in inbox] == [offer['id']] and inbox[0]['booked_seats'] == 2 and inbox[0]['fare_per_seat'] == '1500.00'
+    blocked = api(client, other, 'post', f"/scheduled-trips/{offer['id']}/publish", {'expected_version': inbox[0]['version'], 'publish_confirmed': True})
+    assert blocked.status_code == 409 and blocked.json()['code'] == 'REPLACEMENT_REQUEST_DRAFT'
+    accepted = answer(client, other, offer, 'ACCEPT')
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()['status'] == 'COMMITTED' and accepted.json()['moved_seats'] == 2
+    with client.app.state.sessions() as db:
+        original = db.get(ScheduledTrip, UUID(paid['trip']['id']))
+        booking = db.get(Booking, UUID(paid['booking']['id']))
+        rows = db.scalars(select(Payment).where(Payment.booking_id == booking.id).order_by(Payment.created_at)).all()
+        run = db.scalar(select(Trip).where(Trip.scheduled_trip_id == UUID(offer['id'])))
+    assert original.status == 'CANCELLED' and original.replacement_status == 'APPROVED' and str(original.final_operating_owner_user_id) == other['id']
+    assert str(booking.current_scheduled_trip_id) == offer['id'] and str(booking.owner_user_id) == other['id']
+    assert str(booking.original_scheduled_trip_id) == paid['trip']['id'] and str(booking.requested_owner_user_id) == paid['owner']['id']
+    assert booking.pending_change['operator_changed'] and booking.pending_change['replacement_vehicle']['operator_name']
+    captured = next(r for r in rows if r.transaction_type == 'PAYMENT')
+    share = next(r for r in rows if r.transaction_type == 'REALLOCATION')
+    assert captured.owner_settlement_status == 'REALLOCATED' and captured.status == 'PAID'
+    assert str(share.payee_owner_user_id) == other['id'] and share.amount == captured.amount and share.original_payment_id == captured.id
+    assert run.status == 'READY' and str(run.driver_user_id) == other['id'] and run.assignment_status == 'ACCEPTED'
+    assert any(i['id'] == offer['id'] for i in client.get('/api/v1/scheduled-trips').json()['items'])
+    # The passenger still answers the change; rejecting refunds the captured payment and the moved share with it.
+    rejected = decide(client, paid, 'REJECT')
+    assert rejected.status_code == 200, rejected.text
+    refund = rejected.json()['refund']
+    approved = api(client, paid['admin'], 'post', f"/admin/refunds/{refund['id']}/decision", {'expected_version': 1, 'decision': 'APPROVE'})
+    assert approved.status_code == 200, approved.text
+    with client.app.state.sessions() as db:
+        assert db.get(Payment, captured.id).status == 'REFUNDED' and db.get(Payment, share.id).status == 'REFUNDED'
+
+
+def test_a_declined_request_goes_back_to_the_owner(client, paid):
+    assert problem(client, paid).status_code == 200
+    other, vehicle = other_owner_vehicle(client, paid, ['A1', 'A2'])
+    offer = ask(client, paid, vehicle).json()['replacement_request']
+    stranger = person(client, 'OWNER')
+    assert answer(client, stranger, offer, 'ACCEPT').status_code == 404
+    declined = answer(client, other, offer, 'DECLINE', reason='The van is booked for a wedding.')
+    assert declined.status_code == 200, declined.text
+    assert declined.json()['replacement_status'] == 'REJECTED' and declined.json()['status'] == 'DISRUPTED'
+    assert answer(client, other, offer, 'ACCEPT').json()['code'] == 'NO_REPLACEMENT_REQUEST'
+    with client.app.state.sessions() as db:
+        assert db.get(Booking, UUID(paid['booking']['id'])).status == 'CONFIRMED'
+    assert commit(client, paid).json()['status'] == 'COMMITTED'
+
+
+def test_the_new_owner_is_paid_out_from_the_reallocated_share(client, paid):
+    assert problem(client, paid).status_code == 200
+    other, vehicle = other_owner_vehicle(client, paid, ['A1', 'A2'])
+    offer = ask(client, paid, vehicle).json()['replacement_request']
+    assert answer(client, other, offer, 'ACCEPT').status_code == 200
+    with client.app.state.sessions() as db:
+        share = db.scalar(select(Payment).where(Payment.booking_id == UUID(paid['booking']['id']), Payment.transaction_type == 'REALLOCATION'))
+        share.owner_settlement_status = 'OWNER_PAYABLE'   # what finishing the journey does
+        db.commit()
+        net = share.owner_net_amount
+    theirs = api(client, other, 'get', '/owners/me/settlements').json()
+    assert theirs['payable_amount'] == format(net, '.2f') and [p['id'] for p in theirs['payable']] == [str(share.id)]
+    first = api(client, paid['owner'], 'get', '/owners/me/settlements').json()
+    assert first['payable_amount'] == '0.00' and not first['payable']
+    payout = api(client, paid['admin'], 'post', f"/admin/owner-settlements/{other['id']}/payouts",
+                 {'payment_ids': [str(share.id)], 'bank_reference': 'BANK-123', 'idempotency_key': 'payout-realloc-1'})
+    assert payout.status_code == 201, payout.text

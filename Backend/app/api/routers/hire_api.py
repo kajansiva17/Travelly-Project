@@ -506,7 +506,8 @@ def complete_departure(db, trip, body, user):
     # PRD 6.6: Owner payout only after completion. Seat payments of this departure become payable to the Owner now.
     from app.models.payment_models import Payment
     paid_here = select(Booking.id).where(Booking.current_scheduled_trip_id == locked_departure.id)
-    for payment in db.scalars(select(Payment).where(Payment.booking_id.in_(paid_here), Payment.transaction_type == 'PAYMENT',
+    # A reallocated payment (another Owner took over the journey) is paid out through its REALLOCATION row.
+    for payment in db.scalars(select(Payment).where(Payment.booking_id.in_(paid_here), Payment.transaction_type.in_(('PAYMENT', 'REALLOCATION')),
                                                     Payment.status == 'PAID', Payment.owner_settlement_status.is_(None),
                                                     Payment.failure_code.is_(None)).order_by(Payment.id).with_for_update()):
         payment.owner_settlement_status = 'OWNER_PAYABLE'

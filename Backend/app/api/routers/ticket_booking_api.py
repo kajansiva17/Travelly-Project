@@ -231,7 +231,7 @@ def create_hold(body: TicketHoldRequest, user=Depends(current), db: Session = De
                  'boarding_stop': boarding.stop_name if boarding else None, 'dropoff_stop': dropoff.stop_name if dropoff else None}
     booking = Booking(booking_reference='TKT-' + uuid4().hex[:16].upper(), passenger_user_id=user.id, booking_type='TICKET_HIRE',
                       service_type_id=trip.service_type_id, owner_user_id=trip.owner_user_id, vehicle_id=trip.current_vehicle_id,
-                      original_scheduled_trip_id=trip.id, current_scheduled_trip_id=trip.id,
+                      requested_owner_user_id=trip.owner_user_id, original_scheduled_trip_id=trip.id, current_scheduled_trip_id=trip.id,
                       origin_text=boarding.stop_name if boarding else route.origin_name,
                       destination_text=dropoff.stop_name if dropoff else route.destination_name,
                       origin_stop_id=boarding.id if boarding else None, destination_stop_id=dropoff.id if dropoff else None,

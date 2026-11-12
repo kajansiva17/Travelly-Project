@@ -117,3 +117,10 @@ class ReplacementVehicle(Strict):
 class ReplacementDecision(Strict):
     expected_version: int = Field(ge=1)
     decision: Literal['ACCEPT', 'REJECT']
+
+
+class ReplacementAnswer(Strict):
+    expected_version: int = Field(ge=1)
+    decision: Literal['ACCEPT', 'DECLINE']
+    operator_driver_user_id: Optional[UUID] = None
+    reason: Optional[str] = Field(default=None, min_length=3, max_length=1000)

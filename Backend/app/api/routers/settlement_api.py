@@ -32,6 +32,8 @@ from app.models.payment_models import Payment
 from app.services.refunds import REFUNDS
 
 router = APIRouter(prefix='/api/v1', tags=['Settlement'])
+# Rows that carry an Owner share: the captured seat payment, or its REALLOCATION when another Owner took over.
+OWNER_SHARE = ('PAYMENT', 'REALLOCATION')
 ZERO = Decimal('0')
 
 
@@ -99,7 +101,7 @@ def admin_payments(user=Depends(admin), db: Session = Depends(get_db)):
 
 
 def settlement_for(db, owner_id):
-    payments = db.scalars(select(Payment).where(Payment.payee_owner_user_id == owner_id, Payment.transaction_type == 'PAYMENT')
+    payments = db.scalars(select(Payment).where(Payment.payee_owner_user_id == owner_id, Payment.transaction_type.in_(OWNER_SHARE))
                           .order_by(Payment.created_at)).all()
     books = bookings_for(db, payments)
     payable = [p for p in payments if p.owner_settlement_status == 'OWNER_PAYABLE' and p.status == 'PAID']
@@ -120,7 +122,7 @@ def settlement_for(db, owner_id):
 @router.get('/admin/owner-settlements')
 def admin_settlements(user=Depends(admin), db: Session = Depends(get_db)):
     owners = db.scalars(select(Payment.payee_owner_user_id).where(
-        Payment.transaction_type == 'PAYMENT', Payment.payee_owner_user_id.is_not(None),
+        Payment.transaction_type.in_(OWNER_SHARE), Payment.payee_owner_user_id.is_not(None),
         Payment.owner_settlement_status.in_(('OWNER_PAYABLE', 'COMMISSION_DUE'))
         | (Payment.status == 'PARTIALLY_REFUNDED')).distinct()).all()
     items = [settlement_for(db, o) for o in owners]
@@ -139,7 +141,7 @@ def locked_payments(db, owner_id, ids, status):
                       .execution_options(populate_existing=True)).all()
     found = {r.id: r for r in rows}
     wrong = [str(i) for i in ids if i not in found or found[i].payee_owner_user_id != owner_id
-             or found[i].transaction_type != 'PAYMENT' or found[i].owner_settlement_status != status]
+             or found[i].transaction_type not in OWNER_SHARE or found[i].owner_settlement_status != status]
     if wrong:
         raise ApiError(409, 'SETTLEMENT_NOT_ALLOWED', f'These payments are not {status} for this Owner: ' + ', '.join(wrong) + '.',
                        [{'field': 'payment_ids', 'message': w} for w in wrong])

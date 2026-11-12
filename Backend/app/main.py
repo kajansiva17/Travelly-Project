@@ -146,6 +146,9 @@ def create_app(settings=None, engine=None, store=None):
                 query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles','/api/v1/routes','/api/v1/scheduled-trips')
                 if request.method == 'GET' and request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/admin/vehicles/')) and request.url.path.endswith('/calendar'):
                     query_route = True
+                if (request.method == 'GET' and request.url.path.startswith('/api/v1/scheduled-trips/')
+                        and request.url.path.endswith('/replacement-options') and set(request.query_params) <= {'reference'}):
+                    query_route = True
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
                 if request.method in ('POST', 'PATCH', 'PUT'):
