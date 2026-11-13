@@ -3,12 +3,18 @@
 const LANG={en:'en-US',ta:'ta-LK',si:'si-LK'}
 export const speechLang=code=>LANG[code]||LANG.en
 export const SPEAK_KEY='travelly-speak-road-alerts'
-export const YES_WORDS=['yes','ஆம்','ඔව්']
-const clean=text=>String(text||'').toLowerCase().normalize('NFC').replace(/[.,!?;:"'()]/g,' ').replace(/\s+/g,' ').trim()
-// The spoken confirmation: "yes", "ஆம்" or "ඔව්" as a word of its own.
-export function isYes(text){
-  const words=clean(text).split(' ')
-  return YES_WORDS.some(word=>words.includes(word))
+export const CONFIRM_SECONDS=10   // used only if the server does not send confirm_seconds
+// Words are lower case letters, marks and digits; everything else (spaces, punctuation) separates them.
+const wordsOf=text=>String(text||'').toLowerCase().normalize('NFC').split(/[^\p{L}\p{N}\p{M}]+/u).filter(Boolean)
+// Whole-word match (a phrase must match whole words in a row): "ok" never matches inside another word.
+export function hasWord(text,list){
+  const heard=' '+wordsOf(text).join(' ')+' '
+  return (list||[]).some(entry=>{const phrase=wordsOf(entry).join(' ');return phrase&&heard.includes(' '+phrase+' ')})
+}
+// The Driver's spoken answer, from the server's yes_words and no_words. Both heard counts as no; neither is no answer yet.
+export function answerOf(text,yesWords,noWords){
+  const yes=hasWord(text,yesWords),no=hasWord(text,noWords)
+  return no?'no':yes?'yes':null
 }
 export const recognitionConstructor=(scope=globalThis)=>scope.SpeechRecognition||scope.webkitSpeechRecognition||null
 // A voice for this language is installed on this device (Tamil and Sinhala voices are not on every device).

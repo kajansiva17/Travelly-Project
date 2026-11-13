@@ -1,16 +1,29 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {speechLang,isYes,hasVoice,speak,recognitionConstructor,readSetting,saveSetting,SPEAK_KEY} from '../src/features/driver/roadAlertSpeech.js'
+import {speechLang,hasWord,answerOf,CONFIRM_SECONDS,hasVoice,speak,recognitionConstructor,readSetting,saveSetting,SPEAK_KEY} from '../src/features/driver/roadAlertSpeech.js'
 
 const synth=voices=>({getVoices:()=>voices,spoken:[],speak(u){this.spoken.push(u)}})
 class Utterance{constructor(text){this.text=text}}
 test('speech language follows the selected language',()=>{
  assert.equal(speechLang('ta'),'ta-LK');assert.equal(speechLang('si'),'si-LK');assert.equal(speechLang('en'),'en-US');assert.equal(speechLang('xx'),'en-US')
 })
-test('spoken yes words: yes, ஆம் and ඔව් confirm; anything else does not',()=>{
- for(const said of ['yes','Yes.','yes please','ஆம்','ஆம் அனுப்பு','ඔව්','ඔව් යවන්න'])assert.equal(isYes(said),true,said)
- for(const said of ['no','yesterday','','நிறுத்து','ඔබ'])assert.equal(isYes(said),false,said)
+const YES=['ஆம்','ஆமா','aam','yes','ok','ඔව්'],NO=['இல்லை','வேண்டாம்','no','එපා']
+test('whole-word matching against the server word lists, in lower case',()=>{
+ assert.equal(hasWord('Yes please',YES),true);assert.equal(hasWord('YES.',YES),true)
+ assert.equal(hasWord('ஆம் அனுப்பு',YES),true);assert.equal(hasWord('ඔව් යවන්න',YES),true)
+ // "ok" must not match inside another word; "no" not inside "know" or "yesno"
+ assert.equal(hasWord('okay lets go',YES),false);assert.equal(hasWord('i know',NO),false);assert.equal(hasWord('yesterday',YES),false)
+ assert.equal(hasWord('',YES),false);assert.equal(hasWord('yes',[]),false);assert.equal(hasWord('yes',undefined),false)
+ // a phrase in the list matches whole words in a row
+ assert.equal(hasWord('please send it now',['send it']),true);assert.equal(hasWord('resend it',['send it']),false)
 })
+test('answer: yes, no, both heard counts as no, anything else is no answer yet',()=>{
+ assert.equal(answerOf('yes',YES,NO),'yes');assert.equal(answerOf('ஆம்',YES,NO),'yes');assert.equal(answerOf('ඔව් ඔව්',YES,NO),'yes')
+ assert.equal(answerOf('no',YES,NO),'no');assert.equal(answerOf('வேண்டாம்',YES,NO),'no');assert.equal(answerOf('එපා',YES,NO),'no')
+ assert.equal(answerOf('yes no',YES,NO),'no');assert.equal(answerOf('no yes',YES,NO),'no');assert.equal(answerOf('ஆம் இல்லை',YES,NO),'no')
+ assert.equal(answerOf('what',YES,NO),null);assert.equal(answerOf('',YES,NO),null);assert.equal(answerOf('yes',[],[]),null)
+})
+test('the confirmation window defaults to 10 seconds when the server sends none',()=>{assert.equal(CONFIRM_SECONDS,10)})
 test('a voice is used only when the device has one for the language',()=>{
  const s=synth([{lang:'en-GB'},{lang:'ta-IN'}])
  assert.equal(hasVoice('en-US',s),true);assert.equal(hasVoice('ta-LK',s),true);assert.equal(hasVoice('si-LK',s),false)

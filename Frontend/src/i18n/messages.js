@@ -1240,6 +1240,10 @@ const rows = [
   ["Confidence","நம்பகத்தன்மை","විශ්වාසය"],
   ["Denied","மறுக்கப்பட்டது","ප්‍රතික්ෂේප කළා"],
   ["What was heard","கேட்டது","ඇසුණු දේ"],
+  ["Alert not sent.","எச்சரிக்கை அனுப்பப்படவில்லை.","අනතුරු ඇඟවීම යවා නැත."],
+  ["{value0} seconds left","{value0} வினாடிகள் மீதம்","තත්පර {value0} ක් ඉතිරියි"],
+  ["Keep the screen on during the trip so alerts and location keep working.","எச்சரிக்கைகளும் இருப்பிடமும் தொடர்ந்து செயல்பட பயணத்தின்போது திரையை இயக்கத்தில் வைத்திருங்கள்.","අනතුරු ඇඟවීම් සහ ස්ථානය දිගටම ක්‍රියා කිරීමට ගමන අතරතුර තිරය ක්‍රියාත්මක කර තබන්න."],
+  ["Tip: keep the phone on the charger.","குறிப்பு: தொலைபேசியை சார்ஜரில் வைத்திருங்கள்.","ඉඟිය: දුරකථනය ආරෝපකයේ තබා ගන්න."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -3,7 +3,8 @@ import React,{useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
-import {hasVoice,isYes,readSetting,recognitionConstructor,saveSetting,speak,speechLang} from './roadAlertSpeech'
+import {CONFIRM_SECONDS,answerOf,readSetting,recognitionConstructor,saveSetting,speak,speechLang} from './roadAlertSpeech'
+import {acquireWakeLock,releaseWakeLock} from './screenWakeLock'
 
 /* Road alerts on the Driver's live trip (contract 03A). Only the assigned Driver of a running trip reports. Every alert
    needs one tap (buttons) or one confirmation (voice). The server decides who sees what, in each person's language. */
@@ -105,67 +106,142 @@ export function useSpeaker(){
 
 const errorText=error=>error.message||t('The alert could not be sent. Please try again.')
 
-/* Voice: listen, classify, ask, and only after a confirmation post the alert. Nothing is sent before that. */
-function useVoice({trip,onSent,onUnclear,onProblem}){
-  const Recognition=recognitionConstructor()
-  const [phase,setPhase]=useState('idle'),[heard,setHeard]=useState(null),[blocked,setBlocked]=useState(false),[message,setMessage]=useState('')
-  const recognizer=useRef(null),pending=useRef(null),sending=useRef(false)
-  const stopListening=()=>{try{recognizer.current?.abort?.()}catch{/* Already stopped. */}recognizer.current=null}
-  const cancel=useCallback(()=>{stopListening();globalThis.speechSynthesis?.cancel?.();pending.current=null;sending.current=false;setPhase('idle');setHeard(null);setMessage('')},[])
-  useEffect(()=>cancel,[cancel])
-  const listen=useCallback((onText)=>{
-    const recognition=new Recognition()
-    recognition.lang=speechLang(getLanguage());recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false
-    recognition.onresult=event=>{const best=event.results?.[0]?.[0];if(best)onText(best.transcript||'',Number.isFinite(best.confidence)?best.confidence:null)}
-    recognition.onerror=event=>{
-      recognizer.current=null
-      if(event.error==='not-allowed'||event.error==='service-not-allowed'){setBlocked(true);setPhase('idle');setMessage(t('The microphone is not allowed. Use the five buttons.'))}
-      else if(event.error==='no-speech'||event.error==='aborted'){if(event.error==='no-speech'){setPhase('idle');setMessage(t('We did not hear anything. Try again or use the buttons.'))}}
-      else{setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
+/* Keeps the screen on while the trip runs (Screen Wake Lock, contract 03A). The browser drops the lock when the person switches
+   app, so it is asked for again when the page becomes visible. `unavailable` means this browser or device did not give it. */
+export function useScreenWakeLock(active){
+  const [unavailable,setUnavailable]=useState(false)
+  useEffect(()=>{
+    if(!active)return undefined
+    let lock=null,stopped=false
+    const ask=async()=>{
+      if(stopped||document.visibilityState!=='visible'||(lock&&!lock.released))return
+      const result=await acquireWakeLock()
+      if(stopped){await releaseWakeLock(result.lock);return}
+      lock=result.lock;setUnavailable(result.status!=='held')
     }
-    recognition.onend=()=>{if(recognizer.current===recognition)recognizer.current=null}
-    recognizer.current=recognition
-    try{recognition.start()}catch{recognizer.current=null;setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
-  },[Recognition])
-  const send=useCallback(async()=>{
-    const job=pending.current
-    if(!job||sending.current)return
-    sending.current=true;stopListening();globalThis.speechSynthesis?.cancel?.();setPhase('sending')
-    try{
-      const place=await placeOfAlert(trip)
-      const body={trip_id:trip.id,alert_type:job.alert_type,...place,source_input:'VOICE',confidence_score:job.confidence.toFixed(2),driver_confirmed:true}
-      if(job.transcript)body.description=job.transcript.slice(0,500)
-      onSent(await api('/road-alerts',{method:'POST',body:JSON.stringify(body)}))
-      pending.current=null;setPhase('idle');setHeard(null)
-    }catch(error){onProblem(errorText(error));setPhase('confirm')}
-    finally{sending.current=false}
-  },[trip,onSent,onProblem])
-  const sendRef=useRef(send);useEffect(()=>{sendRef.current=send},[send])
-  const start=useCallback(()=>{
-    if(!Recognition||phase!=='idle')return
-    setMessage('');setPhase('listening')
-    listen(async(transcript,recognised)=>{
-      setPhase('classifying')
-      try{
-        const result=await api('/road-alerts/voice-classify',{method:'POST',body:JSON.stringify({transcript,language:getLanguage()})})
-        if(!result.alert_type){setPhase('idle');setMessage(result.message||'');onUnclear();return}
-        pending.current={alert_type:result.alert_type,transcript,confidence:recognised??(Number(result.confidence)||0)}
-        setHeard({transcript,prompt:result.confirm_prompt,type:result.alert_type});setPhase('confirm')
-        // Ask aloud when the device has a voice, then also listen for the spoken yes.
-        const lang=speechLang(getLanguage()),listenForYes=()=>listen(said=>{if(isYes(said))sendRef.current()})
-        if(!speak(result.confirm_prompt,lang,{onEnd:listenForYes}))listenForYes()
-      }catch(error){setPhase('idle');onProblem(errorText(error))}
-    })
-  },[Recognition,phase,listen,onUnclear,onProblem])
-  return {supported:Boolean(Recognition),blocked,phase,heard,message,start,cancel,send}
+    const again=()=>{if(document.visibilityState==='visible')ask()}
+    const leave=()=>{releaseWakeLock(lock);lock=null}
+    ask()
+    document.addEventListener('visibilitychange',again);window.addEventListener('pagehide',leave)
+    return()=>{stopped=true;document.removeEventListener('visibilitychange',again);window.removeEventListener('pagehide',leave);releaseWakeLock(lock);lock=null}
+  },[active])
+  return {unavailable}
 }
 
-export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange}){
+/* Voice (contract 03A, section 2): one tap, then hands free. The app listens once, asks the server what was said, speaks the
+   confirmation, listens by itself for confirm_seconds, and posts only on a yes. The microphone is off between alerts and never on
+   while the app speaks. Nothing is sent before a yes word or Send. */
+function useVoice({trip,onSent,onUnclear,onProblem}){
+  const Recognition=recognitionConstructor()
+  const [phase,setPhase]=useState('idle'),[heard,setHeard]=useState(null),[blocked,setBlocked]=useState(false),[message,setMessage]=useState(''),[outcome,setOutcome]=useState('')
+  const recognizer=useRef(null),job=useRef(null),finished=useRef(true),timer=useRef(null),session=useRef(0)
+  const stopMic=()=>{const r=recognizer.current;recognizer.current=null;try{r&&r.abort&&r.abort()}catch{/* Already stopped. */}}
+  const stopAll=()=>{stopMic();clearTimeout(timer.current);timer.current=null;globalThis.speechSynthesis?.cancel?.()}
+  const reset=useCallback(()=>{session.current++;stopAll();job.current=null;finished.current=true;setPhase('idle');setHeard(null)},[])
+  useEffect(()=>reset,[reset])
+  const configure=recognition=>{recognition.lang=speechLang(getLanguage());recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false}
+  const micProblem=event=>{
+    if(event.error==='not-allowed'||event.error==='service-not-allowed'){setBlocked(true);setMessage(t('The microphone is not allowed. Use the five buttons.'));return true}
+    return false
+  }
+  // Says the closing text when the device has a voice for the language; it is always shown on screen too.
+  const say=text=>{if(text)speak(text,speechLang(getLanguage()))}
+  const finish=useCallback(async answer=>{
+    const current=job.current
+    if(finished.current||!current)return
+    finished.current=true;clearTimeout(timer.current);timer.current=null;stopMic();globalThis.speechSynthesis?.cancel?.()
+    const id=session.current
+    if(answer!=='yes'){setOutcome(current.notSent);setPhase('idle');setHeard(null);say(current.notSent);job.current=null;return}
+    setPhase('sending')
+    try{
+      const place=await placeOfAlert(trip)
+      const body={trip_id:trip.id,alert_type:current.alert_type,...place,source_input:'VOICE',confidence_score:current.confidence.toFixed(2),driver_confirmed:true}
+      if(current.transcript)body.description=current.transcript.slice(0,500)
+      const result=await api('/road-alerts',{method:'POST',body:JSON.stringify(body)})
+      if(id!==session.current)return
+      setHeard(null);setPhase('idle');job.current=null
+      onSent(result,current.sent);say(current.sent)
+    }catch(error){if(id===session.current){setHeard(null);setPhase('idle');job.current=null;onProblem(errorText(error))}}
+  },[trip,onSent,onProblem])
+  // While the confirmation window is open, listen again and again (each recognition ends after a phrase or a pause) until a yes or no word is heard.
+  const listenWindow=useCallback(id=>{
+    const again=()=>{
+      if(id!==session.current||finished.current)return
+      const recognition=new Recognition();configure(recognition)
+      recognition.onresult=event=>{
+        const said=event.results?.[0]?.[0]?.transcript||''
+        const answer=answerOf(said,job.current?.yes,job.current?.no)
+        if(answer)finish(answer)
+      }
+      recognition.onerror=event=>{if(micProblem(event)){recognizer.current=null}}
+      recognition.onend=()=>{if(recognizer.current===recognition){recognizer.current=null;setTimeout(again,120)}}
+      recognizer.current=recognition
+      try{recognition.start()}catch{recognizer.current=null}
+    }
+    again()
+  },[Recognition,finish])
+  const start=useCallback(()=>{
+    if(!Recognition||phase!=='idle'||blocked)return
+    const id=++session.current
+    setMessage('');setOutcome('');setPhase('listening')
+    const recognition=new Recognition();configure(recognition)
+    let got=false
+    recognition.onresult=async event=>{
+      const best=event.results?.[0]?.[0]
+      if(!best||got||id!==session.current)return
+      got=true;recognizer.current=null;setPhase('classifying')
+      const transcript=best.transcript||'',recognised=Number.isFinite(best.confidence)?best.confidence:null
+      try{
+        const result=await api('/road-alerts/voice-classify',{method:'POST',body:JSON.stringify({transcript,language:getLanguage()})})
+        if(id!==session.current)return
+        if(!result.alert_type){setPhase('idle');setMessage(result.message||'');speak(result.message,'en-US');onUnclear();return}
+        const seconds=Number(result.confirm_seconds)>0?Number(result.confirm_seconds):CONFIRM_SECONDS
+        job.current={alert_type:result.alert_type,transcript,confidence:recognised??(Number(result.confidence)||0),yes:result.yes_words||[],no:result.no_words||[],sent:result.sent_text||t('Alert sent.'),notSent:result.not_sent_text||t('Alert not sent.')}
+        finished.current=false
+        setHeard({prompt:result.confirm_prompt,seconds,listening:false});setPhase('confirm')
+        let begun=false
+        const begin=()=>{
+          if(begun||id!==session.current||finished.current)return
+          begun=true;setHeard(h=>h&&({...h,listening:true}))
+          timer.current=setTimeout(()=>finish('timeout'),seconds*1000)
+          listenWindow(id)
+        }
+        // Ask aloud first and listen only when the speech has ended; with no voice for this language the prompt is on screen and listening starts at once.
+        if(!speak(result.confirm_prompt,speechLang(getLanguage()),{onEnd:begin}))begin()
+      }catch(error){if(id===session.current){setPhase('idle');onProblem(errorText(error))}}
+    }
+    recognition.onerror=event=>{
+      recognizer.current=null
+      if(micProblem(event)){setPhase('idle');return}
+      if(event.error==='no-speech'){setPhase('idle');setMessage(t('We did not hear anything. Try again or use the buttons.'))}
+      else if(event.error!=='aborted'){setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
+    }
+    recognition.onend=()=>{if(recognizer.current===recognition){recognizer.current=null;if(!got)setPhase(p=>p==='listening'?'idle':p)}}
+    recognizer.current=recognition
+    try{recognition.start()}catch{recognizer.current=null;setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
+  },[Recognition,phase,blocked,finish,listenWindow,onUnclear,onProblem])
+  return {supported:Boolean(Recognition),blocked,phase,heard,message,outcome,start,cancel:reset,send:()=>finish('yes'),decline:()=>finish('no')}
+}
+
+/* Countdown ring: it starts when the app starts listening, and runs for confirm_seconds. */
+function Countdown({seconds,live}){
+  const [left,setLeft]=useState(seconds)
+  useEffect(()=>{
+    if(!live)return undefined
+    setLeft(seconds)
+    const timerId=setInterval(()=>setLeft(n=>Math.max(0,n-1)),1000)
+    return()=>clearInterval(timerId)
+  },[live,seconds])
+  return <span className={'ra-ring'+(live?' is-live':'')} style={{'--ra-seconds':seconds+'s'}} role="timer" aria-label={t('{value0} seconds left',{value0:left})}>
+    <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle className="ra-ring-track" cx="28" cy="28" r="24"/><circle className="ra-ring-run" cx="28" cy="28" r="24"/></svg><b>{left}</b></span>
+}
+
+export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepScreenOn=false}){
   const [open,setOpenState]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[problem,setProblem]=useState(''),[votes,setVotes]=useState({})
   const setOpen=useCallback(value=>{setOpenState(value);onOpenChange&&onOpenChange(value)},[onOpenChange])
-  const sent=useCallback(result=>{
+  const sent=useCallback((result,text)=>{
     setProblem('');setOpen(false)
-    setNotice(result.merged?t('This alert was already up here. It counted as a confirmation.'):t('Alert sent.'))
+    setNotice(result.merged?t('This alert was already up here. It counted as a confirmation.'):(text||t('Alert sent.')))
     alerts.reload()
   },[alerts,setOpen])
   const unclear=useCallback(()=>setOpen(true),[setOpen])
@@ -185,17 +261,19 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange}){
     finally{setVotes(current=>({...current,[item.id]:false}))}
   }
   const voiceBusy=voice.phase!=='idle'
-  const voiceText=voice.phase==='listening'?t('Listening…'):voice.phase==='classifying'?t('Checking what you said…'):voice.phase==='sending'?t('Sending…'):''
+  const voiceText=voice.phase==='listening'||(voice.phase==='confirm'&&voice.heard?.listening)?t('Listening…'):voice.phase==='classifying'?t('Checking what you said…'):voice.phase==='sending'?t('Sending…'):''
   return <div className="ra-layout">
     <div className="ra-main">
       {!voice.supported&&<p className="tk-line" role="status">{t('Voice is not available on this device. Use the five buttons.')}</p>}
+      {keepScreenOn&&<p className="tk-line" role="status">{t('Keep the screen on during the trip so alerts and location keep working.')} {t('Tip: keep the phone on the charger.')}</p>}
       {voice.message&&<p className="tk-line is-warn" role="status">{voice.message}</p>}
+      {voice.outcome&&<p className="tk-line" role="status">{voice.outcome}</p>}
       {notice&&<p className="tk-line" role="status">✓ {notice}</p>}
       {problem&&<p className="tk-line is-warn" role="alert">{problem}</p>}
       {(voiceText||busy)&&<p className="tk-line" role="status"><strong>{voiceText||t('Sending…')}</strong></p>}
       {voice.heard&&(voice.phase==='confirm'||voice.phase==='sending')&&<div className="tk-hold ra-confirm" role="alertdialog" aria-label={voice.heard.prompt}>
-        <p className="tk-line"><strong>{voice.heard.prompt}</strong></p>
-        <div className="ra-confirm-actions"><button type="button" className="ui-button ui-button-primary ra-big" disabled={voice.phase==='sending'} onClick={voice.send}>{t('Send')}</button><button type="button" className="ui-button ui-button-secondary ra-big" disabled={voice.phase==='sending'} onClick={voice.cancel}>{t('Cancel')}</button></div></div>}
+        <div className="ra-confirm-ask"><Countdown seconds={voice.heard.seconds} live={Boolean(voice.heard.listening)&&voice.phase==='confirm'}/><p className="tk-line"><strong>{voice.heard.prompt}</strong></p></div>
+        <div className="ra-confirm-actions"><button type="button" className="ui-button ui-button-primary ra-big" disabled={voice.phase==='sending'} onClick={voice.send}>{t('Send')}</button><button type="button" className="ui-button ui-button-secondary ra-big" disabled={voice.phase==='sending'} onClick={voice.decline}>{t('Cancel')}</button></div></div>}
       {speaker.enabled&&speaker.textOnly&&<p className="tk-line" role="status">{t('This device has no voice for this language. Alerts are shown as text only.')}</p>}
       <div className="ra-list" aria-label={t('Road alerts near you')}>
         {alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
@@ -216,8 +294,8 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange}){
         </>
         :<>
           <button type="button" className="ra-round ra-alert" aria-label={t('Report a road alert')} title={t('Report a road alert')} disabled={disabled||voiceBusy} onClick={()=>{setNotice('');setProblem('');setOpen(true)}}><Icon name="alert" size={30}/></button>
-          <button type="button" className={'ra-round ra-mic'+(voiceBusy?' is-live':'')} aria-label={voiceBusy?t('Stop listening'):t('Speak an alert')} title={voice.supported?(voice.blocked?t('The microphone is not allowed. Use the five buttons.'):t('Speak an alert')):t('Voice is not available on this device. Use the five buttons.')}
-            disabled={disabled||!voice.supported||voice.blocked||busy} onClick={voiceBusy?voice.cancel:voice.start}><Icon name="mic" size={28}/></button>
+          {voice.supported&&!voice.blocked&&<button type="button" className={'ra-round ra-mic'+(voiceBusy?' is-live':'')} aria-label={voiceBusy?t('Stop listening'):t('Speak an alert')} title={voiceBusy?t('Stop listening'):t('Speak an alert')}
+            disabled={disabled||busy} onClick={voiceBusy?voice.cancel:voice.start}><Icon name="mic" size={28}/></button>}
           <label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Speak road alerts')}</span></label>
         </>}
     </aside>

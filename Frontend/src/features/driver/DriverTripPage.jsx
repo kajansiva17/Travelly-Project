@@ -8,7 +8,7 @@ import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
 import {Button,Checkbox,FormField,Input,Select,InfoCallout} from '../../components/ui'
 import HirePayment from '../booking/HirePayment'
 import InfoTip from '../../components/ui/InfoTip'
-import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useSpeaker} from './RoadAlerts'
+import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useScreenWakeLock,useSpeaker} from './RoadAlerts'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
    report a problem on the road, and finish. Everything uses the trip the Owner committed. */
@@ -34,6 +34,7 @@ export default function DriverTripPage(){
   // Road alerts (contract 03A): nearby alerts are polled while the trip runs, and spoken once when the Driver switched the speaker on.
   const [alertsOpen,setAlertsOpen]=useState(false),speaker=useSpeaker(),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
   useRoadAlertNotifications({running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.sayNotification})
+  const wake=useScreenWakeLock(Boolean(trip&&RUNNING.includes(trip.status)))   // keep the screen on while the trip runs (contract 03A)
   useEffect(()=>{latest.current=trip},[trip])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return()=>clearTimeout(timer)},[notice])
 
@@ -172,7 +173,7 @@ export default function DriverTripPage(){
         <InfoTip>{t('Sharing stops by itself when the trip is completed.')}</InfoTip>
         {trip.location&&<span className="ra-position"> · {t('Map position')}: {trip.location.latitude}, {trip.location.longitude}{trip.location.accuracy_m?` · ${t('Accuracy')} ${Math.round(Number(trip.location.accuracy_m))} m`:''}{trip.location.speed_kph?` · ${t('Speed')} ${Math.round(Number(trip.location.speed_kph))} ${t('km/h')}`:''}</span>}
       </FlowBanner>}
-      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen}/>
+      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} keepScreenOn={wake.unavailable}/>
     </div>}
 
     {open==='problem'&&<form className="flow-fields" onSubmit={report}>

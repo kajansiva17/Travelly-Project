@@ -143,3 +143,15 @@ html body .flow-page .ra-type:active { background: var(--ui-red, #c8102e); color
 html body .flow-page .ra-speak { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; text-align: center; line-height: 1.15; }
 @media (min-height: 760px) { html body .flow-page .ra-type { min-height: 72px; font-size: 20px; } html body .flow-page .ra-round { width: 84px; height: 84px; } html body .flow-page .ra-rail { width: 104px; } html body .flow-page .ra-rail.is-open { width: 240px; } }
 html body .flow-page .ra-rail > * { flex: none; }
+/* Voice confirmation: countdown ring beside the spoken question, large Send / Cancel under it */
+html body .flow-page .ra-confirm-ask { display: flex; align-items: center; gap: 12px; min-width: 0; }
+html body .flow-page .ra-confirm-ask .tk-line { margin: 0; font-size: 17px; line-height: 1.25; }
+html body .flow-page .ra-ring { position: relative; flex: none; width: 56px; height: 56px; display: block; }
+html body .flow-page .ra-ring svg { display: block; transform: rotate(-90deg); }
+html body .flow-page .ra-ring circle { fill: none; stroke-width: 5; }
+html body .flow-page .ra-ring-track { stroke: rgb(18 21 82 / .15); }
+html body .flow-page .ra-ring-run { stroke: var(--ui-red, #c8102e); stroke-linecap: round; stroke-dasharray: 150.8; stroke-dashoffset: 0; animation: ra-ring-run var(--ra-seconds, 10s) linear forwards; animation-play-state: paused; }
+html body .flow-page .ra-ring.is-live .ra-ring-run { animation-play-state: running; }
+html body .flow-page .ra-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: var(--ui-ink); }
+@keyframes ra-ring-run { to { stroke-dashoffset: 150.8; } }
+@media (prefers-reduced-motion: reduce) { html body .flow-page .ra-ring-run { animation: none; } }
