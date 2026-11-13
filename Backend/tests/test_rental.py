@@ -164,3 +164,41 @@ def test_chosen_extras_are_added_to_the_estimate_and_the_bill(client, hire_setup
     row = post(client, c.owner, f"/rentals/{row['id']}/handover", {'expected_version': row['version'], 'start_odometer_km': '100', 'licence_checked': True}).json()
     done = post(client, c.owner, f"/rentals/{row['id']}/return", {'expected_version': row['version'], 'end_odometer_km': '150'}).json()
     assert done['total_amount'] == '17600.00' and [l['code'] for l in done['price']['final']['breakdown']][-2:] == ['EXTRA_1', 'EXTRA_2']
+
+
+def test_a_rental_does_not_block_the_owner_as_a_driver_and_shows_as_a_rental_trip(client, hire_setup):
+    from app.services.hire_services import no_conflict
+    c = hire_setup; setup_rental(client, c)
+    row = accepted(client, c)
+    with client.app.state.sessions() as db:
+        owner_id = db.get(Booking, UUID(row['id'])).owner_user_id
+        no_conflict(db, uuid4(), start(30), start(60), driver_id=owner_id)   # no DRIVER_SCHEDULE_CONFLICT
+    bring_forward(client, row['id'])
+    row = client.get(f"/api/v1/bookings/{row['id']}", headers=bearer(c.owner)).json()
+    post(client, c.owner, f"/rentals/{row['id']}/handover", {'expected_version': row['version'], 'start_odometer_km': '100', 'licence_checked': True})
+    for who in (c.owner, c.passenger):
+        items = client.get('/api/v1/trips/active', headers=bearer(who)).json()['items']
+        assert [i['kind'] for i in items] == ['RENTAL']
+
+
+def test_rental_reminders_go_out_once_each(client, hire_setup):
+    from app.services.reminders import run_reminders
+    from app.models.hire_models import Notification
+    c = hire_setup; setup_rental(client, c)
+    req = ask(client, c, begin=start(40)).json()      # a request nobody answered
+    row = accepted(client, c, begin=start(100))       # a confirmed rental
+    booking_id = UUID(row['id'])
+    def run(moment):
+        with client.app.state.sessions() as db:
+            out = run_reminders(db, client.app.state.settings, None, moment); db.commit(); return out['rental']
+    now = datetime.now(timezone.utc)
+    assert run(now) == 0
+    assert run(now + timedelta(days=1, hours=1)) == 1     # the unanswered request, to the Owner
+    assert run(now + timedelta(days=1, hours=2)) == 0     # never twice
+    soon = run(now + timedelta(hours=100 - 5))            # the confirmed one starts within 24 hours: renter + Owner
+    assert soon >= 2
+    with client.app.state.sessions() as db:
+        stages = {n.action_payload['stage'] for n in db.scalars(select(Notification).where(Notification.action_payload['booking_id'].astext == str(booking_id)))
+                  if 'stage' in n.action_payload}
+        assert 'STARTS_SOON' in stages
+    assert run(now + timedelta(hours=100 + 2)) >= 2       # start passed and no handover

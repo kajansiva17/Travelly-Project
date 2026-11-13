@@ -606,7 +606,7 @@ def active_trips(user=Depends(current), db: Session = Depends(get_db)):
             stops = (booking.itinerary_snapshot.get('itinerary') or {}).get('stops') or []
             origin = stops[0]['place']['label'] if stops else None
             destination = stops[-1]['place']['label'] if len(stops) > 1 else None
-            kind, riding_here = 'PRIVATE_HIRE', booking.passenger_user_id == user.id
+            kind, riding_here = ('RENTAL' if booking.booking_type == 'RENTAL' else 'PRIVATE_HIRE'), booking.passenger_user_id == user.id
         roles = [name for name, yes in (('DRIVER', trip.driver_user_id == user.id), ('OWNER', trip.operating_owner_user_id == user.id),
                                          ('PASSENGER', riding_here)) if yes]
         items.append({'trip_id': str(trip.id), 'kind': kind, 'viewer_roles': roles,

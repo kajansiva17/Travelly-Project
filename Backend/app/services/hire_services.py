@@ -97,6 +97,8 @@ def no_conflict(db, vehicle_id, start, end, *, exclude=None, driver_id=None):
     if driver_id:
         q = select(Trip.id).where(Trip.driver_user_id == driver_id, Trip.assignment_status == 'ACCEPTED', Trip.status.notin_(('COMPLETED', 'CANCELLED')), Trip.scheduled_start_at < end, Trip.scheduled_end_at > start)
         if exclude: q = q.where(Trip.booking_id != exclude)
+        # A self-drive rental has no Driver: the Owner is only the operator who hands over and takes back, so it never blocks them.
+        q = q.where(~exists(select(Booking.id).where(Booking.id == Trip.booking_id, Booking.booking_type == 'RENTAL')))
         if db.scalar(q.limit(1)):
             raise ApiError(409, 'DRIVER_SCHEDULE_CONFLICT', 'The Driver already has an overlapping accepted trip.')
 

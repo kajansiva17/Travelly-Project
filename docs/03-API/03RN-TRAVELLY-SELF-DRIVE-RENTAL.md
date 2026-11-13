@@ -66,3 +66,11 @@ Rates saved later never change an accepted rental.
 ## Errors
 `422 EXTRA_UNAVAILABLE` (an extra the Owner does not offer, or chosen twice), `409 RENTAL_NOT_OPEN`, `409 RENTAL_NOT_READY`, `409 CANCELLATION_REVIEW_REQUIRED` (started or finished), `409 OWN_VEHICLE`,
 `409 SERVICE_UNAVAILABLE`, `422 ODOMETER_BELOW_LAST`, `422 VALIDATION_ERROR` (end below start).
+
+## Also
+- `GET /trips/active` returns `kind: "RENTAL"` for a rental in progress (origin and destination are null; there is no live map because the renter's phone does not report a position). Do not open the map for it.
+- A rental never blocks the Owner as a Driver: the rental trip is ignored by the Driver schedule-conflict check.
+
+## Reminders (daily job `scripts/send_reminders.py`, notification type RECONFIRMATION, once each per rental)
+`UNANSWERED` request waiting a day (Owner); `STARTS_SOON` start within 24 h (renter + Owner); `NOT_HANDED_OVER` start passed (both);
+`RETURN_SOON` due back within 24 h (both); `OVERDUE` return time passed (both). `action_payload` has `booking_id`, `booking_reference`, `stage`.
