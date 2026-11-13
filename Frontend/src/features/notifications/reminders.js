@@ -1,24 +1,19 @@
 import {accountPath} from '../../routes/workspaceRoutes.js'
 
-/* Reminders (contract 03R): DOCUMENT_EXPIRY and MAINTENANCE_DUE. GET /notifications returns id, title, body, booking_id
-   and status; it does not return notification_type or action_payload. When the API adds them they are used. Until then
-   a reminder is recognised by its fixed wording, and its vehicle is found from the registration number in the text
-   against the Owner's own vehicles. */
+/* Reminders (contract 03R and 03N): DOCUMENT_EXPIRY and MAINTENANCE_DUE, matched by notification_type. Their links come from
+   action_payload (vehicle_id, document_id); nothing is guessed from the wording of the title or body. */
 export function reminderKind(note){
-  if(!note||note.booking_id)return null
-  if(note.notification_type==='DOCUMENT_EXPIRY'||note.notification_type==='MAINTENANCE_DUE')return note.notification_type
-  const body=note.body||''
-  if(/Add a record in the Maintenance tab when it is done\.$/.test(body))return 'MAINTENANCE_DUE'
-  if(/ (expires on|expired on) .*Upload a renewed copy/.test(body)&&/ (expires soon|expired)$/.test(note.title||''))return 'DOCUMENT_EXPIRY'
-  return null
+  const type=note?.notification_type
+  return type==='DOCUMENT_EXPIRY'||type==='MAINTENANCE_DUE'?type:null
 }
-const vehicleFromText=(note,vehicles)=>(vehicles||[]).find(v=>v.registration_number&&(note.body||'').includes(v.registration_number))
-export function reminderLink(note,vehicles,role){
-  const kind=reminderKind(note),vehicleId=note.action_payload?.vehicle_id||vehicleFromText(note,vehicles)?.id
+export function reminderLink(note,role){
+  const kind=reminderKind(note),payload=note?.action_payload,vehicleId=payload?.vehicle_id
+  // A missing payload key falls back to the vehicle list.
   if(kind==='MAINTENANCE_DUE')return vehicleId?`/owner/vehicles/${vehicleId}?tab=maintenance`:'/owner/vehicles'
   if(kind==='DOCUMENT_EXPIRY'){
-    const ofVehicle=Boolean(note.action_payload?.vehicle_id)||/ for vehicle /.test(note.body||'')
-    if(ofVehicle)return vehicleId?`/owner/vehicles/${vehicleId}?tab=documents`:'/owner/vehicles'
+    // vehicle_id is present for vehicle documents only: they are under that vehicle. Any other document is the person's own.
+    if(vehicleId)return `/owner/vehicles/${vehicleId}?tab=documents`
+    if(!payload||!payload.document_id)return role==='OWNER'?'/owner/vehicles':accountPath(role,role==='DRIVER'?'driver':'')+'#own-documents-heading'
     return accountPath(role,role==='OWNER'?'owner':role==='DRIVER'?'driver':'')+'#own-documents-heading'
   }
   return null

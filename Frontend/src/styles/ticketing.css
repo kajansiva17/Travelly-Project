@@ -155,3 +155,12 @@ html body .flow-page .ra-ring.is-live .ra-ring-run { animation-play-state: runni
 html body .flow-page .ra-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 18px; font-weight: 800; color: var(--ui-ink); }
 @keyframes ra-ring-run { to { stroke-dashoffset: 150.8; } }
 @media (prefers-reduced-motion: reduce) { html body .flow-page .ra-ring-run { animation: none; } }
+
+/* A notification that has expired (a ROAD_ALERT past expires_at) stays in the list, greyed */
+html body .workspace-record.is-expired, html body .dash-row.is-expired { opacity: .5; filter: grayscale(1); }
+
+/* Admin settlement: row checkbox and the payout / commission record row */
+html body .flow-page .ap-check { flex: none; display: grid; place-items: center; width: 34px; }
+html body .flow-page .ap-check input { width: 20px; height: 20px; accent-color: var(--ui-red, #c8102e); }
+html body .flow-page .ap-record { align-items: flex-end; flex-wrap: nowrap; }
+html body .flow-page .ap-reference { flex: 1 1 auto; min-width: 0; }

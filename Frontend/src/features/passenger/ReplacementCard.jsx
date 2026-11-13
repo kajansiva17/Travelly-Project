@@ -1,10 +1,11 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import React,{useState} from 'react'
 import {Link} from './travelRouter'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Pager} from '../booking/flow/FlowParts'
+import {isReplacementAction,noticeBookingId} from '../notifications/notices'
 
 // Replacement vehicle decision (contract 03F2, section 6). Shown only while pending_change.status is PENDING.
 // No answer means the passenger travels, so "Travel in the new vehicle" is a plain answer and Reject asks to confirm first.
@@ -57,17 +58,11 @@ export default function ReplacementCard({booking,refresh,onRejected}){
   </div>
 }
 
-// Dashboard: one compact row when a notification says a replacement vehicle is waiting; the ticket is read to confirm it is still PENDING.
-const TITLE='Your journey has a replacement vehicle'
+// Dashboard: one compact row for a REPLACEMENT notification that needs an answer (notification_type and action_required, contract 03N).
+// It opens that booking's change card; the notification's own text is shown, so no ticket has to be read to find the booking.
 export function ReplacementRow({notes}){
-  const note=(notes||[]).find(n=>n.title===TITLE&&n.booking_id),[ticket,setTicket]=useState(null)
-  useEffect(()=>{
-    if(!note)return undefined
-    let alive=true
-    api(`/bookings/${note.booking_id}/ticket`).then(r=>{if(alive)setTicket(r)}).catch(()=>{})
-    return ()=>{alive=false}
-  },[note?.booking_id])
-  if(!ticket||!isPending(ticket))return null
-  return <Link className="dash-row" to={`/travel/book/tickets?booking=${ticket.id}`}><Chip tone="info" icon="route">{t('Action needed')}</Chip>
-    <div><strong>{t('Your vehicle has changed')}</strong><span>{t('Now')}: {vehicleLine(ticket.pending_change.replacement_vehicle)}</span></div></Link>
+  const note=(notes||[]).find(isReplacementAction)
+  if(!note)return null
+  return <Link className="dash-row" to={`/travel/book/tickets?booking=${noticeBookingId(note)}`}><Chip tone="info" icon="route">{t('Action needed')}</Chip>
+    <div><strong>{t('Your vehicle has changed')}</strong><span>{note.body}</span></div></Link>
 }

@@ -12,7 +12,9 @@ const NAMES={OWNER:'Owner',DRIVER:'Driver'}
 function stateOf(status){
   const app=status?.application
   if(!app)return {key:'NONE'}
-  return {key:app.approval_status,reason:app.rejection_reason||app.suspension_reason||''}
+  // The reason that belongs to the state shown: rejection_reason for REJECTED (Needs correction), suspension_reason for SUSPENDED (contract 03N).
+  const reason=app.approval_status==='REJECTED'?app.rejection_reason:app.approval_status==='SUSPENDED'?app.suspension_reason:''
+  return {key:app.approval_status,reason:reason||''}
 }
 function RoleRow({code}){
   const [state,setState]=useState({loading:true,status:null,error:null})

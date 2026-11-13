@@ -32,6 +32,7 @@ import AdminTicketSettings from './features/admin/AdminTicketSettings'
 import AdminOversight from './features/admin/AdminOversight'
 import AdminDocuments from './features/admin/AdminDocuments'
 import AdminRoadAlerts from './features/admin/AdminRoadAlerts'
+import AdminPayments from './features/admin/AdminPayments'
 import DriverTripPage from './features/driver/DriverTripPage'
 import WorkspaceShell from './components/WorkspaceShell'
 import { hasSession, sessionEndReason } from './services/api'
@@ -276,7 +277,7 @@ export default function App() {
             <Route path="/admin/bookings" element={<AdminWorkflowPage kind="bookings"/>}/>
             <Route path="/admin/oversight" element={<AdminOversight/>}/>
             <Route path="/admin/rentals" element={<RentalRoleUi role="ADMIN"/>}/>
-            <Route path="/admin/payments" element={<AdminWorkflowPage kind="payments"/>}/>
+            <Route path="/admin/payments" element={<AdminPayments/>}/>
             <Route path="/admin/social-reviews" element={<AdminWorkflowPage kind="reviews"/>}/>
             <Route path="/admin/road-alerts" element={<AdminRoadAlerts/>}/>
             <Route path="/admin/reports" element={<AdminWorkflowPage kind="reports"/>}/>
