@@ -403,6 +403,10 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
                                                  Trip.status.in_(('READY', 'IN_PROGRESS', 'BREAKDOWN', 'ASSISTANCE_REQUIRED')))))
     else:
         query = query.where(ScheduledTrip.status.in_(LISTED), ScheduledTrip.departure_at > now(), ScheduledTrip.booking_cutoff_at > now())
+        from app.services import commission_overdue  # owners more than the block days behind on cash commission take no new bookings
+        stopped = commission_overdue.blocked_owner_ids(db, request.app.state.settings)
+        if stopped:
+            query = query.where(ScheduledTrip.owner_user_id.not_in(stopped))
     if route_id:
         query = query.where(ScheduledTrip.route_id == route_id)
     for column, value in ((Route.origin_name, origin), (Route.destination_name, destination)):

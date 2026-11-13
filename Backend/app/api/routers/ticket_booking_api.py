@@ -168,7 +168,7 @@ def check_stops(db, route_id, boarding_id, dropoff_id):
 # --------------------------------------------------------------------------- hold (40)
 
 @router.post('/bookings/ticket-holds', status_code=201)
-def create_hold(body: TicketHoldRequest, user=Depends(current), db: Session = Depends(get_db)):
+def create_hold(body: TicketHoldRequest, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'PASSENGER')
     stored_key = f'{user.id.hex}:{body.idempotency_key}'
     trip = lock_trip(db, body.scheduled_trip_id)
@@ -186,6 +186,9 @@ def create_hold(body: TicketHoldRequest, user=Depends(current), db: Session = De
         return JSONResponse(status_code=200, content=booking_out(db, replay))
     if trip.departure_at <= moment or trip.booking_cutoff_at <= moment:
         raise ApiError(409, 'BOOKING_CLOSED', 'Booking for this departure has closed.')
+    from app.services import commission_overdue  # owner decision 13 Nov 2026: an Owner far behind on cash commission takes no new bookings
+    if commission_overdue.is_blocked(db, request.app.state.settings, trip.owner_user_id):
+        raise ApiError(409, 'DEPARTURE_NOT_AVAILABLE', 'This departure is not available for new bookings right now.')
     minutes = hold_minutes(db.get(ServiceType, trip.service_type_id))
     if minutes is None:
         raise ApiError(409, 'TICKET_HOLD_NOT_CONFIGURED', 'Seat holds are not configured yet. An Admin must set the hold time.')

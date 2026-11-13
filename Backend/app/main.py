@@ -155,6 +155,8 @@ def create_app(settings=None, engine=None, store=None):
                     query_route = True
                 if request.method == 'GET' and request.url.path == '/api/v1/bookings' and set(request.query_params) <= {'as'}:
                     query_route = True
+                if request.method == 'GET' and request.url.path == '/api/v1/admin/owner-settlements' and set(request.query_params) <= {'overdue'}:
+                    query_route = True
                 if request.method == 'GET' and request.url.path == '/api/v1/road-alerts' and set(request.query_params) <= {'trip_id'}:
                     query_route = True
                 if request.method == 'GET' and request.url.path == '/api/v1/admin/road-alerts' and set(request.query_params) <= {'status'}:
