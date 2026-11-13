@@ -23,4 +23,4 @@ def run(app):
 
 if __name__ == '__main__':
     counts = run(create_app())
-    print(f"Reminders sent: {counts['documents']} document, {counts['maintenance']} maintenance, {counts['commission']} commission, {counts['rental']} rental.")
+    print(f"Reminders sent: {counts['documents']} document, {counts['maintenance']} maintenance, {counts['commission']} commission, {counts['rental']} rental. Unanswered price requests closed: {counts['expired_requests']}.")

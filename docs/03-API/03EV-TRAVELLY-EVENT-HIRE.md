@@ -39,3 +39,20 @@ package, or a return leg), `422 EVENT_PACKAGE_UNAVAILABLE` (a package id on a no
 ## Fixed package
 An Event booking cannot be re-quoted or changed: `POST /bookings/{id}/quote` and `POST /bookings/{id}/changes` return
 `409 EVENT_FIXED_PACKAGE`. Cancel and book again.
+
+## Where the package name and hours appear
+- Booking (`GET /bookings`, `GET /bookings/{id}`, and the request / acceptance responses): **before** price acceptance `proposal.quote.calculation.package`;
+  **after** acceptance `price.current.calculation.package` (`{id, name, hours}`). The hours are also `itinerary.itinerary.service_hours[0]`
+  and the package id is `itinerary.itinerary.event_package_id`.
+- Admin booking oversight (`GET /admin/workflow/bookings`): a new field **`event_package`** = `{id, name, hours}` (null for other bookings).
+  Event bookings have `booking_type` `PRIVATE_HIRE`.
+
+## Search before a package is chosen
+`POST /search/vehicles`: `service_hours`, `direction`, `method` and `return_start_at` are **ignored for Event** (each package uses its own hours,
+one way). Send any valid value, for example `["1"]`, `ONE_WAY`, `DAY_HIRE`. Only `start_at` and the stops matter (the vehicle must be free from
+`start_at` for each package's hours).
+
+## Owner "Prices" wizard
+Hide the Event service in the route-rate (Prices) wizard: `PUT /vehicles/{id}/services` returns `422 EVENT_PACKAGES_REQUIRED` for it.
+`GET /owners/me/service-readiness` still lists Event (`pricing_scope: "EVENT"`, `rate_rule_count` = number of packages), so use it for the
+status chip and send the Owner to the Event packages tab.

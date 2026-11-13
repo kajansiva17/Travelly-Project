@@ -37,8 +37,14 @@ def money(value):
     return format(value if value is not None else ZERO, '.2f')
 
 
+def event_package(booking):
+    """Name and hours of the Event package (Event hire), from the accepted price or the open quote; None for other bookings."""
+    snap = (booking.price_snapshot or {}).get('current') or ((booking.pending_change or {}).get('quote')) or {}
+    return (snap.get('calculation') or {}).get('package')
+
+
 def booking_view(booking, trip):
-    return {'id': str(booking.id), 'trip_id': str(trip.id) if trip else None, 'booking_reference': booking.booking_reference,
+    return {'event_package': event_package(booking), 'id': str(booking.id), 'trip_id': str(trip.id) if trip else None, 'booking_reference': booking.booking_reference,
             'booking_type': booking.booking_type, 'status': booking.status, 'booking_status': booking.status,
             'payment_status': booking.payment_status_snapshot, 'start_at': booking.start_at.isoformat() if booking.start_at else None,
             'end_at': booking.end_at.isoformat() if booking.end_at else None, 'origin': booking.origin_text,

@@ -517,3 +517,32 @@ def test_admin_reviewed_matrix_and_licence_categories_are_not_owner_editable(cli
     assert created.json()['id'] not in {s['id'] for s in client.get('/api/v1/service-types').json()['items']}
     assert client.patch(scope_path,headers=bearer(tokens),json={'expected_version':classified.json()['version'],'pricing_scope':'LONG_DISTANCE'}).status_code==200
 
+
+
+def test_search_lists_free_vehicles_without_a_saved_price_as_ask_the_owner(client, hire_setup):
+    c = hire_setup
+    body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'C')), 'passenger_count': 2,
+            'large_luggage_count': 1, 'small_luggage_count': 1}      # A -> C has no saved rate (only A -> B)
+    found = client.post('/api/v1/search/vehicles', json=body)
+    assert found.status_code == 200, found.text
+    data = found.json()
+    assert data['items'] == [] and len(data['quote_on_request']) == 1 and data['quote_on_request'][0]['quote_required'] is True
+    assert data['quote_on_request'][0]['price'] is None and 'rules' not in data['quote_on_request'][0]
+    priced = client.post('/api/v1/search/vehicles', json={**body, 'itinerary': c.itinerary(('A', 'B'))}).json()
+    assert len(priced['items']) == 1 and priced['quote_on_request'] == []
+
+
+def test_a_passenger_waits_for_at_most_three_owner_prices_and_unanswered_ones_lapse(client, hire_setup):
+    from app.services.reminders import run_reminders
+    c = hire_setup
+    rows = [c.create(c.itinerary(('A', 'C'))) for _ in range(3)]
+    assert all(r['status'] == 'REQUESTED' and r['proposal'] == {} for r in rows)
+    body = {'vehicle_id': str(c.vehicle_id), 'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'C')),
+            'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1, 'idempotency_key': uuid4().hex}
+    fourth = client.post('/api/v1/bookings/private-hires', headers=bearer(c.passenger), json=body)
+    assert fourth.status_code == 409 and fourth.json()['code'] == 'TOO_MANY_OPEN_REQUESTS'
+    with client.app.state.sessions() as db:
+        out = run_reminders(db, client.app.state.settings, None, datetime.now(timezone.utc) + timedelta(hours=25)); db.commit()
+        assert out['expired_requests'] == 3
+        assert {db.get(Booking, UUID(r['id'])).status for r in rows} == {'CANCELLED'}
+    assert client.post('/api/v1/bookings/private-hires', headers=bearer(c.passenger), json={**body, 'idempotency_key': uuid4().hex}).status_code == 201

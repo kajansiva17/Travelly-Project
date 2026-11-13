@@ -191,6 +191,22 @@ def rental_reminders(db, mailer, settings, moment):
     return sent
 
 
+def expire_quote_requests(db, moment, hours=24):
+    """A request that asks an Owner for a price (no saved rate) lapses when the Owner has not answered in `hours`.
+    The Passenger is told and can ask another Owner."""
+    old = db.scalars(select(Booking).where(Booking.booking_type == 'PRIVATE_HIRE', Booking.status == 'REQUESTED',
+                                           Booking.pending_change == {}, Booking.accepted_quote_digest.is_(None),
+                                           Booking.created_at <= moment - timedelta(hours=hours)).with_for_update(skip_locked=True).limit(500)).all()
+    for row in old:
+        row.status = 'CANCELLED'; row.vehicle_committed = False; row.cancelled_at = moment
+        row.cancellation_reason = 'The Owner did not send a price in time.'
+        row.updated_at = max(moment, row.created_at, row.updated_at); row.version += 1
+        db.add(Notification(recipient_user_id=row.passenger_user_id, booking_id=row.id, notification_type='RECONFIRMATION', channel='IN_APP',
+                            title='No price received', body='The Owner did not send a price in time, so this request was closed. You can ask another vehicle.',
+                            action_required=False, action_payload={'booking_id': str(row.id)}, status='QUEUED'))
+    return len(old)
+
+
 def run_reminders(db, settings, mailer=None, moment=None):
     """One pass of both checks. The caller commits. Returns how many new reminders were created."""
     moment = moment or datetime.now(timezone.utc)
@@ -199,4 +215,5 @@ def run_reminders(db, settings, mailer=None, moment=None):
     return {'documents': document_reminders(db, mailer, settings, today, moment),
             'maintenance': maintenance_reminders(db, mailer, settings, today, moment),
             'commission': commission_reminders(db, mailer, settings, moment),
-            'rental': rental_reminders(db, mailer, settings, moment)}
+            'rental': rental_reminders(db, mailer, settings, moment),
+            'expired_requests': expire_quote_requests(db, moment)}
