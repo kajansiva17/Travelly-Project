@@ -362,3 +362,10 @@ Mocked (not due, online only incl. Sandbox success, cash accepted, cash waiting 
 - **Panels** (`ReelPanels.jsx`): comments with one level of replies and remove, report (3–500), edit (`expected_version`; 409 `VERSION_CONFLICT` shows the server message and reloads the post), remove with confirm. Server errors through `services/fieldErrors.js`.
 - **Profile** `/social/users/:reference`: posts grid (paged), counts, Follow, Saved tab on my own profile. **Vehicle page:** "★ average (count)" and the latest two reviews from `/social/vehicles/{id}/reviews`.
 - Measured, no page scroll: 1280x585 stage 938x431 (video 233x415, comments panel 340 wide beside it); 1920x1080 video 497x884; 390x800 video 330x586 with buttons on the video and panels covering it. Dashboard card 306x113 at 1280x585, fits the bottom row.
+
+### Cash commission follow-up (backend answers)
+- Stage chip: No commission / Free period / Grace period / Blocked; stage BLOCKED with `blocked:false` shows "Extended". Days: "Opened today", "1 day open", "{n} days open" (separate strings, so Tamil and Sinhala need no plural rule).
+- Banner for the extended state: "Bookings are open until {extended_until}. Pay {amount_due} before then or new bookings stop." (date from `extended_until`; GRACE keeps `blocked_from`). Admin shows "Extended until {extended_until}".
+- Extend days: the confirm and the form button are disabled while the request runs, plus a ref guard against a double click.
+- Payout tick only when `commission_standing.amount_due` > 0; after sending, a `commission_set_off` of 0 reads "No commission was taken out" (bank transfer total still shown).
+- Mocked states: NONE, FREE, GRACE, BLOCKED, BLOCKED extended. Banner stays 58px high; no scroll at 1280x585 and 1920x1080.

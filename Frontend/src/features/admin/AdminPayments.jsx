@@ -9,7 +9,7 @@ import {usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {newKey} from '../passenger/TicketPayment'
 import {money} from '../passenger/TicketCancel'
 import {formatDate,formatDateTime} from '../../i18n/dateTime.js'
-import {STAGE_CHIP} from '../settlements/commissionStanding'
+import {daysOpenMessage,nothingTakenOut,owesCommission,stageChip} from '../settlements/commissionStanding'
 import AdminList,{Facts} from './AdminList'
 import {fieldErrors,fieldErrorMap,settlementIds} from '../../services/fieldErrors.js'
 
@@ -24,8 +24,8 @@ const when=value=>value?formatDateTime(value):'—'
 const label=code=>t(TYPES[code]||String(code||'').replaceAll('_',' ').toLowerCase().replace(/^./,c=>c.toUpperCase()))
 const settlementChip=code=>SETTLEMENT[code]?[SETTLEMENT[code][0],t(SETTLEMENT[code][1])]:['muted',code?t(String(code).replaceAll('_',' ').toLowerCase().replace(/^./,c=>c.toUpperCase())):'']
 // Cash commission standing (contract 03CM): stage chip and days open per Owner.
-const standingChip=standing=>{const [tone,name]=STAGE_CHIP[standing?.stage]||['muted','No commission'];return [tone,t(name)]}
-const standingLine=standing=>standing&&standing.stage&&standing.stage!=='NONE'?[t('{value0} days open',{value0:standing.days_open}),standing.extended_until?t('Extended until {value0}',{value0:formatDate(standing.extended_until)}):''].filter(Boolean).join(' · '):''
+const standingChip=standing=>{const [tone,name]=stageChip(standing);return [tone,t(name)]}
+const standingLine=standing=>standing&&standing.stage&&standing.stage!=='NONE'?[t(...daysOpenMessage(standing.days_open)),standing.extended_until?t('Extended until {value0}',{value0:formatDate(standing.extended_until)}):''].filter(Boolean).join(' · '):''
 const sum=(rows,key)=>rows.reduce((total,row)=>total+Number(row[key]||0),0)
 const refText=row=>row.booking_reference||row.payment_reference
 
@@ -59,6 +59,7 @@ const EMPTY={payable:'Nothing is waiting to be paid to this Owner.',commission_d
 function OwnerSettlement({owner,onChanged}){
   const [section,setSection]=useState(owner.payable?.length||!owner.commission_due?.length?'payable':'commission_due'),[selected,setSelected]=useState(new Set()),[reference,setReference]=useState('')
   const [settleCommission,setSettleCommission]=useState(false),[extend,setExtend]=useState(null),[mode,setMode]=useState(null),[busy,setBusy]=useState(false),[errors,setErrors]=useState({}),[message,setMessage]=useState(''),[done,setDone]=useState(null),retry=useRef(null)
+  const showTick=owesCommission(owner.commission_standing)
   const rows=owner[section]||[],pay=section==='payable',selectable=pay||section==='commission_due'
   const size=Math.max(2,useRowCount(96)),paged=usePaged(rows,size)
   const chosen=rows.filter(r=>selected.has(r.id)),total=sum(chosen,pay?'payable_amount':'commission_amount'),cur=owner.currency||rows[0]?.currency
@@ -68,12 +69,12 @@ function OwnerSettlement({owner,onChanged}){
   async function send(){
     const ids=[...selected].sort(),text=reference.trim()
     // One idempotency key per press. A retry after a lost answer reuses it, so the same payout is never recorded twice.
-    const signature=JSON.stringify([section,ids,text,pay&&settleCommission]),key=retry.current?.signature===signature?retry.current.key:newKey();retry.current=null
+    const signature=JSON.stringify([section,ids,text,pay&&showTick&&settleCommission]),key=retry.current?.signature===signature?retry.current.key:newKey();retry.current=null
     setBusy(true);setMessage('');setErrors({})
     try{
-      const body=pay?{payment_ids:ids,bank_reference:text,idempotency_key:key,...(settleCommission?{settle_commission:true}:{})}:{payment_ids:ids,reference:text,idempotency_key:key}
+      const body=pay?{payment_ids:ids,bank_reference:text,idempotency_key:key,...(settleCommission&&showTick?{settle_commission:true}:{})}:{payment_ids:ids,reference:text,idempotency_key:key}
       const result=await api(`/admin/owner-settlements/${owner.owner_user_id}/${pay?'payouts':'commission-receipts'}`,{method:'POST',body:JSON.stringify(body)})
-      setDone({pay,total:result.total,count:(pay?result.payouts:result.payments||[]).length||ids.length,reference:text,currency:cur,setOff:pay&&settleCommission&&result.bank_transfer_total!=null?{commission:result.commission_set_off,bank:result.bank_transfer_total}:null});setMode(null);onChanged()
+      setDone({pay,total:result.total,count:(pay?result.payouts:result.payments||[]).length||ids.length,reference:text,currency:cur,setOff:pay&&settleCommission&&showTick&&result.bank_transfer_total!=null?{commission:result.commission_set_off,bank:result.bank_transfer_total}:null});setMode(null);onChanged()
     }catch(error){
       if(error instanceof TypeError||error.code==='API_TIMEOUT')retry.current={signature,key}
       const out=explain(error,rows)
@@ -81,13 +82,15 @@ function OwnerSettlement({owner,onChanged}){
       if(out.reload){setSelected(c=>new Set([...c].filter(id=>!out.ids.has(id))));onChanged()}
     }finally{setBusy(false)}
   }
+  const extending=useRef(false)
   async function extendDays(){
-    setBusy(true);setMessage('');setErrors({})
+    if(extending.current)return   // a double click must not send twice (the Owner is notified each time)
+    extending.current=true;setBusy(true);setMessage('');setErrors({})
     try{
       const result=await api(`/admin/owner-settlements/${owner.owner_user_id}/commission-extension`,{method:'POST',body:JSON.stringify({days:Number(extend.days),reason:extend.reason.trim()})})
       setExtend(null);setDone({extended:true,standing:result?.commission_standing||result});onChanged()
     }catch(error){const out=explain(error,[]);setExtend(c=>({...c,confirm:false}));setMessage(out.text);setErrors(out.fields||{})}
-    finally{setBusy(false)}
+    finally{extending.current=false;setBusy(false)}
   }
   if(done?.extended)return <div className="tk-pane"><p className="tk-line"><Chip tone="success" icon="check">{t('Days extended')}</Chip> {standingLine(done.standing)}</p><p className="tk-line">{t('The Owner is told. When the extra days pass, new bookings stop again.')}</p>
     <div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setDone(null)}>{t('Back')}</button></div></div>
@@ -99,10 +102,10 @@ function OwnerSettlement({owner,onChanged}){
       :<><div className="tk-grid" style={{'--cols':2}}>
         <Field label="Days" help="How many more days the Owner has before new bookings stop (1 to 30)."><input name="days" type="number" min="1" max="30" step="1" inputMode="numeric" value={extend.days} onChange={e=>setExtend(c=>({...c,days:e.target.value}))}/></Field>
         <Field label="Reason" help="Why the days are extended. It is kept in the audit record."><input name="reason" maxLength="500" value={extend.reason} onChange={e=>setExtend(c=>({...c,reason:e.target.value}))}/></Field></div>
-        <div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setExtend(null);setMessage('');setErrors({})}}>{t('Back')}</button><button type="button" className="ui-button ui-button-primary" disabled={!extend.days||!extend.reason.trim()} onClick={()=>{setMessage('');setErrors({});setExtend(c=>({...c,confirm:true}))}}>{t('Extend days')}</button></div></>}
+        <div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setExtend(null);setMessage('');setErrors({})}}>{t('Back')}</button><button type="button" className="ui-button ui-button-primary" disabled={busy||!extend.days||!extend.reason.trim()} onClick={()=>{setMessage('');setErrors({});setExtend(c=>({...c,confirm:true}))}}>{t('Extend days')}</button></div></>}
   </div></RateErrors.Provider>
   if(done)return <div className="tk-pane"><p className="tk-line"><Chip tone="success" icon="check">{done.pay?t('Payout recorded'):t('Commission recorded')}</Chip> <strong>{money(done.currency,done.total)}</strong> · {t('{value0} payments',{value0:done.count})} · {done.reference}</p>
-    {done.setOff&&<p className="tk-line">{t('Commission taken out of this payout: {value0}',{value0:money(done.currency,done.setOff.commission)})} · <strong>{t('Amount to send to the bank: {value0}',{value0:money(done.currency,done.setOff.bank)})}</strong></p>}
+    {done.setOff&&<p className="tk-line">{nothingTakenOut(done.setOff.commission)?t('No commission was taken out'):t('Commission taken out of this payout: {value0}',{value0:money(done.currency,done.setOff.commission)})} · <strong>{t('Amount to send to the bank: {value0}',{value0:money(done.currency,done.setOff.bank)})}</strong></p>}
     <p className="tk-line">{done.pay?t('The payments are marked as paid out and the Owner is told.'):t('The payments are marked as commission paid.')}</p></div>
   return <RateErrors.Provider value={errors}><div className="tk-pane">
     {owner.commission_standing&&owner.commission_standing.stage!=='NONE'&&<div className="tk-bar"><Chip tone={standingChip(owner.commission_standing)[0]}>{standingChip(owner.commission_standing)[1]}</Chip><span className="tk-line">{standingLine(owner.commission_standing)} · {t('Commission due')} {money(cur,owner.commission_standing.amount_due)}</span>
@@ -116,7 +119,7 @@ function OwnerSettlement({owner,onChanged}){
       ?<div className="tk-hold"><p className="tk-line"><strong>{pay?t('Record a payout of {value0} for {value1} payments?',{value0:money(cur,total),value1:chosen.length}):t('Record commission of {value0} received for {value1} payments?',{value0:money(cur,total),value1:chosen.length})}</strong> {pay?t('Do this only after the bank transfer is made. The Owner is told.'):t('The payments are marked as commission paid.')} {reference.trim()}</p>
         <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Please wait…'):pay?t('Yes, record payout'):t('Yes, record commission')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode(null)}>{t('Back')}</button></div></div>
       :<div className="tk-bar ap-record">
-        {pay&&<Checkbox checked={settleCommission} onChange={e=>{setSettleCommission(e.target.checked);setMode(null)}}>{t('Take commission out of this payout')}</Checkbox>}
+        {pay&&showTick&&<Checkbox checked={settleCommission} onChange={e=>{setSettleCommission(e.target.checked);setMode(null)}}>{t('Take commission out of this payout')}</Checkbox>}
         <button type="button" className="ui-button ui-button-secondary" onClick={toggleAll}>{selected.size===rows.length?t('Clear selection'):t('Select all')}</button>
         <div className="ap-reference"><Field label={pay?'Bank reference':'Reference'} help={pay?'The reference of the bank transfer you made.':'For example a cash deposit or transfer reference.'}><input name={pay?'bank_reference':'reference'} maxLength="120" value={reference} onChange={e=>{setReference(e.target.value);setMode(null)}}/></Field></div>
         <button type="button" className="ui-button ui-button-primary" disabled={!selected.size||!reference.trim()} onClick={()=>{setMessage('');setMode('confirm')}}>{pay?t('Record payout'):t('Record commission')}{selected.size?` · ${money(cur,total)}`:''}</button></div>)}

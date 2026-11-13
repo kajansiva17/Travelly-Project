@@ -1433,6 +1433,11 @@ const rows = [
   ["Only me","நான் மட்டும்","මට පමණි"],
   ["Nothing from people you follow yet.","நீங்கள் பின்தொடர்பவர்களிடமிருந்து இன்னும் எதுவும் இல்லை.","ඔබ අනුගමනය කරන අයගෙන් තවම කිසිවක් නැත."],
   ["Nothing to watch yet.","பார்க்க இன்னும் எதுவும் இல்லை.","බැලීමට තවම කිසිවක් නැත."],
+  ["Extended","நீட்டிக்கப்பட்டது","දීර්ඝ කර ඇත"],
+  ["1 day open","1 நாள் நிலுவையில்","දිනක් විවෘතව"],
+  ["Opened today","இன்று தொடங்கியது","අද විවෘත විය"],
+  ["No commission was taken out","எந்த கமிஷனும் எடுக்கப்படவில்லை","කිසිදු කොමිස් ගත්තේ නැත"],
+  ["Bookings are open until {value0}. Pay {value1} before then or new bookings stop.","{value0} வரை முன்பதிவுகள் திறந்திருக்கும். அதற்கு முன் {value1} செலுத்துங்கள், இல்லையெனில் புதிய முன்பதிவுகள் நிறுத்தப்படும்.","{value0} දක්වා වෙන්කිරීම් විවෘතයි. එදිනට පෙර {value1} ගෙවන්න, නැතහොත් නව වෙන්කිරීම් නවතී."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }
