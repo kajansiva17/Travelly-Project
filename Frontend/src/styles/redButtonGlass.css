@@ -3,20 +3,5 @@
 
 /* Solid accents use the very same channels as Find a ride's glass surface.
    Keep the color through hover, focus and visited states on all public pages. */
-body .public-page :is(
-  .section-link,
-  .section-link:hover,
-  .section-link:focus-visible,
-  .section-link:visited,
-  .benefit-icon,
-  .step-icon,
-  .step-number,
-  .step-next,
-  .card-copy h3 > svg,
-  .story-copy h3 > svg
-) {
-  color: var(--primary-red);
-  text-decoration-color: currentColor;
-}
 
 /* Preserve existing gradient directions without introducing other red shades. */

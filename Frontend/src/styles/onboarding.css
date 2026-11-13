@@ -1,8 +1,7 @@
 body .public-page.role-onboarding{min-height:100dvh;max-width:none;background-color:var(--ui-glass-strong);background-image:url('/images/travelly/heroes/passenger-hero-1920.webp');background-repeat:no-repeat;background-position:center top;background-size:100% 100%,100% auto;color:var(--ui-ink)}
 .onboarding-content{width:92%;max-width:1120px;margin:auto;padding:26px 0 50px;display:grid;gap:20px}
 .onboarding-heading h1{font-size:clamp(28px,4vw,42px);margin:8px 0 16px}.onboarding-heading p{line-height:1.6}
-.onboarding-content>.button{justify-self:start}.onboarding-content .dashboard-application{margin:0}.onboarding-content .application-details{min-width:0}.onboarding-content .application-profile{overflow-wrap:anywhere}
-.onboarding-content .review-panel{margin:0}.onboarding-content .application-document-note{line-height:1.6}
+.onboarding-content>.button{justify-self:start}.onboarding-content .dashboard-application{margin:0}.onboarding-content .application-details{min-width:0}.onboarding-content .application-profile{overflow-wrap:anywhere}.onboarding-content .application-document-note{line-height:1.6}
 .role-onboarding .document-checklist{background:var(--ui-glass-strong);border:1px solid #4784b8;color:var(--ui-ink)}
 .role-onboarding .private-upload .upload-helper,.role-onboarding .document-checklist .upload-helper{color:var(--ui-text)}
 .role-onboarding .document-checklist select{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4784b8}

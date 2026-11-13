@@ -500,13 +500,9 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 }
 
 /* ---------- Old dark panels -> light glass (everything inside the workspace) ---------- */
-html body .workspace-shell[data-workspace] .workspace-content :is(.account-card, .profile-panel, .review-card, .review-detail, .review-summary, .rate-preview, .rate-rule, .trip-vehicle-card, .vehicle-card, .vehicle-panel, .calendar-panel, .document-card, .account-section, .profile-card, .role-card, .review-panel, .review-preview, .rate-vehicle-picker, .rate-reuse-note, .rate-area, .rate-area-summary, .trip-stop, .rate-prefilled, .vehicle-photo-card, .calendar-entry, .verification-note, .review-reason, .vehicle-document, .calendar-entry.withdrawn) { background: rgb(255 255 255 / .62); color: var(--ui-ink); border-color: rgb(255 255 255 / .9); box-shadow: none; }
-html body .workspace-shell[data-workspace] .workspace-content :is(.account-main, .review-main, .review-page, .vehicle-workspace, .owner-rates-page) :is(p, small, dt, li) { color: var(--ui-text); }
 html body .workspace-shell[data-workspace] .workspace-content :is(.rate-field small, .rate-coverage-summary, .change-totals dt, .trip-price th small, .calendar-checked) { color: var(--ui-muted); }
 html body .workspace-shell[data-workspace] .workspace-content .trip-price :is(tfoot th, tfoot td) { background: #e6f0ff; color: var(--ui-ink); }
-html body .workspace-shell[data-workspace] .workspace-content :is(.avatar, .role-icon, .badge, .status) { background: #e6f0ff; color: var(--ui-ink); }
 html body .workspace-shell[data-workspace] .workspace-content :is(.rate-place li > button) { background: #fff; color: var(--ui-ink); }
-html body .workspace-shell[data-workspace] .workspace-content :is(.review-main, .review-panel, .private-upload, .rate-field, .account-page, .review-page, .vehicle-workspace) :is(input, select, textarea) { background: var(--ui-input-bg); color: var(--ui-ink); border-color: var(--ui-input-border); }
 
 /* ---------- Vehicle page pieces ---------- */
 html body .status-chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
@@ -573,22 +569,8 @@ html body .workspace-shell[data-workspace] .workspace-content :is(.trip-price, .
 html body .workspace-shell[data-workspace] .workspace-content table :is(thead, thead th) { background: #eaf1fb; color: var(--ui-ink); }
 
 /* ---------- Driver pages (Phase 6d) ---------- */
-html body .op-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: end; margin: 0; }
-html body .op-grid .operation-field.wide { grid-column: span 2; }
-html body .flow-page .operation-field { display: grid; gap: 4px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ui-ink); }
 html body .flow-page .operation-field :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 12px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 15px; font-weight: 500; }
-html body .flow-page .operation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-html body .flow-page .operation-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
-html body .flow-page .operation-list li { padding: 5px 10px; border-radius: 10px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .85); }
 html body .flow-page .flow-wizard-form form + form, html body .flow-page .flow-wizard-form form + div { margin-top: 0; }
-html body .finance-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
-html body .finance-card { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px 14px; border-radius: 16px; background: rgb(255 255 255 / .58); border: 1px solid rgb(255 255 255 / .9); }
-html body .finance-card .finance-amount { font-size: 30px; font-weight: 800; color: var(--ui-ink); line-height: 1.1; }
-html body .flow-page .finance-ledger { display: grid; gap: 0; margin: 0; }
-html body .flow-page .finance-ledger > div { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgb(18 21 82 / .1); font-size: 14px; }
-html body .flow-page .finance-ledger dt { color: var(--ui-text); }
-html body .flow-page .finance-ledger dd { margin: 0; font-weight: 700; color: var(--ui-ink); text-align: right; overflow-wrap: anywhere; }
-@media (max-width: 1000px) { html body .finance-cols { grid-template-columns: minmax(0, 1fr); } html body .op-grid { grid-template-columns: minmax(0, 1fr); } }
 /* Booking details tabs: sections laid out in compact flowing rows */
 html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
 html body .booking-pane .rate-preview, html body .booking-pane details.rate-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); border-radius: 14px; }
@@ -622,8 +604,6 @@ html body .dash-page .dash-stats { display: grid; grid-template-columns: repeat(
 html body .dash-page .dash-stat { display: flex; align-items: center; gap: 10px; min-width: 0; padding: .4em .9em; border-radius: 16px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); color: var(--ui-ink); text-decoration: none; }
 html body .dash-page .dash-stat:hover { background: var(--ui-glass-strong); }
 html body .dash-page .dash-stat-icon { flex: none; display: grid; place-items: center; width: 2.8em; height: 2.8em; border-radius: 50%; background: var(--ui-info-soft); color: var(--ui-blue-deep); }
-html body .dash-page .dash-stat.tone-red .dash-stat-icon { background: #fde4e4; color: var(--ui-red-text, #c4161c); }
-html body .dash-page .dash-stat.tone-green .dash-stat-icon { background: var(--ui-green-soft, #dff5e6); color: var(--ui-green, #1b8a3b); }
 html body .dash-page .dash-stat > div { display: grid; min-width: 0; line-height: 1.15; }
 html body .dash-page .dash-stat > div > span { font-size: 1em; font-weight: 600; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html body .dash-page .dash-stat strong { font-size: 1.7em; font-weight: 800; color: var(--ui-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

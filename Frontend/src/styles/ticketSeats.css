@@ -33,5 +33,3 @@
 .seat-legend .swatch.not-sold{background:#6f7684;border-color:#2b3039}
 .seat-legend .swatch.crew{background:#eceef1}
 .seat-legend .swatch svg{width:14px;height:14px}
-.passenger-detail-grid>label{display:grid;gap:4px;font-weight:600}
-.passenger-detail-grid>label small{font-weight:400;opacity:.8}

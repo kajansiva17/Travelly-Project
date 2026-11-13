@@ -12,8 +12,6 @@ body .workspace-shell .language {display:flex;color:inherit;}
 body .workspace-shell .language select {color:inherit;}
 body .language select {color:inherit; color-scheme:dark;}
 body .language option {color:var(--ui-ink);background:var(--ui-glass-strong);}
-html:not(:lang(en)) .workspace-shell .workspace-sidebar-link {font-size:11px;line-height:1.5;}
-html:not(:lang(en)) .workspace-shell .workspace-drawer .workspace-sidebar-link {font-size:10.5px;}
 html:not(:lang(en)) :is(.button,.workspace-metric,.section-heading) {overflow-wrap:anywhere;}
 @media(min-width:768px) {
  html:not(:lang(en)) .workspace-shell {--workspace-sidebar-width:280px;}

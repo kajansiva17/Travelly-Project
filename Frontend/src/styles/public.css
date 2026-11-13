@@ -43,6 +43,5 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .menu-toggle{display:none;background:transparent;border:1px solid var(--ui-input-border);border-radius:5px;padding:8px;color:var(--ui-ink)}
 
 .public-page{max-width:1600px;margin:auto;background:#f4f6f9}
-.search-submit{min-height:46px;padding:12px 18px;white-space:nowrap}
 .site-footer{background:linear-gradient(110deg,#f8e7d3,#f8eee1);border-top:1px solid var(--ui-input-border);padding:20px 4.3%;display:flex;align-items:center;justify-content:space-between;gap:20px;color:var(--primary-red);font-size:13px}
 .footer-brand{font-size:27px;font-weight:800;letter-spacing:-1.4px;color:var(--primary-red)}

@@ -1,9 +1,3 @@
-.workspace-shell[data-workspace="admin"] a.admin-profile-link {
-  display:flex;align-items:center;gap:10px;color:#f5f8ff;text-decoration:none;min-width:0;
-}
-.admin-profile-link .dashboard-avatar {flex-shrink:0;overflow:hidden;}
-.admin-profile-link .dashboard-avatar img {width:100%;height:100%;object-fit:cover;}
-.admin-profile-link:focus-visible {outline:2px solid #84cfff;outline-offset:5px;border-radius:8px;}
 /* Admin profile form (inside FlowShell): avatar + 2x2 fields on one row-set, footer in the shared action row */
 html body .flow-page .admin-profile-card { display: flex; flex-direction: column; gap: 10px; padding: 0; border: 0; background: none; box-shadow: none; min-height: 0; }
 html body .flow-page .admin-profile-photo { display: flex; align-items: center; gap: 12px; margin: 0; padding: 0 0 8px; border: 0; border-bottom: 1px solid rgb(18 21 82 / .08); }
@@ -28,15 +22,3 @@ html body .flow-page .admin-profile-footer .button { min-height: 40px; padding: 
 html body .flow-page .admin-profile-save { background: #e53935; border-color: #e53935; color: #fff; }
 html body .flow-page .admin-profile-success { margin: 0; color: #1c7a4f; font-size: .9em; }
 @media (max-width: 700px) { html body .flow-page .admin-profile-fields { grid-template-columns: minmax(0, 1fr); } }
-
-@media(max-width:767px){
-  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name {display:grid;max-width:100px;min-width:0;}
-  .admin-profile-link .workspace-profile-name strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name strong {font-size:10px;}
-  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name small {font-size:9px;}
-  .workspace-shell[data-workspace="admin"] a.admin-profile-link {gap:6px;}
-  .workspace-shell[data-workspace="admin"] .admin-profile-link .dashboard-avatar {width:28px;height:28px;}
-}
-@media(max-width:380px){
-  .workspace-shell[data-workspace="admin"] .admin-profile-link .workspace-profile-name {max-width:70px;}
-}

@@ -1,7 +1,5 @@
 /* One persistent column for operational workspaces. All labels remain complete. */
 body .workspace-shell {--workspace-sidebar-width:clamp(240px,16vw,270px);}
-body .workspace-shell .workspace-sidebar-link {white-space:nowrap;}
-body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-wrap:normal;word-break:normal;flex:1;min-width:0;}
 @media(min-width:768px) {
  body .workspace-shell[data-workspace] {display:grid;grid-template-columns:var(--workspace-sidebar-width) minmax(0,1fr);grid-template-rows:auto 1fr;align-items:start;}
  body .workspace-shell[data-workspace] .workspace-content {grid-column:2;grid-row:2;width:100%;min-width:0;}
@@ -9,10 +7,6 @@ body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-
 }
 @media(min-width:768px) and (max-width:1099px) {
  body .workspace-shell {--workspace-sidebar-width:224px;}
- body .workspace-shell .reference-owner-grid {grid-template-columns:1fr;grid-template-areas:'fleet' 'activity' 'personal' 'bookings' 'calendar' 'actions';}
- body .workspace-shell .reference-admin-grid {grid-template-columns:1fr;grid-template-areas:'map' 'health' 'pending' 'alerts' 'actions' 'bookings';}
- body .workspace-shell .reference-driver-grid {grid-template-columns:1fr;}
- body .workspace-shell .reference-driver-grid>div,body .workspace-shell .ref-driver-assignment {grid-column:1;}
 }
 @media(max-width:767px) {
  body .workspace-shell[data-workspace] {display:block;}
@@ -21,5 +15,3 @@ body .workspace-shell .workspace-sidebar-link>span {white-space:nowrap;overflow-
 /* The phone menu also remains one column, including short landscape windows. */
 body .workspace-shell[data-workspace] .workspace-drawer {width:min(92vw,310px);max-width:310px;overflow:visible;}
 body .workspace-shell[data-workspace] .workspace-drawer-panel {--sidebar-row:min(44px,calc((100dvh - 84px) / var(--workspace-nav-count)));padding:8px 10px;height:100dvh;min-height:0;}
-body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-link {height:var(--sidebar-row);min-height:0;flex:none;padding:0 8px;margin:0;gap:8px;font-size:clamp(10px,calc(var(--sidebar-row) * .55),12px);line-height:1.1;}
-body .workspace-shell[data-workspace] .workspace-drawer .workspace-sidebar-link svg {width:min(20px,calc(var(--sidebar-row) * .72));height:min(20px,calc(var(--sidebar-row) * .72));}

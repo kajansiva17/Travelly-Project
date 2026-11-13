@@ -40,7 +40,7 @@ import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
 import {useWorkspace} from './context/workspaceContext'
 import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
-import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder,ManualFulfilment} from './components/RoleDashboards'
+import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'

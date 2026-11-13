@@ -26,27 +26,3 @@
 
 /* The existing multi-role Passenger links need the existing menu layout on
    tablets too; keep the desktop link order and every account action intact. */
-@media (min-width: 801px) and (max-width: 1279px) {
-  .dashboard-page .site-header .menu-toggle { display: grid; place-items: center; }
-  .dashboard-page .site-header .navigation {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--ui-glass-strong);
-    border-bottom: 1px solid var(--ui-input-border);
-    padding: 18px 6%;
-    box-shadow: 0 12px 20px #4c1a1120;
-    font-size: 15px;
-    white-space: normal;
-  }
-  .dashboard-page .site-header .navigation.open { display: flex; align-items: stretch; gap: 7px; flex-direction: column; }
-  .dashboard-page .site-header .navigation > a:not(.button) { padding: 12px 0; }
-  .dashboard-page .site-header .dashboard-profile-menu { max-width: none; }
-  .dashboard-page .site-header .dashboard-profile-dropdown { position: static; margin-top: 9px; box-shadow: none; min-width: 0; }
-  .dashboard-page .site-header .dashboard-signout { align-self: flex-start; }
-}
-@media (max-width: 1279px) {
-  .dashboard-page .site-header .navigation { max-height: calc(100dvh - 86px); overflow-y: auto; }
-}

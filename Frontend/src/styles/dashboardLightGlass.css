@@ -9,9 +9,6 @@ body :is(.workspace-shell,.passenger-customer-shell) .site-header .language sele
 body :is(.workspace-shell,.passenger-customer-shell) .workspace-profile-name small {color:#233e65}
 body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar {overflow:hidden;background:#dceafa;color:#071645}
 body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar img {width:100%;height:100%;object-fit:cover;border-radius:50%}
-body .workspace-shell[data-workspace] .workspace-sidebar-link {color:#fff;border-radius:18px}
-body .workspace-shell[data-workspace] .workspace-sidebar-link.active {color:#fff;background:linear-gradient(#ff6a72,#ff1320 55%,#dc0012);border-color:#fff9;box-shadow:inset 0 1px 7px #fff9,0 5px 12px #a9002455}
-body .workspace-shell[data-workspace] .workspace-sidebar-link:hover:not(.active) {background:#fff4;color:#fff}
 body .workspace-shell .overview-banner :is(h1,p) {color:#071645;text-shadow:0 1px 8px #ffffffc9}
 body .workspace-shell .reference-availability {color:#19335b;background:#f3f9ffcd;border-color:#fff}
 
@@ -43,29 +40,14 @@ body :is(.workspace-shell,.reference-passenger) :is(.workspace-empty,.reference-
 body :is(.workspace-shell,.reference-passenger) .workspace-badge {color:#163656;background:#dcebf8;border-color:#abc9df}
 body :is(.workspace-shell,.reference-passenger) .workspace-badge.positive {color:#07523e;background:#b4ead0;border-color:#82d6b2}
 body .dashboard-overview .workspace-select select {background:#f3f8fd;color:#071645;border-color:#abc5da}
-body .dashboard-overview .reference-booking-table th {color:#071645;background:#d5e5f1}
-body .dashboard-overview .reference-booking-table td {color:#14294c;border-color:#a9bfd3}
-body .dashboard-overview .reference-assignment-image,
-body .reference-passenger .reference-trip-image {display:grid;place-items:center;color:#2479b9;background:linear-gradient(140deg,#dceefa,#bed9ea);border:1px solid #fff;border-radius:12px}
-body .reference-passenger .reference-trip-image {display:flex;justify-content:center;align-items:center;gap:12px}
 body .dashboard-overview .reference-platform-map>div {background:#f3f9ffdc;color:#071645;border-color:#fff}
 body .dashboard-overview .reference-platform-map>small {color:#fff;text-shadow:0 1px 3px #001}
 body .dashboard-overview .reference-route {grid-template-columns:1fr;min-height:0}
 body .dashboard-overview .pipeline-columns .pipeline-row>strong {color:#071645}
-body .workspace-shell .workspace-content :is(.review-panel,.review-preview,.rate-preview,.rate-rule,.trip-vehicle-card,.vehicle-photo-card,.calendar-entry,.profile-card) {
- color:#071645;border:1px solid #ffffffed;border-radius:20px;
- background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
- box-shadow:inset 0 1px 10px #fff,0 8px 22px #27496d38;backdrop-filter:blur(17px)
-}
-body .workspace-shell .workspace-content :is(.dashboard-main,.owner-rates-page,.account-main,.vehicle-workspace) {color:#071645}
-body .workspace-shell .workspace-content :is(.dashboard-main,.owner-rates-page,.account-main,.vehicle-workspace) p {color:#30466a}
 body .workspace-shell .workspace-content :is(.dashboard-kicker,.section-kicker) {color:#d90f20}
-body .workspace-shell .review-queue-row {border-color:#9fb9cd}
-body .workspace-shell .review-identity dt {color:#46617e}
 body .workspace-shell .review-reason {color:#5e2730;background:#ffe8e8}
 body .workspace-shell .dashboard-profile-dropdown {background:#f4f9ff;color:#071645;border:1px solid #b0c7da}
 body :is(.workspace-shell,.passenger-customer-shell) .dashboard-profile-dropdown :is(a,button) {color:#071645}
-body .reference-passenger .reference-help {position:static;display:flex;margin:16px 0 0 auto}
 @media(max-width:767px){
  body .workspace-shell .workspace-menu-toggle {color:#071645;background:#e7f3fd;border:1px solid #fff}
  body .workspace-shell .workspace-card {padding:14px}

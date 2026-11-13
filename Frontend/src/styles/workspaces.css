@@ -11,16 +11,11 @@
 .dashboard-profile-dropdown{position:absolute;right:0;top:calc(100% + 16px);min-width:220px;padding:8px;background:var(--ui-glass-strong);border:1px solid #5789bd;border-radius:14px;box-shadow:0 20px 40px #0008}
 .dashboard-profile-dropdown a,.dashboard-profile-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;text-decoration:none;text-align:left;border-radius:8px;font-size:13px}
 .dashboard-profile-dropdown a:hover{background:var(--ui-glass-strong)}
-body .workspace-sidebar-link{display:flex;align-items:center;gap:10px;min-height:30px;width:100%;margin:1px 0;padding:6px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ui-text);font:11px/1.35 'Travelly Sans',Arial,sans-serif;text-align:left;text-decoration:none}
-.workspace-sidebar-link svg{width:17px;height:17px;flex:none}
-body .workspace-sidebar-link:hover{background:var(--ui-glass-strong);color:var(--ui-ink)}
-body .workspace-sidebar-link.active{background:linear-gradient(100deg,var(--primary-red),var(--primary-red));border-color:rgb(var(--primary-red-rgb) / 60%);color:#fff;box-shadow:0 4px 14px rgb(var(--primary-red-rgb) / 12.54902%)}
 .workspace-content{min-width:0}
 body .role-dashboard{max-width:1640px;margin:auto;padding:25px 30px 40px}
 .workspace-heading{margin:8px 0 24px}
 .workspace-heading h1{font-size:34px;line-height:1.2;margin-top:8px}
 .workspace-content>.notice{margin:16px}
-.workspace-content :is(.owner-rates-page,.review-page,.account-page,.vehicle-workspace){width:auto;max-width:1400px;margin:auto;padding:28px}
 .workspace-menu-toggle{display:none}
 .workspace-header .navigation{margin-left:auto}
 .workspace-icon-button,.workspace-menu-toggle{align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid #557fae;border-radius:10px;color:white;background:var(--ui-glass-strong);flex:none}
@@ -98,11 +93,10 @@ body .workspace-card .workspace-warning,.workspace-warning{color:#ffcfb5;backgro
 .application-profile dd{font-size:12px;overflow-wrap:anywhere}
 @media(max-width:1099px),(max-height:759px){
  body .workspace-menu-toggle{display:inline-flex}
- body .workspace-drawer .workspace-sidebar-link{min-height:42px;font-size:13px}
 }
 @media(max-width:767px){
  .workspace-header .navigation{gap:12px}
- .workspace-header .navigation>a,.workspace-header .dashboard-signout,.workspace-profile-name{display:none}
+ .workspace-header .navigation>a,.workspace-profile-name{display:none}
  body .role-dashboard{padding:18px 14px 30px}
  body .overview-banner{min-height:255px;padding:23px 20px;align-items:start}
  .overview-banner>div{width:100%}
