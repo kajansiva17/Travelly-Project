@@ -2,6 +2,7 @@ import { t } from '../../i18n/language.js'
 import React,{useCallback,useEffect,useRef,useState} from 'react'
 import {Link,Navigate,useParams} from 'react-router-dom'
 import {useWorkspace} from '../../context/workspaceContext'
+import {fieldErrorMap} from '../../services/fieldErrors.js'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
@@ -121,6 +122,7 @@ export default function DriverTripPage(){
     ?<StateCard icon="alert" title={t('Trip unavailable')} actions={<Button onClick={load}>{t('Try again')}</Button>}><ErrorNotice error={error}/></StateCard>
     :<StateCard busy title={t('Loading your trip')}/>
 
+  const fieldMsg=fieldErrorMap(error)
   const running=RUNNING.includes(trip.status)
   const finished=['COMPLETED','CANCELLED'].includes(trip.status)
   const checked=Boolean(trip.pickup?.verified_at)
@@ -144,7 +146,7 @@ export default function DriverTripPage(){
           <Button variant="secondary" onClick={()=>setScanning(false)}>{t('Stop the camera')}</Button>
         </div>
         :<div className="flow-actions"><Button icon="eye" disabled={busy} onClick={()=>setScanning(true)}>{t('Scan the QR code')}</Button></div>}
-      <FormField label={t('Or the six digits under the code')}
+      <FormField label={t('Or the six digits under the code')} error={fieldMsg.pin||fieldMsg.qr_token}
         hint={t('Attempts left: ')+(trip.pickup?.attempts_left??5)}>
         {({id})=><Input id={id} inputMode="numeric" maxLength={6} value={pin} style={PIN_INPUT}
           onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,6))}/>}
@@ -156,7 +158,7 @@ export default function DriverTripPage(){
       {t('Checked at ')+clock(trip.pickup.verified_at)+t(' Sri Lanka time.')}</FlowBanner>}
 
     {open==='start'&&<form className="flow-fields" onSubmit={start}>
-      <FormField label={t('Odometer now (km)')} required hint={t('Copy the number on the dashboard; one decimal place is allowed.')}>
+      <FormField label={t('Odometer now (km)')} required error={fieldMsg.start_odometer_km} hint={t('Copy the number on the dashboard; one decimal place is allowed.')}>
         {({id})=><Input id={id} required type="number" min="0" step="0.1" value={odometer} onChange={e=>setOdometer(e.target.value)}/>}
       </FormField>
       <Checkbox checked={ready} onChange={e=>setReady(e.target.checked)}>{t('I checked the vehicle and we are ready to go.')}</Checkbox>
@@ -178,13 +180,13 @@ export default function DriverTripPage(){
 
     {open==='problem'&&<form className="flow-fields" onSubmit={report}>
       {trip.breakdown_details&&<FlowBanner tone="warning" icon="alert" title={t(words(trip.status))}>{trip.breakdown_details}</FlowBanner>}
-      <FormField label={t('What is happening?')} required>
+      <FormField label={t('What is happening?')} required error={fieldMsg.kind}>
         {({id})=><Select id={id} value={kind} onChange={e=>setKind(e.target.value)}>
           <option value="BREAKDOWN">{t('The vehicle broke down')}</option>
           <option value="ASSISTANCE_REQUIRED">{t('We need help, the vehicle is fine')}</option>
         </Select>}
       </FormField>
-      <FormField label={t('Tell the Owner and the Passenger')} required hint={t('Write what happened and where you are.')}>
+      <FormField label={t('Tell the Owner and the Passenger')} required error={fieldMsg.details} hint={t('Write what happened and where you are.')}>
         {({id})=><textarea id={id} required maxLength={2000} rows={3} value={details} onChange={e=>setDetails(e.target.value)}/>}
       </FormField>
       <div className="flow-actions"><Button type="submit" disabled={busy||!details.trim()}>{busy?t('Sending…'):t('Tell them now')}</Button></div>
@@ -192,11 +194,11 @@ export default function DriverTripPage(){
     </form>}
 
     {open==='finish'&&<form className="flow-fields" onSubmit={finish}>
-      <FormField label={t('Odometer at the end (km)')} required
+      <FormField label={t('Odometer at the end (km)')} required error={fieldMsg.end_odometer_km}
         hint={t('It cannot be lower than ')+(trip.start_odometer_km||'0')+t(' km, the reading you gave at the start.')}>
         {({id})=><Input id={id} required type="number" min={trip.start_odometer_km||'0'} step="0.1" value={endOdometer} onChange={e=>setEndOdometer(e.target.value)}/>}
       </FormField>
-      <FormField label={t('Anything to note? (Optional)')}>
+      <FormField label={t('Anything to note? (Optional)')} error={fieldMsg.completion_notes}>
         {({id})=><textarea id={id} maxLength={2000} rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/>}
       </FormField>
       <div className="flow-actions"><Button type="submit" disabled={busy||!endOdometer} arrow>{busy?t('Finishing…'):t('Finish the trip')}</Button></div>

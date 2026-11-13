@@ -4,6 +4,7 @@ import {api} from '../../services/api'
 import {ErrorNotice} from '../../components/components'
 import {evidenceMetadataErrors,reusableApplicationEvidence,validateApplicationEvidence} from '../../services/applicationEvidence'
 import {documentCountries,documentTypes} from '../../services/documentUpload'
+import {fieldErrors} from '../../services/fieldErrors.js'
 
 async function readDocuments(userId){
   let page=1,items=[],result
@@ -32,7 +33,7 @@ export default function RoleApplicationForm({role,user,onSubmitted,evidenceOnly=
     try{
       for(const type of types){if(sent.current[type]||(existing(type)&&!values[type]?.replace))continue
         try{const uploaded=await api('/documents',{method:'POST',body:bodyFor(type)});sent.current[type]=uploaded.id}
-        catch(e){const inline=Object.fromEntries((e.fields||[]).filter(f=>['file','number','issuing_country','issue_date','expiry_date'].includes(f.field)).map(f=>[`${type}.${f.field}`,f.message]));setErrors(current=>({...current,...inline}));if(!e.status||e.status>=500)setUncertain(true);throw e}
+        catch(e){const inline=Object.fromEntries(fieldErrors(e).filter(f=>['file','number','issuing_country','issue_date','expiry_date'].includes(f.field)).map(f=>[`${type}.${f.field}`,f.message]));setErrors(current=>({...current,...inline}));if(!e.status||e.status>=500)setUncertain(true);throw e}
       }
       if(!evidenceOnly)await api('/users/me/role-requests',{method:'POST',body:JSON.stringify({role_code:role})})
       await onSubmitted()

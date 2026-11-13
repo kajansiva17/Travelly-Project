@@ -4,6 +4,7 @@ import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field} from '../owner/OwnerRates'
+import {correctAmount,waitingPaymentId,payerFieldNames} from '../../services/fieldErrors.js'
 
 // Pay button for a held Ticket booking (Payments contract 03P, section A). The screen is drawn only from the
 // ticket read (GET /bookings/{id}/ticket): payment_status and latest_payment. Nothing here proves payment by itself.
@@ -44,13 +45,13 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     return newKey()
   }
   function problem(error,signature,key){
-    const code=error.code,fields=error.fields||[]
+    const code=error.code
     if(error instanceof TypeError||code==='API_TIMEOUT'){lastNetwork.current={signature,key};return {tone:'warn',text:t('We could not reach Travelly. Please try again.')}}
     if(error.status===410||code==='HOLD_EXPIRED'){refresh().catch(()=>{});return {tone:'warn',text:t('Hold ended — choose seats again'),seats:true}}
-    if(code==='PAYMENT_AMOUNT_MISMATCH'){refresh().catch(()=>{});return {tone:'warn',text:t('The amount changed. It is now {value0}.',{value0:fields[0]?.message||''})}}
+    if(code==='PAYMENT_AMOUNT_MISMATCH'){refresh().catch(()=>{});return {tone:'warn',text:t('The amount changed. It is now {value0}.',{value0:correctAmount(error)})}}
     if(code==='BOOKING_ALREADY_PAID'||code==='HOLD_NOT_ACTIVE'){refresh().catch(()=>{});return {tone:'info',text:code==='BOOKING_ALREADY_PAID'?t('This booking is already paid.'):t('This hold is no longer active.')}}
     if(code==='PAYMENT_NOT_DUE'){refresh().catch(()=>{});return {tone:'info',text:t('Payment opens when the trip is completed.')}}
-    if(code==='PAYMENT_IN_PROGRESS'){if(provider==='SANDBOX'&&fields[0]?.message)setSandbox({id:fields[0].message});refresh().catch(()=>{});return {tone:'info',text:hire?t('A payment for this booking is already waiting. Finish or wait for it first.'):t('A payment for this booking is already waiting. Finish it below.')}}
+    if(code==='PAYMENT_IN_PROGRESS'){if(provider==='SANDBOX'&&waitingPaymentId(error))setSandbox({id:waitingPaymentId(error)});refresh().catch(()=>{});return {tone:'info',text:hire?t('A payment for this booking is already waiting. Finish or wait for it first.'):t('A payment for this booking is already waiting. Finish it below.')}}
     if(code==='PAYMENT_PROVIDER_UNAVAILABLE'){return {tone:'warn',text:t('Online payment is not available right now.')}}
     if(code==='PAYMENT_NOT_AVAILABLE'){setUnavailable(true);return null}
     return {tone:'warn',text:error.message||t('The payment could not be started. Please try again.')}
@@ -70,7 +71,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     try{
       await handleIntent(await api(`/bookings/${booking.id}/payment-intents`,{method:'POST',body:JSON.stringify({...body,idempotency_key:key})}))
     }catch(error){
-      if(error.code==='PAYER_DETAILS_REQUIRED'){setPayerFor((error.fields||[]).map(f=>String(f.field).replace(/^payer\./,'')));setMessage({tone:'info',text:t('Needed by PayHere for this payment. Travelly does not keep it.')})}   // safety net
+      if(error.code==='PAYER_DETAILS_REQUIRED'){setPayerFor(payerFieldNames(error));setMessage({tone:'info',text:t('Needed by PayHere for this payment. Travelly does not keep it.')})}   // safety net
       else if(error.code==='IDEMPOTENCY_KEY_REUSED'){lastNetwork.current=null;setMessage({tone:'info',text:t('Please press Pay again.')})}
       else setMessage(problem(error,signature,key))
     }finally{setBusy(false)}
@@ -88,7 +89,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     const body={payer:payerBody()}
     try{const result=await api(`/payments/${latest.id}/checkout`,{method:'POST',body:JSON.stringify(body)});submitCheckout(result.checkout)}
     catch(error){
-      if(error.code==='PAYER_DETAILS_REQUIRED'){setPayerFor((error.fields||[]).map(f=>String(f.field).replace(/^payer\./,'')));setMessage({tone:'info',text:t('Needed by PayHere for this payment. Travelly does not keep it.')})}
+      if(error.code==='PAYER_DETAILS_REQUIRED'){setPayerFor(payerFieldNames(error));setMessage({tone:'info',text:t('Needed by PayHere for this payment. Travelly does not keep it.')})}
       else if(error.code==='PAYMENT_NOT_PENDING'){refresh().catch(()=>{});setMessage({tone:'info',text:t('That payment is already finished. Press Pay to start a new one.')})}
       else setMessage(problem(error,'checkout',''))
     }finally{setBusy(false)}

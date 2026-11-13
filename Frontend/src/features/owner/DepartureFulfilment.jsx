@@ -5,6 +5,7 @@ import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field,RateErrors} from './OwnerRates'
 import {formatDateTime} from '../../i18n/dateTime.js'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // Protected fulfilment (contract 03F2). Status values are the contract's: PUBLISHED, BOOKING_OPEN, COMMITTED,
 // DECISION_REQUIRED, DISRUPTED, READY, CANCELLED. Nothing here is decided on the screen: every answer comes from the API.
@@ -26,7 +27,7 @@ export const canReplace=x=>['DECISION_REQUIRED','DISRUPTED'].includes(x.status)&
 export const canManage=x=>x.status!=='DRAFT'
 
 function explain(error,action){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='VERSION_CONFLICT')return {reload:true,text:t('This departure changed while you were looking. It was refreshed, so check it and try again.')}
   if(code==='DEPARTURE_NOT_FOUND'||error.status===404)return {reload:true,text:t('This departure no longer exists. The list has been refreshed.')}
@@ -37,7 +38,7 @@ function explain(error,action){
   if(code==='REPLACEMENT_NOT_ALLOWED'||code==='REPLACEMENT_VEHICLE_UNAVAILABLE'||code==='VEHICLE_SCHEDULE_CONFLICT'||code==='REPLACEMENT_PENDING'){return {reload:code==='REPLACEMENT_NOT_ALLOWED'||code==='REPLACEMENT_PENDING',text:t(error.message)}}
   if(code==='REPLACEMENT_TOO_SMALL'){const m=/has (\d+) bookable seats; (\d+) passengers/.exec(error.message||'');return {text:m?t('This vehicle has {value0} bookable seats; {value1} passengers are booked.',{value0:m[1],value1:m[2]}):t(error.message)}}
   if(error.status===403)return {text:t('Only the Owner of this departure can do this.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   return {text:error.message||(action==='commit'?t('The departure could not be committed. Please try again.'):t('The problem could not be reported. Please try again.'))}
 }
 

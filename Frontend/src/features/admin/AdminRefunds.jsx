@@ -7,6 +7,7 @@ import {newKey} from '../passenger/TicketPayment'
 import {money,REFUND_STATUS} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
+import {fieldErrors,fieldErrorMap,firstFieldMessage} from '../../services/fieldErrors.js'
 
 // Admin refunds (Payments contract 03P, section E2 to E5). Lists never show tokens, card or bank details:
 // only references, amounts, status and dates that the refund item itself carries.
@@ -17,7 +18,7 @@ const isWaiting=row=>row.status==='PENDING'||row.status==='PROCESSING'
 
 // Friendly text for every error code in E3 to E5. Returns {field?, text}.
 function explain(error,fallback){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='REASON_REQUIRED')return {field:'reason',text:t('Write a reason for rejecting this refund.')}
   if(code==='REFUND_ALREADY_DECIDED')return {reload:true,text:t('Someone has already decided this refund. The list was refreshed.')}
@@ -26,9 +27,9 @@ function explain(error,fallback){
   if(code==='REFUND_NOT_RETRYABLE')return {reload:true,text:t('This refund cannot be sent to PayHere again. It may already be paid, waiting for PayHere, or not a card payment. The list was refreshed.')}
   if(code==='PAYHERE_REFUND_API_OFF')return {text:t('The PayHere Refund API is not set up, so it cannot be sent from here. Refund it in the PayHere portal and record it.')}
   if(code==='REFUND_NOT_PROCESSING')return {reload:true,text:t('This refund is not waiting to be recorded. The list was refreshed.')}
-  if(code==='REFUND_AMOUNT_INVALID')return {field:'amount',text:t('That is more than can still be refunded. The most you can refund is {value0}.',{value0:fields[0]?.message||''})}
+  if(code==='REFUND_AMOUNT_INVALID')return {field:'amount',text:t('That is more than can still be refunded. The most you can refund is {value0}.',{value0:firstFieldMessage(error)})}
   if(code==='PAYMENT_NOT_REFUNDABLE')return {reload:true,text:t('This payment cannot be refunded. It may not be paid, or it has already been refunded in full.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   return {text:error.message||fallback}
 }
 

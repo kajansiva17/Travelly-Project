@@ -9,6 +9,7 @@ import {newKey} from '../passenger/TicketPayment'
 import {money} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
+import {fieldErrors,fieldErrorMap,settlementIds} from '../../services/fieldErrors.js'
 
 /* Admin payments and Owner settlement (Payments contract 03P, section F).
    F1 totals and the payments list, F2 the Owners Travelly owes or is owed by, F3 record a payout after the bank transfer,
@@ -24,15 +25,15 @@ const sum=(rows,key)=>rows.reduce((total,row)=>total+Number(row[key]||0),0)
 const refText=row=>row.booking_reference||row.payment_reference
 
 function explain(error,rows){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='SETTLEMENT_NOT_ALLOWED'){
     // field_errors list the ids that cannot be settled; show their references.
-    const ids=new Set(fields.flatMap(f=>[f.field,f.message,f.id]).filter(Boolean)),refs=rows.filter(r=>ids.has(r.id)).map(refText)
+    const ids=settlementIds(error),refs=rows.filter(r=>ids.has(r.id)).map(refText)
     return {reload:true,ids,text:(error.message||t('Some of these payments can no longer be settled.'))+(refs.length?' '+refs.join(', '):'')}
   }
   if(error.status===403)return {text:t('Only an Admin can do this.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='VALIDATION_ERROR'&&fieldErrors(error).length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   return {text:error.message||t('The change could not be saved. Please try again.')}
 }
 

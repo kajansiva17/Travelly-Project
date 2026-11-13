@@ -52,3 +52,6 @@ html body .travelly-ai-card.travelly-ai-card .ai-label-full { display: none; }
 html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { min-width: 0; max-width: 100%; position: relative; z-index: 2; }
 html:not(:lang(en)) body .travelly-ai-card.travelly-ai-card .reference-ai-actions { flex-wrap: wrap; }
 html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { max-width: 100%; }
+
+/* The Admin dashboard has no AI card (it is for signed-in customers: Passenger, Owner and Driver workspaces), so its last tile uses the full row. */
+html body .dash-page .dash-grid > .c-main:last-child { grid-column: span 12; }

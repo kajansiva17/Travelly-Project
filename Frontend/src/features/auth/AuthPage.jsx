@@ -11,6 +11,7 @@ import {journeyRole,authJourney,journeyLink,authDestination} from './onboardingJ
 import GoogleSignIn from './GoogleSignIn'
 import { emailError, passwordErrors, passwordHint } from './authValidation'
 import { loginDestination } from '../../routes/workspaceRoutes'
+import {fieldErrorMap} from '../../services/fieldErrors.js'
 
 export default function AuthPage({ signup = false }) {
   const language = getLanguage()
@@ -110,7 +111,7 @@ export default function AuthPage({ signup = false }) {
       }
     } catch(err) {
       setError(err instanceof TypeError?new Error('We could not reach Travelly. Please try again.'):err)
-      setFields(Object.fromEntries((err.fields || []).map(field=>[field.field,field.message])))
+      setFields(fieldErrorMap(err))
     } finally {setPending(false)}
   }
   function handleSubmit(event) {

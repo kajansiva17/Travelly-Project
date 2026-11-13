@@ -5,10 +5,12 @@ import Chip from '../../components/ui/Chip'
 import {PlaceSearch} from '../owner/OwnerRates'
 import {publicRead} from '../../services/api'
 import {useNavigate} from '../passenger/travelRouter'
+import {useWorkspace} from '../../context/workspaceContext'
 import {recognitionConstructor,speak,speechLang} from '../driver/roadAlertSpeech'
 import {aiErrorText,topicRows} from './aiApi'
 import {askHelp,helpTopics,searchAssist} from './aiRequests'
 import {buildDraft,isHire,missingFor,ticketQuery,writeDraft} from './aiDraft'
+import {helpTarget} from './aiHelp'
 
 /* Travelly AI chat panel (contract 03AI): "Find a ride" fills the search form step by step and shows it for checking;
    "Help" answers questions about the app from the help guide. The AI never books or pays: the person presses Search,
@@ -44,20 +46,22 @@ function CheckCard({reply,state,onChange,onPlace,onSearch,onEditForm,busy,proble
   </section>
 }
 
-function HelpAnswer({help,onOpen,onAsk}){
+function HelpAnswer({help,workspace,onOpen,onAsk}){
+  // The help path is a Passenger path: it opens this person's own workspace copy, and no button shows for a page their role cannot open.
+  const target=helpTarget(help.path,{role:workspace?.role||'PASSENGER',allowed:workspace?.allowed||[]})
   return <div className="ai-help">
     {help.title&&<strong>{help.title}</strong>}
     {help.answer&&<p>{help.answer}</p>}
     {help.steps?.length>0&&<>{help.steps_language==='en'&&help.note&&<p className="ai-note">{help.note}</p>}<ol>{help.steps.map((step,i)=><li key={i}>{step}</li>)}</ol></>}
     <div className="ai-help-actions">
-      {help.path&&<button type="button" className="ui-button ui-button-primary" onClick={()=>onOpen(help.path)}>{help.found===false?t('Support'):t('Open this page')}</button>}
+      {target&&<button type="button" className="ui-button ui-button-primary" onClick={()=>onOpen(target)}>{help.found===false?t('Support'):t('Open this page')}</button>}
     </div>
     {help.related?.length>0&&<div className="ai-chips">{help.related.map(r=><Chip key={r.topic_id||r.title} tone="info" onClick={()=>onAsk(r.title)}>{r.title}</Chip>)}</div>}
   </div>
 }
 
 export default function AiAssistant({onClose,initialTab='search',startVoice=false}){
-  const navigate=useNavigate()
+  const navigate=useNavigate(),workspace=useWorkspace()
   const dialog=useRef(null),list=useRef(null),recognizer=useRef(null),latest=useRef(null)
   const [tab,setTab]=useState(initialTab),[search,setSearch]=useState(freshSearch),[help,setHelp]=useState({messages:[],topics:null})
   const [text,setText]=useState(''),[busy,setBusy]=useState(false),[listening,setListening]=useState(false),[micNote,setMicNote]=useState(''),[blocked,setBlocked]=useState(false),[cardProblem,setCardProblem]=useState('')
@@ -78,7 +82,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   const say=question=>{if(question)speak(question,speechLang(getLanguage()))}   // text is always shown; speech only when the device has a voice for the language
 
   async function sendSearch(message,{label,fromVoice=false}={}){
-    const value=String(message||'').trim();if(!value||busy)return
+    const value=String(message||'').trim().slice(0,500);if(!value||busy)return
     const state=latest.current.search
     setText('');setBusy(true);setCardProblem('')
     setSearch(s=>({...s,messages:[...s.messages,{role:'user',text:label||value}]}))
@@ -90,7 +94,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     finally{setBusy(false)}
   }
   async function sendHelp(question,{fromVoice=false}={}){
-    const value=String(question||'').trim();if(!value||busy)return
+    const value=String(question||'').trim().slice(0,500);if(!value||busy)return
     setText('');setBusy(true)
     setHelp(h=>({...h,messages:[...h.messages,{role:'user',text:value}]}))
     try{
@@ -158,12 +162,12 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
       <div className="ai-tabs" role="tablist" aria-label={t('Travelly AI')}>{[['search','Find a ride'],['help','Help']].map(([id,name])=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?'is-active':''} onClick={()=>setTab(id)}>{t(name)}</button>)}</div>
       <div className="ai-messages" ref={list} role="log" aria-live="polite">
         {tab==='help'&&help.topics&&help.topics.length>0&&<section className="ai-topics" aria-label={t('What can I ask?')}><strong>{t('What can I ask?')}</strong><div className="ai-chips">{help.topics.map(topic=><Chip key={topic.id} tone="info" onClick={()=>sendHelp(topic.title)}>{topic.title}</Chip>)}</div></section>}
-        {convo.length===0&&<p className="ai-intro">{tab==='search'?t('Tell me where you want to go, when, and how many people. I will fill in the search for you to check.'):t('Ask how to do something in Travelly.')}</p>}
+        {convo.length===0&&<p className="ai-intro">{t('Hi! Tell me where you want to go, or ask how to do something in Travelly.')}</p>}
         {convo.map((m,i)=>m.role==='user'
           ?<div className="ai-msg is-user" key={i}>{m.text}</div>
           :<div className={'ai-msg is-ai'+(m.error?' is-error':'')} key={i}>
             {m.notes?.map((n,k)=><p className="ai-note" key={k}>{n}</p>)}
-            {m.help?<HelpAnswer help={m.help} onOpen={go} onAsk={sendHelp}/>:<p>{m.text}</p>}
+            {m.help?<HelpAnswer help={m.help} workspace={workspace} onOpen={go} onAsk={sendHelp}/>:<p>{m.text}</p>}
             {m.options?.length>0&&m===lastAi&&!busy&&<div className="ai-chips" role="group" aria-label={t('Quick replies')}>{m.options.map(o=><Chip key={o.value} tone="info" onClick={()=>sendSearch(o.value,{label:o.label})}>{o.label}</Chip>)}</div>}
             {m.ready&&m===lastAi&&<CheckCard reply={m.reply} state={search} onChange={edit} onPlace={pickPlace} onSearch={runSearch} onEditForm={editInForm} busy={busy} problem={cardProblem}/>}
           </div>)}

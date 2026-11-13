@@ -1,7 +1,4 @@
-import {publicRead,publicRequest} from '../../services/api'
+import {api} from '../../services/api'
+import {createAiRequests} from './aiClient'
 
-/* Travelly AI (contract 03AI). Every endpoint is public, so these calls carry no sign-in and work signed in or out.
-   Nothing is stored, held or booked by the AI. */
-export const searchAssist=({message,language,filters,asking})=>publicRequest('/ai/search-assist',{message,language,filters:filters||{},asking:asking||null})
-export const askHelp=({question,language})=>publicRequest('/ai/help',{question,language})
-export const helpTopics=language=>publicRead(`/ai/help/topics/${language}`)
+export const {searchAssist,askHelp,helpTopics}=createAiRequests(api)

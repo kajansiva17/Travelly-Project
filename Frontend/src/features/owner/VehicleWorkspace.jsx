@@ -18,6 +18,7 @@ import {vehicleTabFromSearch} from '../notifications/reminders'
 import {vehiclePayload,vehicleTypes,labels,validatePhoto} from './vehicleValidation'
 import '../../styles/rates.css'
 import '../../styles/vehicles.css'
+import {fieldErrors} from '../../services/fieldErrors.js'
 
 // The active tab's primary action is drawn in the shared footer row (one aligned row: Back / secondary / primary).
 function submissionChecklist(vehicle){
@@ -39,7 +40,7 @@ const request=(path,body,method='PATCH')=>api(path,{method,body:JSON.stringify(b
 const words=s=>s.replaceAll('_',' ')
 // One green success message at the top of the vehicle page, sent from any form on it.
 const notify=message=>{window.dispatchEvent(new CustomEvent('travelly-notice',{detail:message}));window.scrollTo({top:0,behavior:'smooth'})}
-function Errors({error}){return <><ErrorNotice error={error}/>{error?.fields?.length>0&&<ul className="field-error" role="alert">{error.fields.map((f,i)=><li key={i}>{labels[f.field]||f.field}: {t(f.message)}</li>)}</ul>}</>}
+function Errors({error}){return <><ErrorNotice error={error}/>{fieldErrors(error).length>0&&<ul className="field-error" role="alert">{fieldErrors(error).map((f,i)=><li key={i}>{labels[f.field]||f.field}: {t(f.message)}</li>)}</ul>}</>}
 const controls=[['vehicle_type_code','Type','Select the factual type.'],['make','Make','Copy the actual manufacturer.'],['model','Model','Copy the actual model.'],['manufacture_year','Manufacture year','Use the actual year, not the date you bought it.'],['colour','Colour','Describe the real vehicle colour.'],['power_type','Power type','Select its actual power system; provide applicable fuel together.'],['engine_fuel_type','Engine fuel','BEV has no engine fuel.'],['seat_capacity','Usable Passenger seats','Exclude Driver and crew; enter a positive count before submission.'],['large_luggage_capacity','Large luggage capacity','Enter a nonnegative whole number; 0 means none.'],['small_luggage_capacity','Small luggage capacity','Enter a nonnegative whole number; 0 means none.'],['current_odometer_km','Current odometer','Actual km, with at most one decimal place.'],['transmission_type','Transmission','Enter the actual transmission if known.'],['air_conditioned','Air conditioning','Select Yes or No only when known.'],['registered_owner_case','Registered owner','Registration is required for every vehicle; authorization is additional for another person/company.'],['description','Description','Describe this vehicle without contact details, plates or a precise private location.']]
 const options={vehicle_type_code:vehicleTypes,power_type:['ICE','MHEV','HEV','PHEV','BEV'],engine_fuel_type:['PETROL','DIESEL'],registered_owner_case:['SELF','OTHER_PERSON','COMPANY']}
 const requiredFacts=new Set(['vehicle_type_code','make','model','manufacture_year','colour','power_type','seat_capacity','large_luggage_capacity','small_luggage_capacity','registered_owner_case'])

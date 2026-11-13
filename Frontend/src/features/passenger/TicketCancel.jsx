@@ -4,6 +4,7 @@ import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field,RateErrors} from '../owner/OwnerRates'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // Passenger cancels a paid ticket (Payments contract 03P, section E1).
 // The server decides the refund at the moment of the request; the screen only shows an estimate before and the
@@ -36,7 +37,7 @@ export default function TicketCancel({booking,departureAt,refresh,onDone,onClose
       const result=await api(`/bookings/${booking.id}/ticket-cancellation`,{method:'POST',body:JSON.stringify(body)})
       await onDone(result)
     }catch(error){
-      const code=error.code,fields=error.fields||[]
+      const code=error.code,fields=fieldErrors(error)
       if(error instanceof TypeError||code==='API_TIMEOUT'){setMessage(t('We could not reach Travelly. Please try again.'));return}
       setPhase('review')
       if(code==='VERSION_CONFLICT'){refresh().catch(()=>{});setMessage(t('This booking changed while you were looking. It was refreshed. Check the refund below and confirm again.'))}

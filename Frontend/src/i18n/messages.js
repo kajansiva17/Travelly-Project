@@ -1304,8 +1304,6 @@ const rows = [
   ["Where do you want to go?","நீங்கள் எங்கே செல்ல விரும்புகிறீர்கள்?","ඔබට යාමට අවශ්‍ය කොහේටද?"],
   ["Ask how to do something in Travelly","Travelly இல் ஒன்றை எப்படிச் செய்வது என்று கேளுங்கள்","Travelly හි යමක් කරන ආකාරය අසන්න"],
   ["What can I ask?","நான் என்ன கேட்கலாம்?","මට අසිය හැක්කේ කුමක්ද?"],
-  ["Tell me where you want to go, when, and how many people. I will fill in the search for you to check.","நீங்கள் எங்கே, எப்போது, எத்தனை பேர் செல்ல விரும்புகிறீர்கள் என்று சொல்லுங்கள். நீங்கள் சரிபார்க்க தேடலை நான் நிரப்புகிறேன்.","ඔබට කොහේටද, කවදාද, කී දෙනෙකුද යාමට අවශ්‍ය කියා කියන්න. ඔබ පරීක්ෂා කිරීමට සෙවීම මම පුරවමි."],
-  ["Ask how to do something in Travelly.","Travelly இல் ஒன்றை எப்படிச் செய்வது என்று கேளுங்கள்.","Travelly හි යමක් කරන ආකාරය අසන්න."],
   ["Quick replies","விரைவு பதில்கள்","ඉක්මන් පිළිතුරු"],
   ["Thinking…","யோசிக்கிறது…","සිතමින්…"],
   ["Voice is not available on this device. You can type instead.","இந்தச் சாதனத்தில் குரல் வசதி இல்லை. அதற்குப் பதிலாக தட்டச்சு செய்யலாம்.","මෙම උපාංගයේ හඬ පහසුකම නැත. ඒ වෙනුවට ටයිප් කළ හැක."],
@@ -1316,6 +1314,9 @@ const rows = [
   ["Chat with Travelly AI","Travelly AI உடன் அரட்டை","Travelly AI සමඟ සංවාදය"],
   ["Talk by voice","குரல் மூலம் பேசு","හඬින් කතා කරන්න"],
   ["Travelly AI assistant","Travelly AI உதவியாளர்","Travelly AI සහායකයා"],
+  ["Hi! Tell me where you want to go, or ask how to do something in Travelly.","வணக்கம்! நீங்கள் எங்கே செல்ல விரும்புகிறீர்கள் என்று சொல்லுங்கள், அல்லது Travelly இல் ஒன்றை எப்படிச் செய்வது என்று கேளுங்கள்.","හායි! ඔබට කොහේටද යාමට අවශ්‍ය කියා කියන්න, නැතහොත් Travelly හි යමක් කරන ආකාරය අසන්න."],
+  ["Please sign in again to use Travelly AI.","Travelly AI ஐப் பயன்படுத்த மீண்டும் உள்நுழையவும்.","Travelly AI භාවිතා කිරීමට නැවත පිවිසෙන්න."],
+  ["Your message must be between 1 and 500 characters.","உங்கள் செய்தி 1 முதல் 500 எழுத்துகளுக்குள் இருக்க வேண்டும்.","ඔබේ පණිවිඩය අක්ෂර 1 සිට 500 දක්වා විය යුතුය."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

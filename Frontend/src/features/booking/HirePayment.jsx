@@ -5,6 +5,7 @@ import {ErrorNotice} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import TicketPayment,{newKey} from '../passenger/TicketPayment'
+import {correctAmount} from '../../services/fieldErrors.js'
 
 // Private-hire payment panel (Payments contract 03P, section D). Everything is drawn from
 // GET /bookings/{id}/payment-summary; after every answer the summary is read again.
@@ -21,12 +22,12 @@ export function CashConfirm({summary,side,onDone}){
     const key=retry.current||newKey();retry.current=null
     try{await api(`/bookings/${summary.booking_id}/cash-receipts`,{method:'POST',body:JSON.stringify({...body,idempotency_key:key})});setAsk(false);await onDone()}
     catch(error){
-      const code=error.code,fields=error.fields||[]
+      const code=error.code
       if(error instanceof TypeError||code==='API_TIMEOUT'){retry.current=key;setMessage(t('We could not reach Travelly. Please try again.'));return}
       setAsk(false)
       if(code==='CASH_NOT_ACCEPTED')setMessage(t('The Owner does not accept cash for this vehicle. Please pay online.'))
       else if(code==='PAYMENT_NOT_DUE')setMessage(t('Payment opens when the trip is completed.'))
-      else if(code==='PAYMENT_AMOUNT_MISMATCH')setMessage(t('The amount changed. It is now {value0}.',{value0:fields[0]?.message||''}))
+      else if(code==='PAYMENT_AMOUNT_MISMATCH')setMessage(t('The amount changed. It is now {value0}.',{value0:correctAmount(error)}))
       else if(code==='PAYMENT_IN_PROGRESS')setMessage(t('An online payment is waiting. Finish or wait for it first.'))
       else if(code==='BOOKING_ALREADY_PAID')setMessage(t('This booking is already paid.'))
       else if(code==='COLLECTOR_NOT_ASSIGNED')setMessage(t('The person collecting the cash has changed. The page was refreshed, please try again.'))

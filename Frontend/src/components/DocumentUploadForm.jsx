@@ -4,6 +4,7 @@ import {validateApplicationEvidence} from '../services/applicationEvidence'
 import { api } from '../services/api'
 import { ErrorNotice } from './components'
 import { documentCountries, documentTypes, documentRequirement, ownershipGuidance, validateDocumentUpload } from '../services/documentUpload'
+import {fieldErrors} from '../services/fieldErrors.js'
 
 function Field({ name, label, helper, error, required = false, children }) {
   const id = `upload-${name}`
@@ -53,7 +54,7 @@ export default function DocumentUploadForm({ user, onUploaded, flow = 'SHARED', 
       setNotice('Your private document was submitted for review. Document review, role approval and contact verification are separate.')
       await onUploaded()
     } catch (err) {
-      const inline = Object.fromEntries((err.fields || []).filter(f => ['number', 'issuing_country', 'issue_date', 'expiry_date', 'file', 'document_type'].includes(f.field)).map(f => [f.field, f.message]))
+      const inline = Object.fromEntries(fieldErrors(err).filter(f => ['number', 'issuing_country', 'issue_date', 'expiry_date', 'file', 'document_type'].includes(f.field)).map(f => [f.field, f.message]))
       setFields(inline); setError(err)
     } finally { sending.current = false; setBusy(false) }
   }

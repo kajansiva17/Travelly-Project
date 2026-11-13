@@ -7,6 +7,7 @@ import {Field,RateErrors} from './OwnerRates'
 import {Pager} from '../booking/flow/FlowParts'
 import {DateTimeFields,Empty} from '../ticketing/TicketParts'
 import {formatDateTime,formatDate} from '../../i18n/dateTime.js'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // Vehicle Maintenance tab (Vehicle records contract 03M): summary of tasks, records list, and a two-step "Add record" form.
 // The type picker comes from allowed_record_types; the fields of each type follow the contract table.
@@ -61,12 +62,12 @@ function statusMessage(result,current){
 
 // One explanation per error code of the contract; returns {text, fields?, step?, duplicate?}
 function explain(error){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='POSSIBLE_DUPLICATE')return {duplicate:true,text:t('A record like this was already saved today (same type, amount and reading). Save it again only if it is a different one.')}
   if(code==='RECORD_NOT_COMPATIBLE')return {step:0,text:t('This type of record does not fit this vehicle’s power or fuel type. Choose another type.')}
-  if(code==='FIELD_NOT_APPLICABLE')return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('One of the fields does not apply to this type of record. Remove it and save again.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='FIELD_NOT_APPLICABLE')return {fields:fieldErrorMap(error),text:t('One of the fields does not apply to this type of record. Remove it and save again.')}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   if(code==='VEHICLE_NOT_FOUND'||error.status===404)return {text:t('We could not find this vehicle. Go back to Your vehicles and open it again.')}
   if(error.status===403)return {text:t('Only the Owner of this vehicle can add records.')}
   return {text:error.message||t('The record could not be saved. Please try again.')}

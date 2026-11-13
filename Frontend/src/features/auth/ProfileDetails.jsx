@@ -4,6 +4,7 @@ import { api } from '../../services/api'
 import { ErrorNotice } from '../../components/components'
 import { Chip, FormField, FormGrid, Input } from '../../components/ui'
 import { useWorkspace } from '../../context/workspaceContext'
+import {fieldErrors} from '../../services/fieldErrors.js'
 
 /* Profile details form. Uses the existing PATCH /users/me request (same body as the admin profile page).
    The Save button is rendered by the caller in the footer: <button type="submit" form="profile-details-form">. */
@@ -27,7 +28,7 @@ export default function ProfileDetails({ user, onState }) {
   }
   const roles = (user.approved_roles || []).filter(code => code !== 'PASSENGER')
   return <form id={PROFILE_FORM_ID} className="profile-details" onSubmit={save} aria-label={t("Personal profile")}>
-    <ErrorNotice error={error}/>{error?.fields?.map(field => <p key={field.field} className="field-error">{t(field.message)}</p>)}
+    <ErrorNotice error={error}/>{fieldErrors(error).map(field => <p key={field.field} className="field-error">{t(field.message)}</p>)}
     <FormGrid columns={3}>
       <FormField label={t("Full name")} required>{({ id }) => <Input id={id} icon="user" autoComplete="name" maxLength={150} required value={draft.full_name} onChange={e => setDraft({ ...draft, full_name: e.target.value })}/>}</FormField>
       <FormField label={t("Mobile number")}>{({ id }) => <Input id={id} icon="phone" type="tel" autoComplete="tel" maxLength={25} placeholder={t("Include country code, e.g. +94")} value={draft.phone_e164} onChange={e => setDraft({ ...draft, phone_e164: e.target.value })}/>}</FormField>

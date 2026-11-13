@@ -12,6 +12,7 @@ import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import DepartureFulfilment,{statusChip,canManage} from './DepartureFulfilment'
 import EmptyState from '../../components/ui/EmptyState'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // "Who will drive?" choices: the Owner's own listed Drivers (GET /owners/me/drivers), never a typed user ID.
 function DriverOptions({drivers,me,self=true}){
@@ -67,11 +68,11 @@ function DriverFinder({onUse}){
 
 // Replacement requests (contract 03F2, sections 9 and 10): another Owner asks me to run a departure with my vehicle.
 function replacementProblem(error){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='REPLACEMENT_TOO_SMALL'){const m=/has (\d+) bookable seats; (\d+) passengers/.exec(error.message||'');return {text:m?t('This vehicle has {value0} bookable seats; {value1} passengers are booked.',{value0:m[1],value1:m[2]}):t(error.message)}}
   if(['NO_REPLACEMENT_REQUEST','REPLACEMENT_NOT_ALLOWED','VEHICLE_SCHEDULE_CONFLICT','VERSION_CONFLICT','DRIVER_NOT_ELIGIBLE'].includes(code)||error.status===404)return {keep:code==='DRIVER_NOT_ELIGIBLE',text:t(error.message)}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {keep:true,text:t('Please check the highlighted fields.'),fields:Object.fromEntries(fields.map(f=>[f.field,f.message]))}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {keep:true,text:t('Please check the highlighted fields.'),fields:fieldErrorMap(error)}
   return {text:error.message||t('Your answer could not be sent. Please try again.')}
 }
 export function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onNotice}){

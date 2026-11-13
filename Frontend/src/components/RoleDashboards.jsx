@@ -106,7 +106,6 @@ export function AdminDashboard(){
   <Tile className="b-2" icon="shield" title="Safety Alerts" to="/admin/road-alerts" link="View all"><Soft>{t("A live safety-alert feed is not available yet.")} <Link to="/admin/manual-fulfilment">{t("Vehicle support notices")}</Link></Soft></Tile>
   <Tile className="b-3" icon="spark" title="Quick actions"><DashLinks items={[['Review role applications','/admin/applications','users'],['Approve vehicles','/admin/vehicles','car'],['Review documents','/admin/documents','document'],['Payments review','/admin/payments','wallet'],['Road alerts','/admin/road-alerts','alert'],['Reports','/admin/reports','chart']]}/></Tile>
   <Tile className="c-main" icon="calendar" title="Recent bookings" to="/admin/bookings" link="View all"><Soft>{t("Global booking summary unavailable")}. {t("A global booking list is not available to this Admin API.")}</Soft></Tile>
-  <TravellyAiPanel className="dash-tile c-side"/>
  </DashPage>
 }
 

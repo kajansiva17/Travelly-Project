@@ -3,6 +3,7 @@ import React,{useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import AdminList from './AdminList'
+import {fieldErrors,fieldErrorMap,firstFieldMessage} from '../../services/fieldErrors.js'
 
 // Admin payment settings (Payments contract 03P, section B): provider, commission % and gateway fee % per service type.
 const money=value=>Number(value||0).toLocaleString('en-LK',{minimumFractionDigits:0,maximumFractionDigits:2})
@@ -23,11 +24,11 @@ function PaymentForm({row,onSaved,onConflict}){
       const saved=await api(`/admin/service-types/${row.id}/payment-settings`,{method:'PATCH',body:JSON.stringify({expected_version:row.version,payment_provider:provider,commission_percent:String(commission).trim(),gateway_fee_percent:String(fee).trim()})})
       onSaved(saved)
     }catch(error){
-      const fields=error.fields||[]
+      const fields=fieldErrors(error)
       if(error.code==='VERSION_CONFLICT'){onConflict();return}
-      if(error.code==='PAYMENT_SETTINGS_INVALID')setErrors({gateway_fee_percent:fields[0]?.message||t('Commission and gateway fee together must not be more than 100%.')})
+      if(error.code==='PAYMENT_SETTINGS_INVALID')setErrors({gateway_fee_percent:firstFieldMessage(error)||t('Commission and gateway fee together must not be more than 100%.')})
       else if(error.code==='PAYMENT_PROVIDER_UNAVAILABLE')setErrors({payment_provider:t('PayHere is not set up on the server yet.')})
-      else if(error.code==='VALIDATION_ERROR'&&fields.length)setErrors(Object.fromEntries(fields.map(f=>[f.field,f.message])))
+      else if(error.code==='VALIDATION_ERROR'&&fields.length)setErrors(fieldErrorMap(error))
       else setMessage(error.message||t('The settings could not be saved. Please try again.'))
     }finally{setBusy(false)}
   }

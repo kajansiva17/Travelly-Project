@@ -9,6 +9,7 @@ import { emailError, passwordErrors, passwordHint } from './authValidation'
 import RegisterPhoneField from './RegisterPhoneField'
 import { registrationPhone } from './registrationPhone'
 import {loginDestination} from '../../routes/workspaceRoutes'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 const Primary=({to,children})=><Link className="ui-button ui-button-primary auth-submit" to={to}>{children}</Link>
 const Back=({to,children})=><p className="auth-switch login-switch"><Link to={to}>{children}</Link></p>
@@ -54,7 +55,7 @@ export function AuthLink({ reset = false }) {
       }
       setMessage(result.message)
     }
-    catch (err) { setError(err); setField((err.fields || []).filter(f => f.field === 'password').map(f => f.message).join(' ')) }
+    catch (err) { setError(err); setField(fieldErrors(err).filter(f => f.field === 'password').map(f => f.message).join(' ')) }
     finally { setBusy(false) }
   }
   return <AuthLayout variant="login" title={reset ? t('Choose a new password') : t('Verify your email')} subtitle={message ? '' : token ? (reset ? t('Pick a strong password you have not used before.') : t("Confirm that you want to verify the email address for your Travelly account.")) : t("This page needs a valid link from your email. Request a new link if yours is missing, expired or already used.")}>
@@ -107,7 +108,7 @@ export function GoogleCompletion() {
       if(!result.access_token)setAuthFlow({...result,journey})
       if(result.status==='verification_required')navigate(journeyLink('/check-email',journey),{replace:true})
       else {const [user,roles]=await Promise.all([api('/users/me'),api('/users/me/roles')]);navigate(loginDestination(user,roles.items||[],journey),{replace:true})}
-    } catch (err) { setError(err); setFields(Object.fromEntries((err.fields || []).map(f => [f.field, f.message]))) }
+    } catch (err) { setError(err); setFields(fieldErrorMap(err)) }
     finally { setBusy(false) }
   }
   if(journey==='ADMIN')return <AuthLayout variant="login" title={t("Admin sign-in")} subtitle={t("Use your existing approved Admin account.")}><Primary to={journeyLink('/login',journey)}>{t("Sign in")}</Primary></AuthLayout>

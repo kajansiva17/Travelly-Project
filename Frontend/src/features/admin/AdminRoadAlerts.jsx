@@ -5,6 +5,7 @@ import {Field,RateErrors} from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // Admin: road alerts (contract 03A, section 6). Verify, Reject or Remove. Reject and Remove need a reason and a confirm step.
 const TYPES={POLICE_PRESENCE:'Police',SPEED_CHECK:'Speed check',ACCIDENT:'Accident',ROADBLOCK:'Roadblock',ROAD_HAZARD:'Road hazard'}
@@ -16,14 +17,14 @@ const when=value=>value?formatDateTime(value):'—'
 const reporterName=reporter=>!reporter?'—':typeof reporter==='string'?reporter:[reporter.display_name||reporter.full_name,reporter.public_user_reference||reporter.reference].filter(Boolean).join(' · ')||'—'
 
 function explain(error){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='VERSION_CONFLICT')return {reload:true,text:t('This alert changed while you were looking. The list was refreshed, so check it and try again.')}
   if(code==='ROAD_ALERT_CLOSED')return {reload:true,text:t('This alert is already closed. The list was refreshed.')}
   if(code==='REASON_REQUIRED')return {field:'reason',text:error.message}
   if(error.status===404)return {reload:true,text:t('This alert no longer exists. The list was refreshed.')}
   if(error.status===403)return {text:t('Only an Admin can do this.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   return {text:error.message||t('The change could not be saved. Please try again.')}
 }
 

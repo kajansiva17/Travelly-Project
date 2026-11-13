@@ -7,20 +7,21 @@ import {formatDateTime} from '../../i18n/dateTime.js'
 import {money} from '../passenger/TicketCancel'
 import {statusChip} from '../owner/DepartureFulfilment'
 import AdminList,{Facts} from './AdminList'
+import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
 
 // Admin: departures waiting for Travelly (contract 03F2, sections 3 and 4). Only references, amounts, status, dates and counts are shown.
 const filters=[['','All'],['DECISION_REQUIRED','Decision needed'],['DISRUPTED','Disrupted']]
 const POLICY={FIXED_GUARANTEED:'Fixed, guaranteed departure',MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT:'Minimum seats with protected fulfilment'}
 
 function explain(error){
-  const code=error.code,fields=error.fields||[]
+  const code=error.code,fields=fieldErrors(error)
   if(error instanceof TypeError||code==='API_TIMEOUT')return {text:t('We could not reach Travelly. Please try again.')}
   if(code==='VERSION_CONFLICT')return {reload:true,text:t('This departure changed while you were looking. The list was refreshed, so check it and try again.')}
   if(code==='DEPARTURE_NOT_ESCALATED')return {reload:true,text:t('This departure is no longer waiting for a Travelly decision. Someone may already have resolved it. The list was refreshed.')}
   if(code==='DEPARTURE_STARTED')return {reload:true,text:t('This departure has already started, so it can no longer be closed here.')}
   if(code==='DEPARTURE_NOT_FOUND'||error.status===404)return {reload:true,text:t('This departure no longer exists. The list was refreshed.')}
   if(code==='ADMIN_REQUIRED'||error.status===403)return {text:t('Only an Admin can do this.')}
-  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:Object.fromEntries(fields.map(f=>[f.field,f.message])),text:t('Please check the highlighted fields.')}
+  if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
   return {text:error.message||t('The departure could not be closed. Please try again.')}
 }
 
