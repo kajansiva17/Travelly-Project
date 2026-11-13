@@ -1,4 +1,4 @@
-import { getLocale } from '../i18n/language.js'
+import { getLocale, t } from '../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../services/api'
 
@@ -11,7 +11,9 @@ export function useWorkspaceData(loader,dependencies=[]){
 }
 export const words=value=>(value||'Not reported').replaceAll('_',' ')
 export const displayTime=value=>value?new Date(value).toLocaleString(getLocale(),{timeZone:'Asia/Colombo',dateStyle:'medium',timeStyle:'short'}):'Time not reported'
-export const tripRoute=booking=>(booking.itinerary?.itinerary?.stops||[]).map(stop=>stop.place?.label).filter(Boolean).join(' → ')||booking.reference
+// Event hire (03EV): the package name and hours follow the route when the booking carries its price calculation.
+export const eventPackageOf=booking=>(booking?.price?.current||booking?.proposal?.quote)?.calculation?.package||null
+export const tripRoute=booking=>{const route=(booking.itinerary?.itinerary?.stops||[]).map(stop=>stop.place?.label).filter(Boolean).join(' → ')||booking.reference,pkg=eventPackageOf(booking);return pkg?`${route} · ${pkg.name} · ${t('{value0} hours',{value0:pkg.hours})}`:route}
 export const pendingBooking=booking=>!['COMPLETED','CANCELLED','REJECTED'].includes(booking.status)
 // Contract 03W: every booking carries viewer_roles and GET /bookings takes ?as=passenger|owner|driver, so the server decides
 // which list a booking belongs to (My trips, Bookings for my vehicles, My driving).

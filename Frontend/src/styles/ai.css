@@ -101,3 +101,9 @@ html body .dash-page .cm-banner { align-self: flex-start; max-width: min(640px, 
 html body .ui-chip-warning { background: #fff2d9; border-color: #f2d58f; color: #8a5a00; }
 html body .cm-extend { display: grid; gap: 8px; }
 html body .cm-set-off { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Event hire (03EV): packages on the vehicle card, the owner's package list */
+html body .flow-packages { display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow-y: auto; }
+html body .ep-pane { display: grid; gap: 8px; align-content: start; min-width: 0; }
+html body .ep-list { display: grid; gap: 6px; max-height: 240px; overflow-y: auto; }
+html body .ep-editor { display: grid; gap: 8px; }
