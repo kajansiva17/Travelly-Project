@@ -27,6 +27,7 @@ from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
+from app.services import commission_overdue
 
 router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 
@@ -100,8 +101,16 @@ def usable_capacity(vehicle, data):
         raise ApiError(409, 'CAPACITY_UNAVAILABLE', 'Verified vehicle capacity does not cover the requested passengers and luggage.')
 
 
-def offer(request, db, vehicle, service, itinerary, *, rules=None):
+def commission_gate(request, db, vehicle):
+    """Cash commission rule (owner decision 13 Nov 2026): an Owner more than COMMISSION_BLOCK_DAYS behind takes no NEW
+    bookings. Bookings already made and trips under way are not touched, so only new-booking paths call this."""
+    if commission_overdue.is_blocked(db, request.app.state.settings, vehicle.owner_user_id):
+        raise ApiError(409, 'VEHICLE_NOT_AVAILABLE', 'The vehicle is not available for new bookings right now.')
+
+
+def offer(request, db, vehicle, service, itinerary, *, rules=None, gate=True):
     eligible_vehicle(db, vehicle, public=True, at=itinerary.start_at)
+    if gate: commission_gate(request, db, vehicle)   # a change to a booking already made is never blocked
     row, configured = saved_rules(db, vehicle.id, service.id)
     snapshot = price(request, service, vehicle, itinerary, configured if rules is None else rules)
     snapshot['rate_version'] = row.version if row else None
@@ -138,7 +147,7 @@ def browse(request: Request, db: Session = Depends(get_db)):
     for v in rows:
         owner = db.get(User, v.owner_user_id)
         if params.get('owner_reference') and params['owner_reference'] != owner.public_user_reference: continue
-        try: eligible_vehicle(db, v, public=True)
+        try: eligible_vehicle(db, v, public=True); commission_gate(request, db, v)
         except ApiError: continue
         items.append(safe_vehicle(v, owner))
     return {'items': items[:100], 'has_next': len(rows) > 100}
@@ -212,7 +221,7 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
             if not same_hire_request(existing, body, user):
                 raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'The request identifier belongs to a different request.')
             return booking_summary(existing)
-        eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); usable_capacity(vehicle, body)
+        eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); commission_gate(request, db, vehicle); usable_capacity(vehicle, body)
         service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary)
         snapshot = None
         for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
@@ -287,7 +296,7 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
             raise ApiError(422, 'QUOTE_COVERAGE_REQUIRED', 'The quote needs one explicit matching route rule; it cannot silently become an area or nationwide rate.')
         previous = booking_summary(row)
         rate = persist_rates(vehicle.id, body.rates, request, user, db)
-        snapshot = price(request, service_for(db, row.service_type_id, not manual_change), vehicle, itinerary, matching) if manual_change else offer(request, db, vehicle, service_for(db, row.service_type_id), itinerary, rules=body.rates.rules)
+        snapshot = price(request, service_for(db, row.service_type_id, not manual_change), vehicle, itinerary, matching) if manual_change else offer(request, db, vehicle, service_for(db, row.service_type_id), itinerary, rules=body.rates.rules, gate=False)
         snapshot['rate_version'] = rate.version; snapshot.pop('digest', None); snapshot['digest'] = digest(snapshot)
         if manual_change:
             old_total = row.price_snapshot['current']['calculation']['total']

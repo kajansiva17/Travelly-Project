@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # Reminders job (scripts/send_reminders.py): document expiry warning window in working days (PRD default 5),
     # also used for "maintenance due soon"; email copies are off until real delivery is configured.
     reminder_working_days: int = Field(default=5, ge=1, le=30)
+    # Cash commission rule (owner decision 13 Nov 2026): free days, then a grace period, then new bookings are blocked.
+    commission_free_days: int = Field(default=14, ge=1, le=60)
+    commission_block_days: int = Field(default=18, ge=2, le=90)
     reminder_email_enabled: bool = False
     # Road alerts (owner decisions 12 Nov 2026): minutes an alert stays up per type, relevance radius, and how many
     # nearby Drivers' answers change its status.

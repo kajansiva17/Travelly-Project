@@ -1,4 +1,4 @@
-"""Send document expiry and maintenance reminders (see app/services/reminders.py for the rules).
+"""Send document expiry, maintenance and cash-commission reminders (see app/services/reminders.py for the rules).
 
 Run from the project folder, for example once a day at 08:00 from Windows Task Scheduler (demo) or cron (server):
     .venv\\Scripts\\python.exe Backend\\scripts\\send_reminders.py
@@ -23,4 +23,4 @@ def run(app):
 
 if __name__ == '__main__':
     counts = run(create_app())
-    print(f"Reminders sent: {counts['documents']} document, {counts['maintenance']} maintenance.")
+    print(f"Reminders sent: {counts['documents']} document, {counts['maintenance']} maintenance, {counts['commission']} commission.")

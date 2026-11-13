@@ -19,6 +19,8 @@ from sqlalchemy import select, text
 from app.api.routers.vehicle_records_api import summarise
 from app.models import User
 from app.models.hire_models import Notification
+from app.models.payment_models import Payment
+from app.services import commission_overdue
 from app.models.review_models import Document, Vehicle
 
 COLOMBO = ZoneInfo('Asia/Colombo')
@@ -126,10 +128,39 @@ def maintenance_reminders(db, mailer, settings, today, moment):
     return sent
 
 
+def commission_reminders(db, mailer, settings, moment):
+    """Cash commission rule (owner decision 13 Nov 2026): the Owner hears at day 10, 14, 16, 17 and 18 of the oldest unpaid
+    cash commission. If the job missed some days only the latest stage reached is sent. A new debt starts new stages."""
+    sent = 0
+    owners = db.scalars(select(Payment.payee_owner_user_id).where(*commission_overdue._due()).distinct()).all()
+    free, block = settings.commission_free_days, settings.commission_block_days
+    stages = [(block, 'BLOCKED', 'New bookings are stopped',
+               'Your commission is more than {block} days old, so your vehicles take no new bookings until it is paid. Bookings already made are not affected.'),
+              (block - 1, 'LAST_DAY', 'Last day to pay your commission', 'Pay your {amount} LKR commission today. From tomorrow your vehicles take no new bookings.'),
+              (block - 2, 'FINAL_DAYS', 'Pay your commission', 'Your {amount} LKR commission is overdue. New bookings stop in 2 days.'),
+              (free, 'GRACE_STARTED', 'Your commission is due', 'Your free period has ended. Pay your {amount} LKR commission within {left} days to keep taking bookings.'),
+              (free - 4, 'FREE_ENDING', 'Commission due soon', 'You owe Travelly {amount} LKR commission from cash trips. Please pay within {free_left} days.')]
+    for owner_id in owners:
+        info = commission_overdue.standing(db, settings, owner_id, moment)
+        stage = next(((n, t, b) for d, n, t, b in stages if info['days_open'] >= d), None)
+        if stage is None:
+            continue
+        name, title, text_ = stage
+        if name == 'BLOCKED' and not info['blocked']:
+            continue
+        body = text_.format(block=block, amount=info['amount_due'], left=max(0, block - info['days_open']),
+                            free_left=max(0, free - info['days_open']))
+        key = f"commission:{owner_id}:{info['oldest_due_at'][:10]}:{name}"
+        sent += remind(db, mailer, settings, owner_id, 'PAYMENT', key, title, body,
+                       {'stage': info['stage'], 'amount_due': info['amount_due'], 'days_open': info['days_open']}, moment)
+    return sent
+
+
 def run_reminders(db, settings, mailer=None, moment=None):
     """One pass of both checks. The caller commits. Returns how many new reminders were created."""
     moment = moment or datetime.now(timezone.utc)
     today = moment.astimezone(COLOMBO).date()
     db.execute(text("SELECT pg_advisory_xact_lock(hashtext('travelly-reminders'))"))
     return {'documents': document_reminders(db, mailer, settings, today, moment),
-            'maintenance': maintenance_reminders(db, mailer, settings, today, moment)}
+            'maintenance': maintenance_reminders(db, mailer, settings, today, moment),
+            'commission': commission_reminders(db, mailer, settings, moment)}

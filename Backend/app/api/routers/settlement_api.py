@@ -16,7 +16,7 @@ i.e. owner_net_amount x (amount - refunded) / amount, so commission and gateway 
 (PayHere also returns its fee on the refunded part). A payment whose refund is still pending or processing is listed
 under needs_review and cannot be paid out until that refund is settled. Fully refunded payments are never paid out.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
@@ -32,6 +32,8 @@ from app.models import User
 from app.models.hire_models import Booking, Notification
 from app.models.payment_models import Payment
 from app.services.refunds import REFUNDS
+from app.services import commission_overdue
+from app.models import UserRole
 
 router = APIRouter(prefix='/api/v1', tags=['Settlement'])
 # Rows that carry an Owner share: the captured seat payment, or its REALLOCATION when another Owner took over.
@@ -47,6 +49,12 @@ class Payout(Strict):
     payment_ids: list[UUID] = Field(min_length=1, max_length=200)
     bank_reference: str = Field(min_length=1, max_length=200)
     idempotency_key: str = Field(min_length=8, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+    settle_commission: bool = False   # also clear the commission this Owner owes from this payout (oldest first, whole rows only)
+
+
+class CommissionExtension(Strict):
+    days: int = Field(ge=1, le=30)
+    reason: str = Field(min_length=3, max_length=500)
 
 
 class CommissionReceipt(Strict):
@@ -126,7 +134,7 @@ def admin_payments(user=Depends(admin), db: Session = Depends(get_db)):
         'commission_due_from_owners': money(total(db, Payment.owner_settlement_status == 'COMMISSION_DUE', column=Payment.commission_amount))}}
 
 
-def settlement_for(db, owner_id):
+def settlement_for(db, owner_id, settings=None):
     payments = db.scalars(select(Payment).where(Payment.payee_owner_user_id == owner_id, Payment.transaction_type.in_(OWNER_SHARE))
                           .order_by(Payment.created_at)).all()
     books = bookings_for(db, payments)
@@ -145,24 +153,31 @@ def settlement_for(db, owner_id):
             'commission_due_amount': money(sum((p.commission_amount or ZERO for p in due), ZERO)),
             'commission_due': [row_out(p, books.get(p.booking_id)) for p in due],
             'needs_review': [row_out(p, books.get(p.booking_id)) for p in review],
-            'settled': [row_out(p, books.get(p.booking_id)) for p in paid[-50:]]}
+            'settled': [row_out(p, books.get(p.booking_id)) for p in paid[-50:]],
+            **({'commission_standing': commission_overdue.standing(db, settings, owner_id)} if settings is not None else {})}
 
 
 @router.get('/admin/owner-settlements')
-def admin_settlements(user=Depends(admin), db: Session = Depends(get_db)):
+def admin_settlements(request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    """`?overdue=true` lists only Owners in the grace period or blocked (commission 14+ days old)."""
+    only_overdue = (request.query_params.get('overdue') or '').lower() in ('1', 'true', 'yes')
     owners = db.scalars(select(Payment.payee_owner_user_id).where(
         Payment.transaction_type.in_(OWNER_SHARE), Payment.payee_owner_user_id.is_not(None),
         Payment.owner_settlement_status.in_(('OWNER_PAYABLE', 'COMMISSION_DUE'))
         | (Payment.status == 'PARTIALLY_REFUNDED')).distinct()).all()
-    items = [settlement_for(db, o) for o in owners]
-    items.sort(key=lambda i: (-Decimal(i['payable_amount']), -Decimal(i['commission_due_amount'])))
+    items = [settlement_for(db, o, request.app.state.settings) for o in owners]
+    if only_overdue:
+        items = [i for i in items if i['commission_standing']['stage'] in ('GRACE', 'BLOCKED')]
+        items.sort(key=lambda i: -i['commission_standing']['days_open'])
+    else:
+        items.sort(key=lambda i: (-Decimal(i['payable_amount']), -Decimal(i['commission_due_amount'])))
     return {'items': items}
 
 
 @router.get('/owners/me/settlements')
-def my_settlements(user=Depends(current), db: Session = Depends(get_db)):
+def my_settlements(request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
-    return settlement_for(db, user.id)
+    return settlement_for(db, user.id, request.app.state.settings)
 
 
 def locked_payments(db, owner_id, ids, status):
@@ -206,16 +221,33 @@ def record_payout(owner_id: UUID, body: Payout, request: Request, user=Depends(a
             p.owner_paid_at = moment
             touch(p); p.updated_by = user.id
         amount = sum((p.amount for p in payouts), ZERO)
+        set_off, cleared = ZERO, []
+        if body.settle_commission:   # owner decision 13 Nov 2026: take the commission owed out of this payout, oldest first
+            owed = db.scalars(select(Payment).where(Payment.payee_owner_user_id == owner_id, Payment.transaction_type.in_(OWNER_SHARE),
+                                                    Payment.owner_settlement_status == 'COMMISSION_DUE')
+                              .order_by(func.coalesce(Payment.captured_at, Payment.created_at), Payment.id).with_for_update()
+                              .execution_options(populate_existing=True)).all()
+            for c in owed:
+                if set_off + (c.commission_amount or ZERO) > amount:
+                    break
+                set_off += c.commission_amount or ZERO
+                c.owner_settlement_status = 'COMMISSION_PAID'
+                touch(c); c.updated_by = user.id
+                cleared.append(c)
+        transfer = amount - set_off
         db.add(Notification(recipient_user_id=owner_id, notification_type='PAYMENT', channel='IN_APP', title='Payout sent',
-                            body=f'Travelly sent you {money(amount)} LKR for {len(payouts)} payment(s). Bank reference: {body.bank_reference}.',
+                            body=f'Travelly sent you {money(transfer)} LKR for {len(payouts)} payment(s). Bank reference: {body.bank_reference}.'
+                                 + (f' {money(set_off)} LKR commission you owed was taken out of the {money(amount)} LKR payout.' if cleared else ''),
                             action_required=False, action_payload={}, status='QUEUED'))
         db.flush()
         request.app.state.audit.commit(db, actor=user.id, target={'resource': 'payments', 'id': str(payouts[0].id)},
                                        previous_status='OWNER_PAYABLE', new_status='OWNER_PAID', previous_version=None,
                                        new_version=None, full_reason=f'Owner payout {body.bank_reference} for {len(payouts)} payment(s).',
-                                       previous_decision_evidence={'payments': [str(p.id) for p in payments]},
+                                       previous_decision_evidence={'payments': [str(p.id) for p in payments],
+                                                                   'commission_set_off': [str(c.id) for c in cleared]},
                                        trace_id=request.state.trace_id)
-    return {'payouts': [row_out(p) for p in payouts], 'total': money(amount)}
+    return {'payouts': [row_out(p) for p in payouts], 'total': money(amount), 'commission_set_off': money(set_off),
+            'commission_payments': [str(c.id) for c in cleared], 'bank_transfer_total': money(transfer)}
 
 
 @router.post('/admin/owner-settlements/{owner_id}/commission-receipts')
@@ -227,9 +259,15 @@ def record_commission(owner_id: UUID, body: CommissionReceipt, request: Request,
         if rows and all(r.owner_settlement_status == 'COMMISSION_PAID' for r in rows) and len(rows) == len(ids):
             return {'payments': [row_out(r) for r in rows], 'total': money(sum((r.commission_amount or ZERO for r in rows), ZERO))}
         payments = locked_payments(db, owner_id, ids, 'COMMISSION_DUE')
+        was_blocked = commission_overdue.is_blocked(db, request.app.state.settings, owner_id)
         for p in payments:
             p.owner_settlement_status = 'COMMISSION_PAID'
             touch(p); p.updated_by = user.id
+        db.flush()
+        if was_blocked and not commission_overdue.is_blocked(db, request.app.state.settings, owner_id):
+            db.add(Notification(recipient_user_id=owner_id, notification_type='PAYMENT', channel='IN_APP', title='Bookings are open again',
+                                body='Your commission is up to date, so your vehicles take new bookings again.',
+                                action_required=False, action_payload={}, status='QUEUED'))
         amount = sum((p.commission_amount or ZERO for p in payments), ZERO)
         request.app.state.audit.commit(db, actor=user.id, target={'resource': 'payments', 'id': str(payments[0].id)},
                                        previous_status='COMMISSION_DUE', new_status='COMMISSION_PAID', previous_version=None,
@@ -237,3 +275,25 @@ def record_commission(owner_id: UUID, body: CommissionReceipt, request: Request,
                                        previous_decision_evidence={'payments': [str(p.id) for p in payments]},
                                        trace_id=request.state.trace_id)
     return {'payments': [row_out(p) for p in payments], 'total': money(amount)}
+
+
+@router.post('/admin/owner-settlements/{owner_id}/commission-extension')
+def extend_commission(owner_id: UUID, body: CommissionExtension, request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    """The Admin gives an Owner more days before new bookings are blocked (a stated reason is kept in the audit record)."""
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id)
+        role = db.scalar(select(UserRole).where(UserRole.user_id == owner_id, UserRole.role_code == 'OWNER').with_for_update())
+        if role is None:
+            raise ApiError(404, 'OWNER_NOT_FOUND', 'Owner not found.')
+        until = datetime.now(timezone.utc) + timedelta(days=body.days)
+        role.role_profile = {**(role.role_profile or {}), commission_overdue.EXTENSION_KEY: until.isoformat()}
+        touch(role); role.updated_by = user.id
+        db.add(Notification(recipient_user_id=owner_id, notification_type='PAYMENT', channel='IN_APP', title='More time to pay your commission',
+                            body=f'Travelly gave you {body.days} more day(s) to pay the commission you owe.',
+                            action_required=False, action_payload={}, status='QUEUED'))
+        db.flush()
+        request.app.state.audit.commit(db, actor=user.id, target={'resource': 'user_roles', 'id': str(role.id)},
+                                       previous_status='COMMISSION_BLOCK', new_status='COMMISSION_EXTENDED', previous_version=None,
+                                       new_version=None, full_reason=f'Commission deadline extended by {body.days} day(s): {body.reason}',
+                                       previous_decision_evidence={'owner_user_id': str(owner_id)}, trace_id=request.state.trace_id)
+    return commission_overdue.standing(db, request.app.state.settings, owner_id)
