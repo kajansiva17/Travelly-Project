@@ -549,6 +549,47 @@ def complete_departure(db, trip, body, user, request=None):
     return {'trip': trip_summary(locked)}
 
 
+@router.get('/trips/active')
+def active_trips(user=Depends(current), db: Session = Depends(get_db)):
+    """The caller's trips that are running now (status IN_PROGRESS), for the dashboard "Trip in progress" card
+    (owner decision 13 Nov 2026). Everyone sees the trips they take part in; `viewer_roles` says how:
+    DRIVER = drives it, OWNER = operates it, PASSENGER = booked it or holds a seat on the departure."""
+    from app.models.seat_models import ScheduledTripSeat
+    mine_booking = select(Booking.id).where(Booking.passenger_user_id == user.id)
+    riding = select(ScheduledTripSeat.scheduled_trip_id).join(Booking, ScheduledTripSeat.booked_booking_id == Booking.id) \
+        .where(Booking.passenger_user_id == user.id)
+    trips = db.scalars(select(Trip).where(
+        Trip.status == 'IN_PROGRESS',
+        or_(Trip.driver_user_id == user.id, Trip.operating_owner_user_id == user.id,
+            Trip.booking_id.in_(mine_booking), Trip.scheduled_trip_id.in_(riding)))
+        .order_by(Trip.actual_start_at.desc()).limit(20)).all()
+    items = []
+    for trip in trips:
+        departure = departure_of(db, trip)
+        vehicle = db.get(Vehicle, trip.vehicle_id)
+        if departure is not None:
+            from app.models.hire_models import Route
+            route = db.get(Route, departure.route_id)
+            origin, destination, kind, riding_here = route.origin_name, route.destination_name, 'TICKET', riding_on(db, departure, user)
+        else:
+            booking = db.get(Booking, trip.booking_id)
+            stops = (booking.itinerary_snapshot.get('itinerary') or {}).get('stops') or []
+            origin = stops[0]['place']['label'] if stops else None
+            destination = stops[-1]['place']['label'] if len(stops) > 1 else None
+            kind, riding_here = 'PRIVATE_HIRE', booking.passenger_user_id == user.id
+        roles = [name for name, yes in (('DRIVER', trip.driver_user_id == user.id), ('OWNER', trip.operating_owner_user_id == user.id),
+                                         ('PASSENGER', riding_here)) if yes]
+        items.append({'trip_id': str(trip.id), 'kind': kind, 'viewer_roles': roles,
+                      'booking_id': str(trip.booking_id) if trip.booking_id else None,
+                      'scheduled_trip_id': str(trip.scheduled_trip_id) if trip.scheduled_trip_id else None,
+                      'origin': origin, 'destination': destination,
+                      'vehicle': vehicle.registration_number if vehicle else None,
+                      'actual_start_at': trip.actual_start_at.isoformat() if trip.actual_start_at else None,
+                      'start_odometer_km': str(trip.start_odometer_km) if trip.start_odometer_km is not None else None,
+                      'tracking_status': trip.tracking_status})
+    return {'items': items}
+
+
 @router.get('/trips/{trip_id}')
 def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     trip = db.get(Trip, trip_id)
