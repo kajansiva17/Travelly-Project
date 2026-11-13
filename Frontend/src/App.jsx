@@ -84,6 +84,9 @@ import './styles/ai.css'
 import './styles/social.css'
 import PostCreate from './features/social/PostCreate'
 import AdminSocialPosts from './features/admin/AdminSocialPosts'
+import OwnerReport from './features/reports/OwnerReport'
+import AdminReport from './features/reports/AdminReport'
+import './styles/reports.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()
@@ -256,6 +259,7 @@ export default function App() {
             <Route path="/owner/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/owner/operations" element={<OwnerOperations/>}/>
             <Route path="/owner/earnings" element={<OwnerFinanceOverview/>}/>
+            <Route path="/owner/reports" element={<OwnerReport/>}/>
             <Route path="/owner/rentals" element={<RentalRoleUi role="OWNER"/>}/>
             <Route path="/owner/settings" element={<WorkspaceSettings/>}/>
             {placeholders.OWNER.map(path=><Route key={path} path={'/owner/'+path} element={<WorkspacePlaceholder/>}/>)}
@@ -297,7 +301,7 @@ export default function App() {
             <Route path="/admin/payments" element={<AdminPayments/>}/>
             <Route path="/admin/social-reviews" element={<AdminSocialPosts/>}/>
             <Route path="/admin/road-alerts" element={<AdminRoadAlerts/>}/>
-            <Route path="/admin/reports" element={<AdminWorkflowPage kind="reports"/>}/>
+            <Route path="/admin/reports" element={<AdminReport/>}/>
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>
             <Route path="/admin/settings" element={<WorkspaceSettings/>}/>
             {placeholders.ADMIN.map(path=><Route key={path} path={'/admin/'+path} element={<WorkspacePlaceholder/>}/>)}

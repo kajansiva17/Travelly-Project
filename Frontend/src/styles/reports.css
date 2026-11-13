@@ -1,0 +1,59 @@
+/* Monthly reports (contract 03RP): Owner and Admin. Mobile first: tiles in 2 columns (1 under 360px), tables become cards, full-width PDF button. */
+html body .rp-page { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; flex: 1 1 auto; }
+html body .rp-bar { flex: none; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+html body .rp-month { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+html body .rp-month input { min-height: 40px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--ui-glass-border); font: inherit; background: #fff; max-width: 100%; }
+html body .rp-view { position: relative; flex: 1 1 auto; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; }
+html body .rp-pane { display: grid; gap: 8px; align-content: start; min-width: 0; }
+html body .rp-actions { flex: none; }
+html body .rp-h { margin: 6px 0 0; font-size: 14px; }
+html body .rp-note { margin: 0; font-size: 13px; color: #44516b; overflow-wrap: anywhere; }
+html body .rp-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+html body .rp-attn > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Tiles */
+html body .rp-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+html body .rp-tile { display: grid; gap: 2px; align-content: center; min-width: 0; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--ui-glass-border); background: var(--ui-glass); color: var(--ui-ink); text-align: left; font: inherit; }
+html body button.rp-tile { cursor: pointer; }
+html body .rp-tile-label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #44516b; font-weight: 600; }
+html body .rp-tile strong { font-size: 17px; line-height: 1.15; overflow-wrap: anywhere; }
+html body .rp-tile.good { background: #e4f6ea; border-color: #9fd6b0; } html body .rp-tile.good strong, html body .rp-tile.good .rp-tile-label { color: #0f6b2c; }
+html body .rp-tile.bad { background: #fde4e4; border-color: #e9a3a3; } html body .rp-tile.bad strong, html body .rp-tile.bad .rp-tile-label { color: #a3160c; }
+@media (max-width: 359px) { html body .rp-tiles { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 640px) { html body .rp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { html body .rp-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1500px) { html body .rp-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* Month result: income − expenses = profit or loss */
+html body .rp-result { display: grid; grid-template-columns: 1fr auto 1fr auto 1.2fr; align-items: center; gap: 6px 12px; padding: 10px 14px; border-radius: 16px; border: 2px solid; }
+html body .rp-result > div { display: grid; min-width: 0; } html body .rp-result > div span { font-size: 12px; font-weight: 700; } html body .rp-result > div strong { font-size: 18px; overflow-wrap: anywhere; }
+html body .rp-result > i { font-style: normal; font-size: 20px; font-weight: 800; }
+html body .rp-result .rp-note { grid-column: 1 / -1; }
+html body .rp-result.is-profit { background: #e4f6ea; border-color: #2e9a52; color: #0f6b2c; }
+html body .rp-result.is-loss { background: #fde4e4; border-color: #d11a2a; color: #a3160c; }
+html body .rp-result.is-compact { padding: 6px 12px; } html body .rp-result.is-compact strong { font-size: 15px; }
+@media (max-width: 720px) {
+  html body .rp-result, html body .rp-result.is-compact { grid-template-columns: minmax(0, 1fr); }
+  html body .rp-result > i { display: none; }
+  html body .rp-result > div { grid-auto-flow: column; justify-content: space-between; align-items: baseline; gap: 8px; }
+  html body .rp-result .rp-result-main { border-top: 1px solid currentColor; padding-top: 4px; }
+}
+
+/* Tables: a table on wide screens, stacked cards on phones (date and amount on top, details below) */
+html body .rp-scroll { overflow-x: auto; max-width: 100%; }
+html body .rp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+html body .rp-table th { text-align: left; padding: 6px 8px; background: #002155; color: #fff; font-weight: 700; white-space: nowrap; position: sticky; top: 0; }
+html body .rp-table td { padding: 6px 8px; border-bottom: 1px solid var(--ui-glass-border); vertical-align: top; }
+@media (max-width: 720px) {
+  html body .rp-scroll { overflow: visible; }
+  html body .rp-table, html body .rp-table tbody, html body .rp-table tr, html body .rp-table td { display: block; width: 100%; box-sizing: border-box; }
+  html body .rp-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  html body .rp-table tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-bottom: 8px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--ui-glass-border); background: var(--ui-glass); }
+  html body .rp-table td { border: 0; padding: 0; width: auto; overflow-wrap: anywhere; }
+  html body .rp-table td[data-top] { order: -1; flex: 1 1 40%; font-weight: 800; font-size: 14px; }
+  html body .rp-table td[data-top]:nth-of-type(2) { text-align: right; }
+  html body .rp-table td:not([data-top]) { flex: 1 1 100%; font-size: 13px; }
+  html body .rp-table td:not([data-top])::before { content: attr(data-label) ': '; color: #5b6a85; font-weight: 600; }
+  html body .rp-pdf { width: 100%; }
+  html body .rp-actions { display: block; } html body .rp-actions > span { display: none; }
+}

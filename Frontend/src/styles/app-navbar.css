@@ -39,8 +39,18 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspa
    language so menu, logo, language, bell and avatar all fit without clipping. */
 @media (max-width: 480px) {
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 96px; }   /* frame.css sets the logo width from this variable, so the bar fits a 360px phone */
   html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 96px; }
   html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation { gap: 6px; }
   html body .app-navbar.app-navbar.app-navbar.app-navbar .language { gap: 2px; }
   html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 64px; font-size: 12px; }
+}
+
+/* 360px phones: a little tighter so the bar (menu, logo, language, bell, avatar) never makes the page scroll sideways. */
+@media (max-width: 400px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 80px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .header-inner { gap: 8px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 52px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 80px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { min-width: 34px; }
 }

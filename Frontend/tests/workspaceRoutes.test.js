@@ -10,7 +10,7 @@ test('workspace eligibility requires current account and both approved role repr
  assert.deepEqual(eligibleWorkspaces(null,roles),[])
 })
 test('role menus retain every required destination and bottom account controls',()=>{
- const expected={PASSENGER:8,OWNER:11,DRIVER:11,ADMIN:13}
+ const expected={PASSENGER:8,OWNER:12,DRIVER:11,ADMIN:13}
  for(const [role,length] of Object.entries(expected)){const menu=workspaceMenu(role);assert.equal(menu.length,length);assert.equal(new Set(menu.map(m=>m.label)).size,length);assert.deepEqual(new Set(menu.filter(m=>m.bottom).map(m=>m.label)),new Set(['Profile','Settings']));assert.ok(menu.every(m=>m.path.startsWith('/')))}
 })
 test('workspace query is an allowlisted UI selection and preserves existing URL parts',()=>{
@@ -48,8 +48,8 @@ test('login goes to the highest approved role, or the landing page role (role wo
 })
 test('Owner sidebar follows the contract order; My driving only for an approved Owner who is also a Driver',()=>{
  const labels=menu=>menu.filter(i=>!i.bottom).map(i=>i.label)
- assert.deepEqual(labels(workspaceMenu('OWNER')),['Overview','My vehicles','Prices','Routes','Ticket departures','Bookings for my vehicles','Replacement requests','Settlements','Travel & booking'])
- assert.deepEqual(labels(workspaceMenu('OWNER',{driving:true})),['Overview','My vehicles','Prices','Routes','Ticket departures','Bookings for my vehicles','Replacement requests','Settlements','Travel & booking','My driving'])
+ assert.deepEqual(labels(workspaceMenu('OWNER')),['Overview','My vehicles','Prices','Routes','Ticket departures','Bookings for my vehicles','Replacement requests','Settlements','Reports','Travel & booking'])
+ assert.deepEqual(labels(workspaceMenu('OWNER',{driving:true})),['Overview','My vehicles','Prices','Routes','Ticket departures','Bookings for my vehicles','Replacement requests','Settlements','Reports','Travel & booking','My driving'])
  assert.deepEqual(workspaceMenu('OWNER',{driving:true}).filter(i=>i.bottom).map(i=>i.label),['Settings','Profile'])
  assert.equal(canDriveAsOwner({approved_roles:['PASSENGER','OWNER','DRIVER']}),true)
  assert.equal(canDriveAsOwner({approved_roles:['PASSENGER','OWNER']}),false)
