@@ -185,3 +185,21 @@ start km → end km = distance, with **"See proof"**.
   - Two thumbnails from `photo_url` (blob fetch). Tap to enlarge.
 - **After 7 days:** "Photos are kept for 7 days after the trip" with the numbers only.
 - New UI strings go in `messages.trips.js`.
+
+## Trips running now — `GET /trips/active` (13 Nov 2026)
+
+For the dashboard **"Trip in progress"** card. Bearer token, any signed-in person (Passenger, Owner, Driver workspaces).
+Returns the caller's trips with status `IN_PROGRESS` (newest first, at most 20):
+
+```json
+{ "items": [ { "trip_id": "…", "kind": "PRIVATE_HIRE", "viewer_roles": ["DRIVER", "OWNER"],
+               "booking_id": "…", "scheduled_trip_id": null, "origin": "Kandy", "destination": "Colombo Fort",
+               "vehicle": "WP CAB-1234", "actual_start_at": "2026-11-13T08:02:00+00:00",
+               "start_odometer_km": "45120.0", "tracking_status": "ACTIVE" } ] }
+```
+
+- `kind`: `PRIVATE_HIRE` or `TICKET` (a published departure).
+- `viewer_roles`: `DRIVER` = drives it, `OWNER` = operates it, `PASSENGER` = booked it / holds a seat.
+- Empty `items` = no card. Tap the card → open the live map screen for `trip_id` and load `GET /trips/{id}/map`.
+- The trip stays `IN_PROGRESS` on the server while the person goes back or to the dashboard. Poll this list when the
+  dashboard opens (and about every 30 s while it is open).

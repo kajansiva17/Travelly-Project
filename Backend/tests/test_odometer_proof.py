@@ -172,3 +172,22 @@ def test_the_trip_map_has_the_route_from_start_to_end(client, ready):
     assert body['points'][0]['latitude'] == ready.here['latitude']
     stranger = person(client, 'DRIVER')
     assert api(client, stranger, 'get', f"/trips/{ready.trip['id']}/map").status_code == 404
+
+
+def test_active_trips_list_shows_a_running_trip_to_its_people_and_then_hides_it(client, ready):
+    c = ready.ctx
+    client.app.state.settings = client.app.state.settings.model_copy(update={'odometer_photo_required': False})
+    assert client.get('/api/v1/trips/active', headers=bearer(c.owner)).json() == {'items': []}   # not started yet
+    assert client.get('/api/v1/trips/active').status_code == 401
+    assert start(client, ready, '1234.5').status_code == 200
+    mine = client.get('/api/v1/trips/active', headers=bearer(c.owner))
+    assert mine.status_code == 200, mine.text
+    [item] = mine.json()['items']
+    assert item['trip_id'] == ready.trip['id'] and item['kind'] == 'PRIVATE_HIRE' and 'OWNER' in item['viewer_roles']
+    assert item['origin'] and item['destination'] and item['vehicle'] and item['actual_start_at'] and item['start_odometer_km'] == '1234.5'
+    riding = client.get('/api/v1/trips/active', headers=bearer(c.passenger)).json()['items']
+    assert [i['trip_id'] for i in riding] == [ready.trip['id']] and riding[0]['viewer_roles'] == ['PASSENGER']
+    stranger = person(client)['tokens']
+    assert client.get('/api/v1/trips/active', headers=bearer(stranger)).json() == {'items': []}
+    detail = client.get(f"/api/v1/trips/{ready.trip['id']}", headers=bearer(c.owner))
+    assert detail.status_code == 200      # the path /trips/active did not break /trips/{id}
