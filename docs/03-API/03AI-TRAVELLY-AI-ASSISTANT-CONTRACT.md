@@ -1,7 +1,7 @@
 # Travelly AI — chat/voice search and help (PRD matrix 90–91, D10)
 
-Status: built on `claude-work` (12 Nov 2026). Base `/api/v1`, JSON. **Public**: works signed in or out (D10). Nothing is
-stored, held or booked.
+Status: built on `claude-work` (12 Nov 2026). Base `/api/v1`, JSON. **Signed-in customers only** (owner decision 13 Nov
+2026, see the end). Nothing is stored, held or booked.
 
 ## Rules (PRD + owner decisions 12 Nov 2026)
 
@@ -13,14 +13,14 @@ stored, held or booked.
 - The AI asks only for fields the form has. The questions are fixed sentences in en/ta/si, so the AI never makes up
   rules, prices or vehicles.
 - **Engines:**
-  - **Gemini** (free Google AI Studio key in `GEMINI_API_KEY`, daily cap `GEMINI_DAILY_LIMIT`, default 200).
+  - **AI services** (Groq, then OpenRouter, then Gemini; see clarification 5). Daily caps `AI_DAILY_LIMIT` (1000) and `AI_USER_DAILY_LIMIT` (40).
     Only the typed or spoken text is sent, with emails and phone numbers masked.
-  - **Built-in rules**, used when there is no key, the cap is reached, or Gemini fails. They understand English,
+  - **Built-in rules**, used when there is no key, the cap is reached, or every AI service fails. They understand English,
     Tanglish ("Kandy-la irunthu Colombo-kku", "naalai kaalai 8 mani", "5 per", "2 periya bag"), Tamil and Sinhala
     sentences.
   - `engine` in each reply says which one answered.
 - **Help** answers only from `Backend/app/services/help_guide.py`. Anything else: "I don't know, contact Support".
-- Rate limits per IP: search-assist 60 / 10 min, help 30 / 10 min (429 `RATE_LIMITED`).
+- Signed-in customers only. Rate limits per person: search-assist 60 / 10 min, help 30 / 10 min (429 `RATE_LIMITED`); 401 without a token.
 
 ## 1. One chat/voice turn — `POST /ai/search-assist`
 
@@ -95,14 +95,14 @@ Event hire: `notes` says to open Event hire, with `form_path: /travel/book/event
 
 - **Show:** `title`, then `answer` if any, then the numbered `steps`, then a button **"Open this page"** → `path`
   (through `travelPath`, so the Owner and Driver workspaces open their own copy). Show `related` as chips.
-- **Language:** with Gemini the steps come in the person's language (`steps_language` = `ta`/`si`). With the rules
+- **Language:** with an AI service the steps come in the person's language (`steps_language` = `ta`/`si`). With the rules
   they are in English, with `note` saying so.
 - **Not found:** `found: false`, `answer` = "I don't know that yet. Please contact Support…", `path` = Support.
 - **`GET /ai/help/topics/{en|ta|si}`** lists every topic for a "What can I ask?" list.
 
 ## Screens (UI Claude)
 
-The "Hi Maya! I'm your Travelly AI assistant" card (dashboard and home):
+The "Hi Maya! I'm your Travelly AI assistant" card (signed-in dashboards only; not on the landing page):
 
 - **Chat with Travelly AI:** opens a chat panel. Each message goes to section 1, or to section 2 when it is a question
   about the app.
@@ -122,3 +122,43 @@ The "Hi Maya! I'm your Travelly AI assistant" card (dashboard and home):
   - **Edit in form:** open `form_path` with the draft filled.
 - After that, the normal flow continues by hand: pick a vehicle, review, request or book, pay.
 - **Strings:** new UI wording goes in `messages.trips.js`. The question texts come from the API already translated.
+
+## Clarifications for the UI (13 Nov 2026)
+
+1. **Help paths are Passenger paths. The UI maps them to the person's workspace**, the same way `travelPath` does
+   for booking pages:
+   - `found: false` always returns `path: "/passenger/support"`. Inside the Owner workspace open `/owner/support`,
+     inside the Driver workspace `/driver/support`.
+   - `/travel/...`, `/bookings`, `/dashboard`: use `travelPath` / the current workspace.
+   - `/owner/...` topics (vehicles, earnings) and `/driver/assignments` (road alerts): show the button only to people
+     with that approved role. For anyone else, show the steps without the button, or `/owner/onboarding` /
+     `/driver/onboarding`.
+   - `/account`, `/forgot-password`, `/reels`, `/owner/onboarding`, `/driver/onboarding`: use as given.
+2. **`GET /ai/help/topics/{en|ta|si}`** returns `{ "items": [ { "topic_id": "cancel", "title": "…", "path": "/bookings" } ] }`.
+3. **The first message cannot be empty:** `message` is 1–500 characters (422 otherwise).
+   - Show the intro line from the UI itself, with no API call. Suggested text: "Hi! Tell me where you want to go, or
+     ask how to do something in Travelly." It goes in `messages.trips.js` (en/ta/si).
+   - Call `search-assist` / `help` only when the person types or speaks.
+   - Start with `filters: {}` and `asking: null`.
+4. **No AI on the landing page. Signed-in customers only** (owner decision 13 Nov 2026).
+   - PRD D10 allows public AI, but a public page would use up the free AI quota. So `POST /ai/search-assist`
+     and `POST /ai/help` need the Bearer token (401 without it).
+   - Each person gets `AI_USER_DAILY_LIMIT` (default 40) AI answers a day, and the whole site gets
+     `AI_DAILY_LIMIT` (1000). Past either cap the built-in rules answer (`engine: "rules"`), so the chat still
+     works.
+   - Rate limits are per person: search 60 / 10 min, help 30 / 10 min.
+   - `GET /ai/help/topics/{lang}` stays public; it is static and uses no AI service.
+   - UI: show the AI card only in signed-in dashboards (Passenger, Owner, Driver workspaces). There is no AI card on
+     the landing/home page.
+5. **AI services: Groq, then OpenRouter, then Gemini** (owner decision 13 Nov 2026). The services are tried one
+   after another:
+   - **Chat, search and help:** `AI_PROVIDERS=groq,openrouter,gemini`.
+   - **Odometer photo:** `AI_VISION_PROVIDERS=openrouter,gemini`. Groq's free models do not read images.
+   - A service without a key is skipped. When a service fails or hits its limit, the next one answers. After all of
+     them the built-in rules answer, so the app never stops.
+   - **Only one service answers each message**, and its answer goes through the same backend checks. `engine` says
+     which one answered: `groq`, `openrouter`, `gemini` or `rules`. The UI needs no change.
+   - **Caps:** `AI_USER_DAILY_LIMIT` = 40 per person per day; `AI_DAILY_LIMIT` = 1000 for the site.
+   - **Models:** `GROQ_MODEL` (`openai/gpt-oss-120b`), `OPENROUTER_MODEL` / `OPENROUTER_VISION_MODEL`
+     (`google/gemma-4-31b-it:free`), `GEMINI_MODEL` (`gemini-3.5-flash-lite`).
+   - **Check:** `scripts/check_ai.py` tests every service that has a key.

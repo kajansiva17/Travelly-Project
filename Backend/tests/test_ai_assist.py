@@ -4,6 +4,19 @@ from zoneinfo import ZoneInfo
 import httpx
 from app.services import ai_assist
 
+from conftest import bearer
+from test_ticket_holds import person
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def signed_in(client):
+    """The AI is for signed-in customers (owner decision 13 Nov 2026): every call here carries a customer's token."""
+    who = person(client)
+    client.headers.update(bearer(who['tokens']))
+    return who
+
+
 TOMORROW = (datetime.now(ZoneInfo('Asia/Colombo')).date() + timedelta(days=1)).isoformat()
 
 
@@ -58,30 +71,34 @@ def test_wrong_or_past_answers_are_asked_again_and_edits_are_kept(client):
     assert bad.status_code == 422
 
 
-def test_gemini_is_used_when_configured_and_rules_take_over_when_it_fails(client, monkeypatch):
-    monkeypatch.setenv('GEMINI_API_KEY', 'test-key')
+def test_ai_services_answer_one_after_another_and_rules_take_over(client, monkeypatch):
+    """Groq first; when it fails, OpenRouter; when every service fails, the built-in rules (owner decision 13 Nov 2026)."""
+    monkeypatch.setenv('GROQ_API_KEY', 'test-groq')
+    monkeypatch.setenv('OPENROUTER_API_KEY', 'test-or')
     sent = []
+    down = set()
 
-    def fake(settings, prompt, schema):
-        sent.append(prompt)
+    def fake(name, settings, prompt, schema, image=None):
+        sent.append((name, prompt))
+        if name in down:
+            raise httpx.HTTPStatusError('429 limit', request=None, response=None)
         if 'help assistant' in prompt:
             return {'topic_id': 'cancel', 'answer': 'இதோ படிகள்.', 'steps': ['Bookings திறக்கவும்', 'Cancel அழுத்தவும்']}
         return {'service': 'local', 'pickup': 'Wellawatte', 'destination': 'Colombo Fort', 'passengers': 99999, 'journey': 'unknown'}
-    monkeypatch.setattr(ai_assist, 'gemini', fake)
+    monkeypatch.setattr(ai_assist, 'call', fake)
     reply = turn(client, 'wellawatte to fort, call me on +94 77 123 4567 or me@example.com')
-    assert reply['engine'] == 'gemini'
+    assert reply['engine'] == 'groq' and [n for n, _ in sent] == ['groq']   # the first service answered: no second call
     assert reply['filters'] == {'service': 'local', 'pickup': 'Wellawatte', 'destination': 'Colombo Fort', 'journey': 'ONE_WAY'}  # bad count dropped
-    assert '+94' not in sent[0] and 'example.com' not in sent[0] and '[phone]' in sent[0]
+    assert '+94' not in sent[0][1] and 'example.com' not in sent[0][1] and '[phone]' in sent[0][1]
+    down.add('groq')
+    sent.clear()
     helped = client.post('/api/v1/ai/help', json={'question': 'ticket eppadi cancel pannurathu', 'language': 'ta'}).json()
-    assert helped['engine'] == 'gemini' and helped['path'] == '/bookings' and helped['steps_language'] == 'ta'
-
-    def broken(settings, prompt, schema):
-        raise httpx.ConnectError('offline')
-    monkeypatch.setattr(ai_assist, 'gemini', broken)
+    assert helped['engine'] == 'openrouter' and [n for n, _ in sent] == ['groq', 'openrouter'] and helped['path'] == '/bookings'
+    down.add('openrouter')
     fallback = turn(client, 'from Galle to Matara tomorrow 9am, 2 people')
     assert fallback['engine'] == 'rules' and fallback['filters']['pickup'] == 'Galle' and fallback['filters']['passengers'] == 2
-    monkeypatch.setenv('GEMINI_DAILY_LIMIT', '0')
-    monkeypatch.setattr(ai_assist, 'gemini', fake)
+    monkeypatch.setenv('AI_DAILY_LIMIT', '0')
+    down.clear()
     assert turn(client, 'hello')['engine'] == 'rules'
 
 
@@ -94,3 +111,50 @@ def test_help_answers_only_from_the_guide(client):
     assert unknown['found'] is False and unknown['answer'] == ai_assist.help_guide.UNKNOWN['si'] and unknown['path'] == '/passenger/support'
     topics = client.get('/api/v1/ai/help/topics/en').json()['items']
     assert any(t['topic_id'] == 'services' for t in topics)
+
+
+def test_signed_out_visitors_cannot_use_the_ai_and_each_person_has_a_daily_cap(client, monkeypatch):
+    client.headers.pop('Authorization')
+    assert client.post('/api/v1/ai/search-assist', json={'message': 'Kandy to Colombo'}).status_code == 401
+    assert client.post('/api/v1/ai/help', json={'question': 'how to cancel'}).status_code == 401
+    assert client.get('/api/v1/ai/help/topics/en').status_code == 200   # the topic list stays public
+    who = person(client)
+    client.headers.update(bearer(who['tokens']))
+    monkeypatch.setenv('GROQ_API_KEY', 'test-key')
+    monkeypatch.setenv('AI_USER_DAILY_LIMIT', '2')
+    monkeypatch.setattr(ai_assist, 'call', lambda name, settings, prompt, schema, image=None: {'pickup': 'Galle'})
+    engines = [turn(client, 'from Galle')['engine'] for _ in range(3)]
+    assert engines == ['groq', 'groq', 'rules']   # after 2 AI answers today, the rules answer for this person
+    other = person(client)
+    client.headers.update(bearer(other['tokens']))
+    assert turn(client, 'from Galle')['engine'] == 'groq'   # someone else still has their own quota
+
+
+def test_openai_style_services_get_the_schema_then_plain_json(client, monkeypatch):
+    """Groq/OpenRouter use the OpenAI chat format: JSON schema first, plain JSON if the model refuses it."""
+    monkeypatch.setenv('AI_PROVIDERS', 'openrouter')
+    monkeypatch.setenv('OPENROUTER_API_KEY', 'test-or-key')
+    monkeypatch.setenv('OPENROUTER_MODEL', 'some/model:free')
+    sent = []
+
+    class Reply:
+        def __init__(self, status, payload): self.status_code, self.payload = status, payload
+        def json(self): return self.payload
+        def raise_for_status(self):
+            if self.status_code >= 400: raise httpx.HTTPStatusError('bad', request=None, response=None)
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        import copy
+        sent.append({'url': url, 'body': copy.deepcopy(json), 'auth': headers['Authorization']})
+        if json['response_format']['type'] == 'json_schema':
+            return Reply(400, {'error': {'message': 'structured outputs not supported'}})
+        return Reply(200, {'choices': [{'message': {'content': '```json\n{"pickup": "Jaffna", "destination": "Colombo"}\n```'}}]})
+    monkeypatch.setattr(ai_assist.httpx, 'post', fake_post)
+    reply = turn(client, 'jaffna to colombo')
+    assert reply['engine'] == 'openrouter' and reply['filters']['pickup'] == 'Jaffna' and reply['filters']['destination'] == 'Colombo'
+    assert sent[0]['url'].endswith('/chat/completions') and sent[0]['body']['model'] == 'some/model:free'
+    assert sent[0]['auth'] == 'Bearer test-or-key' and [x['body']['response_format']['type'] for x in sent] == ['json_schema', 'json_object']
+    schema = sent[0]['body']['response_format']['json_schema']['schema']
+    assert schema['type'] == 'object' and schema['properties']['service']['type'] == 'string'   # Gemini schema converted
+    monkeypatch.setenv('OPENROUTER_API_KEY', '')
+    assert turn(client, 'from Galle')['engine'] == 'rules'   # no key: the rules answer

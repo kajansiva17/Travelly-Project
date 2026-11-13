@@ -53,13 +53,23 @@ class Settings(BaseSettings):
     social_media_root: Path | None = None
     social_reel_max_seconds: int = Field(default=60, ge=5, le=600)
     social_reel_max_mb: int = Field(default=50, ge=5, le=500)
-    # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
-    # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
-    # answer too.
+    # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026).
+    # Owner decision 13 Nov 2026: several free AI services, tried one after another. A service is used only when its key
+    # is set; when it fails or hits its limit, the next one answers, and after all of them the built-in rules answer.
+    ai_providers: str = 'groq,openrouter,gemini'          # chat, search and help, in this order
+    ai_vision_providers: str = 'openrouter,gemini'         # odometer photo (Groq's free models do not read images)
+    ai_daily_limit: int = Field(default=1000, ge=0, le=100000)       # AI answers per day for the whole site
+    ai_user_daily_limit: int = Field(default=40, ge=0, le=10000)     # per signed-in person per day
+    ai_timeout_seconds: int = Field(default=10, ge=1, le=60)
+    groq_api_key: str = Field(default='', repr=False)
+    groq_model: str = 'openai/gpt-oss-120b'
+    groq_base_url: str = 'https://api.groq.com/openai/v1'
+    openrouter_api_key: str = Field(default='', repr=False)
+    openrouter_model: str = 'google/gemma-4-31b-it:free'
+    openrouter_vision_model: str = 'google/gemma-4-31b-it:free'
+    openrouter_base_url: str = 'https://openrouter.ai/api/v1'
     gemini_api_key: str = Field(default='', repr=False)
-    gemini_model: str = 'gemini-2.5-flash'
-    gemini_daily_limit: int = Field(default=200, ge=0, le=100000)
-    gemini_timeout_seconds: int = Field(default=8, ge=1, le=60)
+    gemini_model: str = 'gemini-3.5-flash-lite'
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
     # HeiGIT shut down api.openrouteservice.org on 2-6 Nov 2026; the same key works on api.heigit.org (no trailing slash).

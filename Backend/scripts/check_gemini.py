@@ -1,29 +1,5 @@
-"""Check that the Gemini key in Backend/.env works, without printing it.
-
-Run from the project folder:
-    .venv\\Scripts\\python.exe Backend\\scripts\\check_gemini.py
-It sends one short test sentence to Gemini and prints what the smart search understood.
-"""
-import os
-import sys
-from datetime import datetime
+"""Replaced by check_ai.py, which checks Groq, OpenRouter and Gemini. Kept so old notes still work."""
+import runpy
 from pathlib import Path
 
-backend = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(backend))
-os.chdir(backend)  # so Backend/.env is read
-
-from app.core.config import get_settings  # noqa: E402
-from app.services import ai_assist  # noqa: E402
-
-settings = get_settings()
-print('GEMINI_API_KEY set:', bool(settings.gemini_api_key.strip()))
-print('Model:             ', settings.gemini_model)
-if not settings.gemini_api_key.strip():
-    sys.exit('Add GEMINI_API_KEY to Backend/.env, then run this again.')
-try:
-    found = ai_assist.gemini_extract(settings, 'naalai kaalai 8 mani Kandy-la irunthu Colombo-kku 4 per', None, {},
-                                     datetime.now(ai_assist.ZONE))
-    print('Gemini answered: YES -', found)
-except Exception as exc:  # noqa: BLE001 - show the reason, never the key
-    print('Gemini answered: NO -', str(exc).replace(settings.gemini_api_key, '***'))
+runpy.run_path(str(Path(__file__).with_name('check_ai.py')), run_name='__main__')
