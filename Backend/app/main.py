@@ -33,6 +33,7 @@ from app.core.private_infrastructure import file_lock
 from app.api.routers.rate_api import router as rate_router
 from app.services.rate_locations import RateLocations
 from app.api.routers.hire_api import router as hire_router
+from app.api.routers.rental_api import router as rental_router
 from app.services.hire_routing import HireRouting
 from app.api.routers.vehicle_api import router as vehicle_router
 from app.api.routers.stage5_admin_api import router as stage5_admin_router
@@ -180,7 +181,7 @@ def create_app(settings=None, engine=None, store=None):
                     chunks, length = [], 0
                     async for chunk in request.stream():
                         length += len(chunk)
-                        rate_body = ('/vehicles/' in request.url.path and request.url.path.endswith(('/services', '/services/preview'))) or request.url.path.startswith(('/api/v1/bookings/', '/api/v1/search/'))
+                        rate_body = ('/vehicles/' in request.url.path and request.url.path.endswith(('/services', '/services/preview', '/event-packages'))) or request.url.path.startswith(('/api/v1/bookings/', '/api/v1/search/'))
                         profile_body = request.method == 'PATCH' and request.url.path == '/api/v1/users/me'
                         if length > ((app.state.settings.social_reel_max_mb + 11) * 1024 * 1024 if social_upload else MAX_MULTIPART if multipart else 1_410_000 if profile_body else 65536 if rate_body else 8192):
                             raise ApiError(413, 'REQUEST_TOO_LARGE', 'Request exceeds the permitted size.')
@@ -227,6 +228,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(review_router)
     app.include_router(rate_router)
     app.include_router(hire_router)
+    app.include_router(rental_router)
     app.include_router(vehicle_router)
     app.include_router(stage5_admin_router)
     app.include_router(fulfilment_router)

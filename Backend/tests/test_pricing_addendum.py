@@ -74,7 +74,7 @@ def test_fixed_inclusions_extras_disclosed_and_rate_edit_preserves_acceptance(cl
     assert c.create()['proposal']['quote']['calculation']['total'] == '1700.00'
 
 
-@pytest.mark.parametrize('scope', [None, 'EVENT', 'UNSPECIFIED'])
+@pytest.mark.parametrize('scope', [None, 'UNSPECIFIED'])   # EVENT is now approved: see test_event_hire.py
 def test_non_long_distance_scopes_never_inherit_the_formula(client, hire_setup, scope):
     c = hire_setup; accepted = accept(client, c, c.create())
     with client.app.state.sessions() as db:

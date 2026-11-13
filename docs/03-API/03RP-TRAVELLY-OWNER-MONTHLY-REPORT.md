@@ -125,3 +125,17 @@ read-only, nothing is stored, and the PDF says "Confidential".
   Applications).
 - **Download PDF:** fetch with the Bearer token as a blob, the same way as the Owner report.
 - Mobile: tiles in 2 columns, tables as cards.
+
+
+## Admin report: JSON field names (stable; UI may rely on them)
+`GET /admin/reports/monthly/{YYYY-MM}` -> `period`, `period_label`, `generated_at`, `currency`, then:
+- `summary`: `private_hire_bookings` (Event hire is counted here), `ticket_bookings`, `rental_bookings`, `cancelled_bookings`, `completed_trips`, `total_km`, `new_users`,
+  `published_vehicles_today`, `collected_online`, `collected_cash`, `collected_total`, `travelly_commission`, `refunds_paid`, `payouts_paid`, `payouts_count`, `needs_attention`.
+- `money.per_service[]`: `service`, `payments`, `collected`, `commission`, `owner_share`, `refunded`.
+  `money.open_balance_today`: `owed_to_owners`, `commission_due_from_owners`, `refunds_waiting`, `refunds_waiting_amount`.
+- `people.roles[]`: `role`, `approved`, `rejected`, `waiting_now`, `suspended_now`. `people.approved[]`: `date`, `name`, `reference`, `role`.
+- `attention.departures[]`: `reference`, `route`, `departs`, `status`. `attention.refunds[]`: `booking`, `amount`, `method`, `status`, `problem`, `since`.
+  `attention.documents[]`: `document`, `holder`, `vehicle`, `number` (masked), `expiry_date`, `state`. `attention.applications[]`: `name`, `reference`, `role`, `waiting_days`.
+- `result`: `commission_online`, `commission_cash`, `income`, `cash_commission_still_due`, `note`.
+Money values are strings with 2 decimals (LKR). Text values such as `status`, `method`, `state`, `problem`, `note` are **English display text**, not codes;
+show them as they are (Admin report, same as the English PDF). Months and "today" use Sri Lanka time (Asia/Colombo); a month after the current Sri Lanka month is refused.

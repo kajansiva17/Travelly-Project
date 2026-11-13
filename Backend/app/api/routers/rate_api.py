@@ -10,6 +10,7 @@ from app.api.routers.review_api import locked_authority, query_values, paginatio
 from app.models.review_models import Vehicle
 from app.models.rate_models import ServiceType, VehicleService
 from app.schemas.rate_schemas import RateConfiguration, ExamplePreview
+from app.schemas.hire_schemas import EventPackages
 from app.services.rate_calculation import calculate
 from app.services.pricing_scope import private_hire_scope, require_supported_private_hire
 
@@ -67,7 +68,7 @@ def locations(request: Request):
 @router.get('/service-types')
 def service_types(db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).where(ServiceType.is_active.is_(True), ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.display_order, ServiceType.id).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r)} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE')]}
+    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r)} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE','EVENT')]}
 
 
 @router.get('/owners/me/vehicles')
@@ -124,6 +125,8 @@ def persist_rates(vehicle_id, body, request, user, db):
     if not service or service.category != 'PRIVATE_HIRE' or not service.is_active:
         raise ApiError(422, 'SERVICE_UNAVAILABLE', 'Choose an active private-hire service.')
     scope = require_supported_private_hire(service)
+    if scope == 'EVENT':
+        raise ApiError(422, 'EVENT_PACKAGES_REQUIRED', 'Event hire uses event packages, not route rates. Save them with PUT /vehicles/{id}/event-packages.')
     for rule in body.rules:
         for place in rule.coverage.places or []:
             request.app.state.rate_locations.verify(place)
@@ -147,6 +150,30 @@ def persist_rates(vehicle_id, body, request, user, db):
         db.add(row)
     db.flush()
     return row
+
+
+@router.put('/vehicles/{vehicle_id}/event-packages')
+def save_event_packages(vehicle_id: UUID, body: EventPackages, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    owned(db, request, user, vehicle_id, lock=True)
+    service = db.get(ServiceType, body.service_type_id)
+    if not service or not service.is_active or private_hire_scope(service) != 'EVENT':
+        raise ApiError(422, 'SERVICE_UNAVAILABLE', 'Choose an active Event service.')
+    row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vehicle_id, VehicleService.service_type_id == body.service_type_id).with_for_update())
+    if body.expected_version != (row.version if row else 0):
+        raise ApiError(409, 'VERSION_CONFLICT', 'Packages changed. Reload them before editing again.')
+    terms = {**(row.owner_terms if row else {}), 'schema_version': 2, 'service_scope': 'EVENT', 'policy': 'TRAVELLY_EVENT_2026_11_14',
+             'event_packages': [p.model_dump(mode='json') for p in body.packages]}
+    if row:
+        row.is_enabled, row.owner_terms, row.pricing_basis = body.enabled, terms, 'FIXED'
+        row.base_price = row.price_per_km = row.price_per_hour = None
+        row.minimum_hire_hours = row.minimum_hire_km = None
+        row.currency = 'LKR'; row.updated_by = user.id; touch(row)
+    else:
+        row = VehicleService(vehicle_id=vehicle_id, service_type_id=body.service_type_id, is_enabled=body.enabled, pricing_basis='FIXED',
+                             currency='LKR', owner_terms=terms, created_by=user.id, updated_by=user.id)
+        db.add(row)
+    db.commit()
+    return {**summary(row), 'message': 'Event packages saved. Future bookings use these prices; accepted bookings keep theirs.'}
 
 
 @router.post('/vehicles/{vehicle_id}/services/preview')

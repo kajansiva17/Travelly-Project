@@ -150,6 +150,26 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
             'reserved_end_at': end.isoformat()}
 
 
+def event_price(service, row, itinerary):
+    """Event hire: the Owner's fixed package price. No route measuring; the package fixes the hours."""
+    packages = (row.owner_terms.get('event_packages') if row else None) or []
+    package = next((p for p in packages if itinerary.event_package_id and p['id'] == str(itinerary.event_package_id)), None)
+    if not package:
+        raise ApiError(422, 'EVENT_PACKAGE_REQUIRED', 'Choose one of this vehicle\u2019s event packages.')
+    hours = Decimal(package['hours'])
+    if itinerary.direction != 'ONE_WAY' or itinerary.service_hours != [hours]:
+        raise ApiError(422, 'EVENT_PACKAGE_MISMATCH', 'An event booking is one day with the package hours, with no return leg.')
+    total = Decimal(package['price']).quantize(Decimal('.01'))
+    end = itinerary.start_at + timedelta(hours=float(hours))
+    line = {'code': 'EVENT_PACKAGE', 'label': package['name'], 'quantity': '1', 'rate': str(total), 'amount': str(total), 'kind': 'CHARGE'}
+    return {'calculation': {'method': 'EVENT_PACKAGE', 'currency': 'LKR', 'breakdown': [line], 'total': format(total, '.2f'),
+                            'exclusions': ['Hours or services beyond the package are agreed directly with the Owner.'],
+                            'policy': 'TRAVELLY_EVENT_2026_11_14', 'included_km': None, 'reserved_service_hours': [], 'service_scope': 'EVENT',
+                            'package': {'id': package['id'], 'name': package['name'], 'hours': str(hours)}},
+            'rule': {'method': 'EVENT_PACKAGE', **package}, 'itinerary': itinerary.model_dump(mode='json'),
+            'measurement': {'source': 'EVENT_PACKAGE', 'usage': None}, 'reserved_end_at': end.isoformat()}
+
+
 def saved_rules(db, vid, sid):
     row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vid, VehicleService.service_type_id == sid, VehicleService.is_enabled.is_(True)))
     return row, [RateRule.model_validate(r) for r in row.owner_terms.get('rate_rules', [])] if row else []
