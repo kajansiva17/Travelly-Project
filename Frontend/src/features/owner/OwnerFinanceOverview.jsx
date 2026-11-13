@@ -7,6 +7,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import {FlowShell,useRowCount,usePaged} from '../booking/flow/FlowParts'
 import {money} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
+import CommissionBanner from '../settlements/CommissionBanner'
 
 /* Owner settlements (Payments contract 03P, section F5): what Travelly owes the Owner, what the Owner owes Travelly,
    items waiting for Admin review, and recent settled rows. Every payable row shows payable_amount, the amount the
@@ -37,6 +38,7 @@ export default function OwnerFinanceOverview(){
   const currency=data?.currency||'LKR'
   return <><Header/><FlowShell heading={t('Settlements')} title={t(current.label)} icon="wallet" tabs={tabs} info={t(current.hint)}>
     <ErrorNotice error={error}/>
+    <CommissionBanner standing={data?.commission_standing} currency={data?.currency||'LKR'}/>
     {error&&<div className="flow-actions"><span/><button type="button" className="ui-button ui-button-secondary" onClick={load}>{t('Try again')}</button></div>}
     {!data&&!error?<p role="status">{t('Loading your settlements…')}</p>:data&&<div className="tk-pane">
       <div className="tk-bar"><Chip tone="info" icon="wallet">{t('Payable to you')} {money(currency,data.payable_amount)}</Chip><Chip tone={Number(data.commission_due_amount)>0?'danger':'muted'} icon="chart">{t('Commission you owe')} {money(currency,data.commission_due_amount)}</Chip></div>

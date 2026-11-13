@@ -13,6 +13,7 @@ import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
 import FulfilmentNotice from './FulfilmentNotice'
 import ReplacementCard,{isPending,vehicleLine} from './ReplacementCard'
+import NotAvailableNotice from '../../components/NotAvailableNotice'
 
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
@@ -129,7 +130,7 @@ export default function PassengerTicketBooking(){
     info="Choose a departure before seeing its fare or selecting numbered seats."
     steps={['Find a departure','Choose seats','Travellers and hold']} current={w.step} onStepSelect={i=>{if(i<w.step&&!locked)w.setStep(i)}}>
     <Compact.Provider value={true}>
-    <ErrorNotice error={error}/>
+    <NotAvailableNotice error={error} action={<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setSelected([]);setKey(newKey());w.setStep(0)}}>{t('Search again')}</button>}/>
 
     <form className="flow-wizard-form tk-pane" hidden={w.step!==0} onSubmit={search}>
       <div className="tk-grid" style={{'--cols':4}}>
