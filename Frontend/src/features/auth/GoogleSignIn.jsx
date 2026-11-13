@@ -1,5 +1,5 @@
 import { t, getLanguage } from '../../i18n/language.js'
-import React, { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { api, publicAuth } from '../../services/api'
 
 let library

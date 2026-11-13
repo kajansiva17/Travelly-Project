@@ -12,9 +12,6 @@
 .dashboard-profile-dropdown a,.dashboard-profile-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;text-decoration:none;text-align:left;border-radius:8px;font-size:13px}
 .dashboard-profile-dropdown a:hover{background:var(--ui-glass-strong)}
 .workspace-content{min-width:0}
-body .role-dashboard{max-width:1640px;margin:auto;padding:25px 30px 40px}
-.workspace-heading{margin:8px 0 24px}
-.workspace-heading h1{font-size:34px;line-height:1.2;margin-top:8px}
 .workspace-content>.notice{margin:16px}
 .workspace-menu-toggle{display:none}
 .workspace-header .navigation{margin-left:auto}
@@ -23,26 +20,14 @@ body .role-dashboard{max-width:1640px;margin:auto;padding:25px 30px 40px}
 body .workspace-drawer{position:fixed;inset:0 auto 0 0;margin:0;padding:0;border:0;border-right:1px solid #5893d0;width:min(88vw,310px);max-width:310px;height:100dvh;max-height:100dvh;overflow-y:auto;background:var(--ui-glass-strong);color:var(--ui-ink);box-shadow:20px 0 60px #0008}
 .workspace-drawer::backdrop{background:rgb(18 21 82 / .45);backdrop-filter:blur(5px)}
 .workspace-drawer-panel{display:flex;flex-direction:column;min-height:100%;padding:24px 14px}
-.overview-banner{position:relative;isolation:isolate;display:flex;align-items:center;min-height:236px;overflow:hidden;padding:30px 32px;margin-bottom:22px;border:1px solid #4a94d8;border-radius:18px;background:url('/images/travelly/heroes/cta-landscape-1920.webp') center/cover;box-shadow:inset 0 1px 0 #d2e8ff22,0 10px 30px #0003}
-.overview-banner>div{position:relative;z-index:2;width:68%}
-.overview-banner h1{font-size:clamp(26px,2.6vw,40px);font-weight:600;line-height:1.15;margin:10px 0 12px;max-width:650px;letter-spacing:-1.1px}
-.overview-banner p{font-size:13px;color:var(--ui-text);max-width:440px;line-height:1.6;margin-bottom:20px}
-.overview-banner .button{font-size:12px;min-height:40px;padding:10px 16px}
-.overview-banner>img{position:absolute;right:0;bottom:16px;width:41%;height:180px;object-fit:contain;z-index:1;filter:drop-shadow(0 14px 16px #0009)}
-body .workspace-card,body .workspace-metric{background:var(--ui-glass-strong);border:1px solid #3268a2;border-radius:14px;box-shadow:inset 0 1px 0 #d4e9ff17,0 6px 22px #0002}
+body .workspace-card{background:var(--ui-glass-strong);border:1px solid #3268a2;border-radius:14px;box-shadow:inset 0 1px 0 #d4e9ff17,0 6px 22px #0002}
 body .workspace-card{padding:19px;margin-bottom:20px;min-width:0}
 body .workspace-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:13px;margin-bottom:16px;border-bottom:1px solid #47749d55}
 body .workspace-card-heading h2{display:flex;align-items:center;gap:8px;font-size:17px;line-height:1.3;font-weight:600;margin:0}
 body .workspace-card-heading>a{display:flex;align-items:center;gap:5px;flex:none;text-decoration:none;font-size:10px;color:var(--ui-text);border:1px solid #5387b9;border-radius:20px;padding:6px 9px;min-height:30px}
 body .workspace-card p,body .workspace-note{color:var(--ui-text);line-height:1.65;font-size:12px}
 body .workspace-card .workspace-note,body .workspace-note{font-size:10px;margin:12px 0 0}
-body .workspace-metric{display:flex;align-items:center;gap:12px;padding:18px;min-height:112px;min-width:0;text-decoration:none;color:#fff}
-.workspace-metric>div{flex:1;min-width:0}
-body .workspace-metric strong{display:block;font:600 29px/1.1 'Travelly Sans',Arial,sans-serif;overflow-wrap:anywhere}
-.workspace-metric span:not(.workspace-metric-icon){display:block;font-size:11px;line-height:1.4;margin-top:6px}
-body .workspace-metric small{display:block;font-size:9px;line-height:1.4;color:var(--ui-text);margin-top:5px}
-.workspace-metric-icon,.workspace-record-icon{display:grid;place-items:center;flex:none;width:43px;height:43px;border-radius:12px;background:var(--ui-red-gradient);border:1px solid #5b91bc77;color:var(--primary-red)}
-.workspace-metric>svg{width:13px}
+.workspace-record-icon{display:grid;place-items:center;flex:none;width:43px;height:43px;border-radius:12px;background:var(--ui-red-gradient);border:1px solid #5b91bc77;color:var(--primary-red)}
 .workspace-record{display:flex;align-items:center;gap:11px;min-width:0;padding:13px 0;text-decoration:none;border-bottom:1px solid #42668b66}
 .workspace-record:last-child{border:0}
 .workspace-record>div{flex:1;min-width:0}
@@ -52,11 +37,6 @@ body .workspace-record div>span{display:block;font-size:10px;color:var(--ui-text
 .workspace-record:hover strong{text-decoration:underline;text-underline-offset:3px}
 .workspace-badge{display:inline-block;max-width:145px;padding:5px 8px;background:var(--ui-glass-strong);border:1px solid #5586b577;border-radius:20px;font-size:9px;color:var(--ui-ink);line-height:1.3}
 .workspace-badge.positive{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#42a89277}
-.workspace-quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-body .workspace-quick-actions a{display:flex;align-items:center;gap:8px;min-width:0;min-height:60px;padding:12px 10px;border:1px solid #417caf;border-radius:10px;background:var(--ui-red-gradient);text-decoration:none;font-size:11px;color:var(--ui-ink)}
-.workspace-quick-actions a span{min-width:0;overflow-wrap:anywhere}
-.workspace-quick-actions a>svg{flex:none;width:19px;color:var(--primary-red)}
-.workspace-quick-actions a>svg:last-child{width:13px;margin-left:auto;color:var(--ui-text)}
 .workspace-empty{text-align:center;padding:22px 8px;color:var(--ui-text)}
 .workspace-empty>svg{margin:0 auto 12px}
 .workspace-empty h3{font-size:16px;line-height:1.4;margin-bottom:10px}
@@ -77,39 +57,16 @@ body .workspace-card .workspace-warning,.workspace-warning{color:#ffcfb5;backgro
 .pipeline-track{height:7px;background:var(--ui-red-gradient);border-radius:20px;overflow:hidden}
 .pipeline-track>span{display:block;height:100%;background:var(--ui-red-gradient);border-radius:20px}
 .booking-pipeline>p{font-size:9px!important;margin-top:16px}
-.dashboard-application{display:flex;align-items:start;gap:15px;border:1px solid #426f9f;border-radius:14px;padding:22px;background:var(--ui-glass-strong);scroll-margin-top:120px}
-.dashboard-app-icon{display:grid;place-items:center;flex:none;width:42px;height:42px;background:var(--ui-red-gradient);border-radius:12px;color:var(--primary-red)}
-.dashboard-application-copy{min-width:0;flex:1}
-.dashboard-application h3{font-size:20px;margin:0 0 10px}
-.dashboard-application p,.dashboard-application small{font-size:12px;color:var(--ui-text);line-height:1.65;margin:10px 0}
-.dashboard-application .button{font-size:12px;margin-top:14px}
-.dashboard-application .inline-link{display:block;margin-top:14px}
-.dashboard-role-status{display:inline-block;border:1px solid #597ca3;background:var(--ui-glass-strong);border-radius:20px;padding:5px 9px;font-size:10px;margin-bottom:8px}
-.status-approved{color:#b5f8df;background:#104d48}
-.application-details{border-top:1px solid #436b9955;padding-top:18px;margin-top:18px}
-.application-details h4{font-size:16px}
-.application-profile>div{margin:12px 0}
-.application-profile dt{font-size:10px;color:var(--ui-text);margin-bottom:4px}
-.application-profile dd{font-size:12px;overflow-wrap:anywhere}
 @media(max-width:1099px),(max-height:759px){
  body .workspace-menu-toggle{display:inline-flex}
 }
 @media(max-width:767px){
  .workspace-header .navigation{gap:12px}
  .workspace-header .navigation>a,.workspace-profile-name{display:none}
- body .role-dashboard{padding:18px 14px 30px}
- body .overview-banner{min-height:255px;padding:23px 20px;align-items:start}
- .overview-banner>div{width:100%}
- .overview-banner h1{font-size:28px;max-width:300px}
- .overview-banner p{max-width:230px;font-size:11px}
- .overview-banner>img{width:42%;height:105px;bottom:10px;right:0;opacity:.75}
- body .workspace-metric{min-height:90px;padding:16px}
  body .workspace-card{padding:16px}
  body .workspace-card-heading h2{font-size:17px}
  .workspace-record{flex-wrap:wrap}
  .workspace-record>div{flex-basis:calc(100% - 65px)}
  .workspace-record .workspace-badge{margin-left:0}
- .dashboard-application{padding:18px;gap:10px}
- .workspace-heading h1{font-size:28px}
 }
-@media(max-width:380px){.workspace-quick-actions{grid-template-columns:1fr}.workspace-header .navigation{gap:6px}.dashboard-avatar{width:32px;height:32px}}
+@media(max-width:380px){.workspace-header .navigation{gap:6px}.dashboard-avatar{width:32px;height:32px}}

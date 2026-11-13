@@ -1,4 +1,3 @@
-import React from 'react'
 import {Icon} from '../components'
 
 // Centered empty state: soft icon, short title, one friendly sentence and an optional next action.

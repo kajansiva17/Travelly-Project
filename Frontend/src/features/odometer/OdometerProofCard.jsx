@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {fieldErrorText} from '../../services/fieldErrors.js'
 import Chip from '../../components/ui/Chip'

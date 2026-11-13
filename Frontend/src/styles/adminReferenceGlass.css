@@ -19,11 +19,6 @@ body .workspace-shell[data-workspace="admin"] .workspace-header :is(a,button,sum
 body .workspace-shell[data-workspace="admin"] .dashboard-avatar {border:2px solid #fff;background:#d9e8f3;box-shadow:0 3px 10px rgb(26 53 78 / .2)}
 
 body .workspace-shell[data-workspace="admin"] .workspace-content {color:var(--ui-ink);background:transparent}
-body .workspace-shell[data-workspace="admin"] .workspace-content .dashboard-overview {padding:20px 22px 28px;gap:10px}
-body .workspace-shell[data-workspace="admin"] :is(.overview-banner,.workspace-heading,.dashboard-section-heading) {color:var(--ui-ink);text-shadow:0 1px 8px rgb(255 255 255 / .72)}
-body .workspace-shell[data-workspace="admin"] :is(.overview-banner,.workspace-heading,.dashboard-section-heading) h1 {color:var(--ui-ink);font-weight:800;letter-spacing:-1.4px}
-body .workspace-shell[data-workspace="admin"] :is(.overview-banner,.workspace-heading,.dashboard-section-heading) p {color:#1c3157;font-weight:500}
-body .workspace-shell[data-workspace="admin"] :is(.dashboard-kicker,.section-kicker) {color:var(--ui-red);font-weight:800}
 body .workspace-shell[data-workspace="admin"] .workspace-card {padding:14px}
 body .workspace-shell[data-workspace="admin"] .workspace-card-heading {padding:0 0 9px;margin:0 0 10px;border-bottom:1px solid rgb(51 78 97 / .14)}
 body .workspace-shell[data-workspace="admin"] .workspace-card-heading h2 {color:var(--ui-ink);font-size:clamp(16px,1.2vw,21px);font-weight:800}
@@ -35,17 +30,6 @@ body .workspace-shell[data-workspace="admin"] .workspace-card-heading>a {
   color:#681625;background:linear-gradient(#fff8fa,#ffdce3);border:1px solid #fff;border-radius:999px;
   box-shadow:0 3px 9px rgb(117 42 58 / .16);font-weight:700;
 }
-body .workspace-shell[data-workspace="admin"] .workspace-metric {min-height:94px;padding:12px 15px;border-radius:20px;background:var(--admin-panel-strong)}
-body .workspace-shell[data-workspace="admin"] .workspace-metric:hover {transform:translateY(-2px);box-shadow:inset 0 1px 9px #fff,0 9px 24px rgb(29 60 60 / .25)}
-body .workspace-shell[data-workspace="admin"] .workspace-metric-icon {
-  width:58px;height:58px;color:var(--ui-ink);border:2px solid rgb(255 255 255 / .78);border-radius:50%;
-  background:var(--ui-red-gradient);box-shadow:inset 0 2px 8px rgb(255 255 255 / .72),0 5px 12px rgb(16 107 181 / .35);
-}
-body .workspace-shell[data-workspace="admin"] .workspace-metric:nth-child(even) .workspace-metric-icon {background:linear-gradient(#ff7782,#ef1029);box-shadow:inset 0 2px 8px rgb(255 255 255 / .72),0 5px 12px rgb(193 15 41 / .3)}
-body .workspace-shell[data-workspace="admin"] .workspace-metric :is(span,strong,small) {color:var(--ui-ink)}
-body .workspace-shell[data-workspace="admin"] .workspace-metric strong {font-size:clamp(25px,2vw,34px)}
-body .workspace-shell[data-workspace="admin"] .workspace-metric small {color:var(--ui-muted)}
-body .workspace-shell[data-workspace="admin"] .metric-signal {display:none}
 body .workspace-shell[data-workspace="admin"] .reference-platform-map {
   min-height:310px;border:1px solid rgb(255 255 255 / .9);border-radius:15px;
   background:linear-gradient(rgb(215 241 231 / .3),rgb(18 92 87 / .22)),url('/images/travelly/heroes/cta-landscape-768.webp') center/cover;
@@ -60,14 +44,6 @@ body .workspace-shell[data-workspace="admin"] .reference-unavailable.compact {pa
 body .workspace-shell[data-workspace="admin"] .reference-unavailable strong {color:var(--ui-ink)}
 body .workspace-shell[data-workspace="admin"] .reference-orb,
 body .workspace-shell[data-workspace="admin"] .workspace-record-icon {color:var(--ui-red);background:linear-gradient(#fff,#e7efef);border:1px solid #fff;box-shadow:0 3px 10px rgb(45 71 76 / .18)}
-
-body .workspace-shell[data-workspace="admin"] :is(.workspace-record,.admin-quick-links a,.admin-operations nav a,.workspace-quick-actions a) {
-  color:var(--ui-ink);border:1px solid #fff;border-radius:13px;
-  background:linear-gradient(135deg,rgb(255 255 255 / .92),rgb(218 231 236 / .86));
-  box-shadow:0 3px 9px rgb(42 70 74 / .14);
-}
-body .workspace-shell[data-workspace="admin"] :is(.workspace-record,.admin-quick-links a,.admin-operations nav a,.workspace-quick-actions a):hover {transform:translateY(-1px);box-shadow:0 6px 14px rgb(42 70 74 / .2)}
-body .workspace-shell[data-workspace="admin"] :is(.workspace-record,.admin-quick-links a,.admin-operations nav a,.workspace-quick-actions a)>svg {color:var(--ui-red)}
 body .workspace-shell[data-workspace="admin"] .workspace-record div>span {color:var(--ui-muted)}
 body .workspace-shell[data-workspace="admin"] .workspace-badge {color:#273855;background:#d9e9f5;border-color:#a9c7dc}
 body .workspace-shell[data-workspace="admin"] .workspace-badge.positive {color:#07593d;background:#b7edcf;border-color:#7bd1a7}
@@ -88,9 +64,6 @@ body .workspace-shell[data-workspace="admin"] .workspace-content :is(input,selec
 body .workspace-shell[data-workspace="admin"] .workspace-content :is(input,select,textarea):focus {border-color:#ef6070;outline:3px solid rgb(240 24 44 / .15)}
 body .workspace-shell[data-workspace="admin"] .workspace-content :is(input,textarea)::placeholder {color:#758396}
 body .workspace-shell[data-workspace="admin"] .review-reason {color:#642335;background:#ffe8ea;border-left:3px solid var(--ui-red)}
-body .workspace-shell[data-workspace="admin"] :is(table,.reference-booking-table) {color:var(--ui-ink);border-collapse:separate;border-spacing:0;background:rgb(255 255 255 / .56);border:1px solid #fff;border-radius:14px;overflow:hidden}
-body .workspace-shell[data-workspace="admin"] :is(table,.reference-booking-table) th {color:var(--ui-ink);background:rgb(219 232 235 / .82);border-color:rgb(71 101 111 / .16)}
-body .workspace-shell[data-workspace="admin"] :is(table,.reference-booking-table) td {color:#263853;border-color:rgb(71 101 111 / .15)}
 body .workspace-shell[data-workspace="admin"] :is(.notice.error,.workspace-warning) {color:#7b1c31;background:#ffe5e8;border-color:#f4a7b1}
 body .workspace-shell[data-workspace="admin"] .notice.success {color:#18583f;background:#dff5e9;border-color:#9dd6bb}
 body:has(.workspace-shell[data-workspace="admin"]) .preview-dialog {color:var(--ui-ink);border:1px solid #fff;background:linear-gradient(135deg,rgb(255 255 255 / .96),rgb(221 235 236 / .94));box-shadow:0 18px 60px rgb(25 55 60 / .28)}
@@ -98,6 +71,5 @@ body:has(.workspace-shell[data-workspace="admin"]) .preview-dialog p {color:var(
 @media(max-width:767px){
  body .workspace-shell[data-workspace="admin"] {background-attachment:scroll}
  body .workspace-shell[data-workspace="admin"] .workspace-drawer-panel {color:#fff;background:linear-gradient(155deg,rgb(40 75 58 / .96),rgb(70 100 70 / .94));backdrop-filter:blur(22px)}
- body .workspace-shell[data-workspace="admin"] .workspace-content .dashboard-overview {padding:15px 10px 24px}
  body .workspace-shell[data-workspace="admin"] .reference-platform-map {min-height:310px}
 }

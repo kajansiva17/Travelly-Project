@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {api,publicRead} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import {Checkbox} from '../../components/ui'

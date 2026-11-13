@@ -5,7 +5,6 @@
    per-role header skins, which Phase 7 deletes. Imported last in App.jsx. */
 
 /* Right-hand items: navy text and icons, no per-role colours. */
-html body .app-navbar.app-navbar.app-navbar.app-navbar :is(.navigation > a:not(.button), .text-button, .language, .language select, .member-prompt) { color: var(--ui-ink); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation svg { color: var(--ui-ink); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .language { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { background: transparent; border: 0; font: inherit; font-weight: 600; cursor: pointer; }

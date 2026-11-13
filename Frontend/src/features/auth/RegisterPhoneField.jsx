@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/components'
 import { phoneCountries } from './registrationPhone'
 

@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'

@@ -17,4 +17,3 @@ export const isLoss=result=>typeof result?.is_loss==='boolean'?result.is_loss:nu
 export const attentionTone=count=>num(count)>0?'danger':'muted'
 // Admin tile "bookings": private hire (Event hire is counted there), ticket and rental bookings made in the month.
 export const bookingsMade=summary=>num(summary?.private_hire_bookings)+num(summary?.ticket_bookings)+num(summary?.rental_bookings)
-export const hasRows=list=>Array.isArray(list)&&list.length>0

@@ -4,54 +4,12 @@ body .workspace-shell[data-workspace] {
   background:linear-gradient(120deg,#d9eaf8bc,#daeef28a),url('/images/travelly/heroes/passenger-hero-1920.webp') center top / cover fixed #b9d6eb;
   color:var(--ui-ink);
 }
-body :is(.workspace-shell,.passenger-customer-shell) .site-header .language,
-body :is(.workspace-shell,.passenger-customer-shell) .site-header .language select,
-body :is(.workspace-shell,.passenger-customer-shell) .workspace-profile-name small {color:#233e65}
-body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar {overflow:hidden;background:#dceafa;color:#071645}
-body :is(.workspace-shell,.passenger-customer-shell) .dashboard-avatar img {width:100%;height:100%;object-fit:cover;border-radius:50%}
-body .workspace-shell .overview-banner :is(h1,p) {color:#071645;text-shadow:0 1px 8px #ffffffc9}
-body .workspace-shell .reference-availability {color:#19335b;background:#f3f9ffcd;border-color:#fff}
-
-body .workspace-shell :is(.workspace-card,.workspace-metric),
-body .reference-passenger :is(.workspace-card,.search-panel) {
-  color:#071645;border:1px solid #ffffffed;border-radius:20px;
-  background:linear-gradient(125deg,#f9fcffdc,#dbeaf3c9);
-  box-shadow:inset 0 1px 10px #fff,0 8px 22px #27496d38;
-  backdrop-filter:blur(17px);
-}
 body .workspace-shell .workspace-card {padding:16px}
-body .workspace-shell .workspace-metric {padding:14px;min-height:102px}
-body .workspace-shell .workspace-metric strong,
-body .workspace-shell .workspace-metric span:not(.workspace-metric-icon),
-body .workspace-shell .workspace-metric small {color:#071645}
-body .workspace-shell .workspace-metric-icon {color:var(--ui-ink);border:1px solid #fff9;background:var(--ui-red-gradient);box-shadow:inset 0 2px 7px #fff9,0 4px 10px #2774ac50}
-body .workspace-shell .workspace-metric:nth-child(even) .workspace-metric-icon {background:linear-gradient(#ff7379,#ef0016)}
-body .workspace-shell .metric-signal {display:none}
-body :is(.workspace-shell,.reference-passenger) :is(h1,h2,h3,h4,strong,figcaption,li,th,td) {color:#071645}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-card p,.workspace-note,.workspace-card-heading>div>p,.workspace-record div>span,.fleet-preview-card>span,.pipeline-row,.pipeline-row>strong,.pipeline-row>span,.reference-route li small,.passenger-quick .workspace-quick-actions small) {color:#30466a}
-body :is(.workspace-shell,.reference-passenger) .workspace-card-heading h2>svg {color:#ed1524}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-card-heading>a,.button.outline) {color:#102250;background:linear-gradient(#fff,#dceaf6);border:1px solid #fff;box-shadow:0 3px 8px #486b8b2e}
-body :is(.workspace-shell,.reference-passenger) .button:not(.outline) {color:#fff;background:linear-gradient(#ff777e,#f00017 56%,#cc0013);border-color:#fff;box-shadow:inset 0 1px 5px #fff8,0 4px 10px #e80b2455}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-quick-actions a,.admin-quick-links a,.admin-operations nav a,.fleet-preview-card,.reference-detail-line) {color:#071645;background:linear-gradient(125deg,#ffffffcf,#e2eef7b8);border:1px solid #fff;border-radius:13px;box-shadow:0 4px 10px #365b7924}
-body .workspace-shell :is(.workspace-quick-actions a:nth-child(4n+1),.reference-personal .workspace-quick-actions a) {color:#071645;background:linear-gradient(125deg,#ffffffed,#e2eef7e0);border-color:#fff}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-quick-actions a>svg,.admin-quick-links a>svg,.admin-operations nav a>svg) {color:#ef1d2b}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-record-icon,.reference-orb) {color:#eb1a2a;background:linear-gradient(#fff,#dbeaf7);border:1px solid #fff;box-shadow:0 4px 10px #50718b36}
-body :is(.workspace-shell,.reference-passenger) :is(.workspace-empty,.reference-unavailable,.reference-unavailable strong,.workspace-loading,.admin-summary) {color:#243d62}
-body :is(.workspace-shell,.reference-passenger) .workspace-badge {color:#163656;background:#dcebf8;border-color:#abc9df}
-body :is(.workspace-shell,.reference-passenger) .workspace-badge.positive {color:#07523e;background:#b4ead0;border-color:#82d6b2}
-body .dashboard-overview .workspace-select select {background:#f3f8fd;color:#071645;border-color:#abc5da}
-body .dashboard-overview .reference-platform-map>div {background:#f3f9ffdc;color:#071645;border-color:#fff}
-body .dashboard-overview .reference-platform-map>small {color:#fff;text-shadow:0 1px 3px #001}
-body .dashboard-overview .reference-route {grid-template-columns:1fr;min-height:0}
-body .dashboard-overview .pipeline-columns .pipeline-row>strong {color:#071645}
-body .workspace-shell .workspace-content :is(.dashboard-kicker,.section-kicker) {color:#d90f20}
 body .workspace-shell .review-reason {color:#5e2730;background:#ffe8e8}
 body .workspace-shell .dashboard-profile-dropdown {background:#f4f9ff;color:#071645;border:1px solid #b0c7da}
-body :is(.workspace-shell,.passenger-customer-shell) .dashboard-profile-dropdown :is(a,button) {color:#071645}
 @media(max-width:767px){
  body .workspace-shell .workspace-menu-toggle {color:#071645;background:#e7f3fd;border:1px solid #fff}
  body .workspace-shell .workspace-card {padding:14px}
- body .workspace-shell .workspace-metric {min-height:110px;padding:10px}
 }
 @media(max-width:420px){
  body .workspace-shell .workspace-header .navigation {gap:4px}

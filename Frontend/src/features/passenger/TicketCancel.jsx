@@ -1,10 +1,10 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field,RateErrors} from '../owner/OwnerRates'
-import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
+import {fieldErrors} from '../../services/fieldErrors.js'
 
 // Passenger cancels a paid ticket (Payments contract 03P, section E1).
 // The server decides the refund at the moment of the request; the screen only shows an estimate before and the

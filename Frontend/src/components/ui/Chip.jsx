@@ -1,4 +1,3 @@
-import React from 'react'
 import { Icon } from '../components'
 
 /* tone: default | success (green tick) | info (blue). Renders a button when

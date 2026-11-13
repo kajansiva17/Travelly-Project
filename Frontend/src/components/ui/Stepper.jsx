@@ -1,4 +1,3 @@
-import React from 'react'
 import { Icon } from '../components'
 
 /* steps: array of labels; current: 1-based active step. */

@@ -19,7 +19,6 @@ import AdminWorkflowPage from './features/admin/AdminWorkflowPage'
 import AdminServiceCatalogue from './features/admin/AdminServiceCatalogue'
 import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
-import {RentalRoleUi} from './features/rental/RentalUi'
 import OwnerTicketDepartures,{OwnerReplacementRequests} from './features/owner/OwnerTicketDepartures'
 import OwnerDriving from './features/owner/OwnerDriving'
 import OwnerRoutes from './features/owner/OwnerRoutes'
@@ -273,7 +272,7 @@ export default function App() {
             <Route path="/driver/trips/:tripId/verify-passenger" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/live" element={<DriverTripPage/>}/>
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
-            <Route path="/driver/rentals" element={<RentalRoleUi role="DRIVER"/>}/>
+            <Route path="/driver/rentals" element={<Navigate to="/driver/assignments" replace/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
@@ -297,7 +296,7 @@ export default function App() {
             <Route path="/admin/services-routes/ticket-settings" element={<AdminTicketSettings/>}/>
             <Route path="/admin/bookings" element={<AdminWorkflowPage kind="bookings"/>}/>
             <Route path="/admin/oversight" element={<AdminOversight/>}/>
-            <Route path="/admin/rentals" element={<RentalRoleUi role="ADMIN"/>}/>
+            <Route path="/admin/rentals" element={<Navigate to="/admin/oversight" replace/>}/>
             <Route path="/admin/payments" element={<AdminPayments/>}/>
             <Route path="/admin/social-reviews" element={<AdminSocialPosts/>}/>
             <Route path="/admin/road-alerts" element={<AdminRoadAlerts/>}/>

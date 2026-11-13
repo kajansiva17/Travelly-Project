@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import { useId } from 'react'
 import { Icon } from '../components'
 
 /* Label above a control, with required star, helper text and error.

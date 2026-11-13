@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, setAuthFlow } from '../../services/api'
 import { ErrorNotice } from '../../components/components'

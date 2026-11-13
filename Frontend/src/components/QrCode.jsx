@@ -1,4 +1,4 @@
-import React,{useMemo} from 'react'
+import {useMemo} from 'react'
 import qrcode from 'qrcode-generator'
 
 /* A QR code drawn as SVG from a value we generated ourselves. No network, no image file. */

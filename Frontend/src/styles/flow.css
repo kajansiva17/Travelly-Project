@@ -333,7 +333,6 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; margin: 0; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-toolbar .ui-button { min-height: 38px; padding: 2px 14px; font-size: 14px; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form #calendar-entries { display: grid; gap: 6px; }
-html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .operation-list { margin: 0; padding-left: 18px; font-size: 13px; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label { display: grid; gap: 4px; min-width: 0; font-size: 13px; font-weight: 600; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label select { width: 100%; min-height: 40px; padding-inline: 8px; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-grid-4 > label:has(select[data-vehicle]) { grid-column: span 2; }
@@ -346,16 +345,6 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 
 /* Ticket departures (OwnerTicketDepartures.jsx is not edited: CSS only). Form on the left, the
    departures list on the right in its own panel; only that list scrolls inside its panel. */
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px 14px; height: calc(100dvh - var(--workspace-header-height, 106px)); box-sizing: border-box; padding: 4px clamp(10px, 2vw, 24px) 12px; overflow: hidden; max-width: 1360px; margin-inline: auto; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .workspace-heading { grid-column: 1 / -1; padding: 0; margin: 0; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) .workspace-heading :is(.section-kicker, p:not(.section-kicker)) { display: none; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) .workspace-heading h1 { margin: 0; font-size: clamp(24px, 2.4vw, 32px); }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .travelly-glass-panel { min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px; display: grid; gap: 8px; align-content: start; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) > .travelly-glass-panel h2 { margin: 0; font-size: 18px; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid :is(input:not([type="checkbox"]), select) { min-width: 0; width: 100%; min-height: 40px; height: 40px; padding: 4px 10px; font-size: 14px; text-overflow: ellipsis; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) form.passenger-detail-grid > button { grid-column: 1 / -1; min-height: 44px; }
-@media (max-width: 960px) { html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel > form.passenger-detail-grid) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); } }
 
 /* ---------- Global form kit pass: compact controls, capped width, one footer row ---------- */
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page { max-width: 1240px; }
@@ -500,7 +489,6 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 }
 
 /* ---------- Old dark panels -> light glass (everything inside the workspace) ---------- */
-html body .workspace-shell[data-workspace] .workspace-content :is(.rate-field small, .rate-coverage-summary, .change-totals dt, .trip-price th small, .calendar-checked) { color: var(--ui-muted); }
 html body .workspace-shell[data-workspace] .workspace-content .trip-price :is(tfoot th, tfoot td) { background: #e6f0ff; color: var(--ui-ink); }
 html body .workspace-shell[data-workspace] .workspace-content :is(.rate-place li > button) { background: #fff; color: var(--ui-ink); }
 
@@ -569,7 +557,6 @@ html body .workspace-shell[data-workspace] .workspace-content :is(.trip-price, .
 html body .workspace-shell[data-workspace] .workspace-content table :is(thead, thead th) { background: #eaf1fb; color: var(--ui-ink); }
 
 /* ---------- Driver pages (Phase 6d) ---------- */
-html body .flow-page .operation-field :is(input, select) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; height: 44px; padding: 4px 12px; background: var(--ui-input-bg); color: var(--ui-ink); border: 1px solid var(--ui-input-border); border-radius: var(--ui-radius-input); font: inherit; font-size: 15px; font-weight: 500; }
 html body .flow-page .flow-wizard-form form + form, html body .flow-page .flow-wizard-form form + div { margin-top: 0; }
 /* Booking details tabs: sections laid out in compact flowing rows */
 html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
@@ -584,11 +571,6 @@ html body .booking-pane summary { cursor: pointer; font-weight: 700; color: var(
 html body .booking-pane .agreed-rate-rules, html body .booking-pane .agreed-itinerary { font-size: 13px; }
 
 /* Ticket boarding (DriverTicketBoarding.jsx is not edited: CSS only): departures as a compact two-column grid, the verify form pinned at the bottom of the panel. */
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article { margin: 0; padding: 8px 12px; border-radius: 14px; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > article :is(h3, p) { margin: 0; font-size: 14px; }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; position: sticky; bottom: 0; padding-top: 6px; background: var(--ui-glass-strong); }
-html body .workspace-shell[data-workspace] .workspace-content > main.role-dashboard:has(> .travelly-glass-panel:only-of-type > form.passenger-detail-grid) > .travelly-glass-panel > form.passenger-detail-grid > button { grid-column: auto; }
 html body .booking-pane .rate-preview:has(.trip-price) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 14px; align-items: start; }
 html body .booking-pane .rate-preview:has(.trip-price) > :is(h2, p, button, .ui-button) { grid-column: 1 / -1; }
 html body .booking-pane .rate-preview:has(.trip-price) > .trip-price { grid-column: 1; grid-row: 2; }
@@ -702,7 +684,6 @@ html body .travelly-ai-card.travelly-ai-card { --robot: clamp(54px, 10.5vh, 132p
 html body .travelly-ai-card.travelly-ai-card :is(.workspace-card-heading, .reference-ai-content, .reference-ai-content > div) { display: contents; }
 html body .travelly-ai-card.travelly-ai-card h2 { grid-area: title; display: flex; align-items: center; gap: 6px; margin: 0; font-size: 1.25em; line-height: 1.1; font-weight: 800; font-style: italic; letter-spacing: -.01em; color: #3b2a99; white-space: nowrap; }
 html body .travelly-ai-card.travelly-ai-card h2 svg { color: #7c4dff; }
-html body .travelly-ai-card.travelly-ai-card .reference-ai-soon { grid-area: chip; justify-self: end; align-self: start; padding: 0 .7em; border-radius: 999px; background: #fff; color: #5b3fc4; font-size: .8em; font-weight: 700; line-height: 1.7; white-space: nowrap; }
 html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { grid-area: text; margin: 0; font-size: .95em; line-height: 1.3; color: #25345c; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 html body .travelly-ai-card.travelly-ai-card .reference-ai-content strong { display: none; }
 html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { grid-area: actions; display: flex; flex-wrap: nowrap; gap: 6px; margin: 0; align-self: end; }
@@ -710,7 +691,7 @@ html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { disp
 html body .travelly-ai-card.travelly-ai-card .reference-ai-robot { grid-area: robot; justify-self: end; align-self: center; width: auto; height: var(--robot); max-width: none; aspect-ratio: 1; filter: drop-shadow(0 0 10px rgb(139 67 255 / .3)); }
 @media (max-height: 700px) { html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { display: none; } html body .dash-page .dash-grid { grid-template-rows: minmax(0, 1.2fr) minmax(0, 1.05fr) minmax(0, 1fr); } }
 html body .travelly-ai-card.travelly-ai-card { container-type: inline-size; }
-@container (max-width: 300px) { html body .travelly-ai-card.travelly-ai-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "title" "chip" "robot" "text" "actions"; justify-items: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-robot, html body .travelly-ai-card.travelly-ai-card .reference-ai-soon, html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { flex-wrap: wrap; justify-content: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { padding: 0 .7em; } html body .travelly-ai-card.travelly-ai-card h2 { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { text-align: center; } }
+@container (max-width: 300px) { html body .travelly-ai-card.travelly-ai-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "title" "chip" "robot" "text" "actions"; justify-items: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-robot, html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions { flex-wrap: wrap; justify-content: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { padding: 0 .7em; } html body .travelly-ai-card.travelly-ai-card h2 { justify-self: center; } html body .travelly-ai-card.travelly-ai-card .reference-ai-content p { text-align: center; } }
 html body .travelly-ai-card.travelly-ai-card:not(.dash-tile) { min-height: min-content; align-content: start; }
 html body .travelly-ai-card.travelly-ai-card h2 svg { flex: none; width: 1.15em; height: 1.15em; }
 

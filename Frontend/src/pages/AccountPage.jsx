@@ -1,5 +1,5 @@
 import { t } from '../i18n/language.js'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { api, logout, hasSession, clearSession } from '../services/api'
 import { Icon, ErrorNotice, useSession } from '../components/components'

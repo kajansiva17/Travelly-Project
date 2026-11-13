@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useState} from 'react'
+import {useState} from 'react'
 import {Header} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import {FlowShell} from '../booking/flow/FlowParts'

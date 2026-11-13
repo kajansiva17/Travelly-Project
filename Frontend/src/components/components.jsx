@@ -2,10 +2,9 @@ import { t } from '../i18n/language.js'
 import LanguageSelector from './LanguageSelector'
 import DashboardAvatar from './DashboardAvatar'
 import {journeyRole,authJourney,journeyLink} from '../features/auth/onboardingJourney'
-import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import TravellyBrand, { useNeedleEvents } from './NavbarBrand'
-import {TravellyAsset} from './TravellyVisuals'
 import { api, logout, hasSession, subscribeSession } from '../services/api'
 import { useWorkspace } from '../context/workspaceContext'
 
@@ -65,41 +64,6 @@ export function Icon({ name, size = 22, ...props }) {
     plus: <path d="M12 5v14M5 12h14"/>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>
-}
-
-// Dimensions are the supplied PNG dimensions, not a cropped rendition.
-const dimensions = {
-  'Speedometer vehicle logo with deep red accents.png': [1536, 1024],
-  'White Toyota Hiace by the lake.png': [1983, 793],
-  'owner-hero-fleet.png': [802, 321], 'driver-hero.png': [526, 315],
-  'vehicle-car-owner.png': [278,145], 'vehicle-van-owner.png': [278,145],
-  'vehicle-bus-owner.png': [278,145], 'vehicle-three-wheeler-owner.png': [278,145],
-  'vehicle-three-wheeler-passenger.png': [220,163],
-  'driver-assigned-vehicle-trips.png': [255,142], 'driver-owner-support.png': [255,142],
-  'driver-workspace-context.png': [255,142],
-  'destination-coast-passenger.png': [297,160], 'destination-hills-passenger.png': [297,160],
-  'destination-city-passenger.png': [297,160],
-  'passenger-footer-scenery.png': [1020,133], 'owner-footer-scenery.png': [910,62],
-  'service-icon-vehicle-hire.png': [71,71], 'service-icon-tickets.png': [71,71],
-  'service-icon-rentals.png': [71,71],
-  'auth/Screenshot 2026-10-25 011557.png': [516,418],
-  'auth/Screenshot 2026-10-25 011752.png': [384,376],
-  'auth/Quiet ivory canvas with peach curves.png': [1394,1128],
-}
-
-export function Asset({ file, alt = '', immediate = false, className = '', ...props }) {
-  const aliases={
-   'White Toyota Hiace by the lake.png':'heroes/passenger-hero.png','owner-hero-fleet.png':'heroes/owner-hero.png','driver-hero.png':'heroes/driver-hero.png',
-   'vehicle-car-owner.png':'vehicles/vehicle-car.png','vehicle-van-owner.png':'vehicles/vehicle-van.png','vehicle-bus-owner.png':'vehicles/vehicle-bus.png','vehicle-three-wheeler-owner.png':'vehicles/vehicle-tuk-tuk.png','vehicle-three-wheeler-passenger.png':'vehicles/vehicle-tuk-tuk.png',
-   'service-icon-vehicle-hire.png':'icons/service-hire.png','service-icon-tickets.png':'icons/service-tickets.png','service-icon-rentals.png':'icons/service-rentals.png',
-   'destination-coast-passenger.png':'destinations/destination-galle.png','destination-hills-passenger.png':'destinations/destination-ella.png','destination-city-passenger.png':'destinations/destination-kandy.png',
-   'driver-assigned-vehicle-trips.png':'icons/assignment-review.png','driver-owner-support.png':'icons/owner-self-drive.png','driver-workspace-context.png':'illustrations/driver-workspace-preview.png',
-   'passenger-footer-scenery.png':'heroes/cta-landscape.png','owner-footer-scenery.png':'heroes/cta-landscape.png'
-  }
-  if(aliases[file])return <TravellyAsset name={aliases[file]} alt={alt} className={className} eager={immediate} {...props}/>
-  const [width, height] = dimensions[file] || []
-  return <img src={`/images/${file}`} alt={alt} width={width} height={height} className={className}
-    loading={immediate ? 'eager' : 'lazy'} fetchPriority={immediate ? 'high' : 'auto'} decoding="async" {...props}/>
 }
 
 export function Brand() {
@@ -169,10 +133,6 @@ export function ButtonLink({ to, children, outline = false, arrow = false, class
   const {pathname}=useLocation()
   const destination=to||(pathname==='/for-owners'?'/owner/onboarding':pathname==='/drive-with-us'?'/driver/onboarding':'/register')
   return <Link to={destination} className={`button ${outline ? 'outline' : ''} ${className}`} {...props}>{children}{arrow && <Icon name="arrow" size={20}/>}</Link>
-}
-
-export function Footer() {
-  return <footer className="site-footer"><Link to="/" className="footer-brand" aria-label={t("Travelly home in footer")}><TravellyAsset name="branding/shared-logo.png" alt="Travelly" sizes="180px"/></Link><span>{t("Every ride. Every destination. One place.")}</span></footer>
 }
 
 export function ErrorNotice({ error }) {

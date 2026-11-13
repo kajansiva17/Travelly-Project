@@ -1,5 +1,4 @@
 import { t } from '../i18n/language.js'
-import React from 'react'
 import {ErrorNotice} from './components'
 
 /* A vehicle or departure that can no longer be quoted, requested or held (409 VEHICLE_NOT_AVAILABLE / DEPARTURE_NOT_AVAILABLE,

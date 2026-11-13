@@ -1,4 +1,3 @@
-import React from 'react'
 import { Icon } from '../components'
 
 export default function InfoCallout({ icon = 'shield', className = '', children }) {

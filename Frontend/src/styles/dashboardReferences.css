@@ -15,27 +15,12 @@ body .workspace-shell .workspace-profile-name {max-width:130px;}
 body .workspace-shell .workspace-profile-name strong {font-size:13px;}
 body .workspace-shell .workspace-profile-name small {font-size:9px;}
 body .workspace-shell .dashboard-avatar {border-radius:50%;border:2px solid #d6e7ff;width:36px;height:36px;}
-body .workspace-shell .workspace-content .dashboard-overview {width:100%;max-width:none;padding:30px 24px 24px;display:grid;gap:12px;}
-body .workspace-shell .overview-banner {background:none;border:0;box-shadow:none;margin:0;padding:8px 12px;min-height:92px;}
-body .workspace-shell .overview-banner>div {width:auto;border:0;padding:0;}
-body .workspace-shell .overview-banner h1 {font-size:clamp(30px,2.9vw,48px);max-width:none;line-height:1.12;font-weight:800;margin:0 0 6px;}
-body .workspace-shell .overview-banner p {font-size:clamp(14px,1.2vw,20px);max-width:850px;line-height:1.4;margin:0;}
-body .workspace-shell :is(.dashboard-overview .workspace-card,.workspace-metric) {border:1px solid #54adff;border-radius:13px;background:var(--ui-glass-strong);box-shadow:inset 0 1px 3px #d9f2ff99,inset 0 0 16px #1165ff55,0 0 8px #167bff65;}
-body .workspace-shell .dashboard-overview .workspace-card {padding:12px;margin:0;min-width:0;}
-body .workspace-shell .workspace-metric {min-height:106px;padding:14px 17px;gap:16px;}
-body .workspace-shell .workspace-metric-icon {width:clamp(44px,4.6vw,78px);height:clamp(44px,4.6vw,78px);border-radius:50%;background:var(--ui-red-gradient);border:1px solid #28aaff;box-shadow:inset 0 0 16px #087aff88,0 0 9px #006dff55;color:#ff6575;}
-body .workspace-shell .workspace-metric>div {border:0;padding:0;}
-body .workspace-shell .workspace-metric strong {font-size:clamp(22px,2vw,36px);margin:2px 0 5px;}
-body .workspace-shell .workspace-metric span:not(.workspace-metric-icon):not(.metric-signal) {font-size:13px;}
-body .workspace-shell .workspace-metric small {font-size:10px;color:var(--ui-text);}
 /* Decorative bars are not operational statistics. */
-body .workspace-shell .metric-signal {opacity:.3;display:flex;}
 body .workspace-shell .workspace-card-heading {border:0;padding:0;margin:0 0 10px;gap:8px;}
 body .workspace-shell .workspace-card-heading h2 {font-size:clamp(16px,1.25vw,22px);font-weight:700;}
 body .workspace-shell .workspace-card-heading h2>svg {color:#ff6575;width:29px;height:29px;}
 body .workspace-shell .workspace-card-heading>div>p {color:var(--ui-text);font-size:11px;}
 body .workspace-shell .workspace-card-heading>a {font-size:11px;min-height:30px;}
-body .workspace-shell .workspace-quick-actions a:nth-child(4n+1) {background:var(--ui-red-gradient);border-color:#ff687a;}
 body .workspace-shell .reference-platform-map {flex:1;min-height:390px;}
 body .workspace-shell .reference-platform-map>div {max-width:90%;}
 body .workspace-shell .reference-help {position:relative;bottom:auto;right:auto;justify-self:end;box-shadow:0 0 16px #147fff,0 0 25px #bc47ff;border:2px solid #62d3ff;background:var(--ui-red-gradient);border-radius:50%;width:64px;height:64px;}
@@ -48,7 +33,6 @@ body .workspace-shell .workspace-drawer {overflow:visible;}
 body .workspace-shell .workspace-drawer-panel {height:100dvh;min-height:0;padding:12px;box-sizing:border-box;}
 @media(max-width:1399px) {
  body .workspace-shell .workspace-header .navigation {gap:12px;font-size:12px;}
- body .workspace-shell .workspace-metric {gap:10px;padding:12px;}
 }
 @media(max-width:1099px) {
  body .workspace-shell .workspace-header .navigation>a:not(.workspace-profile):not(.admin-notifications) {display:none;}
@@ -59,14 +43,6 @@ body .workspace-shell .workspace-drawer-panel {height:100dvh;min-height:0;paddin
  body .workspace-shell .workspace-profile {padding-left:0;border:0;}
  body .workspace-shell .workspace-profile-name,body .workspace-shell .language,body .workspace-shell .admin-notifications {display:none;}
  body .workspace-shell[data-workspace] .workspace-header .navigation>a.admin-notifications {display:none;}
- body .workspace-shell .workspace-content .dashboard-overview {padding:18px 12px;gap:10px;}
- body .workspace-shell .overview-banner {padding:4px 0;}
- body .workspace-shell .overview-banner h1 {font-size:30px;}
- body .workspace-shell .workspace-metric {padding:10px 8px;gap:8px;min-height:105px;}
- body .workspace-shell .workspace-metric-icon {width:30px;height:30px;}
- body .workspace-shell .workspace-metric strong {font-size:21px;}
- body .workspace-shell .workspace-metric span:not(.workspace-metric-icon):not(.metric-signal) {font-size:10px;}
- body .workspace-shell .metric-signal {display:none;}
  body .workspace-shell .workspace-card-heading {flex-wrap:wrap;}
 }
 @media(max-height:650px) {

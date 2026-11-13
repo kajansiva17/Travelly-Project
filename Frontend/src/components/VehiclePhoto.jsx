@@ -1,5 +1,5 @@
 import { t } from '../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api,mediaUrl} from '../services/api'
 import {ErrorNotice} from './components'
 

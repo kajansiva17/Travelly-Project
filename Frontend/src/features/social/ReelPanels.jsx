@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Icon} from '../../components/components'
 import {fieldErrorMap,fieldErrorText} from '../../services/fieldErrors.js'

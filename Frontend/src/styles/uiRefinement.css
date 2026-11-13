@@ -9,8 +9,6 @@
 .public-page { font-family: 'Travelly Sans', Arial, sans-serif; }
 .public-page :is(h1, h2, h3) { font-family: inherit; font-weight: 600; }
 .public-page .hero h1 { font-weight: 600; line-height: 1.08; letter-spacing: -.045em; }
-.public-page :is(.section-heading h2, .owner-final h2, .driver-final h2) { line-height: 1.18; letter-spacing: -.035em; }
-.public-page :is(.card-copy h3, .service-card h3, .benefit-card h3) { line-height: 1.25; letter-spacing: -.025em; }
 .public-page .button { font-weight: 500; }
 
 /* Preserve clearance above the Owner page's existing overlapping steps panel. */

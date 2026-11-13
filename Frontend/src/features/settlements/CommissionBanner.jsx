@@ -1,5 +1,4 @@
 import { t } from '../../i18n/language.js'
-import React from 'react'
 import {FlowBanner} from '../booking/flow/FlowParts'
 import {money} from '../passenger/TicketCancel'
 import {formatDate} from '../../i18n/dateTime.js'

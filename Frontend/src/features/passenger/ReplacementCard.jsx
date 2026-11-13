@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useState} from 'react'
+import {useState} from 'react'
 import {Link} from './travelRouter'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'

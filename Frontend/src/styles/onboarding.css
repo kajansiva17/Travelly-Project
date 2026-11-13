@@ -1,13 +1,13 @@
 body .public-page.role-onboarding{min-height:100dvh;max-width:none;background-color:var(--ui-glass-strong);background-image:url('/images/travelly/heroes/passenger-hero-1920.webp');background-repeat:no-repeat;background-position:center top;background-size:100% 100%,100% auto;color:var(--ui-ink)}
 .onboarding-content{width:92%;max-width:1120px;margin:auto;padding:26px 0 50px;display:grid;gap:20px}
 .onboarding-heading h1{font-size:clamp(28px,4vw,42px);margin:8px 0 16px}.onboarding-heading p{line-height:1.6}
-.onboarding-content>.button{justify-self:start}.onboarding-content .dashboard-application{margin:0}.onboarding-content .application-details{min-width:0}.onboarding-content .application-profile{overflow-wrap:anywhere}.onboarding-content .application-document-note{line-height:1.6}
+.onboarding-content>.button{justify-self:start}
 .role-onboarding .document-checklist{background:var(--ui-glass-strong);border:1px solid #4784b8;color:var(--ui-ink)}
 .role-onboarding .private-upload .upload-helper,.role-onboarding .document-checklist .upload-helper{color:var(--ui-text)}
 .role-onboarding .document-checklist select{background:var(--ui-glass-strong);color:var(--ui-ink);border-color:#4784b8}
 .role-onboarding .document-requirement,.role-onboarding .upload-approval-note{background:var(--ui-glass-strong);color:var(--ui-ink)}
 .role-onboarding .private-upload .upload-field-error{color:var(--primary-red)}
-@media(max-width:767px){.onboarding-content{width:94%;padding:18px 0 30px}.onboarding-content .dashboard-application{padding:18px 14px;display:block}.onboarding-content .dashboard-app-icon{margin-bottom:12px}.onboarding-content .application-profile{display:block}.onboarding-content .application-profile>div{margin-bottom:12px}}
+@media(max-width:767px){.onboarding-content{width:94%;padding:18px 0 30px}}
 .single-application{padding:clamp(20px,3vw,36px)}
 .single-application fieldset{border:0;padding:0;margin:20px 0 0;display:grid;gap:10px;min-width:0}
 .single-application label{font-weight:600;margin-top:8px}

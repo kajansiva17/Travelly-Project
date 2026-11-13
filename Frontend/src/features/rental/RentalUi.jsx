@@ -1,6 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useRef,useState} from 'react'
-import {TravellyState,TravellyStatusChip} from '../../components/TravellyVisualFoundation'
+import {useRef,useState} from 'react'
 import {Link,useNavigate} from '../passenger/travelRouter'
 import {api,hasSession,publicRequest} from '../../services/api'
 import {Header} from '../../components/components'
@@ -84,5 +83,3 @@ export function PassengerRental(){
     </RateErrors.Provider></Compact.Provider>
   </FlowShell></>
 }
-
-export function RentalRoleUi({role}){const labels={DRIVER:['Assigned rental inspections','Only assigned With Driver rentals may record pickup/return conditions and evidence.'],ADMIN:['Rental audit overview','Read-only Rental status, inspection and review metadata.']}[role];const [tab,setTab]=useState(0),names=['Rental packages','Request and assignment status','Pickup and return inspections'];return <><Header/><FlowShell heading={role+' · Rental'} title={labels[0]} icon="key" info={labels[1]} tabs={names.map((n,i)=>({label:n,active:tab===i,onClick:()=>setTab(i),icon:['car','calendar','shield'][i]}))}><div className="flow-wizard-form" hidden={tab!==0}><TravellyState title="Unavailable">{t('Rental package APIs are not implemented. No rate, vehicle, licence, or Driver data is fabricated.')}</TravellyState></div><div className="flow-wizard-form" hidden={tab!==1}><TravellyState title="Unavailable">{t('There are no returned Rental requests or assignments to review.')}</TravellyState></div><div className="flow-wizard-form" hidden={tab!==2}><div className="flow-grid-4"><label>{t('Keys & accessories')}<input disabled placeholder="API required"/></label><label>{t('Exterior')}<input disabled placeholder="API required"/></label><label>{t('Interior')}<input disabled placeholder="API required"/></label><label>{t('Tyres')}<input disabled placeholder="API required"/></label></div><TravellyStatusChip tone="warning">{t('Evidence unavailable')}</TravellyStatusChip><p className="flow-note">{t('Private rental inspection evidence is shown only when the approved media metadata API returns it.')}</p></div></FlowShell></>}

@@ -1,5 +1,5 @@
 import { t, getLanguage } from '../../i18n/language.js'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { api, clearSession, login, register, setAuthFlow, getAuthFlow, acceptAuthResult } from '../../services/api'
 import { ErrorNotice, Icon, useNotice, useSession } from '../../components/components'

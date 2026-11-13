@@ -1,4 +1,3 @@
-import React from 'react'
 
 /* Rounded white box with a red check; label may contain links. */
 export default function Checkbox({ children, className = '', ...props }) {

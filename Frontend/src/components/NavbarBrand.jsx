@@ -1,5 +1,5 @@
 import { t } from '../i18n/language.js'
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 
 const brandAssets = '/images/travelly/branding/approved-2026-11-07/'

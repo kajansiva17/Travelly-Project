@@ -63,7 +63,6 @@
    deleting them yet. */
 html body:has(.workspace-shell[data-workspace]),
 html body.flow-standalone,
-html body:has(.passenger-customer-shell),
 html body .workspace-shell[data-workspace] {
   background: var(--ui-scenic-tint), var(--ui-scenic) center 47% / cover fixed #b7d7c8;
   color: var(--ui-ink);
@@ -72,14 +71,12 @@ html body .workspace-shell[data-workspace] {
 @media (max-width: 1023px) {
   html body:has(.workspace-shell[data-workspace]),
   html body.flow-standalone,
-  html body:has(.passenger-customer-shell),
   html body .workspace-shell[data-workspace] { background-position: center 44%; }
 }
 
 @media (max-width: 767px) {
   html body:has(.workspace-shell[data-workspace]),
   html body.flow-standalone,
-  html body:has(.passenger-customer-shell),
   html body .workspace-shell[data-workspace] { background-attachment: scroll; background-position: 54% top; }
 }
 

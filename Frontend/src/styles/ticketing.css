@@ -118,8 +118,6 @@ html body .flow-page .tk-replace-seats .tk-line { overflow: hidden; text-overflo
 @media (max-width: 760px) { html body .flow-page .tk-replace-body { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- Road alerts on the Driver's live trip (contract 03A) ---------- */
-html body .flow-page .ra-live { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1 1 auto; }
-html body .flow-page .ra-banner-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 html body .flow-page .ra-position { font-weight: 500; }
 html body .flow-page .ra-layout { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; min-height: 0; flex: 1 1 auto; align-items: stretch; }
 html body .flow-page .ra-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; }
@@ -171,8 +169,6 @@ html body .flow-page .odo-row { display: grid; grid-template-columns: minmax(0, 
 html body .flow-page .odo-take { min-height: 44px; white-space: nowrap; }
 html body .flow-page .odo-result { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1.5px solid rgb(255 255 255 / .9); }
 html body .flow-page .odo-result strong { font-size: 16px; }
-html body .flow-page .odo-result.is-success { border-color: #7bcf9b; background: #e6f7ec; color: #0b5d2a; }
-html body .flow-page .odo-result.is-danger { border-color: #f1b6b0; background: #fff1ef; color: #a3160c; }
 html body .flow-page .odo-result.is-warn { border-color: #f2b66b; background: #fff4e5; color: #8a4b00; }
 html body .flow-page .odo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 html body .odo-camera { padding: 0; border: 0; background: #000; width: min(560px, 100vw); max-width: none; max-height: none; border-radius: 16px; overflow: hidden; }

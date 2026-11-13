@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 // A missing or failed image keeps the same initial-based fallback.
 export default function DashboardAvatar({ name, url }) {

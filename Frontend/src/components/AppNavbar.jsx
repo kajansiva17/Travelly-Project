@@ -1,5 +1,4 @@
 import { t } from '../i18n/language.js'
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from './components'
 import DashboardAvatar from './DashboardAvatar'

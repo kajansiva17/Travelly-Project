@@ -1,5 +1,5 @@
 import { t } from '../i18n/language.js'
-import React,{useLayoutEffect,useRef,useState} from 'react'
+import {useLayoutEffect,useRef,useState} from 'react'
 import '../styles/ticketSeats.css'
 
 // Top-down picture of the vehicle, drawn entirely with code (SVG + CSS, no image files).

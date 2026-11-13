@@ -1,5 +1,4 @@
 import { t } from '../../i18n/language.js'
-import React from 'react'
 import {Header} from '../../components/components'
 import {FlowShell} from '../booking/flow/FlowParts'
 import {Empty} from '../ticketing/TicketParts'

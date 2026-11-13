@@ -94,13 +94,10 @@ html body .dash-page .tip-more { align-self: flex-end; padding: 2px 12px; border
 html body .cm-banner { flex: none; }
 html body .cm-banner .flow-banner { padding: 8px 14px; }
 html body .cm-banner .flow-banner strong { font-size: 15px; line-height: 1.25; }
-html body .cm-blocked .flow-banner { background: #fde4e4; border-color: #e9a3a3; }
-html body .cm-blocked .flow-banner .flow-banner-icon, html body .cm-blocked .flow-banner strong { color: #b3141f; }
 html body .dash-page .cm-banner { align-self: flex-start; max-width: min(640px, calc(100% - 400px)); }
 @media (max-width: 1000px) { html body .dash-page .cm-banner { max-width: 100%; align-self: stretch; } }
 html body .ui-chip-warning { background: #fff2d9; border-color: #f2d58f; color: #8a5a00; }
 html body .cm-extend { display: grid; gap: 8px; }
-html body .cm-set-off { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* Event hire (03EV): packages on the vehicle card, the owner's package list */
 html body .flow-packages { display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow-y: auto; }

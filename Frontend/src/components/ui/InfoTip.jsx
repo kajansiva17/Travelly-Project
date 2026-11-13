@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import { useId } from 'react'
 import { Icon } from '../components'
 
 /* Small "i" button that shows a longer helper text on hover or keyboard focus.

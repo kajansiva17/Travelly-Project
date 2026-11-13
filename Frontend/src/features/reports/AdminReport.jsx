@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useState} from 'react'
+import {useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Header} from '../../components/components'
 import {FlowShell} from '../booking/flow/FlowParts'

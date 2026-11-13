@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useState} from 'react'
+import {useState} from 'react'
 import {Field} from '../owner/OwnerRates'
 import '../../styles/ticketing.css'
 

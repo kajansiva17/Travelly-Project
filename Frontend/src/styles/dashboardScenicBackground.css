@@ -3,8 +3,7 @@
    the lake reflection visible below translucent workspace surfaces. */
 :root { --dashboard-scenic:url('/images/travelly/heroes/travelly-dashboard-sigiriya-background.png'); }
 
-body:has(.workspace-shell[data-workspace]),
-body:has(.passenger-customer-shell) {
+body:has(.workspace-shell[data-workspace]) {
   background:linear-gradient(116deg,rgb(225 244 237 / .26),rgb(255 240 207 / .16)),var(--dashboard-scenic) center 47% / cover fixed #b7d7c8;
 }
 
@@ -18,12 +17,10 @@ body .workspace-shell[data-workspace] {
 
 @media (max-width:1023px) {
   body:has(.workspace-shell[data-workspace]),
-  body:has(.passenger-customer-shell),
   body .workspace-shell[data-workspace] {background-position:center 44%;}
 }
 
 @media (max-width:767px) {
   body:has(.workspace-shell[data-workspace]),
-  body:has(.passenger-customer-shell),
   body .workspace-shell[data-workspace] {background-attachment:scroll;background-position:54% top;}
 }

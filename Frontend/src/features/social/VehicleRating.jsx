@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {publicRead} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import {ratingOf} from './socialModel'

@@ -1,4 +1,3 @@
-import React from 'react'
 import { languages, setLanguage, t } from '../i18n/language.js'
 import { useLanguage } from '../i18n/useLanguage.js'
 

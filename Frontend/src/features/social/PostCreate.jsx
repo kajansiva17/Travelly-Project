@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {useNavigate} from '../passenger/travelRouter'
 import {api,uploadForm} from '../../services/api'
 import {Header,Icon} from '../../components/components'
