@@ -111,6 +111,43 @@ export async function api(path, options = {}) {
   }
 }
 
+// A multipart upload with progress and cancel (fetch cannot report upload progress). Same address, Bearer token and error shape as api();
+// a 401 renews the session once and sends the same form again. `onProgress(0..1)`, `signal` aborts (error.code 'UPLOAD_CANCELLED').
+function uploadOnce(path, form, accessToken, { onProgress, signal } = {}) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('POST', `${base}/api/v1${path}`)
+    if (accessToken) request.setRequestHeader('Authorization', `Bearer ${accessToken}`)
+    request.upload.onprogress = (event) => { if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total) }
+    request.onload = () => {
+      let data = {}
+      try { data = JSON.parse(request.responseText || '{}') } catch { data = {} }
+      if (request.status >= 200 && request.status < 300) return resolve(data)
+      const error = new Error(data.message || 'Unable to complete your request. Please try again.')
+      error.status = request.status
+      error.code = data.code
+      error.fields = data.field_errors || []
+      error.retryAfter = request.getResponseHeader('Retry-After')
+      reject(error)
+    }
+    request.onerror = () => reject(new TypeError('Network request failed'))
+    request.onabort = () => { const error = new Error('The upload was cancelled.'); error.code = 'UPLOAD_CANCELLED'; reject(error) }
+    if (signal) { if (signal.aborted) return request.abort(); signal.addEventListener('abort', () => request.abort(), { once: true }) }
+    request.send(form)
+  })
+}
+
+export async function uploadForm(path, form, options = {}) {
+  if (!credentials) { const error = new Error('Please sign in again.'); error.status = 401; throw error }
+  try { return await uploadOnce(path, form, credentials.access_token, options) }
+  catch (error) {
+    if (error.status !== 401) throw error
+    await refreshSession()
+    if (!credentials) throw error
+    return uploadOnce(path, form, credentials.access_token, options)
+  }
+}
+
 export async function logout() {
   // Settle a concurrent refresh before ending the session.
   if (refreshing) await refreshing.catch(() => {})

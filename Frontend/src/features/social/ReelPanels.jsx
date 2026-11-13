@@ -57,18 +57,22 @@ export function MenuPanel({post,onClose,onChoose}){
 }
 
 export function ReportPanel({post,onClose}){
-  const [reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false)
+  const [reason,setReason]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[done,setDone]=useState(false),[confirm,setConfirm]=useState(false),sending=useRef(false)
   async function send(e){
-    e.preventDefault();setBusy(true);setError('')
+    e?.preventDefault();if(sending.current)return;sending.current=true;setBusy(true);setError('')
     try{await api(`/social/posts/${post.id}/report`,{method:'POST',body:JSON.stringify({reason:reason.trim()})});setDone(true)}
-    catch(err){setError(fieldErrorMap(err).reason||fieldErrorText(err))}finally{setBusy(false)}
+    catch(err){setConfirm(false);setError(fieldErrorMap(err).reason||fieldErrorText(err))}finally{sending.current=false;setBusy(false)}
   }
   return <PanelShell title={t('Report')} onClose={onClose}>
     {done?<p className="tk-line" role="status">{t('Thank you. Your report was sent.')}</p>
-      :<form className="rl-form" onSubmit={send}>
+      :confirm?<div className="rl-form">
+        {error&&<p className="tk-line is-warn" role="alert">{error}</p>}
+        <p className="tk-line"><strong>{t('Send this report?')}</strong> {reason.trim()}</p>
+        <div className="rl-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setConfirm(false)}>{t('Back')}</button><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Sending…'):t('Yes, send report')}</button></div></div>
+      :<form className="rl-form" onSubmit={e=>{e.preventDefault();setError('');setConfirm(true)}}>
         {error&&<p className="tk-line is-warn" role="alert">{error}</p>}
         <label>{t('Reason')} <span className="req" aria-hidden="true">*</span><input name="reason" minLength={3} maxLength={500} value={reason} onChange={e=>setReason(e.target.value)}/></label>
-        <div className="rl-actions"><button type="button" className="ui-button ui-button-secondary" onClick={onClose}>{t('Cancel')}</button><button type="submit" className="ui-button ui-button-primary" disabled={busy||reason.trim().length<3}>{busy?t('Sending…'):t('Send report')}</button></div></form>}
+        <div className="rl-actions"><button type="button" className="ui-button ui-button-secondary" onClick={onClose}>{t('Cancel')}</button><button type="submit" className="ui-button ui-button-primary" disabled={reason.trim().length<3}>{t('Send report')}</button></div></form>}
   </PanelShell>
 }
 

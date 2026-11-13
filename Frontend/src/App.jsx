@@ -82,6 +82,8 @@ import SocialProfile from './features/social/SocialProfile'
 import ReelsPage from './features/social/ReelsPage'
 import './styles/ai.css'
 import './styles/social.css'
+import PostCreate from './features/social/PostCreate'
+import AdminSocialPosts from './features/admin/AdminSocialPosts'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()
@@ -165,6 +167,7 @@ const travelRoutes=prefix=>[
  <Route key="status" path={prefix+'/travel/trips/:tripId/request-status'} element={<PassengerRequestStatus/>}/>,
  <Route key="confirmed" path={prefix+'/travel/trips/:tripId/confirmed'} element={<PassengerRideConfirmed/>}/>,
  <Route key="map" path={prefix+'/travel/trips/:tripId/map'} element={<TripMapPage/>}/>,
+ <Route key="newpost" path={prefix+'/travel/social/post'} element={<PostCreate/>}/>,
  <Route key="reels" path={prefix+'/travel/reels'} element={<ReelsPage/>}/>,
  <Route key="reel" path={prefix+'/travel/reels/:postId'} element={<ReelsPage/>}/>,
  <Route key="profile" path={prefix+'/travel/social/users/:reference'} element={<SocialProfile/>}/>,
@@ -230,6 +233,7 @@ export default function App() {
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
             <Route path="/trips/:tripId/map" element={<TripMapPage/>}/>
+            <Route path="/social/post" element={<PostCreate/>}/>
             <Route path="/reels" element={<ReelsPage/>}/>
             <Route path="/reels/:postId" element={<ReelsPage/>}/>
             <Route path="/social/users/:reference" element={<SocialProfile/>}/>
@@ -291,7 +295,7 @@ export default function App() {
             <Route path="/admin/oversight" element={<AdminOversight/>}/>
             <Route path="/admin/rentals" element={<RentalRoleUi role="ADMIN"/>}/>
             <Route path="/admin/payments" element={<AdminPayments/>}/>
-            <Route path="/admin/social-reviews" element={<AdminWorkflowPage kind="reviews"/>}/>
+            <Route path="/admin/social-reviews" element={<AdminSocialPosts/>}/>
             <Route path="/admin/road-alerts" element={<AdminRoadAlerts/>}/>
             <Route path="/admin/reports" element={<AdminWorkflowPage kind="reports"/>}/>
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>

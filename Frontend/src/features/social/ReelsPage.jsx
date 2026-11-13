@@ -112,6 +112,7 @@ export default function ReelsPage(){
   const tabs=<div className="rl-top" role="tablist" aria-label={t('Travel Reels')}>
     {postId?<Link className="ui-button ui-button-secondary" to="/reels">{t('More reels')}</Link>
       :TABS.map(([code,name])=><Chip key={code} tone="info" role="tab" aria-selected={tab===code} selected={tab===code} onClick={()=>setTab(code)}>{t(name)}</Chip>)}
+    <Link className="ui-button ui-button-primary rl-post" to="/social/post"><Icon name="plus" size={16}/>{t('Post')}</Link>
     {hashtag&&<Chip tone="info" selected onClick={()=>setHashtag('')} aria-label={t('Clear #{value0}',{value0:hashtag})}>#{hashtag} ✕</Chip>}
   </div>
   let body
