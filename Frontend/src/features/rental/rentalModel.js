@@ -42,18 +42,17 @@ export function readRates(data){
     rates:{day_rate:d.day_rate??'',free_km_per_day:d.free_km_per_day??'',extra_km_rate:d.extra_km_rate??'',late_hour_rate:d.late_hour_rate??'',max_days:d.max_days??7,notes:d.notes||''},
     extras:(d.extras||[]).map(x=>({id:x.id,name:x.name,price:String(x.price),per:x.per}))}
 }
-// What an extra costs for `days` booked days: price x days when per = DAY, once when per = ONCE (contract formula).
-export const extraAmount=(extra,days)=>Math.round(Number(extra.price)*(extra.per==='DAY'?Number(days):1)*100)/100
-export const extrasTotal=(extras,days)=>extras.reduce((sum,x)=>sum+extraAmount(x,days),0)
-// Search item -> price preview with the chosen extras: day rate x days + extras.
-export function previewTotal(rental,days,chosen){
-  const base=Math.round(Number(rental?.day_rate||0)*Number(days)*100)/100
-  return Math.round((base+extrasTotal(chosen||[],days))*100)/100
+// The search answer carries the amounts: rental.base_price is the day rate for the searched days, and each offered extra has its own `amount`
+// for those days. The preview is their sum; the UI has no price formula of its own.
+export const extraAmount=extra=>{const n=Number(extra?.amount);return Number.isFinite(n)?n:0}
+export const extrasTotal=extras=>extras.reduce((sum,x)=>sum+extraAmount(x),0)
+export function previewTotal(rental,chosen){
+  return Math.round((Number(rental?.base_price||0)+extrasTotal(chosen||[]))*100)/100
 }
 export const validDays=(value,max=RENTAL_LIMITS.maxDaysTop)=>{const n=Number(value);return Number.isInteger(n)&&n>=1&&n<=max}
 export const validLicence=text=>{const v=String(text||'');return v.trim().length>=RENTAL_LIMITS.licenceMin&&v.length<=RENTAL_LIMITS.licenceMax&&/^[A-Za-z0-9 /-]+$/.test(v)}
-// A rental booking carries itinerary.rental (and no itinerary.itinerary).
-export const isRental=booking=>Boolean(booking&&booking.itinerary&&booking.itinerary.rental)
+// Every booking summary has booking_type; a rental is booking_type RENTAL (its details are in itinerary.rental).
+export const isRental=booking=>booking?.booking_type==='RENTAL'
 export const rentalOf=booking=>booking?.itinerary?.rental||null
 // The Owner's next steps and the renter's confirmations from the booking status and the recorded steps.
 export function ownerSteps(booking,now=new Date()){

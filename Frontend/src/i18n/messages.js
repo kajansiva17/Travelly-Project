@@ -1658,6 +1658,8 @@ const rows = [
   ["Open the rental","வாடகையைத் திற","කුලිය විවෘත කරන්න"],
   ["{value0} package","{value0} தொகுப்பு","පැකේජ {value0}"],
   ["{value0} packages","{value0} தொகுப்புகள்","පැකේජ {value0}"],
+  ["Ticket","டிக்கெட்","ටිකට්"],
+  ["Rental","வாடகை (சுய ஓட்டம்)","කුලිය"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

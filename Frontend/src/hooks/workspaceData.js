@@ -2,6 +2,7 @@ import { getLocale, t } from '../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../services/api'
 import {eventPackageOf} from '../features/booking/eventPackage'
+import {isRentalBooking,rentalLabel} from '../features/rental/rentalLabel'
 
 // Every result belongs to the current workspace, not to an earlier request.
 export function useWorkspaceData(loader,dependencies=[]){
@@ -13,7 +14,7 @@ export function useWorkspaceData(loader,dependencies=[]){
 export const words=value=>(value||'Not reported').replaceAll('_',' ')
 export const displayTime=value=>value?new Date(value).toLocaleString(getLocale(),{timeZone:'Asia/Colombo',dateStyle:'medium',timeStyle:'short'}):'Time not reported'
 // Event hire (03EV): the package name and hours follow the route (read paths in features/booking/eventPackage.js).
-export const tripRoute=booking=>{if(booking?.itinerary?.rental&&!booking.itinerary.itinerary)return `${t('Self-drive rental')} · ${booking.itinerary.rental.days===1?t('1 day'):t('{value0} days',{value0:booking.itinerary.rental.days})}`   // 03RN: a rental has no stops
+export const tripRoute=booking=>{if(isRentalBooking(booking))return rentalLabel(booking)   // 03RN: a rental has no stops
   const route=(booking.itinerary?.itinerary?.stops||[]).map(stop=>stop.place?.label).filter(Boolean).join(' → ')||booking.reference,pkg=eventPackageOf(booking);return pkg?`${route} · ${pkg.name} · ${t('{value0} hours',{value0:pkg.hours})}`:route}
 export const pendingBooking=booking=>!['COMPLETED','CANCELLED','REJECTED'].includes(booking.status)
 // Contract 03W: every booking carries viewer_roles and GET /bookings takes ?as=passenger|owner|driver, so the server decides

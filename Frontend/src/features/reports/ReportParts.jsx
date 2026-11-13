@@ -9,7 +9,7 @@ import {FIRST_MONTH,thisMonth} from './reportModel'
    tables that become stacked cards on phones, a full-width Download PDF button at the bottom. */
 export function MonthPicker({value,onChange,disabled}){
   return <label className="rp-month"><span>{t('Month')}</span>
-    <input type="month" name="month" value={value} min={FIRST_MONTH} max={thisMonth()} disabled={disabled} onChange={e=>{if(e.target.value)onChange(e.target.value)}}/></label>
+    <input type="month" name="month" value={value} min={FIRST_MONTH} max={thisMonth()} disabled={disabled} onChange={e=>{const v=e.target.value;if(v&&v>=FIRST_MONTH&&v<=thisMonth())onChange(v)}}/></label>
 }
 
 // tone: '' | 'good' | 'bad'. The icon repeats the meaning so colour is not the only cue.

@@ -65,14 +65,14 @@ export function PassengerRental(){
           :<div className="flow-vehicle-list">{shown.map(v=>{const r=v.rental||{},on=vehicle?.id===v.id,list=r.extras||[],picked=list.filter(x=>extraIds[v.id+x.id])
             return <FlowVehicleCard key={v.id} vehicle={v} selected={on} title={vehicleName(v)} specs={[{icon:'seat',label:`${v.passenger_seats??'—'} ${t('passenger seats')}`},{icon:'grid',label:`${v.large_luggage??'—'} ${t('large luggage')}`}]}
               chips={<><div className="flow-packages"><Chip icon="wallet" tone="info">{t('{value0} per day',{value0:money('LKR',r.day_rate)})}</Chip><Chip tone="muted">{t('{value0} km free',{value0:r.free_km_total})}</Chip><Chip tone="muted">{t('{value0} per extra km',{value0:money('LKR',r.extra_km_rate)})}</Chip></div>
-                {list.length>0&&<div className="flow-packages" role="group" aria-label={t('Extras')}>{list.map(x=><Chip key={x.id} tone="info" selected={Boolean(extraIds[v.id+x.id])} onClick={()=>setExtraIds(c=>({...c,[v.id+x.id]:!c[v.id+x.id]}))}>{x.name} · {money('LKR',extraAmount(x,days))}</Chip>)}</div>}
+                {list.length>0&&<div className="flow-packages" role="group" aria-label={t('Extras')}>{list.map(x=><Chip key={x.id} tone="info" selected={Boolean(extraIds[v.id+x.id])} onClick={()=>setExtraIds(c=>({...c,[v.id+x.id]:!c[v.id+x.id]}))}>{x.name} · {money('LKR',extraAmount(x))}</Chip>)}</div>}
                 {r.notes&&<p className="tk-line" title={r.notes}>{r.notes}</p>}
-                <strong>{t('Estimate')}: {money('LKR',previewTotal(r,days,picked))}</strong></>}
+                <strong>{t('Estimate')}: {money('LKR',previewTotal(r,picked))}</strong></>}
               action={<Button arrow onClick={()=>{setVehicle(v);setStep(2)}}>{t('Select vehicle')}</Button>}/>})}</div>}
         <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setStep(0)}>{t('Back')}</button>{pages>1?<Pager page={Math.min(page,pages-1)} pages={pages} onPage={setPage}/>:<span/>}</div></div>}
       {step===2&&vehicle&&<div className="tk-pane">
         <dl className="flow-review"><div><dt>{t('Vehicle')}</dt><dd>{vehicleName(vehicle)}</dd></div><div><dt>{t('Pickup date')}</dt><dd>{when.date} {when.time}</dd></div><div><dt>{t('Rental days')}</dt><dd>{days}</dd></div>
-          {chosen.length>0&&<div><dt>{t('Extras')}</dt><dd>{chosen.map(x=>x.name).join(', ')}</dd></div>}<div><dt>{t('Estimate')}</dt><dd>{money('LKR',previewTotal(vehicle.rental,days,chosen))}</dd></div></dl>
+          {chosen.length>0&&<div><dt>{t('Extras')}</dt><dd>{chosen.map(x=>x.name).join(', ')}</dd></div>}<div><dt>{t('Estimate')}</dt><dd>{money('LKR',previewTotal(vehicle.rental,chosen))}</dd></div></dl>
         <div className="tk-grid" style={{'--cols':2}}><Field label="Driving licence number" help="The Owner checks your licence when you collect the vehicle."><input name="licence_number" maxLength={RENTAL_LIMITS.licenceMax} value={licence} onChange={e=>{setLicence(e.target.value);setErrors({})}}/></Field></div>
         <p className="tk-line">{t('The final price is worked out when the vehicle is returned, from the odometer readings and these rates.')}</p>
         <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setStep(1)}>{t('Back')}</button><Button arrow disabled={busy||!validLicence(licence)} onClick={request}>{busy?t('Sending…'):t('Request this rental')}</Button></div></div>}

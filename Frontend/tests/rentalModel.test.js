@@ -28,15 +28,15 @@ test('first-time read and a saved read', () => {
   const saved=readRates({version:4,enabled:true,day_rate:'8000.00',free_km_per_day:'100',extra_km_rate:'40.00',late_hour_rate:'500.00',max_days:7,notes:'x',cash_accepted:true,extras:[{id:'a',name:'N',price:'300.00',per:'ONCE'}]})
   assert.equal(saved.version,4);assert.equal(saved.cashAccepted,true);assert.equal(saved.extras[0].per,'ONCE')
 })
-test('estimate preview: day rate x days plus extras (DAY x days, ONCE once)', () => {
-  const day={price:'300',per:'DAY'},once={price:'150.50',per:'ONCE'}
-  assert.equal(extraAmount(day,3),900);assert.equal(extraAmount(once,3),150.5)
-  assert.equal(previewTotal({day_rate:'8000'},2,[day,once]),16000+600+150.5);assert.equal(previewTotal({day_rate:'8000'},2,[]),16000)
+test('estimate preview: base_price of the searched days plus the amounts the server gave the chosen extras', () => {
+  const day={amount:'600.00'},once={amount:'150.50'}
+  assert.equal(extraAmount(day),600);assert.equal(extraAmount({}),0)
+  assert.equal(previewTotal({base_price:'16000.00'},[day,once]),16750.5);assert.equal(previewTotal({base_price:'16000.00'},[]),16000);assert.equal(previewTotal(undefined,[]),0)
 })
 test('days, licence number, rental detection', () => {
   assert.equal(validDays('2'),true);assert.equal(validDays('0'),false);assert.equal(validDays('31'),false);assert.equal(validDays('1.5'),false)
   assert.equal(validLicence('B1234567'),true);assert.equal(validLicence('B12'),false);assert.equal(validLicence('B123 4567!'),false)
-  assert.equal(isRental({itinerary:{rental:{days:2}}}),true);assert.equal(isRental({itinerary:{itinerary:{}}}),false)
+  assert.equal(isRental({booking_type:'RENTAL',itinerary:{rental:{days:2}}}),true);assert.equal(isRental({booking_type:'PRIVATE_HIRE',itinerary:{itinerary:{}}}),false);assert.equal(isRental({itinerary:{rental:{days:2}}}),false)
 })
 test('Owner steps and the renter confirmations follow the status and the recorded steps', () => {
   const b=s=>({status:s,start_at:'2030-01-01T00:00:00Z',itinerary:{rental:{}}})

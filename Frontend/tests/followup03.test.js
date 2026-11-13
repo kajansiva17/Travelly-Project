@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {eventPackageOf} from '../src/features/booking/eventPackage.js'
 import {isRentalTrip,tripLink} from '../src/features/trips/tripLinks.js'
 import {RENTAL_STAGES,isRentalReminder} from '../src/features/notifications/notices.js'
+import {isRentalBooking,rentalLabel} from '../src/features/rental/rentalLabel.js'
 import {vehicleTabFromSearch} from '../src/features/notifications/reminders.js'
 
 const pkg={id:'p1',name:'Wedding car 6 hours',hours:'6'}
@@ -30,4 +31,10 @@ test('rental reminders are RECONFIRMATION notices with a rental stage, matched b
 })
 test('vehicle page tabs from the address', () => {
   assert.equal(vehicleTabFromSearch('?tab=event-packages'),6);assert.equal(vehicleTabFromSearch('?tab=rental-rates'),7);assert.equal(vehicleTabFromSearch('?tab=documents'),1)
+})
+test('rental label comes from booking_type RENTAL, with the days', () => {
+  assert.equal(isRentalBooking({booking_type:'RENTAL'}),true);assert.equal(isRentalBooking({booking_type:'PRIVATE_HIRE',itinerary:{rental:{days:2}}}),false)
+  assert.match(rentalLabel({booking_type:'RENTAL',itinerary:{rental:{days:2}}}),/Self-drive rental · 2 days|Self-drive rental · \{value0\} days/)
+  assert.match(rentalLabel({booking_type:'RENTAL',rental_days:1}),/Self-drive rental · 1 day/)
+  assert.equal(rentalLabel({booking_type:'RENTAL'}),'Self-drive rental')
 })
