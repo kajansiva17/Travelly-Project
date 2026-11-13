@@ -55,3 +55,37 @@ html body .travelly-ai-card.travelly-ai-card .reference-ai-actions button { max-
 
 /* The Admin dashboard has no AI card (it is for signed-in customers: Passenger, Owner and Driver workspaces), so its last tile uses the full row. */
 html body .dash-page .dash-grid > .c-main:last-child { grid-column: span 12; }
+
+/* Live trip map (03O, C) and the Trip in progress card (GET /trips/active) */
+html body .flow-page .tm-view { display: flex; flex-direction: column; gap: 6px; min-height: 0; flex: 1 1 auto; }
+html body .flow-page .tm-view .ra-layout { flex: 1 1 auto; min-height: 0; }
+html body .flow-page .ra-map { position: relative; flex: 1 1 auto; min-height: 160px; border-radius: 14px; overflow: hidden; border: 1px solid var(--ui-glass-border); }
+html body .flow-page .tm-wrap { position: absolute; inset: 0; }
+html body .flow-page .tm-map { position: absolute; inset: 0; z-index: 0; background: #e8eef7; }
+html body .flow-page .tm-map .leaflet-pane, html body .flow-page .tm-map .leaflet-top, html body .flow-page .tm-map .leaflet-bottom { z-index: 1; }
+html body .flow-page .tm-follow { position: absolute; left: 10px; bottom: 26px; z-index: 5; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--ui-glass-border); background: var(--ui-glass-strong, #fff); color: var(--ui-ink); font-weight: 700; cursor: pointer; }
+html body .flow-page .tm-follow.is-on { background: var(--ui-red, #c8102e); color: #fff; border-color: transparent; }
+html body .flow-page .tm-fallback { position: absolute; left: 10px; right: 10px; top: 10px; z-index: 5; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--ui-glass-strong, #fff); font-weight: 600; }
+html body .flow-page .tm-strip { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; min-width: 0; }
+html body .flow-page .tm-strip .ra-position { flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tm-strip-actions { display: flex; gap: 8px; margin-left: auto; }
+html body .flow-page .ra-info { flex: none; }
+html body .flow-page .ra-rail { overflow-y: auto; }
+html body .flow-page .ra-side-btn { width: 100%; min-height: 52px; padding: 4px 6px; white-space: normal; line-height: 1.15; font-size: 13px; }
+html body .flow-page .ra-rail.is-readonly { width: 120px; }
+
+html body .dash-page { position: relative; }
+html body .dash-page .tip-cards { position: absolute; top: 0; right: 0; z-index: 2; display: flex; flex-direction: column; gap: 6px; width: min(380px, 38%); }
+html body .dash-page .tip-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; padding: 8px 12px; border-radius: 16px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); color: var(--ui-ink); text-decoration: none; }
+html body .dash-page .tip-card:hover { background: var(--ui-glass-strong); }
+html body .dash-page .tip-text { display: grid; min-width: 0; }
+html body .dash-page .tip-text strong, html body .dash-page .tip-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .dash-page .tip-open { grid-column: 1 / -1; font-weight: 700; color: var(--ui-red, #c8102e); }
+html body .dash-page .tip-more { align-self: flex-end; padding: 2px 12px; border-radius: 999px; background: var(--ui-glass); font-weight: 600; }
+@media (max-width: 1000px) { html body .dash-page .tip-cards { position: static; width: 100%; } }
+@media (max-width: 760px) {
+  /* the map stays visible; the side column becomes a compact bar under it */
+  html body .flow-page .ra-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  html body .flow-page .ra-layout .ra-rail, html body .flow-page .ra-layout .ra-rail.is-open { width: auto; flex-direction: row; flex-wrap: wrap; overflow: visible; }
+  html body .flow-page .ra-side-btn { width: auto; flex: 1 1 100px; }
+}

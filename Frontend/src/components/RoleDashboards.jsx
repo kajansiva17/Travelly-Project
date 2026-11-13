@@ -18,6 +18,8 @@ import InfoTip from './ui/InfoTip'
 import EmptyState from './ui/EmptyState'
 import {reminderKind,reminderLink} from '../features/notifications/reminders'
 import {isExpired,isRoadAlertNotice,noticeBookingId} from '../features/notifications/notices'
+import TripInProgressCard from '../features/trips/TripInProgressCard'
+import {useActiveTrips} from '../features/trips/tripHooks'
 
 function Resource({resource,children,empty='Nothing here yet.'}){if(resource.loading)return <p className="workspace-loading" role="status"><span className="spinner"/>{t(" Loading…")}</p>;if(resource.error)return <div className="workspace-resource-error"><h3>{[401,403].includes(resource.error.status)?t('Access unavailable'):t('Unable to load this information')}</h3><ErrorNotice error={resource.error}/><button className="button outline" onClick={resource.reload}>{t("Try again")}</button></div>;if(!resource.data)return <p>{t(empty)}</p>;return children(resource.data)}
 function Empty({icon='calendar',title,children,to,action}){return <div className="workspace-empty"><Icon name={icon} size={30}/><h3>{t(title)}</h3><p>{children}</p>{to&&<Link className="button outline" to={to}>{t(action)||t('Explore')}<Icon name="arrow" size={17}/></Link>}</div>}
@@ -35,9 +37,9 @@ function CalendarPreview({vehicles,limit=2}){
 export function DashStat({icon,label,value,to,note,tone='blue'}){return <Link className={'dash-stat tone-'+tone} to={to} title={note?t(note):undefined}><span className="dash-stat-icon"><Icon name={icon} size={22}/></span><div><span>{t(label)}</span><strong>{t(value)}</strong></div></Link>}
 export function Tile({icon,title,tip,to,link,className='',children}){return <section className={'dash-tile '+className}><header><h3><Icon name={icon} size={18}/>{t(title)}{tip&&<InfoTip>{tip}</InfoTip>}</h3>{to&&<Link to={to}>{t(link)}</Link>}</header><div className="dash-tile-body">{children}</div></section>}
 export function Soft({children}){return <p className="dash-soft">{children}</p>}
-export function DashPage({title,subtitle,stats,children}){
+export function DashPage({title,subtitle,stats,hero=null,children}){
  useEffect(()=>{document.title=t(title)+' | Travelly'},[title,getLanguage()])
- return <main className="dash-page" id="main"><div className="dash-hero"><h1>{title}</h1><p>{subtitle}</p></div><div className="dash-stats">{stats}</div><div className="dash-grid">{children}</div></main>
+ return <main className="dash-page" id="main"><div className="dash-hero"><h1>{title}</h1><p>{subtitle}</p></div>{hero}<div className="dash-stats">{stats}</div><div className="dash-grid">{children}</div></main>
 }
 function DashChart({items}){
  const groups=[['Requested',['REQUESTED']],['Awaiting driver',['AWAITING_DRIVER','OWNER_ACTION_REQUIRED']],['Confirmed',['CONFIRMED']],['On trip',['IN_PROGRESS']],['Completed',['COMPLETED']]]
@@ -53,10 +55,10 @@ export function DashLinks({items}){return <div className="dash-links">{items.map
 export function useDashRows(){const [h,setH]=useState(typeof window==='undefined'?900:window.innerHeight);useEffect(()=>{const f=()=>setH(window.innerHeight);window.addEventListener('resize',f);return()=>window.removeEventListener('resize',f)},[]);return h<700?2:h<900?3:h<1200?4:6}
 export const bookingsNote=(r,fn)=>r.loading?<Soft>{t(" Loading…")}</Soft>:r.error?<Soft>{t("Unable to load this information")}</Soft>:fn(r.data)
 export function OwnerDashboard(){
- const {user}=useWorkspace(),fleet=useWorkspaceData(()=>api('/owners/me/vehicles?page=1&page_size=4'),[user.id]),bookings=useWorkspaceData(()=>loadBookings(user.id,'OWNER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0]
+ const {user}=useWorkspace(),trips=useActiveTrips(),fleet=useWorkspaceData(()=>api('/owners/me/vehicles?page=1&page_size=4'),[user.id]),bookings=useWorkspaceData(()=>loadBookings(user.id,'OWNER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0]
  const rows=useDashRows(),list=sortTrips(bookings.data||[]).slice(0,rows-1)
  const vehicleCount=fleet.loading?'?':fleet.error?'Unavailable':fleet.data?.total??fleet.data?.items?.length??0
- return <DashPage title={t('Grow every journey, {name}.',{name:first})} subtitle={t("Your fleet moves Sri Lanka. Here's what's happening today.")}
+ return <DashPage title={t('Grow every journey, {name}.',{name:first})} subtitle={t("Your fleet moves Sri Lanka. Here's what's happening today.")} hero={<TripInProgressCard items={trips.items}/>}
   stats={<><DashStat icon="car" label="Your fleet" value={vehicleCount} to="/owner/vehicles" note="Registered vehicles"/><DashStat tone="red" icon="ticket" label="Open booking records" value={bookings.loading?'?':bookings.error?'Unavailable':bookings.data.filter(pendingBooking).length} note="Latest returned records" to="/owner/bookings"/><DashStat icon="calendar" label="Vehicle availability" value="Calendar" to="/owner/vehicles" note="Review dated commitments"/><DashStat tone="red" icon="wallet" label="Earnings" value={'—'} to="/owner/earnings" note="Ledger not available yet"/></>}>
   <Tile className="a-main" icon="car" title="Fleet at a glance" tip={t("Your vehicles and their current review status.")} to="/owner/vehicles" link="View fleet">
    <Resource resource={fleet}>{result=>result.items?.length?<div className="dash-vehicles">{result.items.map(v=><DashVehicle key={v.id} v={v}/>)}</div>:<Soft>{t("Add and verify a vehicle before publishing it for hire.")} <Link to="/owner/vehicles">{t("Add a vehicle")}</Link></Soft>}</Resource></Tile>
@@ -70,11 +72,11 @@ export function OwnerDashboard(){
 }
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Colombo'})
 export function DriverDashboard(){
- const {user}=useWorkspace(),assignments=useWorkspaceData(()=>loadBookings(user.id,'DRIVER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],next=sortTrips((assignments.data||[]).filter(activeAssignment))[0]
+ const {user}=useWorkspace(),trips=useActiveTrips(),assignments=useWorkspaceData(()=>loadBookings(user.id,'DRIVER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],next=sortTrips((assignments.data||[]).filter(activeAssignment))[0]
  const rows=useDashRows(),stops=next?.itinerary?.itinerary?.stops||[],shown=stops.length>rows?[...stops.slice(0,rows-1),stops[stops.length-1]]:stops
  const count=f=>assignments.loading?'?':assignments.error?'Unavailable':f(assignments.data),first_=stops[0]?.place?.label,last_=stops[stops.length-1]?.place?.label
  const todays=b=>new Date(b.start_at).toLocaleDateString('en-CA',{timeZone:'Asia/Colombo'})===today()
- return <DashPage title={t('Ready for the road, {name}?',{name:first})} subtitle={t('Great journeys start with great drivers. Stay safe, keep moving!')}
+ return <DashPage title={t('Ready for the road, {name}?',{name:first})} subtitle={t('Great journeys start with great drivers. Stay safe, keep moving!')} hero={<TripInProgressCard items={trips.items}/>}
   stats={<><DashStat label="Today's trips" icon="car" value={count(d=>d.filter(b=>(activeAssignment(b)||b.status==='COMPLETED')&&todays(b)).length)} to="/driver/assignments" note="Latest returned records"/><DashStat tone="green" label="Completed" icon="check" value={count(d=>d.filter(b=>b.status==='COMPLETED').length)} to="/driver/trip-history" note="Latest returned records"/><DashStat label="Upcoming" icon="calendar" value={count(d=>d.filter(b=>activeAssignment(b)&&new Date(b.start_at)>new Date()).length)} to="/driver/assignments" note="Within returned records"/><DashStat tone="red" label="Today's earnings" icon="wallet" value={'—'} to="/driver/earnings" note="Earnings ledger unavailable"/></>}>
   <Tile className="a-main" icon="pin" title="Next assignment" tip={t("Review your assigned journey before operating the trip.")}>
    {bookingsNote(assignments,()=>next?<div className="dash-assignment"><span className="dash-vehicle-art big"><Icon name="car" size={34} aria-hidden="true"/></span><div className="dash-assignment-main"><strong className="dash-route">{first_&&last_&&stops.length>1?<>{first_} → {last_}</>:tripRoute(next)}</strong><div className="dash-facts"><span><Icon name="clock" size={15}/>{displayTime(next.start_at)}</span><span><Icon name="users" size={15}/>{next.passenger_count}{t(" passengers")}</span><Chip tone="info">{t(words(next.trip.assignment_status))}</Chip></div><div className="dash-buttons"><Link className="ui-button ui-button-secondary" to={withWorkspace('/bookings/'+next.id,'DRIVER')}>{t("View trip details")}</Link>{next.trip?.assignment_status==='ACCEPTED'&&next.trip?.id&&<Link className="ui-button ui-button-primary" to={withWorkspace('/trips/'+next.trip.id+'/operation','DRIVER')}>{t("Start trip")}</Link>}</div></div></div>:<Soft>{t("No upcoming assignment")}</Soft>)}</Tile>
@@ -83,9 +85,9 @@ export function DriverDashboard(){
   <Tile className="b-1" icon="wallet" title="Today's earnings"><Soft>{t("Earnings ledger unavailable")}</Soft></Tile>
   <Tile className="b-2" icon="users" title="Passenger details" tip={t("Passenger contact, ratings and live locations are not supplied by this API.")}>
    {next?<div className="dash-facts col"><span><Icon name="pin" size={15}/>{t("Pickup")}: {first_||'—'}</span><span><Icon name="pin" size={15}/>{t("Destination")}: {last_||'—'}</span><span><Icon name="users" size={15}/>{next.passenger_count}{t(" passengers")}</span></div>:<Soft>{t("Select an assigned trip to review its details.")}</Soft>}</Tile>
-  <Tile className="b-3" icon="alert" title="Road alerts" to="/driver/road-alerts" link="View all"><Soft>{t("A live road-alert feed is not available yet. No incidents or delays are assumed.")}</Soft></Tile>
+  <Tile className="b-3" icon="alert" title="Road alerts"><Soft>{t("Road alerts appear on your live trip map while you drive.")}</Soft></Tile>
   <Tile className="c-main" icon="car" title="Need a ride after your shift?" tip={t("Book as a Passenger using your existing account. Your personal trips stay separate from customer bookings and assigned work.")}><DashLinks items={[["Book a ride for myself",'/driver/travel/hire','car'],['My personal trips','/driver/travel/bookings','calendar']]}/></Tile>
-  <Tile className="c-mid" icon="spark" title="Quick actions"><DashLinks items={[['View assignments','/driver/assignments','calendar'],['Operate a trip','/driver/operate-trip','car'],['Road alerts','/driver/road-alerts','alert'],['My documents',accountPath('DRIVER','driver'),'document']]}/></Tile>
+  <Tile className="c-mid" icon="spark" title="Quick actions"><DashLinks items={[['View assignments','/driver/assignments','calendar'],['Operate a trip','/driver/operate-trip','car'],['My documents',accountPath('DRIVER','driver'),'document']]}/></Tile>
   <TravellyAiPanel className="dash-tile c-side"/>
  </DashPage>
 }

@@ -58,6 +58,7 @@ import './styles/redesign.css'
 import './styles/referenceDesign.css'
 import './styles/accountContext.css'
 import './styles/navbarSpeedometer.css'
+import TripMapPage from './features/trips/TripMapPage'
 import './styles/redButtonGlass.css'
 import './styles/adminProfile.css'
 import './styles/dashboardReferences.css'
@@ -160,6 +161,7 @@ const travelRoutes=prefix=>[
  <Route key="review" path={prefix+'/travel/book/review'} element={<PassengerRequestReview/>}/>,
  <Route key="status" path={prefix+'/travel/trips/:tripId/request-status'} element={<PassengerRequestStatus/>}/>,
  <Route key="confirmed" path={prefix+'/travel/trips/:tripId/confirmed'} element={<PassengerRideConfirmed/>}/>,
+ <Route key="map" path={prefix+'/travel/trips/:tripId/map'} element={<TripMapPage/>}/>,
  <Route key="old" path={prefix+'/personal/*'} element={<OldPersonalPath/>}/>
 ]
 // Earlier links to <prefix>/personal/... keep working and land on the same page under /travel.
@@ -221,6 +223,7 @@ export default function App() {
             <Route path="/travel/book/review" element={<PassengerRequestReview/>}/>
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
+            <Route path="/trips/:tripId/map" element={<TripMapPage/>}/>
           </Route>
           <Route element={<WorkspaceShell role="OWNER"/>}>
             {travelRoutes('/owner')}

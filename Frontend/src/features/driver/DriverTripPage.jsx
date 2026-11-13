@@ -4,11 +4,13 @@ import {Link,Navigate,useParams} from 'react-router-dom'
 import {useWorkspace} from '../../context/workspaceContext'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
 import OdometerStep from '../odometer/OdometerStep'
+import TripMap from '../trips/TripMap'
+import {useTripMap} from '../trips/tripHooks'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
-import {Button,Checkbox,FormField,Input,Select,InfoCallout} from '../../components/ui'
+import {Button,Checkbox,Chip,FormField,Input,Select,InfoCallout} from '../../components/ui'
 import HirePayment from '../booking/HirePayment'
 import InfoTip from '../../components/ui/InfoTip'
 import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useScreenWakeLock,useSpeaker} from './RoadAlerts'
@@ -38,7 +40,9 @@ export default function DriverTripPage(){
   // Road alerts (contract 03A): nearby alerts are polled while the trip runs, and spoken once when the Driver switched the speaker on.
   const [alertsOpen,setAlertsOpen]=useState(false),speaker=useSpeaker(),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
   useRoadAlertNotifications({running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.sayNotification})
-  const wake=useScreenWakeLock(Boolean(trip&&RUNNING.includes(trip.status)))   // keep the screen on while the trip runs (contract 03A)
+  const wake=useScreenWakeLock(Boolean(trip&&RUNNING.includes(trip.status)))
+  // The live trip map (contract 03O, C) is the main view while the trip runs: route, road line and position from GET /trips/{id}/map, the vehicle from our own location updates.
+  const [follow,setFollow]=useState(true),map=useTripMap(tripId,{enabled:Boolean(trip&&RUNNING.includes(trip.status))}),autoShared=useRef(false)   // keep the screen on while the trip runs (contract 03A)
   useEffect(()=>{latest.current=trip},[trip])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return()=>clearTimeout(timer)},[notice])
 
@@ -69,6 +73,8 @@ export default function DriverTripPage(){
     return()=>{active=false;clearInterval(timer)}
   },[sharing,sendPosition])
   useEffect(()=>{if(trip&&!RUNNING.includes(trip.status))setSharing(false)},[trip])
+  // A running trip shares its position by itself (the Passenger and the Owner follow it on the map); the Driver can stop it.
+  useEffect(()=>{if(trip&&RUNNING.includes(trip.status)&&!autoShared.current){autoShared.current=true;setSharing(true)}},[trip])
 
   const check=useCallback(async body=>{
     setBusy(true);setError(null)
@@ -109,7 +115,7 @@ export default function DriverTripPage(){
   }
   const start=event=>{event.preventDefault();act(async()=>{
     await request(`/trips/${tripId}/start`,{expected_version:trip.version,start_odometer_km:startKm,checklist_confirmed:true})
-    await load();setTab('live')
+    await load();setTab(null)
   },'Trip started. Share your position so the Passenger can follow.')}
   const report=event=>{event.preventDefault();act(async()=>{
     const result=await request(`/trips/${tripId}/breakdown`,{expected_version:trip.version,kind,details})
@@ -129,11 +135,12 @@ export default function DriverTripPage(){
   const running=RUNNING.includes(trip.status)
   const finished=['COMPLETED','CANCELLED'].includes(trip.status)
   const checked=Boolean(trip.pickup?.verified_at)
-  const panels=finished?[]:running
-    ?[...(checked?[]:[['verify','Check the Passenger','user']]),['live','Live position','pin'],['problem','Problem on the road','alert'],['finish','Finish the trip','check']]
+  const panels=finished||running?[]
     :trip.status==='READY'?[...(checked?[]:[['verify','Check the Passenger','user']]),['start','Start the trip','car']]:[]
-  const open=panels.some(([id])=>id===tab)?tab:panels[0]?.[0]
+  // Running: the map is the main view; Problem on the road, Finish and (if still needed) the passenger check open from its side column.
+  const open=running?(['problem','finish','verify'].includes(tab)?tab:'map'):(panels.some(([id])=>id===tab)?tab:panels[0]?.[0])
   const tabs=panels.length>1?panels.map(([id,label,icon])=>({label:t(label),icon,active:open===id,onClick:()=>setTab(id)})):undefined
+  const backToMap=running&&open!=='map'?<Button variant="secondary" onClick={()=>setTab(null)}>{t('Back to the map')}</Button>:null
 
   return <><Header/><FlowShell heading={t('Operate trip')} icon="car" title={t('Trip ')+words(trip.status)}
     subtitle={t('Planned ')+clock(trip.scheduled_start_at)+t(' to ')+clock(trip.scheduled_end_at)+t(' Sri Lanka time')} tabs={tabs}>
@@ -154,10 +161,10 @@ export default function DriverTripPage(){
         {({id})=><Input id={id} inputMode="numeric" maxLength={6} value={pin} style={PIN_INPUT}
           onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,6))}/>}
       </FormField>
-      <div className="flow-actions"><Button disabled={busy||pin.length!==6} onClick={()=>check({pin})}>{busy?t('Checking…'):t('Check the Passenger')}</Button></div>
+      <div className="flow-actions">{backToMap}<Button disabled={busy||pin.length!==6} onClick={()=>check({pin})}>{busy?t('Checking…'):t('Check the Passenger')}</Button></div>
     </div>}
 
-    {checked&&open!=='verify'&&!finished&&<FlowBanner tone="success" icon="check" title={t('Passenger checked')}>
+    {checked&&open!=='verify'&&open!=='map'&&!finished&&<FlowBanner tone="success" icon="check" title={t('Passenger checked')}>
       {t('Checked at ')+clock(trip.pickup.verified_at)+t(' Sri Lanka time.')}</FlowBanner>}
 
     {open==='start'&&<form className="flow-fields" onSubmit={start}>
@@ -166,17 +173,21 @@ export default function DriverTripPage(){
       <div className="flow-actions"><Button type="submit" disabled={busy||!ready||!startKm} arrow>{busy?t('Starting…'):t('Start trip')}</Button></div>
     </form>}
 
-    {open==='live'&&<div className="flow-fields ra-live">
-      {!alertsOpen&&<FlowBanner tone={trip.location?'success':'info'} icon="pin" title={trip.location?t('Your position is shared'):t('Position not shared yet')}
-        aside={<div className="ra-banner-actions">{sharing?<Button variant="secondary" onClick={()=>setSharing(false)}>{t('Stop sharing')}</Button>
-          :<Button onClick={()=>setSharing(true)}>{t('Share every 30 seconds')}</Button>}<Button variant="secondary" disabled={busy} onClick={()=>sendPosition()}>{t('Send my position now')}</Button></div>}>
-        {trip.location
-          ?t('Last sent at ')+clock(sentAt||trip.location.updated_at)+t(' Sri Lanka time.')
-          :t('Only the Passenger, the Owner and Travelly Admin can see it.')}
-        <InfoTip>{t('Sharing stops by itself when the trip is completed.')}</InfoTip>
-        {trip.location&&<span className="ra-position"> · {t('Map position')}: {trip.location.latitude}, {trip.location.longitude}{trip.location.accuracy_m?` · ${t('Accuracy')} ${Math.round(Number(trip.location.accuracy_m))} m`:''}{trip.location.speed_kph?` · ${t('Speed')} ${Math.round(Number(trip.location.speed_kph))} ${t('km/h')}`:''}</span>}
-      </FlowBanner>}
-      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} keepScreenOn={wake.unavailable}/>
+    {open==='map'&&<div className="flow-fields tm-view">
+      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} keepScreenOn={wake.unavailable}
+        strip={!alertsOpen&&<div className="tm-strip">
+          <Chip tone={trip.location?'success':'info'} icon="pin">{trip.location?t('Your position is shared'):t('Position not shared yet')}</Chip>
+          <span className="ra-position">{trip.location
+            ?t('Last sent at ')+clock(sentAt||trip.location.updated_at)+t(' Sri Lanka time.')+' · '+t('Map position')+': '+trip.location.latitude+', '+trip.location.longitude+(trip.location.accuracy_m?` · ${t('Accuracy')} ${Math.round(Number(trip.location.accuracy_m))} m`:'')+(trip.location.speed_kph?` · ${t('Speed')} ${Math.round(Number(trip.location.speed_kph))} ${t('km/h')}`:'')
+            :t('Only the Passenger, the Owner and Travelly Admin can see it.')}<InfoTip>{t('Sharing stops by itself when the trip is completed.')}</InfoTip></span>
+          <span className="tm-strip-actions">{sharing?<Button variant="secondary" onClick={()=>setSharing(false)}>{t('Stop sharing')}</Button>:<Button onClick={()=>setSharing(true)}>{t('Share every 30 seconds')}</Button>}
+            <Button variant="secondary" disabled={busy} onClick={()=>sendPosition()}>{t('Send my position now')}</Button></span></div>}
+        renderMap={({selectedId,onSelect})=><TripMap data={map.data} position={trip.location||map.data?.position} alerts={alerts.items} selectedId={selectedId} onSelect={onSelect} follow={follow} onFollow={setFollow}/>}
+        extras={<>
+          {!checked&&<button type="button" className="ui-button ui-button-secondary ra-side-btn" onClick={()=>setTab('verify')}>{t('Check the Passenger')}</button>}
+          <button type="button" className="ui-button ui-button-secondary ra-side-btn" onClick={()=>setTab('problem')}>{t('Problem on the road')}</button>
+          <button type="button" className="ui-button ui-button-primary ra-side-btn" onClick={()=>setTab('finish')}>{t('Finish trip')}</button></>}/>
+      {map.error&&<p className="tk-line is-warn" role="status">{map.error}</p>}
     </div>}
 
     {open==='problem'&&<form className="flow-fields" onSubmit={report}>
@@ -190,7 +201,7 @@ export default function DriverTripPage(){
       <FormField label={t('Tell the Owner and the Passenger')} required error={fieldMsg.details} hint={t('Write what happened and where you are.')}>
         {({id})=><textarea id={id} required maxLength={2000} rows={3} value={details} onChange={e=>setDetails(e.target.value)}/>}
       </FormField>
-      <div className="flow-actions"><Button type="submit" disabled={busy||!details.trim()}>{busy?t('Sending…'):t('Tell them now')}</Button></div>
+      <div className="flow-actions">{backToMap}<Button type="submit" disabled={busy||!details.trim()}>{busy?t('Sending…'):t('Tell them now')}</Button></div>
       <InfoCallout>{t('The booking stays active; reporting a problem never cancels it.')}</InfoCallout>
     </form>}
 
@@ -199,7 +210,7 @@ export default function DriverTripPage(){
       <FormField label={t('Anything to note? (Optional)')} error={fieldMsg.completion_notes}>
         {({id})=><textarea id={id} maxLength={2000} rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/>}
       </FormField>
-      <div className="flow-actions"><Button type="submit" disabled={busy||!endKm} arrow>{busy?t('Finishing…'):t('Finish trip')}</Button></div>
+      <div className="flow-actions">{backToMap}<Button type="submit" disabled={busy||!endKm} arrow>{busy?t('Finishing…'):t('Finish trip')}</Button></div>
     </form>}
 
     {finished&&showProof&&<div className="flow-fields">
@@ -219,6 +230,6 @@ export default function DriverTripPage(){
       <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link>{trip.status==='COMPLETED'&&<Button variant="secondary" onClick={()=>setShowProof(true)}>{t('See proof')}</Button>}</div>
     </div>}
 
-    {!panels.length&&!finished&&<InfoCallout>{t('This trip is not ready to operate yet.')}</InfoCallout>}
+    {!panels.length&&!running&&!finished&&<InfoCallout>{t('This trip is not ready to operate yet.')}</InfoCallout>}
   </FlowShell></>
 }

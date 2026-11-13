@@ -5,6 +5,7 @@ import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import {CONFIRM_SECONDS,answerOf,readSetting,recognitionConstructor,saveSetting,speak,speechLang} from './roadAlertSpeech'
 import {acquireWakeLock,releaseWakeLock} from './screenWakeLock'
+import {usePoll as usePollEvery} from '../trips/usePoll'
 
 /* Road alerts on the Driver's live trip (contract 03A). Only the assigned Driver of a running trip reports. Every alert
    needs one tap (buttons) or one confirmation (voice). The server decides who sees what, in each person's language. */
@@ -28,17 +29,8 @@ function placeOfAlert(trip){
   })
 }
 
-// Runs `load` now and every 45 seconds while `active`, only while the tab is visible, and again when it becomes visible.
-function usePoll(load,active){
-  useEffect(()=>{
-    if(!active)return undefined
-    const tick=()=>{if(document.visibilityState==='visible')load()}
-    tick()
-    const timer=setInterval(tick,POLL_MS)
-    document.addEventListener('visibilitychange',tick)
-    return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',tick)}
-  },[active,load])
-}
+// Every 45 seconds while `active`, only while the tab is visible, and again when it becomes visible (shared with the trip map).
+const usePoll=(load,active)=>usePollEvery(load,active,POLL_MS)
 
 /* Nearby alerts for the trip. Polls while the trip runs and the tab is visible, one request at a time. */
 export function useRoadAlerts({tripId,running,onNew}){
@@ -236,7 +228,11 @@ function Countdown({seconds,live}){
     <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle className="ra-ring-track" cx="28" cy="28" r="24"/><circle className="ra-ring-run" cx="28" cy="28" r="24"/></svg><b>{left}</b></span>
 }
 
-export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepScreenOn=false}){
+/* The Driver's side column and alert strip around the live trip map (contract 03A and 03O, C). `renderMap` draws the map in the middle;
+   `strip` sits above it; `extras` are more buttons for the side column (problem on the road, finish). `readOnly` is the Passenger's
+   version: no alert buttons and no microphone, only the speaker switch. */
+export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepScreenOn=false,strip=null,renderMap=null,extras=null,readOnly=false}){
+  const [selectedId,setSelectedId]=useState(null)
   const [open,setOpenState]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[problem,setProblem]=useState(''),[votes,setVotes]=useState({})
   const setOpen=useCallback(value=>{setOpenState(value);onOpenChange&&onOpenChange(value)},[onOpenChange])
   const sent=useCallback((result,text)=>{
@@ -261,10 +257,13 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
     finally{setVotes(current=>({...current,[item.id]:false}))}
   }
   const voiceBusy=voice.phase!=='idle'
+  // The alert shown under the map: the one tapped on the map, otherwise the nearest one a Driver can still answer.
+  const selected=alerts.items.find(item=>item.id===selectedId)||alerts.items.find(item=>item.can_vote)||null
   const voiceText=voice.phase==='listening'||(voice.phase==='confirm'&&voice.heard?.listening)?t('Listening…'):voice.phase==='classifying'?t('Checking what you said…'):voice.phase==='sending'?t('Sending…'):''
   return <div className="ra-layout">
     <div className="ra-main">
-      {!voice.supported&&<p className="tk-line" role="status">{t('Voice is not available on this device. Use the five buttons.')}</p>}
+      {strip}
+      {!readOnly&&!voice.supported&&<p className="tk-line" role="status">{t('Voice is not available on this device. Use the five buttons.')}</p>}
       {keepScreenOn&&<p className="tk-line" role="status">{t('Keep the screen on during the trip so alerts and location keep working.')} {t('Tip: keep the phone on the charger.')}</p>}
       {voice.message&&<p className="tk-line is-warn" role="status">{voice.message}</p>}
       {voice.outcome&&<p className="tk-line" role="status">{voice.outcome}</p>}
@@ -275,7 +274,14 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
         <div className="ra-confirm-ask"><Countdown seconds={voice.heard.seconds} live={Boolean(voice.heard.listening)&&voice.phase==='confirm'}/><p className="tk-line"><strong>{voice.heard.prompt}</strong></p></div>
         <div className="ra-confirm-actions"><button type="button" className="ui-button ui-button-primary ra-big" disabled={voice.phase==='sending'} onClick={voice.send}>{t('Send')}</button><button type="button" className="ui-button ui-button-secondary ra-big" disabled={voice.phase==='sending'} onClick={voice.decline}>{t('Cancel')}</button></div></div>}
       {speaker.enabled&&speaker.textOnly&&<p className="tk-line" role="status">{t('This device has no voice for this language. Alerts are shown as text only.')}</p>}
-      <div className="ra-list" aria-label={t('Road alerts near you')}>
+      {renderMap&&<div className="ra-map">{renderMap({selectedId:selected?.id||null,onSelect:setSelectedId})}</div>}
+      {renderMap&&alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
+      {renderMap&&selected&&(()=>{const item=selected,[tone,label]=STATUS[item.status]||['muted',String(item.status||'').replaceAll('_',' ')]
+        return <article className="tk-row ra-item ra-info" aria-label={t('Road alerts near you')}>
+          <div className="tk-row-main"><strong>{item.name}</strong><span title={item.message}>{item.message}</span></div>
+          <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>
+            {item.can_vote&&!readOnly&&<><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'CONFIRM')}>{t('Still there')}</button><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'DENY')}>{t('Not there')}</button></>}</div></article>})()}
+      {!renderMap&&<div className="ra-list" aria-label={t('Road alerts near you')}>
         {alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
         {alerts.items.length
           ?alerts.items.map(item=>{const [tone,label]=STATUS[item.status]||['muted',String(item.status||'').replaceAll('_',' ')]
@@ -284,10 +290,10 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
               <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>
                 {item.can_vote&&<><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'CONFIRM')}>{t('Still there')}</button><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'DENY')}>{t('Not there')}</button></>}</div></article>})
           :alerts.loaded&&!alerts.error&&<p className="tk-line">{alerts.note||t('No road alerts near you.')}</p>}
-      </div>
+      </div>}
     </div>
-    <aside className={'ra-rail'+(open?' is-open':'')} aria-label={t('Road alert controls')}>
-      {open
+    <aside className={'ra-rail'+(open?' is-open':'')+(readOnly?' is-readonly':'')} aria-label={t('Road alert controls')}>
+      {readOnly?<label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Speak road alerts')}</span></label>:open
         ?<>
           <button type="button" className="ra-round ra-close" aria-label={t('Close')} onClick={()=>setOpen(false)}><Icon name="close" size={22}/></button>
           {ALERT_TYPES.map(([type,label,icon])=><button type="button" key={type} className="ra-type" disabled={busy||disabled} onClick={()=>report(type)}><Icon name={icon} size={26}/><span>{t(label)}</span></button>)}
@@ -297,6 +303,7 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
           {voice.supported&&!voice.blocked&&<button type="button" className={'ra-round ra-mic'+(voiceBusy?' is-live':'')} aria-label={voiceBusy?t('Stop listening'):t('Speak an alert')} title={voiceBusy?t('Stop listening'):t('Speak an alert')}
             disabled={disabled||busy} onClick={voiceBusy?voice.cancel:voice.start}><Icon name="mic" size={28}/></button>}
           <label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Speak road alerts')}</span></label>
+          {extras}
         </>}
     </aside>
   </div>

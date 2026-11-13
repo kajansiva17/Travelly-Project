@@ -10,18 +10,20 @@ import {api} from '../../services/api'
 import {ReplacementRow} from './ReplacementCard'
 import {isExpired,isReplacementAction,isRoadAlertNotice,noticeBookingId} from '../notifications/notices'
 import {displayTime,loadBookings,pendingBooking,tripRoute,useWorkspaceData,words} from '../../hooks/workspaceData'
+import TripInProgressCard from '../trips/TripInProgressCard'
+import {useActiveTrips} from '../trips/tripHooks'
 
 // Passenger dashboard: the same grid, stat cards, tiles and Travelly AI card as the Owner and Driver dashboards.
 const byStart=(a,b)=>new Date(a.start_at)-new Date(b.start_at)
 export default function PassengerDashboard(){
- const {user,roles,allowed}=useWorkspace(),trips=useWorkspaceData(()=>loadBookings(user.id,'PASSENGER'),[user.id]),notices=useWorkspaceData(()=>api('/notifications'),[])
+ const {user,roles,allowed}=useWorkspace(),active=useActiveTrips(),trips=useWorkspaceData(()=>loadBookings(user.id,'PASSENGER'),[user.id]),notices=useWorkspaceData(()=>api('/notifications'),[])
  const first=(user.display_name||user.full_name).trim().split(/\s+/)[0],rows=useDashRows()
  const all=trips.data||[],upcoming=all.filter(pendingBooking).sort(byStart),next=upcoming[0]
  const recent=all.filter(b=>!pendingBooking(b)).sort((a,b)=>byStart(b,a))
  const notes=notices.data?.items||[],verified=Boolean(user.email_verified_at||user.phone_verified_at)
  const count=(r,fn)=>r.loading?'?':r.error?'Unavailable':fn(r.data)
  const applications=(roles||[]).filter(row=>['OWNER','DRIVER'].includes(row.role_code))
- return <DashPage title={t("Where will you go next, {name}?",{name:first})} subtitle={t("Sri Lanka’s rides, tickets and rentals — all in one place.")}
+ return <DashPage title={t("Where will you go next, {name}?",{name:first})} subtitle={t("Sri Lanka’s rides, tickets and rentals — all in one place.")} hero={<TripInProgressCard items={active.items}/>}
   stats={<><DashStat icon="calendar" label="Upcoming trips" value={count(trips,d=>d.filter(pendingBooking).length)} to="/bookings" note="Latest returned records"/><DashStat tone="green" icon="check" label="Completed" value={count(trips,d=>d.filter(b=>b.status==='COMPLETED').length)} to="/bookings" note="Latest returned records"/><DashStat icon="bell" label="Notifications" value={count(notices,d=>(d.items||[]).length)} to="/bookings"/><DashStat tone={verified?'blue':'red'} icon="shield" label="Contact" value={verified?'Verified':'Unverified'} to="/account" note="Verify your email from your profile before making a booking."/></>}>
   <Tile className="a-main" icon="calendar" title="Your next trip" to="/bookings" link="View all trips">
    {bookingsNote(trips,()=>next?<div className="dash-assignment"><span className="dash-vehicle-art big"><Icon name="car" size={34} aria-hidden="true"/></span><div className="dash-assignment-main"><strong className="dash-route">{tripRoute(next)}</strong><div className="dash-facts"><span><Icon name="clock" size={15}/>{displayTime(next.start_at)}{t(" · Sri Lanka time")}</span><span><Icon name="users" size={15}/>{next.passenger_count}{t(" passengers")}</span><Chip tone="info">{t(words(next.status))}</Chip></div><div className="dash-buttons"><Link className="ui-button ui-button-secondary" to={'/bookings/'+next.id}>{t("View booking")}</Link></div></div></div>:<Soft>{t("No upcoming trip")} <Link to="/hire">{t("Search for a journey")}</Link></Soft>)}</Tile>
