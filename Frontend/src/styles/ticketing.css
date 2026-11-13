@@ -164,3 +164,35 @@ html body .flow-page .ap-check { flex: none; display: grid; place-items: center;
 html body .flow-page .ap-check input { width: 20px; height: 20px; accent-color: var(--ui-red, #c8102e); }
 html body .flow-page .ap-record { align-items: flex-end; flex-wrap: nowrap; }
 html body .flow-page .ap-reference { flex: 1 1 auto; min-width: 0; }
+
+/* Odometer step (start and finish) and the trip distance proof card (contract 03O) */
+html body .flow-page .odo-step { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+html body .flow-page .odo-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+html body .flow-page .odo-take { min-height: 44px; white-space: nowrap; }
+html body .flow-page .odo-result { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border-radius: 14px; background: rgb(255 255 255 / .6); border: 1.5px solid rgb(255 255 255 / .9); }
+html body .flow-page .odo-result strong { font-size: 16px; }
+html body .flow-page .odo-result.is-success { border-color: #7bcf9b; background: #e6f7ec; color: #0b5d2a; }
+html body .flow-page .odo-result.is-danger { border-color: #f1b6b0; background: #fff1ef; color: #a3160c; }
+html body .flow-page .odo-result.is-warn { border-color: #f2b66b; background: #fff4e5; color: #8a4b00; }
+html body .flow-page .odo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+html body .odo-camera { padding: 0; border: 0; background: #000; width: min(560px, 100vw); max-width: none; max-height: none; border-radius: 16px; overflow: hidden; }
+html body .odo-camera::backdrop { background: rgb(0 0 0 / .7); }
+html body .odo-camera-box { display: flex; flex-direction: column; }
+html body .odo-camera video { display: block; width: 100%; max-height: calc(100dvh - 96px); object-fit: cover; background: #000; }
+html body .odo-camera-actions { display: flex; gap: 10px; justify-content: space-between; padding: 12px; background: #111; }
+html body .odo-big { min-height: 56px; min-width: 130px; font-size: 18px; }
+html body .flow-page .odo-proof { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+html body .flow-page .odo-proof h3 { margin: 0; font-size: 17px; }
+html body .flow-page .odo-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+html body .flow-page .odo-numbers div { padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .9); }
+html body .flow-page .odo-numbers dt { font-size: 12px; font-weight: 700; color: #4a5575; }
+html body .flow-page .odo-numbers dd { margin: 0; font-size: 17px; }
+html body .flow-page .odo-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+html body .flow-page .odo-photo { margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+html body .flow-page .odo-photo figcaption { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 14px; }
+html body .flow-page .odo-thumb { display: grid; place-items: center; width: 100%; height: clamp(70px, 14vh, 150px); padding: 0; border: 1px solid rgb(18 21 82 / .15); border-radius: 12px; overflow: hidden; background: rgb(18 21 82 / .05); color: #4a5575; font-size: 13px; cursor: pointer; }
+html body .flow-page .odo-thumb.is-empty { cursor: default; }
+html body .flow-page .odo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+html body .odo-big-photo { padding: 10px; border: 0; border-radius: 16px; max-width: min(96vw, 900px); max-height: 96dvh; background: #fff; }
+html body .odo-big-photo img { display: block; max-width: 100%; max-height: calc(96dvh - 90px); margin: 0 auto 8px; }
+html body .odo-big-photo::backdrop { background: rgb(0 0 0 / .7); }

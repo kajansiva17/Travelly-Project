@@ -3,6 +3,8 @@ import React,{useCallback,useEffect,useRef,useState} from 'react'
 import {Link,Navigate,useParams} from 'react-router-dom'
 import {useWorkspace} from '../../context/workspaceContext'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
+import OdometerStep from '../odometer/OdometerStep'
+import OdometerProofCard from '../odometer/OdometerProofCard'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
@@ -26,9 +28,10 @@ export default function DriverTripPage(){
   const {tripId}=useParams(),workspace=useWorkspace()
   const [trip,setTrip]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [notice,setNotice]=useState(''),[tab,setTab]=useState(null)
-  const [odometer,setOdometer]=useState(''),[ready,setReady]=useState(false)
+  // The readings come from the odometer step (typed number + live photo checked by the server); Start and Finish use exactly that number.
+  const [startKm,setStartKm]=useState(null),[ready,setReady]=useState(false),[stepKey,setStepKey]=useState(0),[showProof,setShowProof]=useState(false)
   const [kind,setKind]=useState('BREAKDOWN'),[details,setDetails]=useState('')
-  const [endOdometer,setEndOdometer]=useState(''),[notes,setNotes]=useState('')
+  const [endKm,setEndKm]=useState(null),[notes,setNotes]=useState('')
   const [sharing,setSharing]=useState(false),[sentAt,setSentAt]=useState(null)
   const [scanning,setScanning]=useState(false),[pin,setPin]=useState('')
   const latest=useRef(null),video=useRef(null)
@@ -102,10 +105,10 @@ export default function DriverTripPage(){
 
   async function act(run,message){
     setBusy(true);setError(null)
-    try{await run();setNotice(message)}catch(e){setError(e)}finally{setBusy(false)}
+    try{await run();setNotice(message)}catch(e){setError(e);if(['ODOMETER_PROOF_REQUIRED','CAPTURE_CODE_INVALID'].includes(e.code)){setStepKey(k=>k+1);setStartKm(null);setEndKm(null)}}finally{setBusy(false)}
   }
   const start=event=>{event.preventDefault();act(async()=>{
-    await request(`/trips/${tripId}/start`,{expected_version:trip.version,start_odometer_km:odometer,checklist_confirmed:true})
+    await request(`/trips/${tripId}/start`,{expected_version:trip.version,start_odometer_km:startKm,checklist_confirmed:true})
     await load();setTab('live')
   },'Trip started. Share your position so the Passenger can follow.')}
   const report=event=>{event.preventDefault();act(async()=>{
@@ -113,7 +116,7 @@ export default function DriverTripPage(){
     setTrip(result.trip);setDetails('')
   },'The Owner and the Passenger were told.')}
   const finish=event=>{event.preventDefault();act(async()=>{
-    const result=await request(`/trips/${tripId}/complete`,{expected_version:trip.version,end_odometer_km:endOdometer,completion_notes:notes||null})
+    const result=await request(`/trips/${tripId}/complete`,{expected_version:trip.version,end_odometer_km:endKm,completion_notes:notes||null})
     setTrip(result.trip)
   },'Trip completed.')}
 
@@ -158,11 +161,9 @@ export default function DriverTripPage(){
       {t('Checked at ')+clock(trip.pickup.verified_at)+t(' Sri Lanka time.')}</FlowBanner>}
 
     {open==='start'&&<form className="flow-fields" onSubmit={start}>
-      <FormField label={t('Odometer now (km)')} required error={fieldMsg.start_odometer_km} hint={t('Copy the number on the dashboard; one decimal place is allowed.')}>
-        {({id})=><Input id={id} required type="number" min="0" step="0.1" value={odometer} onChange={e=>setOdometer(e.target.value)}/>}
-      </FormField>
+      <OdometerStep key={'start'+stepKey} tripId={tripId} stage="START" onReady={setStartKm} fieldError={fieldMsg.start_odometer_km}/>
       <Checkbox checked={ready} onChange={e=>setReady(e.target.checked)}>{t('I checked the vehicle and we are ready to go.')}</Checkbox>
-      <div className="flow-actions"><Button type="submit" disabled={busy||!ready||!odometer} arrow>{busy?t('Starting…'):t('Start the trip')}</Button></div>
+      <div className="flow-actions"><Button type="submit" disabled={busy||!ready||!startKm} arrow>{busy?t('Starting…'):t('Start trip')}</Button></div>
     </form>}
 
     {open==='live'&&<div className="flow-fields ra-live">
@@ -194,17 +195,19 @@ export default function DriverTripPage(){
     </form>}
 
     {open==='finish'&&<form className="flow-fields" onSubmit={finish}>
-      <FormField label={t('Odometer at the end (km)')} required error={fieldMsg.end_odometer_km}
-        hint={t('It cannot be lower than ')+(trip.start_odometer_km||'0')+t(' km, the reading you gave at the start.')}>
-        {({id})=><Input id={id} required type="number" min={trip.start_odometer_km||'0'} step="0.1" value={endOdometer} onChange={e=>setEndOdometer(e.target.value)}/>}
-      </FormField>
+      <OdometerStep key={'end'+stepKey} tripId={tripId} stage="END" onReady={setEndKm} fieldError={fieldMsg.end_odometer_km}/>
       <FormField label={t('Anything to note? (Optional)')} error={fieldMsg.completion_notes}>
         {({id})=><textarea id={id} maxLength={2000} rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/>}
       </FormField>
-      <div className="flow-actions"><Button type="submit" disabled={busy||!endOdometer} arrow>{busy?t('Finishing…'):t('Finish the trip')}</Button></div>
+      <div className="flow-actions"><Button type="submit" disabled={busy||!endKm} arrow>{busy?t('Finishing…'):t('Finish trip')}</Button></div>
     </form>}
 
-    {finished&&<div className="flow-fields">
+    {finished&&showProof&&<div className="flow-fields">
+      <OdometerProofCard tripId={tripId}/>
+      <div className="flow-actions"><Button variant="secondary" onClick={()=>setShowProof(false)}>{t('Back')}</Button></div>
+    </div>}
+
+    {finished&&!showProof&&<div className="flow-fields">
       <FlowBanner tone="success" icon="check" title={t('Trip ')+words(trip.status)}>{trip.completion_notes||t('Thank you. This trip is closed.')}</FlowBanner>
       <dl className="flow-review">
         <div><dt>{t('Started')}</dt><dd>{clock(trip.actual_start_at)}</dd></div>
@@ -213,7 +216,7 @@ export default function DriverTripPage(){
         <div><dt>{t('Distance')}</dt><dd>{trip.calculated_distance_km} {t('km')}</dd></div>
       </dl>
       {trip.status==='COMPLETED'&&trip.booking_id&&<HirePayment asCollector bookingId={trip.booking_id}/>}
-      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link></div>
+      <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link>{trip.status==='COMPLETED'&&<Button variant="secondary" onClick={()=>setShowProof(true)}>{t('See proof')}</Button>}</div>
     </div>}
 
     {!panels.length&&!finished&&<InfoCallout>{t('This trip is not ready to operate yet.')}</InfoCallout>}

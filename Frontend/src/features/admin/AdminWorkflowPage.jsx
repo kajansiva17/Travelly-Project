@@ -4,6 +4,7 @@ import {t} from '../../i18n/language.js'
 import {Field} from '../owner/OwnerRates'
 import {Notice} from '../ticketing/TicketParts'
 import AdminList,{Facts,factsOf} from './AdminList'
+import OdometerProofCard from '../odometer/OdometerProofCard'
 
 const labels={bookings:['Booking oversight','/admin/workflow/bookings','calendar'],payments:['Payment & settlement audit','/admin/workflow/payments','wallet'],reports:['Operations reports','/admin/workflow/reports','chart'],services:['Services & vehicle types','/admin/vehicle-types','settings'],reviews:['Reviews','/admin/workflow/reports','star'],alerts:['Road alerts','/admin/workflow/reports','alert'],manual:['Manual fulfilment','/admin/manual-fulfilment-events','shield']}
 const tone=status=>/CONFIRM|COMPLET|APPROV|PAID|ACTIVE|SUCCEED/i.test(status||'')?'success':/REJECT|FAIL|CANCEL|MISMATCH|ALERT/i.test(status||'')?'danger':'muted'
@@ -23,6 +24,6 @@ export default function AdminWorkflowPage({kind}){
    <div className="flow-actions"><span/><button className="ui-button ui-button-primary" disabled={busy}>{t('Record auditable event')}</button></div></form>}/>
  return <AdminList {...base} items={items} empty={t('No records are available for this view.')}
    row={item=>{const status=item.status||item.booking_status||item.payment?.status||'';return {key:item.trip_id||item.id||item.code,title:item.booking_reference||item.trip_reference||item.code||item.display_name||item.summary||item.provider_reference||t('Record'),meta:item.display_name&&item.display_name!==item.code?item.display_name:'',status:status?t(status):'',tone:tone(status)}}}
-   detail={item=><Facts entries={factsOf(item)}/>}
+   detail={item=><><Facts entries={factsOf(item)}/>{item.trip_id&&<OdometerProofCard key={item.trip_id} tripId={item.trip_id}/>}</>}
    detailTitle={item=>item.booking_reference||item.trip_reference||item.code||item.summary||t('Record')}/>
 }
