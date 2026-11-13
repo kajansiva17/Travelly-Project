@@ -19,6 +19,7 @@ import {vehiclePayload,vehicleTypes,labels,validatePhoto} from './vehicleValidat
 import '../../styles/rates.css'
 import '../../styles/vehicles.css'
 import {fieldErrors} from '../../services/fieldErrors.js'
+import VehicleRating from '../social/VehicleRating'
 
 // The active tab's primary action is drawn in the shared footer row (one aligned row: Back / secondary / primary).
 function submissionChecklist(vehicle){
@@ -124,6 +125,7 @@ export function PublicVehicle(){
   return <><Header/><FlowShell heading={t('Vehicle')} icon="car" title={vehicle?`${vehicle.make} ${vehicle.model}`:t('Vehicle details')} subtitle={vehicle?vehicle.reference:undefined}>
     <div className="flow-wizard-form vehicle-public"><Errors error={error}/>{!vehicle&&!error&&<p role="status">{t("Loading…")}</p>}{vehicle&&<>
       <div className="status-chips"><Chip tone="info">{t(vehicle.vehicle_type_code)}</Chip><Chip tone="muted">{vehicle.manufacture_year}</Chip><Chip tone="muted">{vehicle.colour}</Chip><Chip tone="muted">{t("{value0} usable seats",{value0:vehicle.passenger_seats})}</Chip><Chip tone="muted">{t("{value0} large luggage",{value0:vehicle.large_luggage})}</Chip></div>
+      <VehicleRating vehicleId={vehicleId}/>
       {vehicle.description&&<p className="vehicle-public-text">{vehicle.description}</p>}
       {photos.length>0&&<div className="vehicle-public-photos">{photos.map(p=><VehiclePhoto key={p.id} photo={p} alt={`${vehicle.make} ${vehicle.model} ${words(p.category).toLowerCase()}`}/>)}</div>}
     </>}

@@ -21,6 +21,7 @@ import {isExpired,isRoadAlertNotice,noticeBookingId} from '../features/notificat
 import TripInProgressCard from '../features/trips/TripInProgressCard'
 import {useActiveTrips} from '../features/trips/tripHooks'
 import CommissionBanner from '../features/settlements/CommissionBanner'
+import ReelsCard,{useReelsPreview} from '../features/social/ReelsCard'
 
 function Resource({resource,children,empty='Nothing here yet.'}){if(resource.loading)return <p className="workspace-loading" role="status"><span className="spinner"/>{t(" Loading…")}</p>;if(resource.error)return <div className="workspace-resource-error"><h3>{[401,403].includes(resource.error.status)?t('Access unavailable'):t('Unable to load this information')}</h3><ErrorNotice error={resource.error}/><button className="button outline" onClick={resource.reload}>{t("Try again")}</button></div>;if(!resource.data)return <p>{t(empty)}</p>;return children(resource.data)}
 function Empty({icon='calendar',title,children,to,action}){return <div className="workspace-empty"><Icon name={icon} size={30}/><h3>{t(title)}</h3><p>{children}</p>{to&&<Link className="button outline" to={to}>{t(action)||t('Explore')}<Icon name="arrow" size={17}/></Link>}</div>}
@@ -56,7 +57,7 @@ export function DashLinks({items}){return <div className="dash-links">{items.map
 export function useDashRows(){const [h,setH]=useState(typeof window==='undefined'?900:window.innerHeight);useEffect(()=>{const f=()=>setH(window.innerHeight);window.addEventListener('resize',f);return()=>window.removeEventListener('resize',f)},[]);return h<700?2:h<900?3:h<1200?4:6}
 export const bookingsNote=(r,fn)=>r.loading?<Soft>{t(" Loading…")}</Soft>:r.error?<Soft>{t("Unable to load this information")}</Soft>:fn(r.data)
 export function OwnerDashboard(){
- const {user}=useWorkspace(),trips=useActiveTrips(),settlements=useWorkspaceData(()=>api('/owners/me/settlements',{cache:'no-store'}),[user.id]),fleet=useWorkspaceData(()=>api('/owners/me/vehicles?page=1&page_size=4'),[user.id]),bookings=useWorkspaceData(()=>loadBookings(user.id,'OWNER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0]
+ const {user}=useWorkspace(),trips=useActiveTrips(),reels=useReelsPreview(),settlements=useWorkspaceData(()=>api('/owners/me/settlements',{cache:'no-store'}),[user.id]),fleet=useWorkspaceData(()=>api('/owners/me/vehicles?page=1&page_size=4'),[user.id]),bookings=useWorkspaceData(()=>loadBookings(user.id,'OWNER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0]
  const rows=useDashRows(),list=sortTrips(bookings.data||[]).slice(0,rows-1)
  const vehicleCount=fleet.loading?'?':fleet.error?'Unavailable':fleet.data?.total??fleet.data?.items?.length??0
  return <DashPage title={t('Grow every journey, {name}.',{name:first})} subtitle={t("Your fleet moves Sri Lanka. Here's what's happening today.")} hero={<><CommissionBanner standing={settlements.data?.commission_standing} currency={settlements.data?.currency||'LKR'}/><TripInProgressCard items={trips.items}/></>}
@@ -67,13 +68,14 @@ export function OwnerDashboard(){
   <Tile className="b-1" icon="calendar" title="Recent customer bookings" tip={t(bookingScope)} to="/owner/bookings" link="View all">{bookingsNote(bookings,()=>list.length?<DashList items={list} role="OWNER"/>:<Soft>{t("No customer bookings yet")}</Soft>)}</Tile>
   {fleet.loading?<Tile className="b-2" icon="clock" title="Vehicle availability"><Soft>{t("Loading vehicles…")}</Soft></Tile>:fleet.error?<Tile className="b-2" icon="clock" title="Vehicle availability"><Soft>{t("Availability is incomplete because your fleet could not be loaded.")}</Soft></Tile>:<CalendarPreview vehicles={fleet.data?.items||[]} limit={rows>3?3:1}/>}
   <Tile className="b-3" icon="spark" title="Quick actions"><DashLinks items={[['Add a vehicle','/owner/vehicles','car'],['Assignments & self-drive','/owner/assignments','users'],['Upload documents',accountPath('OWNER','owner'),'document'],['Review services','/owner/rates','settings']]}/></Tile>
-  <Tile className="c-main" icon="route" title="Travelling yourself?" tip={t("Book as a Passenger using your existing account. Your personal trips stay separate from customer bookings and assigned work.")}><DashLinks items={[["Book a ride for myself",'/owner/travel/hire','car'],['My personal trips','/owner/travel/bookings','calendar']]}/></Tile>
+  <ReelsCard className="c-main" state={reels}/>
+  <Tile className="c-mid" icon="route" title="Travelling yourself?" tip={t("Book as a Passenger using your existing account. Your personal trips stay separate from customer bookings and assigned work.")}><DashLinks items={[["Book a ride for myself",'/owner/travel/hire','car'],['My personal trips','/owner/travel/bookings','calendar']]}/></Tile>
   <TravellyAiPanel className="dash-tile c-side"/>
  </DashPage>
 }
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Colombo'})
 export function DriverDashboard(){
- const {user}=useWorkspace(),trips=useActiveTrips(),assignments=useWorkspaceData(()=>loadBookings(user.id,'DRIVER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],next=sortTrips((assignments.data||[]).filter(activeAssignment))[0]
+ const {user}=useWorkspace(),trips=useActiveTrips(),reels=useReelsPreview(),assignments=useWorkspaceData(()=>loadBookings(user.id,'DRIVER'),[user.id]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],next=sortTrips((assignments.data||[]).filter(activeAssignment))[0]
  const rows=useDashRows(),stops=next?.itinerary?.itinerary?.stops||[],shown=stops.length>rows?[...stops.slice(0,rows-1),stops[stops.length-1]]:stops
  const count=f=>assignments.loading?'?':assignments.error?'Unavailable':f(assignments.data),first_=stops[0]?.place?.label,last_=stops[stops.length-1]?.place?.label
  const todays=b=>new Date(b.start_at).toLocaleDateString('en-CA',{timeZone:'Asia/Colombo'})===today()
@@ -88,7 +90,7 @@ export function DriverDashboard(){
    {next?<div className="dash-facts col"><span><Icon name="pin" size={15}/>{t("Pickup")}: {first_||'—'}</span><span><Icon name="pin" size={15}/>{t("Destination")}: {last_||'—'}</span><span><Icon name="users" size={15}/>{next.passenger_count}{t(" passengers")}</span></div>:<Soft>{t("Select an assigned trip to review its details.")}</Soft>}</Tile>
   <Tile className="b-3" icon="alert" title="Road alerts"><Soft>{t("Road alerts appear on your live trip map while you drive.")}</Soft></Tile>
   <Tile className="c-main" icon="car" title="Need a ride after your shift?" tip={t("Book as a Passenger using your existing account. Your personal trips stay separate from customer bookings and assigned work.")}><DashLinks items={[["Book a ride for myself",'/driver/travel/hire','car'],['My personal trips','/driver/travel/bookings','calendar']]}/></Tile>
-  <Tile className="c-mid" icon="spark" title="Quick actions"><DashLinks items={[['View assignments','/driver/assignments','calendar'],['Operate a trip','/driver/operate-trip','car'],['My documents',accountPath('DRIVER','driver'),'document']]}/></Tile>
+  <ReelsCard className="c-mid" state={reels}/>
   <TravellyAiPanel className="dash-tile c-side"/>
  </DashPage>
 }

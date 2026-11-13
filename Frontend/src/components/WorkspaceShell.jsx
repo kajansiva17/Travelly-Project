@@ -6,7 +6,7 @@ import {Header,Icon,ErrorNotice,useSession} from './components'
 import {NavbarBell,NavbarProfile,NavbarReels} from './AppNavbar'
 import AppSidebar from './AppSidebar'
 import {WorkspaceContext} from '../context/workspaceContext'
-import {accountPath,personalHirePath,eligibleWorkspaces,menuActive,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
+import {accountPath,personalHirePath,eligibleWorkspaces,menuActive,travelPath,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
 import {journeyLink} from '../features/auth/onboardingJourney'
 import {StateCard} from '../features/booking/flow/FlowParts'
 
@@ -66,7 +66,7 @@ export default function WorkspaceShell({role:fixedRole}){
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>
-      <NavbarReels/>
+      <NavbarReels to={role==='ADMIN'?undefined:travelPath(role,'/reels')}/>
       <NavbarBell to={notificationPath} label={t(notificationLabel)}/>
       <NavbarProfile user={access.user} roleLabel={t(info.label)} profileTo={accountPath(role)}/>
      </>:<Link to="/">{t('Travel & booking')}</Link>}

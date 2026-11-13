@@ -78,7 +78,10 @@ import './styles/flow.css'
 import './styles/passengerBookingFlow.css'
 import './styles/authGlass.css'
 import './styles/frame.css'
+import SocialProfile from './features/social/SocialProfile'
+import ReelsPage from './features/social/ReelsPage'
 import './styles/ai.css'
+import './styles/social.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()
@@ -162,6 +165,9 @@ const travelRoutes=prefix=>[
  <Route key="status" path={prefix+'/travel/trips/:tripId/request-status'} element={<PassengerRequestStatus/>}/>,
  <Route key="confirmed" path={prefix+'/travel/trips/:tripId/confirmed'} element={<PassengerRideConfirmed/>}/>,
  <Route key="map" path={prefix+'/travel/trips/:tripId/map'} element={<TripMapPage/>}/>,
+ <Route key="reels" path={prefix+'/travel/reels'} element={<ReelsPage/>}/>,
+ <Route key="reel" path={prefix+'/travel/reels/:postId'} element={<ReelsPage/>}/>,
+ <Route key="profile" path={prefix+'/travel/social/users/:reference'} element={<SocialProfile/>}/>,
  <Route key="old" path={prefix+'/personal/*'} element={<OldPersonalPath/>}/>
 ]
 // Earlier links to <prefix>/personal/... keep working and land on the same page under /travel.
@@ -224,6 +230,9 @@ export default function App() {
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
             <Route path="/trips/:tripId/map" element={<TripMapPage/>}/>
+            <Route path="/reels" element={<ReelsPage/>}/>
+            <Route path="/reels/:postId" element={<ReelsPage/>}/>
+            <Route path="/social/users/:reference" element={<SocialProfile/>}/>
           </Route>
           <Route element={<WorkspaceShell role="OWNER"/>}>
             {travelRoutes('/owner')}

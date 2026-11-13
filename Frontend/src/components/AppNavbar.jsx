@@ -9,7 +9,8 @@ import DashboardAvatar from './DashboardAvatar'
    notifications, account. Only the labels and link targets differ per role.
    The skin lives in styles/app-navbar.css. */
 
-export function NavbarReels() {
+export function NavbarReels({ to }) {
+  if (to) return <Link className="workspace-reels app-nav-reels" to={to} aria-label={t('Travel Reels')}><Icon name="video" size={22}/><span>{t('Travel Reels')}</span></Link>
   return <span className="workspace-reels app-nav-reels" aria-label={t('Travel Reels unavailable')}><Icon name="video" size={22}/><span>{t('Travel Reels')}</span></span>
 }
 
