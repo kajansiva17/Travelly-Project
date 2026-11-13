@@ -76,6 +76,15 @@ NAMES = {
     'ROADBLOCK': {'en': 'Roadblock', 'ta': 'சாலை மூடல்', 'si': 'මාර්ග අවහිරය'},
     'ROAD_HAZARD': {'en': 'Road hazard', 'ta': 'சாலை ஆபத்து', 'si': 'මාර්ග අවදානම'},
 }
+# Spoken answers to the confirm prompt (owner decision 12 Nov 2026: listen 10 seconds; no answer = not sent).
+YES_WORDS = {'en': ['yes', 'yeah', 'yep', 'send', 'ok', 'okay', 'sure'],
+             'ta': ['ஆம்', 'ஆமா', 'ஆமாம்', 'சரி', 'அனுப்பு', 'ஓம்', 'aam', 'aama', 'aamaa', 'ama', 'sari', 'om', 'anuppu', 'yes', 'ok'],
+             'si': ['ඔව්', 'ඔව', 'හරි', 'යවන්න', 'ow', 'owu', 'hari', 'yes', 'ok']}
+NO_WORDS = {'en': ['no', 'nope', 'cancel', 'stop', 'dont', "don't"],
+            'ta': ['இல்லை', 'இல்ல', 'வேண்டாம்', 'வேணாம்', 'illa', 'illai', 'venaam', 'vendaam', 'no', 'cancel'],
+            'si': ['නැහැ', 'නෑ', 'එපා', 'epa', 'naha', 'nae', 'no', 'cancel']}
+SENT_TEXT = {'en': 'Alert sent.', 'ta': 'எச்சரிக்கை அனுப்பப்பட்டது.', 'si': 'අනතුරු ඇඟවීම යැව්වා.'}
+NOT_SENT_TEXT = {'en': 'Alert not sent.', 'ta': 'எச்சரிக்கை அனுப்பப்படவில்லை.', 'si': 'අනතුරු ඇඟවීම යැව්වේ නැහැ.'}
 CONFIRM_PROMPT = {'en': 'Send a {name} alert?', 'ta': '{name} எச்சரிக்கை அனுப்பவா?', 'si': '{name} අනතුරු ඇඟවීමක් යවන්නද?'}
 # Voice keywords per alert type (lower case; Tamil and Sinhala as spoken, plus common English loan words).
 KEYWORDS = {
@@ -239,7 +248,9 @@ def voice_classify(body: VoiceText, request: Request, user=Depends(current), db:
     confidence = round(ranked[0][0] / total, 4)
     return {'alert_type': best, 'confidence': confidence,
             'candidates': [{'alert_type': kind, 'name': NAMES[kind][body.language]} for _, kind in ranked],
-            'confirm_prompt': CONFIRM_PROMPT[body.language].format(name=NAMES[best][body.language]), 'message': None}
+            'confirm_prompt': CONFIRM_PROMPT[body.language].format(name=NAMES[best][body.language]), 'message': None,
+            'confirm_seconds': get_settings().road_alert_confirm_seconds, 'yes_words': YES_WORDS[body.language],
+            'no_words': NO_WORDS[body.language], 'sent_text': SENT_TEXT[body.language], 'not_sent_text': NOT_SENT_TEXT[body.language]}
 
 
 @router.post('/road-alerts', status_code=201)

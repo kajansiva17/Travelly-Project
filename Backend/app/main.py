@@ -19,6 +19,9 @@ from app.core.sessions import SessionStore
 from app.core import session_cookie
 from app.api.routers.fulfilment_api import router as fulfilment_router
 from app.api.routers.road_alerts_api import router as road_alerts_router
+from app.api.routers.ai_api import router as ai_router
+from app.api.routers.odometer_api import router as odometer_router
+from app.api.routers.social_api import router as social_router
 from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
 from app.api.routers.auth_extension import router as auth_extension_router
 from app.services.auth_services import AuthState, Mailer, GoogleIdentity
@@ -140,7 +143,9 @@ def create_app(settings=None, engine=None, store=None):
                     limit, seconds = (30, 900)
                 group = 'profile' if request.url.path in ('/api/v1/users/me', '/api/v1/users/me/roles') else name
                 review_path = request.url.path.startswith(('/api/v1/admin/', '/api/v1/documents'))
-                multipart = request.method == 'POST' and (request.url.path == '/api/v1/documents' or (request.url.path.startswith('/api/v1/vehicles/') and name=='photos'))
+                multipart = request.method == 'POST' and (request.url.path == '/api/v1/documents' or (request.url.path.startswith('/api/v1/vehicles/') and name=='photos') or (request.url.path.startswith('/api/v1/trips/') and name=='odometer-photo'))
+                social_upload = request.method == 'POST' and request.url.path == '/api/v1/social/posts'
+                multipart = multipart or social_upload
                 if review_path:
                     group, limit, seconds = ('files', 100, 60) if name == 'file' else ('review', 100, 60) if request.method == 'PATCH' else ('upload', 30, 900) if multipart else ('metadata', 300, 60)
                 app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
@@ -156,6 +161,11 @@ def create_app(settings=None, engine=None, store=None):
                 if (request.method == 'GET' and request.url.path.startswith('/api/v1/scheduled-trips/')
                         and request.url.path.endswith('/replacement-options') and set(request.query_params) <= {'reference'}):
                     query_route = True
+                if request.method == 'GET' and request.url.path in ('/api/v1/social/feed', '/api/v1/admin/social/posts'):
+                    query_route = True   # each endpoint checks its own filters
+                if (request.method == 'GET' and request.url.path.startswith('/api/v1/social/posts/')
+                        and request.url.path.endswith(('/media', '/thumbnail')) and set(request.query_params) <= {'t'}):
+                    query_route = True
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
                 if request.method in ('POST', 'PATCH', 'PUT'):
@@ -169,7 +179,7 @@ def create_app(settings=None, engine=None, store=None):
                         length += len(chunk)
                         rate_body = ('/vehicles/' in request.url.path and request.url.path.endswith(('/services', '/services/preview'))) or request.url.path.startswith(('/api/v1/bookings/', '/api/v1/search/'))
                         profile_body = request.method == 'PATCH' and request.url.path == '/api/v1/users/me'
-                        if length > (MAX_MULTIPART if multipart else 1_410_000 if profile_body else 65536 if rate_body else 8192):
+                        if length > ((app.state.settings.social_reel_max_mb + 11) * 1024 * 1024 if social_upload else MAX_MULTIPART if multipart else 1_410_000 if profile_body else 65536 if rate_body else 8192):
                             raise ApiError(413, 'REQUEST_TOO_LARGE', 'Request exceeds the permitted size.')
                         chunks.append(chunk)
                     raw = b''.join(chunks)
@@ -218,6 +228,9 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(stage5_admin_router)
     app.include_router(fulfilment_router)
     app.include_router(road_alerts_router)
+    app.include_router(ai_router)
+    app.include_router(odometer_router)
+    app.include_router(social_router)
     app.include_router(ticket_router)
     app.include_router(route_router)
     app.include_router(scheduled_trip_router)

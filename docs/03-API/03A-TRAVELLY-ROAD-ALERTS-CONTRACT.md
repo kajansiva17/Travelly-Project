@@ -39,6 +39,8 @@ Errors: `{ "code", "message", "field_errors", "trace_id" }`.
   2. The app asks "Send a Police alert?".
   3. Only after the Driver confirms (a tap, or saying yes / ஆம் / ඔව්) does the app post the alert with
      `source_input: "VOICE"` and `driver_confirmed: true`.
+  4. **The app listens 10 seconds for the answer (owner decision 12 Nov 2026). No answer = not sent.** Change it with
+     `.env` `ROAD_ALERT_CONFIRM_SECONDS` (3–30).
 - **Language:** listeners never hear the reporter's words. Each person gets a fixed sentence for the alert type in
   **their own `preferred_language`** (en/ta/si), so a Tamil report reaches a Sinhala driver in Sinhala.
 
@@ -70,6 +72,13 @@ Errors:
 ```json
 { "alert_type": "POLICE_PRESENCE", "confidence": 1.0, "candidates": [ { "alert_type": "POLICE_PRESENCE", "name": "போலீஸ்" } ],
   "confirm_prompt": "போலீஸ் எச்சரிக்கை அனுப்பவா?", "message": null }
+```
+- Understood replies also carry what the app needs for the spoken confirmation:
+
+```json
+{ "confirm_seconds": 10, "yes_words": ["ஆம்", "ஆமா", "சரி", "aam", "sari", "yes", "…"],
+  "no_words": ["இல்லை", "வேண்டாம்", "illa", "venaam", "no", "…"],
+  "sent_text": "எச்சரிக்கை அனுப்பப்பட்டது.", "not_sent_text": "எச்சரிக்கை அனுப்பப்படவில்லை." }
 ```
 - Not understood: `alert_type: null`, `message: "Not understood. Choose the alert with a button."`.
 - "police speed check" → `SPEED_CHECK` first, `POLICE_PRESENCE` second.
@@ -132,17 +141,40 @@ Nearby people get a `ROAD_ALERT` notification:
 
 ## Screens (UI Claude)
 
-**Driver's live trip map (Driver workspace and "My driving"):**
+**Driver's live trip map (Driver workspace and "My driving"). It opens by itself when the trip starts. The alert
+buttons appear only here, never on the dashboards (owner decision 13 Nov 2026). Map layout: 03O section C.**
 - **Alert button:** one round button on the side of the map.
   - It opens five big buttons: Police, Speed check, Accident, Roadblock, Road hazard, with icons.
   - Tapping one sends it with the current position and heading (section 1, `BUTTON`).
-- **Microphone button (voice):**
-  1. Browser speech recognition (`webkitSpeechRecognition`) with `lang` = `ta-LK`, `si-LK` or `en-US`, from the
-     Driver's language.
+- **Microphone button (voice) — one tap, then hands free (owner decision 12 Nov 2026):**
+  1. The Driver taps the mic **once** and speaks. Use browser speech recognition (`webkitSpeechRecognition`), with
+     `lang` = `ta-LK`, `si-LK` or `en-US` from the Driver's language.
   2. Send the text to section 2.
-  3. Show and speak `confirm_prompt` with two big buttons, Send / Cancel, or listen for yes / ஆம் / ඔව்.
-  4. Only then post with `source_input: "VOICE"`, `driver_confirmed: true`, `confidence_score`.
-  5. Not understood: open the five buttons.
+  3. Not understood (`alert_type: null`): speak and show `message`, and open the five buttons.
+  4. Understood: show `confirm_prompt` with two big buttons, **Send** and **Cancel**, and a 10-second countdown ring
+     (`confirm_seconds`). Speak `confirm_prompt` with `speechSynthesis`.
+  5. When the speech ends, **start listening again by itself**, so the Driver does not tap a second time. Keep
+     listening until `confirm_seconds` have passed.
+     - Any of `yes_words` heard, or Send tapped → post the alert (`source_input: "VOICE"`, `driver_confirmed: true`,
+       `confidence_score` = `confidence`). Speak `sent_text`.
+     - Any of `no_words` heard, or Cancel tapped → nothing is sent. Speak `not_sent_text`.
+     - **Silence or anything else until the time ends → nothing is sent.** Show and speak `not_sent_text`.
+     - Match whole words in lower case ("ok" must not match inside another word). If both a yes and a no word are
+       heard, treat it as no.
+  6. Turn the microphone off after the answer or the timeout. Never keep it on between alerts.
+  7. While the app is speaking, do not listen, so it does not hear itself.
+  8. If the browser has no speech recognition (not Chrome/Edge) or the mic is blocked, hide the mic button and keep
+     the five buttons.
+- **Keep the screen on during a trip (Screen Wake Lock, owner decision 12 Nov 2026):**
+  - Travelly runs in the browser, and a phone with its screen off pauses the page. Live position updates, new alerts
+    and the speaker all stop.
+  - So while the trip is running (`IN_PROGRESS` / `BREAKDOWN` / `ASSISTANCE_REQUIRED`), the Driver's live trip page,
+    and a Passenger's trip page when the speaker is on, ask for `navigator.wakeLock.request('screen')`.
+  - Ask again on `visibilitychange` when the page becomes visible: the browser drops the lock when the person
+    switches app.
+  - Release it when the trip finishes or the page closes.
+  - If the browser does not support it, show once: "Keep the screen on during the trip so alerts and location keep
+    working." Add one line in the trip page: "Tip: keep the phone on the charger."
 - **Alerts on the map:** markers from section 3. For a Driver with `can_vote`, show "Still there" / "Not there"
   (section 4).
 

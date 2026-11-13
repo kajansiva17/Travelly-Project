@@ -38,6 +38,28 @@ class Settings(BaseSettings):
     road_alert_active_after_confirmations: int = Field(default=1, ge=1, le=20)
     road_alert_verified_after_confirmations: int = Field(default=3, ge=1, le=50)
     road_alert_removed_after_denials: int = Field(default=2, ge=1, le=20)
+    # Seconds the app listens for the Driver's spoken yes/no after asking "Send a Police alert?"; silence = not sent.
+    road_alert_confirm_seconds: int = Field(default=10, ge=3, le=30)
+    # Odometer photo proof (owner decision 13 Nov 2026): a live photo plus the typed reading at trip start and finish.
+    # Photos are private files (no PRD table), deleted this many days after the trip ends; the numbers stay in trips.
+    odometer_photo_required: bool = True
+    odometer_photo_root: Path | None = None       # default: <PRIVATE_DOCUMENT_ROOT>/../odometer-photos
+    odometer_photo_keep_days: int = Field(default=7, ge=1, le=90)
+    odometer_pickup_radius_km: float = Field(default=2.0, ge=0.1, le=50)
+    odometer_match_tolerance_km: float = Field(default=1.0, ge=0, le=20)
+    odometer_unreadable_tries: int = Field(default=3, ge=1, le=10)
+    # Travel Reels (PRD tables 18-19; owner decisions 13 Nov 2026): posts are public at once (Admin can hide), reels up
+    # to 60 seconds and 50 MB. Media folder default: <PRIVATE_DOCUMENT_ROOT>/../social-media.
+    social_media_root: Path | None = None
+    social_reel_max_seconds: int = Field(default=60, ge=5, le=600)
+    social_reel_max_mb: int = Field(default=50, ge=5, le=500)
+    # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026). Google AI Studio key;
+    # empty = the built-in rules answer instead. The daily cap keeps the free tier from running out; after it the rules
+    # answer too.
+    gemini_api_key: str = Field(default='', repr=False)
+    gemini_model: str = 'gemini-2.5-flash'
+    gemini_daily_limit: int = Field(default=200, ge=0, le=100000)
+    gemini_timeout_seconds: int = Field(default=8, ge=1, le=60)
     google_client_id: str = ''
     routing_api_key: str = Field(default='', repr=False)
     # HeiGIT shut down api.openrouteservice.org on 2-6 Nov 2026; the same key works on api.heigit.org (no trailing slash).
