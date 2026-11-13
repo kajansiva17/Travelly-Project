@@ -45,14 +45,23 @@ export default function PassengerTicketBooking(){
     }catch(e){setError(e)}})()
   },[bookingParam,signedIn])
 
-  async function search(e){
-    e.preventDefault();setError(null);setDeparture(null);setSeats([]);setSelected([]);setBooking(null)
-    const params=new URLSearchParams({min_seats:String(Math.max(1,Number(query.travellers)||1))})
-    if(query.origin.trim())params.set('origin',query.origin.trim())
-    if(query.destination.trim())params.set('destination',query.destination.trim())
-    if(query.date)params.set('date',query.date)
+  async function find(q){
+    setError(null);setDeparture(null);setSeats([]);setSelected([]);setBooking(null)
+    const params=new URLSearchParams({min_seats:String(Math.max(1,Number(q.travellers)||1))})
+    if(q.origin.trim())params.set('origin',q.origin.trim())
+    if(q.destination.trim())params.set('destination',q.destination.trim())
+    if(q.date)params.set('date',q.date)
     try{setItems(await publicRead(`/scheduled-trips?${params}`))}catch(e){setError(e)}
   }
+  function search(e){e.preventDefault();return find(query)}
+  // Travelly AI (contract 03AI) opens this page with origin, destination, date and travellers in the address: the same search runs once, then everything stays manual.
+  useEffect(()=>{
+    if(bookingParam)return
+    const origin=params.get('origin')||'',destination=params.get('destination')||'',date=params.get('date')||'',travellers=params.get('travellers')
+    if(!(origin||destination||date||travellers))return
+    const q={origin,destination,date,travellers:Math.max(1,Number(travellers)||1)}
+    setQuery(q);find(q)
+  },[])
   async function loadSeats(id){const map=await publicRead(`/scheduled-trips/${id}/seats`);setSeats(map.seats);return map}
   async function choose(d){
     setError(null);setSelected([]);setBooking(null);setNames({});setStops({boarding:'',dropoff:''});setKey(newKey())
