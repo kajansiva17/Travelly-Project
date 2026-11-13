@@ -19,4 +19,4 @@ export function reminderLink(note,role){
   return null
 }
 // Tab named in the address of a vehicle page (?tab=documents or ?tab=maintenance).
-export const vehicleTabFromSearch=search=>({documents:1,maintenance:5})[new URLSearchParams(search).get('tab')]||0
+export const vehicleTabFromSearch=search=>({documents:1,maintenance:5,'event-packages':6,'rental-rates':7})[new URLSearchParams(search).get('tab')]||0

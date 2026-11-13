@@ -1653,6 +1653,11 @@ const rows = [
   ["Record the handover?","ஒப்படைப்பைப் பதிவு செய்யவா?","භාර දීම සටහන් කරනවාද?"],
   ["Record the return and work out the bill?","திரும்புதலைப் பதிவு செய்து பில்லைக் கணக்கிடவா?","ආපසු දීම සටහන් කර බිල ගණනය කරනවාද?"],
   ["Enter a name (up to 80 characters).","பெயரை உள்ளிடவும் (80 எழுத்துகள் வரை).","නමක් ඇතුළත් කරන්න (අක්ෂර 80ක් දක්වා)."],
+  ["Not ready","தயாரில்லை","සූදානම් නැත"],
+  ["Set up Event packages","நிகழ்வு தொகுப்புகளை அமை","උත්සව පැකේජ සකසන්න"],
+  ["Open the rental","வாடகையைத் திற","කුලිය විවෘත කරන්න"],
+  ["{value0} package","{value0} தொகுப்பு","පැකේජ {value0}"],
+  ["{value0} packages","{value0} தொகுப்புகள்","පැකේජ {value0}"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

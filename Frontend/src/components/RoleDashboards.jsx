@@ -17,7 +17,7 @@ import {FlowShell,usePaged,useRowCount} from '../features/booking/flow/FlowParts
 import InfoTip from './ui/InfoTip'
 import EmptyState from './ui/EmptyState'
 import {reminderKind,reminderLink} from '../features/notifications/reminders'
-import {isExpired,isRoadAlertNotice,noticeBookingId} from '../features/notifications/notices'
+import {isExpired,isRentalReminder,isRoadAlertNotice,noticeBookingId} from '../features/notifications/notices'
 import TripInProgressCard from '../features/trips/TripInProgressCard'
 import {useActiveTrips} from '../features/trips/tripHooks'
 import CommissionBanner from '../features/settlements/CommissionBanner'
@@ -180,10 +180,11 @@ export function WorkspaceBookings({kind='bookings',personal=false}){
  const everything=notifications.data?.items||[]
  const reminders=!personal&&['OWNER','DRIVER'].includes(role)?everything.filter(n=>reminderKind(n)):[]
  const roadAlerts=everything.filter(isRoadAlertNotice)
- const noteItems=[...reminders,...roadAlerts,...everything.filter(n=>noticeBookingId(n)&&((!personal&&role!=='PASSENGER')||resource.data?.some(b=>b.id===noticeBookingId(n))))]
+ const rentalReminders=everything.filter(isRentalReminder)
+ const noteItems=[...reminders,...roadAlerts,...rentalReminders,...everything.filter(n=>noticeBookingId(n)&&!isRentalReminder(n)&&((!personal&&role!=='PASSENGER')||resource.data?.some(b=>b.id===noticeBookingId(n))))]
  const trips=usePaged(visible,rows),notes=usePaged(noteItems,rows)
  return <FlowShell heading={t(title)} title={tab===0?t(kind==='operate'?'Select an assigned trip':title):t('Trip notifications')} icon={tab===0?'calendar':'bell'} info={<>{t(bookingScope)} {t("Open a booking to review its itinerary and the actions currently permitted for your account. Assignment acceptance and trip-start validation use the existing trip workflow.")}</>} tabs={[{label:t(kind==='operate'?'Select an assigned trip':title),active:tab===0,onClick:()=>setTab(0),icon:'calendar'},{label:t('Trip notifications'),active:tab===1,onClick:()=>setTab(1),icon:'bell'}]}><div className="flow-wizard-form" hidden={tab!==0}><Resource resource={resource}>{()=><BookingsList items={trips.slice} role={role} personal={personal} operation={kind==='operate'} limit={100}/>}</Resource><div className="flow-actions">{role==='OWNER'&&!personal&&kind==='bookings'?<Link className="ui-button ui-button-secondary" to="/owner/operations">{t('Assign Drivers and live trips')}</Link>:<span/>}{visible.length>rows&&trips.pager}</div></div><div className="flow-wizard-form" hidden={tab!==1}><Resource resource={notifications}>{()=>noteItems.length?<div className="workspace-record-list">{notes.slice.map(n=>{
-   const road=isRoadAlertNotice(n),expired=isExpired(n),icon=reminderKind(n)||road?'alert':'calendar'
+   const road=isRoadAlertNotice(n),expired=isExpired(n),icon=reminderKind(n)||road?'alert':isRentalReminder(n)?'key':'calendar'
    const link=reminderKind(n)?reminderLink(n,role):road?(n.trip_id&&role==='DRIVER'?'/driver/trips/'+n.trip_id+'/live':n.trip_id&&role==='OWNER'?'/owner/driving/trips/'+n.trip_id:null):personal?personalBookingPath(role,noticeBookingId(n)):withWorkspace('/bookings/'+noticeBookingId(n),role)
    const body=<><Icon name={icon}/><div><strong>{t(n.title)}{road&&expired&&<> · {t('Expired')}</>}</strong><span>{n.body}</span></div>{link&&<Icon name="arrow" size={16}/>}</>
    return link?<Link className={'workspace-record'+(expired?' is-expired':'')} key={n.id} to={link}>{body}</Link>:<div className={'workspace-record'+(expired?' is-expired':'')} key={n.id}>{body}</div>})}</div>:<Empty title="No trip notifications">{t("Updates for your journeys will appear here.")}</Empty>}</Resource><div className="flow-actions"><span/>{noteItems.length>rows&&notes.pager}</div></div></FlowShell>

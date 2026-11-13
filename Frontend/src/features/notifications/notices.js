@@ -7,6 +7,9 @@ export const isReplacementAction=note=>note?.notification_type==='REPLACEMENT'&&
 // "We are arranging your journey" and the other replacement notices that need no answer.
 export const isReplacementInfo=note=>note?.notification_type==='REPLACEMENT'&&note.action_required!==true
 export const isRefundNotice=note=>note?.notification_type==='REFUND'
+// Rental reminders (03RN): RECONFIRMATION with action_payload.stage and booking_id. Matched by type and stage, never by the wording of the title.
+export const RENTAL_STAGES=['UNANSWERED','STARTS_SOON','NOT_HANDED_OVER','RETURN_SOON','OVERDUE']
+export const isRentalReminder=note=>note?.notification_type==='RECONFIRMATION'&&RENTAL_STAGES.includes(note?.action_payload?.stage)&&Boolean(noticeBookingId(note))
 export const isRoadAlertNotice=note=>note?.notification_type==='ROAD_ALERT'
 // A notification whose expires_at has passed (a ROAD_ALERT then shows greyed, as "Expired").
 export const isExpired=(note,now=Date.now())=>Boolean(note?.expires_at)&&new Date(note.expires_at).getTime()<now

@@ -260,7 +260,7 @@ export default function App() {
             <Route path="/owner/operations" element={<OwnerOperations/>}/>
             <Route path="/owner/earnings" element={<OwnerFinanceOverview/>}/>
             <Route path="/owner/reports" element={<OwnerReport/>}/>
-            <Route path="/owner/rentals" element={<RentalRoleUi role="OWNER"/>}/>
+            <Route path="/owner/rentals" element={<Navigate to="/owner/bookings" replace/>}/>
             <Route path="/owner/settings" element={<WorkspaceSettings/>}/>
             {placeholders.OWNER.map(path=><Route key={path} path={'/owner/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
