@@ -293,31 +293,106 @@ def masked(text):
     return text
 
 
-def gemini(settings, prompt, schema):
-    url = f'https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent'
-    body = {'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
-            'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json', 'responseSchema': schema}}
-    reply = httpx.post(url, json=body, headers={'x-goog-api-key': settings.gemini_api_key}, timeout=settings.gemini_timeout_seconds)
+KEYS = {'groq': 'groq_api_key', 'openrouter': 'openrouter_api_key', 'gemini': 'gemini_api_key'}
+
+
+def providers(settings, vision=False):
+    """The AI services to try, in order, that have a key (AI_PROVIDERS / AI_VISION_PROVIDERS)."""
+    order = settings.ai_vision_providers if vision else settings.ai_providers
+    names = [n.strip().lower() for n in (order or '').split(',') if n.strip()]
+    return [n for n in dict.fromkeys(names) if n in KEYS and getattr(settings, KEYS[n]).strip()
+            and not (vision and n == 'groq')]
+
+
+def call(name, settings, prompt, schema, image=None):
+    """One JSON answer from one service. `image` is a data URL (odometer photo)."""
+    if name == 'gemini':
+        parts = [{'text': prompt}]
+        if image:
+            mime, data = image[5:].split(';base64,', 1)
+            parts.insert(0, {'inlineData': {'mimeType': mime, 'data': data}})
+        url = f'https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent'
+        body = {'contents': [{'role': 'user', 'parts': parts}],
+                'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json', 'responseSchema': schema}}
+        reply = httpx.post(url, json=body, headers={'x-goog-api-key': settings.gemini_api_key}, timeout=timeout(settings, image))
+        reply.raise_for_status()
+        return json.loads(reply.json()['candidates'][0]['content']['parts'][0]['text'])
+    if name == 'groq':
+        return openai_style(settings.groq_base_url, settings.groq_api_key, settings.groq_model, settings, prompt, schema, image)
+    model = settings.openrouter_vision_model if image else settings.openrouter_model
+    return openai_style(settings.openrouter_base_url, settings.openrouter_api_key, model, settings, prompt, schema, image)
+
+
+def timeout(settings, image):
+    return max(settings.ai_timeout_seconds, 20 if image else 0)
+
+
+def ask(settings, prompt, schema, image=None):
+    """Try each service in order; the first good answer wins. Returns (data, service name)."""
+    for name in providers(settings, vision=bool(image)):
+        try:
+            return call(name, settings, prompt, schema, image), name
+        except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError):
+            continue   # limit reached, model gone, bad reply: try the next service
+    raise ValueError('no AI service answered')
+
+
+def json_schema(schema):
+    """Gemini-style schema (OBJECT, STRING, ...) -> standard JSON Schema for OpenAI-style services."""
+    out = {'type': schema['type'].lower()}
+    if 'enum' in schema: out['enum'] = schema['enum']
+    if 'properties' in schema:
+        out['properties'] = {k: json_schema(v) for k, v in schema['properties'].items()}
+        out['additionalProperties'] = False
+    if 'items' in schema: out['items'] = json_schema(schema['items'])
+    if 'required' in schema: out['required'] = schema['required']
+    return out
+
+
+def json_text(text):
+    """The JSON object in a model's reply, also when it is wrapped in ```json fences or a sentence."""
+    text = (text or '').strip()
+    if text.startswith('```'):
+        text = text.strip('`')
+        text = text[4:] if text.lower().startswith('json') else text
+    first, last = text.find('{'), text.rfind('}')
+    if first < 0 or last < first:
+        raise ValueError('no JSON in the reply')
+    return json.loads(text[first:last + 1])
+
+
+def openai_style(base_url, key, model, settings, prompt, schema, image=None):
+    """Groq and OpenRouter (OpenAI chat-completions format). Asks for the JSON schema; if the model does not support
+    structured output, asks again for plain JSON."""
+    content = [{'type': 'text', 'text': prompt + ' Reply with one JSON object only.'}]
+    if image:
+        content.insert(0, {'type': 'image_url', 'image_url': {'url': image}})
+    body = {'model': model, 'temperature': 0, 'messages': [{'role': 'user', 'content': content if image else content[0]['text']}],
+            'response_format': {'type': 'json_schema', 'json_schema': {'name': 'answer', 'strict': False, 'schema': json_schema(schema)}}}
+    headers = {'Authorization': f'Bearer {key}', 'X-Title': 'Travelly'}
+    url = base_url.rstrip('/') + '/chat/completions'
+    reply = httpx.post(url, json=body, headers=headers, timeout=timeout(settings, image))
+    if reply.status_code in (400, 404, 422):   # no structured output on this model: plain JSON mode
+        body['response_format'] = {'type': 'json_object'}
+        reply = httpx.post(url, json=body, headers=headers, timeout=timeout(settings, image))
     reply.raise_for_status()
-    text = reply.json()['candidates'][0]['content']['parts'][0]['text']
-    return json.loads(text)
+    data = reply.json()
+    if data.get('error'):
+        raise ValueError(str(data['error'])[:200])
+    return json_text(data['choices'][0]['message']['content'])
 
 
-def gemini_image(settings, prompt, schema, image_b64, mime='image/jpeg'):
-    """Same as gemini() with one photo (odometer reading). The photo is sent only for this one answer."""
-    url = f'https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent'
-    body = {'contents': [{'role': 'user', 'parts': [{'inlineData': {'mimeType': mime, 'data': image_b64}}, {'text': prompt}]}],
-            'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json', 'responseSchema': schema}}
-    reply = httpx.post(url, json=body, headers={'x-goog-api-key': settings.gemini_api_key}, timeout=max(settings.gemini_timeout_seconds, 15))
-    reply.raise_for_status()
-    return json.loads(reply.json()['candidates'][0]['content']['parts'][0]['text'])
-
-
-def gemini_allowed(store, settings):
-    if not settings.gemini_api_key.strip() or settings.gemini_daily_limit <= 0:
+def ai_allowed(store, settings, user_id=None, vision=False):
+    """Use the AI services only while the free quotas last: a cap per person (AI is for signed-in customers, owner
+    decision 13 Nov 2026) and a cap for the whole site. Past either cap, or with no key, the built-in rules answer."""
+    if not providers(settings, vision) or settings.ai_daily_limit <= 0:
         return False
     try:
-        store.rate('gemini-daily', settings.gemini_daily_limit, 86400)
+        if user_id is not None:
+            if settings.ai_user_daily_limit <= 0:
+                return False
+            store.rate(f'ai-user:{user_id}', settings.ai_user_daily_limit, 86400)
+        store.rate('ai-daily', settings.ai_daily_limit, 86400)
         return True
     except ApiError:
         return False
@@ -344,8 +419,8 @@ def gemini_extract(settings, message, asking, known, now):
         'A bare answer (a number, a place, a time) answers the question being asked. '
         f'Now in Sri Lanka: {now:%A %Y-%m-%d %H:%M}. Question being asked: {asking or "none"}. '
         f'Already known: {json.dumps(known, ensure_ascii=False)}. Message: {masked(message)}')
-    data = gemini(settings, prompt, EXTRACT_SCHEMA)
-    return {k: v for k, v in data.items() if v not in (None, '', 'unknown')}
+    data, engine = ask(settings, prompt, EXTRACT_SCHEMA)
+    return {k: v for k, v in data.items() if v not in (None, '', 'unknown')}, engine
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -453,14 +528,14 @@ def summary(f, language):
     return rows
 
 
-def search_assist(settings, store, message, language, filters, asking, now=None):
+def search_assist(settings, store, message, language, filters, asking, now=None, user_id=None):
     now = now or datetime.now(ZONE)
     today = now.date()
     engine = 'rules'
     found = None
-    if gemini_allowed(store, settings):
+    if ai_allowed(store, settings, user_id):
         try:
-            found, engine = gemini_extract(settings, message, asking, filters, now), 'gemini'
+            found, engine = gemini_extract(settings, message, asking, filters, now)
         except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError):
             found = None
     if found is None:
@@ -522,9 +597,9 @@ def unknown(language, engine):
             'steps_language': language, 'note': None, 'path': support['path'], 'related': [], 'language': language, 'engine': engine}
 
 
-def help_answer(settings, store, question, language):
+def help_answer(settings, store, question, language, user_id=None):
     candidates = match_topics(question)
-    if gemini_allowed(store, settings):
+    if ai_allowed(store, settings, user_id):
         guide = [{'id': t['id'], 'title': t['title']['en'], 'steps': t['steps']} for t in help_guide.TOPICS]
         prompt = (
             'You are the help assistant of Travelly, a Sri Lankan vehicle hire and ticket app. Answer ONLY from the guide '
@@ -534,12 +609,12 @@ def help_answer(settings, store, question, language):
             'answer = one short sentence. '
             f'Guide: {json.dumps(guide, ensure_ascii=False)} Question: {masked(question)}')
         try:
-            data = gemini(settings, prompt, HELP_SCHEMA)
+            data, engine = ask(settings, prompt, HELP_SCHEMA)
             topic = help_guide.BY_ID.get(data.get('topic_id'))
             if topic is None:
-                return unknown(language, 'gemini')
+                return unknown(language, engine)
             steps = [str(s)[:400] for s in data.get('steps') or []][:8] or None
-            out = topic_out(topic, language, steps=steps, answer=str(data.get('answer') or '')[:400] or None, engine='gemini')
+            out = topic_out(topic, language, steps=steps, answer=str(data.get('answer') or '')[:400] or None, engine=engine)
             out['related'] = related(candidates, topic, language)
             return out
         except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError):

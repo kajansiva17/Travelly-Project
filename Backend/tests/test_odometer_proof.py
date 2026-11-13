@@ -22,7 +22,7 @@ def jpeg():
 
 @pytest.fixture
 def ready(client, hire_setup, monkeypatch):
-    """A confirmed self-drive booking at its pickup time, photo rule on, Gemini reading what `reads` says."""
+    """A confirmed self-drive booking at its pickup time, photo rule on, the photo AI reading what `reads` says."""
     import app.api.routers.hire_api as module
     c = hire_setup
     booking = committed(client, c)
@@ -36,14 +36,14 @@ def ready(client, hire_setup, monkeypatch):
         def now(cls, tz=None): return (start + timedelta(minutes=1)).astimezone(tz or timezone.utc)
     monkeypatch.setattr(module, 'datetime', Clock)
     client.app.state.settings = client.app.state.settings.model_copy(update={'odometer_photo_required': True})
-    monkeypatch.setenv('GEMINI_API_KEY', 'test-key')
+    monkeypatch.setenv('OPENROUTER_API_KEY', 'test-key')
     reads = {'value': None}
 
-    def fake(settings, prompt, schema, image_b64, mime='image/jpeg'):
-        assert 'odometer' in prompt.lower() and image_b64
+    def fake(name, settings, prompt, schema, image=None):
+        assert name == 'openrouter' and 'odometer' in prompt.lower() and image.startswith('data:image/jpeg;base64,')
         if reads['value'] == 'offline': raise httpx.ConnectError('offline')
         return {'readable': False} if reads['value'] is None else {'readable': True, 'odometer_km': reads['value']}
-    monkeypatch.setattr(ai_assist, 'gemini_image', fake)
+    monkeypatch.setattr(ai_assist, 'call', fake)
     here = {'latitude': str(pickup['latitude']), 'longitude': str(pickup['longitude'])}
     return type('Ready', (), {'ctx': c, 'booking': booking, 'trip': detail['trip'], 'reads': reads, 'here': here})
 

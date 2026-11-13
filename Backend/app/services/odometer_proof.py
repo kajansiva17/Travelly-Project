@@ -134,22 +134,22 @@ READ_PROMPT = ('This is a photo of a vehicle dashboard. Read the TOTAL odometer 
 
 
 def read_odometer(settings, store, jpeg):
-    """Gemini reads the odometer. Returns (km or None, engine): engine 'gemini' or None when no reader was available."""
-    import httpx
+    """An AI service reads the odometer (AI_VISION_PROVIDERS, one after another). Returns (km or None, service name),
+    or (None, None) when no service was available, which the caller treats as NOT_CHECKED."""
     from app.services import ai_assist
-    if not ai_assist.gemini_allowed(store, settings):
+    if not ai_assist.ai_allowed(store, settings, vision=True):
         return None, None
     try:
-        data = ai_assist.gemini_image(settings, READ_PROMPT, READ_SCHEMA, base64.b64encode(jpeg).decode('ascii'))
-    except (httpx.HTTPError, KeyError, IndexError, ValueError, TypeError):
+        data, engine = ai_assist.ask(settings, READ_PROMPT, READ_SCHEMA, image='data:image/jpeg;base64,' + base64.b64encode(jpeg).decode('ascii'))
+    except ValueError:
         return None, None
     if not data.get('readable') or data.get('odometer_km') is None:
-        return None, 'gemini'
+        return None, engine
     try:
         value = Decimal(str(data['odometer_km'])).quantize(Decimal('0.1'))
     except (InvalidOperation, ValueError):
-        return None, 'gemini'
-    return (value if value >= 0 else None), 'gemini'
+        return None, engine
+    return (value if value >= 0 else None), engine
 
 
 def distance_km(lat1, lon1, lat2, lon2):
