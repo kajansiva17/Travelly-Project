@@ -408,3 +408,68 @@ Mocked (not due, online only incl. Sandbox success, cash accepted, cash waiting 
 - **Admin report:** the Bookings tile is `private_hire_bookings` + `ticket_bookings` + `rental_bookings`; a line under the tiles shows the breakdown (private hire, ticket, rental, cancelled).
 - **Rental search:** the live estimate is `rental.base_price` (day rate for the searched days) + the `amount` of each chosen extra from `rental.extras[]`; the UI has no price formula of its own. After the request, `price.estimate.base_price` (includes the extras) and `extras_price` are shown as sent.
 - **Rental label:** from `booking_type === "RENTAL"` (not `itinerary.rental`): "Self-drive rental · N days" on My trips, Owner bookings, dashboards and both Admin oversight lists (`rental_days` there); the rental booking page opens for `booking_type RENTAL`. A handover that is too early shows the server's `RENTAL_NOT_READY` message through the normal notice (button stays enabled).
+
+## Final cleanup and audit pass (14 Nov 2026)
+
+This section is the final audit record. Everything below was checked with the mocked-API scripts (Playwright, Chrome)
+against the dev server; no screenshots.
+
+### Removed
+- Source files nothing imported: `features/auth/RoleApplicationCard.jsx`, `components/ApplicationStatusNotices.jsx`,
+  `components/TravellyVisuals.jsx` and its `assets/travelly/manifest.json`.
+- Unused components and helpers: `Footer`, `Asset` (with its image size table), `BookingPipeline`, `UnavailableFeature`,
+  `ItineraryPreview`, `PlatformMapPlaceholder`, `TravellyHelp`, `hasRows`; the Driver/Admin rental placeholder page
+  (`RentalRoleUi`) and its strings ("Rental package APIs are not implemented…", inspection placeholders).
+- Images and fonts nothing loads (about 20 MB): `-320/-640/-800.webp` variants of icons, destinations, heroes,
+  illustrations, fleet and vehicles (only `vehicle-*-400.webp` is used), landing `*-hero-region-*.png` and `logo-*.png`
+  copies, `*-entry.png(.png)`, `exo2-travelly-semibold-italic.ttf`, `jakarta-wordmark.woff2`, `ticket-*-outline.svg`,
+  `account/*-transparent.png`. `public/references/` and the brand PNGs loaded by name are kept.
+- Unused imports in about 100 files and about 130 CSS selectors no component renders (old dashboard/theme layers).
+  Frame and colour tokens were not touched.
+- `/driver/rentals` redirects to My Assignments and `/admin/rentals` to Booking oversight.
+
+### Fixed
+- Raw codes on screen (CONFIRMED, AWAITING_DRIVER, `DRAFT · ACTIVE`, OWNER, VAN, document types, price methods,
+  vehicle facts) now go through one label map, `src/i18n/codeLabels.js`. Unknown codes are shown in sentence case. The
+  Driver trip title was "பயணம் in progress" and now reads the status label.
+- Label tables passed through `t()` (wizard steps, tabs, route options) had 34 strings without Tamil and Sinhala; the
+  Stepper did not translate its labels at all. Both fixed; the language test now also checks every code label.
+- Console: Leaflet threw `_leaflet_pos` after the map was removed mid-zoom (first fit and "Follow me" no longer animate
+  the zoom; `stop()` before `remove()`; the map fits again after React mounts it twice). Missing key on the Trip in
+  progress card (rental items without `trip_id` now key on `booking_id`). The other warnings seen in the sweep came
+  from the mock (every booking detail returned id `b1`; generic routes without `stops`), not from the app.
+- Live trip map: `GET /trips/{id}/map` once, then `GET /trips/{id}` every 20 s for `status` and `location`; polling stops
+  at COMPLETED or CANCELLED; "Last seen at …" from `location.updated_at`, "The vehicle position is not shared yet."
+  until the first update. `tracking_status` is not used. The dashboard card is the only entry to the map.
+- Admin Social reviews: the open details show Hidden/Visible right after Hide/Restore, also when the post leaves the
+  Reported list (read again from the full list).
+- Phones: the landing header showed every link inline (168–198 px horizontal scroll at 360/390); they sit behind the
+  menu button again, with the dropdown under the header. Dashboards at 1000 px and narrower were squashed to tile
+  headers by the one-screen height; they now stack at natural height and the page scrolls.
+- Sidebar: "Bookings for my vehicles" was 2 px too long at 1366x768 (font 13.5px there).
+- One-line field labels carry the full text as a tooltip for long Tamil and Sinhala labels.
+- "Not available" notice (409 VEHICLE_NOT_AVAILABLE / DEPARTURE_NOT_AVAILABLE) exercised in the browser on the quote,
+  the request review and the ticket hold: the server message and "Search again" show (quote/review go back to the vehicle
+  list, the ticket hold to step 1), no page scroll at 1280x585, card scroll only inside at 390x800.
+
+### Sizes checked
+- One-screen fit, 55 routes across all roles at 1280x585, 1366x768, 1920x1080 and 2560x1440 (220 checks): no page scroll,
+  no horizontal scroll, no clipped card, nothing past the edge.
+- Phones, the same routes plus landing/login/register at 360x740, 390x844 and 768x1024 (165 checks): no horizontal scroll
+  on any Passenger, Owner, Driver or Admin screen.
+- Frame check (navbar, sidebar and content edges) at 1280x585, 1366x768 and 1920x1080: all OK.
+- Tamil and Sinhala at 1280x585 and 390x844 on 28 key pages and their tabs: no button, tab or chip text cut or spilling.
+  Long field labels end in an ellipsis (one-line label rule) with the full text in the tooltip.
+- Odometer Mismatch: the reported ~22 px inner scroll was not reproduced. Start, Finish, Owner My driving and the proof
+  card measure scrollHeight = clientHeight at 1280x585 and 1366x768, in English, Tamil and Sinhala, also with a two-line
+  server message.
+
+### Not fixed or not verified
+- Needs a real device or backend: camera capture of the odometer photo, microphone and voice alerts, Screen Wake Lock,
+  real GPS position updates, OpenStreetMap tiles over the network, video upload progress on a slow connection, PDF
+  download of reports, Google sign-in (the mock has no `gis`), HTTPS-only browser features.
+- The `GET /trips/{id}` location shape was read from the backend source (`trip_summary`), not from a contract.
+- The landing cards for Tickets and Rentals still open the "not available yet" notice although both flows exist now;
+  changing their target is a wording/route decision, left as is.
+- The favicon link in `index.html` points to a file that does not exist; no approved square icon to point it at.
+- Phone dashboards scroll the page (stacked tiles); desktop sizes keep the one-screen layout.
