@@ -68,7 +68,7 @@ export default function AuthPage({ signup = false }) {
       const [user, roles] = await Promise.all([api('/users/me',{cache:'no-store'}), api('/users/me/roles',{cache:'no-store'})])
       // A landing card for tickets or rentals sends a signed-out visitor here first; they return to that booking page.
       const back = location.state?.returnTo
-      const destination = ['/travel/book/tickets', '/travel/book/rental'].includes(back) ? back : loginDestination(user, roles.items || [], journey)
+      const destination = ['/travel/book/tickets', '/travel/book/rental', '/owner/vehicles'].includes(back) ? back : loginDestination(user, roles.items || [], journey)
       setResolvedDestination(destination)
       return destination
     } catch(error) {

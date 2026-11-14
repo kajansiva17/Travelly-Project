@@ -22,6 +22,10 @@ export const CODE_LABELS = {
   // people and kinds
   PASSENGER: 'Passenger', OWNER: 'Owner', DRIVER: 'Driver', ADMIN: 'Admin', PERSONAL: 'Personal', BOOKING: 'Booking',
   AVAILABILITY_BLOCK: 'Availability block', MAINTENANCE: 'Maintenance', PRIVATE_HIRE: 'Private hire', TICKET: 'Ticket', RENTAL: 'Rental',
+  // notification types (03ST)
+  ROAD_ALERT: 'Road alerts', MAINTENANCE_DUE: 'Maintenance reminders', PAYMENT: 'Payments', REFUND: 'Refunds', REPLACEMENT: 'Vehicle replacements',
+  RECONFIRMATION: 'Trip reminders', DOCUMENT_EXPIRY: 'Document expiry', ADMIN_ACTION: 'Admin actions', BOOKING_REQUEST: 'Booking requests',
+  BOOKING_CONFIRMED: 'Booking confirmations', DRIVER_ASSIGNMENT: 'Driver assignments',
   // price methods
   DISTANCE: 'Distance', TIME: 'Time', FIXED: 'Fixed price', EVENT_PACKAGE: 'Event package',
   // documents

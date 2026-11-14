@@ -79,7 +79,7 @@ export const landingContent = {
     secondCards: [
       ['owner-hire', 'car', 'Vehicle hire', 'Reliable vehicles for group and special journeys.', '/owner/vehicles'],
       ['owner-tickets', 'ticket', 'Scheduled tickets', 'Offer seats on your scheduled bus and van journeys.', '/owner/ticket-departures'],
-      ['owner-rentals', 'calendar', 'Rentals', 'Provide rental options for travellers’ trip needs.', 'notice:rentals'],
+      ['owner-rentals', 'calendar', 'Rentals', 'Provide rental options for travellers’ trip needs.', 'go:/owner/vehicles'],
     ],
     featureHeading: 'Keep your business organised.',
     features: [['layers', 'Shared vehicle availability', '/owner/vehicles'], ['seat', 'Departure and seat management', '/owner/ticket-departures'], ['wallet', 'Expense and payment records', '/owner/earnings'], ['document', 'Document expiry reminders', '/owner/vehicles']],

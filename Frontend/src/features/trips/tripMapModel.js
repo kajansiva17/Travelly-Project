@@ -16,11 +16,11 @@ export const positionLatLng=position=>position?pointLatLng(position):null
 // Polling GET /trips/{id} stops once the trip has ended.
 export const tripFinished=status=>status==='COMPLETED'||status==='CANCELLED'
 /* GET /trips/{id} gives the status and `location` {latitude, longitude, updated_at} (null until the first update and once
-   tracking ends). It replaces the map's status and position; a null location keeps the last position that was shown. */
+   tracking is off or the trip ended). It replaces the map's status and position; a null location drops the marker (03O). */
 export function withTripRead(data,trip){
   if(!trip)return data
   const location=trip.location&&pointLatLng(trip.location)?{latitude:trip.location.latitude,longitude:trip.location.longitude,updated_at:trip.location.updated_at}:null
-  return {...data,status:trip.status||data?.status,position:location||data?.position||null}
+  return {...data,status:trip.status||data?.status,position:location}
 }
 // [[south, west], [north, east]] around the given places, or null with none.
 export function boundsOf(latlngs){

@@ -500,3 +500,27 @@ against the dev server; no screenshots.
   On phones the card scrolls as before.
 - **Left open:** the Owner landing "Rentals" card still shows the "not available yet" notice (not asked); the personal-hire list in
   Owner/Driver/Admin shows unpriced vehicles with its existing "Request a quote" text.
+
+## Contract re-check, long-distance commission, account settings (03XP, 03WH, 03SQ, 03O, 03P, 03LC, 03ST)
+
+- **Re-check against the backend source and contracts:**
+  - 03XP: modes and keys match. The 422 for a key the method does not use comes back as field `rules.<index>` with the message
+    `extra_policy.<KEY>: not used by the <METHOD> method.` (not `rules.0.extra_policy.<KEY>`); the form jumps to that rule and shows the message.
+    The contract gives no unit wording, so the extra lines keep the wording from the earlier step.
+  - 03WH: the server sets `near` false whenever `distance_km` is null, so those entries sit under "Farther away" with no distance (as built).
+  - 03SQ: nothing beyond `POST /bookings/private-hires` (unchanged request body).
+  - 03O: `GET /trips/{id}` `location` is null when tracking is off or the trip has ended. The map now drops the marker then (before it kept
+    the last position). `status` COMPLETED/CANCELLED still stops polling; STALE shows "Last seen at …" from `updated_at`.
+  - 03P: the latest `payment_api.py` / `payment_schemas.py` only add the multi-day commission; no existing payment field changed.
+- **03LC (Admin, Payments, Long-distance):** a second box "Commission (%), 2 or more service days" (`multi_day_commission_percent`, optional)
+  next to "Commission (%), 1 service day", shown only when `supports_multi_day_commission` is true. An empty box is not sent (clears it). The
+  50,000 example is shown for both. 422 `PAYMENT_SETTINGS_INVALID` and `MULTI_DAY_COMMISSION_NOT_ALLOWED` show on the second box.
+- **03ST (Settings, every role):** new tabs Password, Devices and Notifications beside Account security and Profile details
+  (`features/auth/AccountSettings.jsx`): sessions list with sign out and "Sign out all other devices" (`{}`), change password (new tokens
+  replace the stored ones; CURRENT_PASSWORD_WRONG on the current field, PASSWORD_UNCHANGED on the new one, 429 message, NO_PASSWORD_SET
+  with a link to reset by email), notification switches only where `can_turn_off` (others "Always on"; maintenance hidden for Passengers).
+  The database migration is backend-only.
+- **Landing:** the Owner "Rentals" card opens `/owner/vehicles` (vehicle page, tab Rental rates); signed-out visitors return there after login.
+- **Return after login:** email login returns to the clicked landing page. Google sign-in returns too when the account exists
+  (checked with a simulated Google callback); a brand-new Google account goes to /google-complete and the return target is not kept.
+- **Fit:** the Admin payment form and the three settings tabs measure 449/449 at 1280x585 and fit at 1920x1080; on 390x844 the form card scrolls inside.

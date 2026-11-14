@@ -40,9 +40,9 @@ test('the map is read once; GET /trips/{id} then gives status and location, and 
   const seen=withTripRead(map,{status:'IN_PROGRESS',location:{latitude:'7.1',longitude:'80.1',accuracy_m:'5',updated_at:'2026-11-14T08:00:00Z'}})
   assert.deepEqual(seen.position,{latitude:'7.1',longitude:'80.1',updated_at:'2026-11-14T08:00:00Z'})
   assert.deepEqual(seen.points,map.points)
-  // tracking ended (location null): keep the last position shown, take the new status
+  // tracking off or the trip ended (location null): no live position, the new status is taken
   const done=withTripRead(seen,{status:'COMPLETED',location:null})
-  assert.equal(done.status,'COMPLETED'); assert.equal(done.position.updated_at,'2026-11-14T08:00:00Z')
+  assert.equal(done.status,'COMPLETED'); assert.equal(done.position,null)
   assert.equal(tripFinished('COMPLETED'),true); assert.equal(tripFinished('CANCELLED'),true); assert.equal(tripFinished('IN_PROGRESS'),false)
   assert.equal(withTripRead(map,null),map)
 })
