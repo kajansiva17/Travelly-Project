@@ -142,8 +142,8 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         touch(user); db.commit()
         store.clear_failures(body.identifier)
         return challenge_for(request, user, body.remember_me)
-    if user.account_status == 'DEACTIVATED':    # signing in again brings a deactivated account back and cancels a delete request
-        user.account_status, user.deletion_requested_at = 'ACTIVE', None
+    from app.api.routers.account_security_api import reactivate   # signing in again brings a deactivated account back and cancels a delete request
+    welcome = reactivate(user)
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, now
     if hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hasher.hash(body.password)
@@ -154,7 +154,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens, body.remember_me)
     logger.info('login user=%s session=%s trace=%s', user.id, sid, request.state.trace_id)
-    return tokens
+    return {**tokens, **welcome}
 
 
 @router.post('/auth/refresh', response_model=TokenResponse, tags=['Auth'])

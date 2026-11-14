@@ -97,6 +97,7 @@ def test_a_clean_account_can_deactivate_and_signing_in_brings_it_back(client):
     assert done.status_code == 200 and done.json()['status'] == 'DEACTIVATED'
     assert client.get(P + '/users/me', headers=bearer(tokens)).status_code in (401, 403)
     back = login(client, data)                                                         # signing in reactivates
+    assert back['account_reactivated'] is True and back['delete_request_cancelled'] is False
     assert client.get(P + '/users/me', headers={'Authorization': 'Bearer ' + back['access_token']}).status_code == 200
     with client.app.state.sessions() as db:
         assert db.get(User, UUID(person['id'])).account_status == 'ACTIVE'
@@ -150,7 +151,9 @@ def test_delete_request_waits_30_days_then_removes_personal_data_only(client):
 def test_signing_in_within_30_days_cancels_the_delete_request(client):
     data, person, tokens = register(client)
     client.post(P + '/users/me/delete-request', headers=bearer(tokens), json={'confirm': True, 'password': data['password']})
-    login(client, data)
+    back = login(client, data)
+    assert back['account_reactivated'] is True and back['delete_request_cancelled'] is True      # the client shows "Welcome back"
+    assert 'account_reactivated' not in login(client, data)                                      # a normal sign-in has neither field
     with client.app.state.sessions() as db:
         row = db.get(User, UUID(person['id']))
         assert row.account_status == 'ACTIVE' and row.deletion_requested_at is None

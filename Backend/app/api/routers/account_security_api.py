@@ -60,19 +60,23 @@ def check_password(request, row, password):
 
 
 def reactivate(user):
-    """Signing in to a deactivated account brings it back and cancels a pending delete request."""
-    if user.account_status == 'DEACTIVATED':
-        user.account_status, user.deletion_requested_at = 'ACTIVE', None
+    """Signing in to a deactivated account brings it back and cancels a pending delete request.
+    Returns the extra fields for the sign-in answer so the client can say "Welcome back" (empty when nothing changed)."""
+    if user.account_status != 'DEACTIVATED':
+        return {}
+    cancelled = user.deletion_requested_at is not None
+    user.account_status, user.deletion_requested_at = 'ACTIVE', None
+    return {'account_reactivated': True, 'delete_request_cancelled': cancelled}
 
 
 def start_session(request, db, user, remember=False):
-    reactivate(user)
+    welcome = reactivate(user)
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, datetime.now(timezone.utc)
     touch(user); db.commit()
     tokens, sid, expires = issue_tokens(user.id, request.app.state.settings, auth_version=user.auth_version, remember=remember)
     request.app.state.store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens, remember)
-    return tokens
+    return {**tokens, **welcome}
 
 
 def challenge_for(request, user, remember=False):
