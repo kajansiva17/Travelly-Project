@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand, Icon, useNotice } from '../../components/components'
 import { useNeedleEvents } from '../../components/NavbarBrand'
 import { journeyLink } from '../auth/onboardingJourney'
+import { hasSession } from '../../services/api'
 import { getLanguage, languages, setLanguage, subscribeLanguage, t } from '../../i18n/language'
 import { landingContent } from './landingContent'
 import { heroArtwork, cardArtwork, artworkSources } from './landingAssets'
@@ -30,6 +31,8 @@ function LandingIcon({ name, size = 26, ...props }) {
 }
 
 function Action({ to, children, className = '', onUnavailable, ...props }) {
+  // go:/path opens a booking page; a signed-out visitor signs in first and comes back to it.
+  if (to?.startsWith('go:')) { const target = to.slice(3), signedIn = hasSession(); return <Link to={signedIn ? target : '/login'} state={signedIn ? undefined : { returnTo: target }} className={className} {...props}>{children}</Link> }
   if (to?.startsWith('notice:')) return <button type="button" className={className} onClick={() => onUnavailable(to.slice(7))} {...props}>{children}</button>
   if (to?.startsWith('#')) return <a href={to} className={className} {...props}>{children}</a>
   return <Link to={to} className={className} {...props}>{children}</Link>
@@ -72,7 +75,7 @@ function JourneySearch({ unavailable }) {
   const tabs = [['Hire', 'car'], ['Tickets', 'ticket'], ['Rentals', 'car']]
   function search(event) {
     event.preventDefault()
-    if (active) { unavailable(active === 1 ? 'tickets' : 'rentals'); return }
+    if (active) { const target = active === 1 ? '/travel/book/tickets' : '/travel/book/rental'; navigate(hasSession() ? target : '/login', hasSession() ? undefined : { state: { returnTo: target } }); return }
     if (!departure || !dateRef.current.checkValidity()) { requestAnimationFrame(() => { dateRef.current.focus(); dateRef.current.reportValidity() }); return }
     navigate('/hire', { state: { seed: { pickup, destination, departure } } })
   }
@@ -117,8 +120,6 @@ function LandingPage({ role }) {
   const login = journeyLink('/login', role.toUpperCase())
   function unavailable(kind) {
     const messages = {
-      tickets: 'Scheduled ticket search and checkout are not available yet. Private vehicle hire is available now.',
-      rentals: 'Rental checkout is not available yet. You can plan a private hire with a driver.',
       'hire-type': 'Only Long-distance private hire is currently available. Other journey types are not available yet.',
       reels: 'Travel Reels are not available yet.',
       expenses: 'Trip expense recording is not available yet.',

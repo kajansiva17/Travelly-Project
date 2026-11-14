@@ -33,7 +33,7 @@ export default function AdminReport(){
         {key:'b',label:t('Bookings'),value:bookingsMade(sum)},{key:'t',label:t('Trips'),value:sum.completed_trips},{key:'k',label:t('km'),value:km(sum.total_km)},{key:'u',label:t('New users'),value:sum.new_users},
         {key:'c',label:t('Collected'),value:m(sum.collected_total)},{key:'i',label:t('Travelly income'),value:m(sum.travelly_commission),tone:'good'},{key:'p',label:t('Paid to Owners'),value:m(sum.payouts_paid)},
         {key:'a',label:t('Needs attention'),value:attentionCount,tone:attentionTone(attentionCount)==='danger'?'bad':'',onClick:()=>setTab(3)}]}/>
-      <p className="rp-note">{t('Private hire')} {sum.private_hire_bookings??0} · {t('Ticket')} {sum.ticket_bookings??0} · {t('Rental')} {sum.rental_bookings??0} · {t('Cancelled')} {sum.cancelled_bookings??0}</p>
+      <p className="rp-note">{t('Private hire (includes Event hire)')} {sum.private_hire_bookings??0} · {t('Ticket')} {sum.ticket_bookings??0} · {t('Rental')} {sum.rental_bookings??0} · {t('Cancelled')} {sum.cancelled_bookings??0}</p>
       <p className="rp-note">{t('Of which still to collect from Owners')}: {m(res.cash_commission_still_due)}{res.note?` — ${res.note}`:''}</p></div>,
     d&&<div className="rp-pane" key="m"><Tiles items={[
         {key:'o',label:t('Collected online'),value:m(sum.collected_online)},{key:'h',label:t('Collected in cash'),value:m(sum.collected_cash)},{key:'r',label:t('Refunds paid'),value:m(sum.refunds_paid)},

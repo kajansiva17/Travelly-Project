@@ -5,6 +5,7 @@ import { Icon } from '../../../components/components'
 import VehiclePhoto from '../../../components/VehiclePhoto'
 import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'
 import { useWorkspace } from '../../../context/workspaceContext'
+import ExtraLines from '../ExtraLines'
 
 /* Presentational parts of the Travel & Booking flow. The passenger wizard
    (/travel/book/*) and the owner / driver / admin personal booking page
@@ -124,6 +125,7 @@ export function FlowEstimate({ title = 'Trip estimate (LKR)', price }) {
   return <section className="flow-estimate ui-card"><h2><Icon name="wallet" size={22} aria-hidden="true"/>{title}</h2>
     <dl>{(price.breakdown || []).map(row => <div key={row.code}><dt>{row.label}</dt><dd>{row.kind === 'CREDIT' ? '−' : ''}{row.amount}</dd></div>)}</dl>
     <p className="flow-estimate-total"><span>{t("Total estimate")}</span><strong>{t("LKR")} {price.total}</strong></p>
+    <ExtraLines price={price}/>
     {(price.exclusions || []).map(text => <p key={text} className="flow-note">{text}</p>)}
   </section>
 }

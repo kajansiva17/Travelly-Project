@@ -8,8 +8,8 @@ export const landingContent = {
     firstHeading: 'Find your kind of ride.',
     firstCards: [
       ['home-hire', 'car', 'Vehicle Hire', 'Choose a vehicle for your group or journey.', '/hire'],
-      ['home-tickets', 'ticket', 'Bus & Van Tickets', 'Pick available seats on bus and van journeys.', 'notice:tickets'],
-      ['home-rentals', 'calendar', 'Rentals', 'Browse vehicles and rental options.', 'notice:rentals'],
+      ['home-tickets', 'ticket', 'Bus & Van Tickets', 'Pick available seats on bus and van journeys.', 'go:/travel/book/tickets'],
+      ['home-rentals', 'calendar', 'Rentals', 'Rent a vehicle and drive it yourself.', 'go:/travel/book/rental'],
     ],
     secondHeading: 'What are you planning?',
     secondCards: [

@@ -1721,6 +1721,22 @@ const rows = [
   ["Review and save","சரிபார்த்துச் சேமி","සමාලෝචනය කර සුරකින්න"],
   ["Block editor","தடை திருத்தி","අවහිර සංස්කාරකය"],
   ["Find a departure","புறப்பாட்டைக் கண்டறி","පිටත්වීමක් සොයන්න"],
+  ["Not offered","வழங்கப்படவில்லை","ලබා නොදේ"],
+  ["No extra charge","கூடுதல் கட்டணம் இல்லை","අමතර ගාස්තුවක් නැත"],
+  ["Extra distance","கூடுதல் தூரம்","අමතර දුර"],
+  ["Extra hours","கூடுதல் மணிநேரம்","අමතර පැය"],
+  ["Overnight stay","இரவுத் தங்கல்","රාත්‍රී නවාතැන"],
+  ["Extra charges","கூடுதல் கட்டணங்கள்","අමතර ගාස්තු"],
+  ["First {value0} minutes free, then {value1} per hour","முதல் {value0} நிமிடங்கள் இலவசம், பின்னர் மணிக்கு {value1}","මුල් විනාඩි {value0} නොමිලේ, ඉන්පසු පැයකට {value1}"],
+  ["{value0} per km","கிமீக்கு {value0}","කිලෝමීටරයකට {value0}"],
+  ["{value0} per hour","மணிக்கு {value0}","පැයකට {value0}"],
+  ["{value0} per overnight stay","இரவுத் தங்கலுக்கு {value0}","රාත්‍රී නවාතැනකට {value0}"],
+  ["Farther away","தொலைவில் உள்ளவை","වඩා දුරින් ඇති"],
+  ["about {value0} km away","சுமார் {value0} கிமீ தொலைவில்","කිලෝමීටර් {value0}ක් පමණ දුරින්"],
+  ["Ask the Owner for a price","உரிமையாளரிடம் விலை கேளுங்கள்","මිල සඳහා හිමිකරුගෙන් අසන්න"],
+  ["The Owner has not saved a price for this journey. Ask the Owner and they will send you a price.","இந்தப் பயணத்துக்கு உரிமையாளர் விலையைச் சேமிக்கவில்லை. உரிமையாளரிடம் கேளுங்கள், அவர் உங்களுக்கு விலையை அனுப்புவார்.","මෙම ගමන සඳහා හිමිකරු මිලක් සුරැකී නැත. හිමිකරුගෙන් අසන්න, ඔහු ඔබට මිලක් එවයි."],
+  ["Private hire (includes Event hire)","தனியார் வாடகை (நிகழ்வு வாடகை உட்பட)","පෞද්ගලික කුලී (උත්සව කුලී ඇතුළුව)"],
+  ["Rent a vehicle and drive it yourself.","வாகனத்தை வாடகைக்கு எடுத்து நீங்களே ஓட்டுங்கள்.","වාහනයක් කුලියට ගෙන ඔබම පදවන්න."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -473,3 +473,30 @@ against the dev server; no screenshots.
   changing their target is a wording/route decision, left as is.
 - The favicon link in `index.html` points to a file that does not exist; no approved square icon to point it at.
 - Phone dashboards scroll the page (stacked tiles); desktop sizes keep the one-screen layout.
+
+## Extra charge choices, nearby order, landing cards, favicon (contracts 03XP, 03WH)
+
+- **Owner rate form (03XP):** each extra has three choices (Not offered, No extra charge, Charge) in `OwnerRates`. Rate fields show
+  only for Charge. Extras by method: WAITING for all, EXTRA_KM for km-wise and day hire, EXTRA_HOURS and OVERNIGHT for day hire only.
+  On save (and in the example preview) `withExtraPolicy` sends `extra_policy` with only the keys the method uses and "0" for the rates
+  of an extra that is not charged; rules without `extra_policy` load as Charge. A 422 shows the server message through the shared
+  field-error list. Rules live in `features/booking/extraPolicy.js` (unit tests in `tests/extraPolicy.test.js`).
+- **Passenger (03XP):** `calculation.extra_policies` is shown as "Not available", "No extra charge" or the rate with its unit
+  (`ExtraLines`): compact on the vehicle card, full under the quote total (`FlowEstimate`) and in the booking price table (`PriceTable`).
+- **Ask the Owner (03SQ list, 03XP):** `quote_on_request` entries are listed after the priced ones under "Ask the Owner for a price".
+  The card says "The Owner has not saved a price for this journey. Ask the Owner and they will send you a price." (the contract gives no
+  reason, so none is shown). The button goes to the request review and sends `POST /bookings/private-hires` without a quote.
+- **Nearby order (03WH):** server order kept; near entries first, then "Farther away" (near false); "about N km away" only when
+  `distance_km` is not null; `location_source` is never shown. Pages never mix parts, so a heading sits at the top of a page. Same
+  ordering in the Owner/Driver/Admin personal-hire list.
+- **Admin report:** "Private hire (includes Event hire)".
+- **Landing:** the Tickets and Rentals cards and the Tickets/Rentals search tabs open `/travel/book/tickets` and `/travel/book/rental`;
+  a signed-out visitor goes to `/login` with `returnTo` and comes back to that page after signing in (only those two pages are accepted).
+- **Favicon:** `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png` are made from the navbar speedometer (dial and needle at
+  rest, from the real brand images) on a white square; linked in `index.html`. The brand mark itself is unchanged.
+- **Fit checked** (mocked API): Owner rate steps with 1, 3 and 4 extras at 1280x585, 1920x1080 and 390x844 (1280x585 day-hire rate
+  step 1 px over, rounding); vehicle search with all near, mixed, all far and null distances at 1280x585, 1920x1080, 390x844. At
+  1280x585 the vehicle list scrolls inside itself (8–38 px) when a heading and the extra lines are shown; the card never scrolls.
+  On phones the card scrolls as before.
+- **Left open:** the Owner landing "Rentals" card still shows the "not available yet" notice (not asked); the personal-hire list in
+  Owner/Driver/Admin shows unpriced vehicles with its existing "Request a quote" text.
