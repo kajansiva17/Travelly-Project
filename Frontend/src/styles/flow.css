@@ -451,7 +451,7 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 
 /* Field errors float under the control so they never change the step's height. */
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field { position: relative; }
-html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: var(--brand-red-tint); border: 1px solid var(--brand-red-border); color: var(--brand-red-dark); font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: var(--brand-red-tint); border: 1px solid var(--brand-red-border); color: var(--brand-red); font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 @media (max-height: 640px) {
   html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page:has(.flow-stepper) .flow-card-head { display: none; }
 }

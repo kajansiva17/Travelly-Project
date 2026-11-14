@@ -35,23 +35,22 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content { padding-top: 0; }
 /* ---- the strip under the steps is a normal section now (it has a heading); keep it flush with its neighbours ---- */
 html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { margin: 0; }
 
-/* ---- buttons: three glossy looks. Sign up = the one dark, solid, saturated red. .lr-glass-red = every other red button (translucent
-   red glass, white text). .lr-glass-neutral = every other button (translucent white glass, dark text). Both glass looks are built from
-   the variables below: translucent gradient fill (lighter on top, deeper below), a top sheen, a bright rim, a coloured glow and a soft
-   shadow. Sizes, shapes and labels are not touched. ---- */
+/* ---- buttons: three looks, one red. Sign up = the only solid brand-red button (flat, white text). .lr-glass-red = every other red button:
+   the same brand red as translucent glass (alpha only) with navy text. .lr-glass-neutral = every other button: white glass, navy text.
+   Everything is built from the variables below; sizes, shapes and labels are not touched. ---- */
 .lr-page {
   --lr-glass-blur: blur(14px) saturate(1.4);
-  --lr-red-deep: color-mix(in srgb, var(--brand-red) 74%, #000);        /* derived from the one brand red */
-  /* red glass: about 70% of Sign up's strength, still see-through */
-  --lr-gr-top: rgb(var(--brand-red-rgb) / .64);
-  --lr-gr-bottom: rgb(var(--brand-red-rgb) / .86);
-  --lr-gr-top-hover: rgb(var(--brand-red-rgb) / .8);
-  --lr-gr-bottom-hover: rgb(var(--brand-red-rgb) / .96);
-  --lr-gr-top-active: var(--brand-red);
-  --lr-gr-bottom-active: var(--brand-red);
-  --lr-gr-text: #fff;
-  --lr-gr-glow: 0 0 16px rgb(var(--brand-red-rgb) / .45);
-  --lr-gr-depth: 0 8px 18px rgb(var(--brand-red-rgb) / .28), 0 2px 4px rgb(60 0 4 / .22);
+  --lr-sheen: linear-gradient(180deg, rgb(255 255 255 / .3), rgb(255 255 255 / 0)) top / 100% 46% no-repeat;
+  --lr-rim: inset 0 1px 0 rgb(255 255 255 / .9), inset 0 0 0 1px rgb(255 255 255 / .25);
+  /* red glass: the brand red at 30% over a white-ish base, border at 50% */
+  --lr-gr-base: rgb(255 255 255 / .6);
+  --lr-gr-tint: rgb(var(--brand-red-rgb) / .3);
+  --lr-gr-tint-hover: rgb(var(--brand-red-rgb) / .42);
+  --lr-gr-tint-active: rgb(var(--brand-red-rgb) / .55);
+  --lr-gr-border: rgb(var(--brand-red-rgb) / .5);
+  --lr-gr-border-hover: rgb(var(--brand-red-rgb) / .75);
+  --lr-gr-text: var(--ui-ink);
+  --lr-gr-shadow: 0 6px 16px rgb(var(--brand-red-rgb) / .2), 0 2px 4px rgb(18 40 90 / .1);
   /* neutral glass */
   --lr-gn-top: rgb(255 255 255 / .82);
   --lr-gn-bottom: rgb(226 236 250 / .6);
@@ -60,20 +59,16 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { 
   --lr-gn-text: var(--ui-ink);
   --lr-gn-glow: 0 0 14px rgb(255 255 255 / .55);
   --lr-gn-depth: 0 8px 18px rgb(18 40 90 / .2), 0 2px 4px rgb(18 40 90 / .12);
-  /* shared gloss */
-  --lr-sheen: linear-gradient(180deg, rgb(255 255 255 / .3), rgb(255 255 255 / 0)) top / 100% 36% no-repeat;
-  --lr-rim: inset 0 1px 0 rgb(255 255 255 / .95), inset 0 0 0 1px rgb(255 255 255 / .28), inset 0 -1px 0 rgb(255 255 255 / .3);
 }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red {
-  background: var(--lr-sheen), linear-gradient(180deg, var(--lr-gr-top), var(--lr-gr-bottom)) !important;
-  color: var(--lr-gr-text) !important; text-shadow: 0 1px 1px rgb(60 0 4 / .45);
-  border: 1px solid rgb(255 255 255 / .8) !important;
-  box-shadow: var(--lr-rim), var(--lr-gr-glow), var(--lr-gr-depth) !important;
+  background: var(--lr-sheen), linear-gradient(var(--lr-gr-tint), var(--lr-gr-tint)), var(--lr-gr-base) !important;
+  color: var(--lr-gr-text) !important; text-shadow: none;
+  border: 1px solid var(--lr-gr-border) !important; box-shadow: var(--lr-rim), var(--lr-gr-shadow) !important;
   -webkit-backdrop-filter: var(--lr-glass-blur); backdrop-filter: var(--lr-glass-blur);
-  transition: background .15s, box-shadow .15s, transform .15s;
+  transition: background .15s, box-shadow .15s, border-color .15s, transform .15s;
 }
-html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover { background: var(--lr-sheen), linear-gradient(180deg, var(--lr-gr-top-hover), var(--lr-gr-bottom-hover)) !important; box-shadow: var(--lr-rim), 0 0 22px rgb(var(--brand-red-rgb) / .65), var(--lr-gr-depth) !important; transform: translateY(-1px); }
-html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:active { background: linear-gradient(180deg, var(--lr-gr-top-active), var(--lr-gr-bottom-active)) !important; box-shadow: inset 0 2px 6px rgb(40 0 3 / .45), 0 0 8px rgb(var(--brand-red-rgb) / .35) !important; transform: translateY(0); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover { background: var(--lr-sheen), linear-gradient(var(--lr-gr-tint-hover), var(--lr-gr-tint-hover)), var(--lr-gr-base) !important; border-color: var(--lr-gr-border-hover) !important; transform: translateY(-1px); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:active { background: linear-gradient(var(--lr-gr-tint-active), var(--lr-gr-tint-active)), var(--lr-gr-base) !important; box-shadow: inset 0 2px 6px rgb(var(--brand-red-rgb) / .3) !important; transform: translateY(0); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral {
   background: var(--lr-sheen), linear-gradient(180deg, var(--lr-gn-top), var(--lr-gn-bottom)) !important;
   color: var(--lr-gn-text) !important; text-shadow: none;
@@ -85,14 +80,14 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral {
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral:hover { background: var(--lr-sheen), linear-gradient(180deg, var(--lr-gn-top-hover), var(--lr-gn-bottom-hover)) !important; box-shadow: var(--lr-rim), 0 0 20px rgb(255 255 255 / .8), var(--lr-gn-depth) !important; transform: translateY(-1px); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral:active { background: linear-gradient(180deg, rgb(214 226 244 / .85), rgb(236 243 252 / .8)) !important; box-shadow: inset 0 2px 6px rgb(18 40 90 / .28) !important; transform: translateY(0); }
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
-html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; box-shadow: var(--lr-rim) !important; cursor: default; }
-/* Sign up: the strongest button, solid, deepest and most saturated red, glossy */
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; cursor: default; }
+/* Sign up: the only highlighted red. Flat brand red, white text, soft shadow of the same red, a faint white overlay for gloss. */
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup {
-  background: var(--lr-sheen), var(--brand-red-gradient) !important; color: #fff !important; text-shadow: 0 1px 1px rgb(60 0 4 / .5);
-  border: 1px solid rgb(255 255 255 / .85) !important; box-shadow: var(--lr-rim), 0 0 16px rgb(var(--brand-red-rgb) / .5), 0 8px 18px rgb(var(--brand-red-rgb) / .35) !important;
+  background: linear-gradient(180deg, rgb(255 255 255 / .22), rgb(255 255 255 / 0) 36%), var(--brand-red) !important; color: #fff !important; text-shadow: none;
+  border: 1px solid rgb(255 255 255 / .55) !important; box-shadow: 0 6px 14px rgb(var(--brand-red-rgb) / .38) !important;
 }
-html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: var(--lr-rim), 0 0 22px rgb(var(--brand-red-rgb) / .7), 0 8px 18px rgb(var(--brand-red-rgb) / .35) !important; }
-html body .lr-page.lr-page.lr-page.lr-page .lr-signup:active { box-shadow: inset 0 2px 6px rgb(40 0 3 / .5) !important; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: 0 8px 18px rgb(var(--brand-red-rgb) / .55) !important; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-signup:active { box-shadow: inset 0 2px 6px rgb(0 0 0 / .22) !important; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
 /* role icons in the navbar take the text colour (red when the pill is active) */
 html body .lr-page.lr-page.lr-page.lr-page .lr-role-icon { background: currentColor; -webkit-mask: var(--lr-role-icon) center / contain no-repeat; mask: var(--lr-role-icon) center / contain no-repeat; filter: none; }

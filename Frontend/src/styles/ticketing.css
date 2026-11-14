@@ -93,7 +93,7 @@ html body .ui-switch input:checked + .ui-switch-track::after { transform: transl
 html body .ui-switch input:focus-visible + .ui-switch-track { outline: 2px solid var(--ui-focus, #1d4ed8); outline-offset: 2px; }
 html body .ui-switch input:disabled + .ui-switch-track { opacity: .55; }
 html body .flow-page .tk-cash-status { font-size: 13.5px; color: var(--ui-text); }
-html body .flow-page .tk-cash-status .is-error { color: var(--brand-red-dark); font-weight: 600; }
+html body .flow-page .tk-cash-status .is-error { color: var(--brand-red); font-weight: 600; }
 
 /* Find a Driver by reference: input and Find button on one row, result line under it */
 html body .flow-page .tk-finder { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

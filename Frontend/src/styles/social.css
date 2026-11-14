@@ -8,7 +8,7 @@ html body .rl-wrap { position: relative; height: 100%; max-width: 100%; display:
 html body .rl-frame { position: relative; height: 100%; aspect-ratio: 9 / 16; max-width: calc(100vw - 110px); border-radius: 18px; overflow: hidden; background: #0b1220; flex: none; }
 html body .rl-media { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #0b1220; cursor: pointer; }
 html body .rl-media video, html body .rl-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-html body .rl-media.rl-text { background: linear-gradient(160deg, #1d3b6f, var(--brand-red-dark)); cursor: default; }
+html body .rl-media.rl-text { background: linear-gradient(160deg, #1d3b6f, var(--brand-red)); cursor: default; }
 html body .rl-sound { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgb(0 0 0 / .5); color: #fff; }
 html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 36px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .72), transparent); display: grid; gap: 4px; pointer-events: none; }
 html body .rl-overlay a, html body .rl-overlay button { pointer-events: auto; }
@@ -45,7 +45,7 @@ html body .rl-compose { display: grid; gap: 6px; position: sticky; bottom: 0; ba
 html body .rl-form { display: grid; gap: 8px; }
 html body .rl-form label { display: grid; gap: 2px; font-weight: 700; font-size: 13px; }
 html body .rl-form input, html body .rl-form select, html body .rl-compose input { min-height: 38px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--ui-glass-border); font: inherit; }
-html body .rl-form .is-warn { color: var(--brand-red-dark); }
+html body .rl-form .is-warn { color: var(--brand-red); }
 html body .rl-actions, html body .rl-menu { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 html body .rl-menu { justify-content: stretch; } html body .rl-menu > * { flex: 1; }
 

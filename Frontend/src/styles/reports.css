@@ -18,7 +18,7 @@ html body button.rp-tile { cursor: pointer; }
 html body .rp-tile-label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #44516b; font-weight: 600; }
 html body .rp-tile strong { font-size: 17px; line-height: 1.15; overflow-wrap: anywhere; }
 html body .rp-tile.good { background: #e4f6ea; border-color: #9fd6b0; } html body .rp-tile.good strong, html body .rp-tile.good .rp-tile-label { color: #0f6b2c; }
-html body .rp-tile.bad { background: var(--brand-red-tint); border-color: var(--brand-red-border); } html body .rp-tile.bad strong, html body .rp-tile.bad .rp-tile-label { color: var(--brand-red-dark); }
+html body .rp-tile.bad { background: var(--brand-red-tint); border-color: var(--brand-red-border); } html body .rp-tile.bad strong, html body .rp-tile.bad .rp-tile-label { color: var(--brand-red); }
 @media (max-width: 359px) { html body .rp-tiles { grid-template-columns: minmax(0, 1fr); } }
 @media (min-width: 640px) { html body .rp-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1000px) { html body .rp-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -30,7 +30,7 @@ html body .rp-result > div { display: grid; min-width: 0; } html body .rp-result
 html body .rp-result > i { font-style: normal; font-size: 20px; font-weight: 800; }
 html body .rp-result .rp-note { grid-column: 1 / -1; }
 html body .rp-result.is-profit { background: #e4f6ea; border-color: #2e9a52; color: #0f6b2c; }
-html body .rp-result.is-loss { background: var(--brand-red-tint); border-color: var(--brand-red); color: var(--brand-red-dark); }
+html body .rp-result.is-loss { background: var(--brand-red-tint); border-color: var(--brand-red); color: var(--brand-red); }
 html body .rp-result.is-compact { padding: 6px 12px; } html body .rp-result.is-compact strong { font-size: 15px; }
 @media (max-width: 720px) {
   html body .rp-result, html body .rp-result.is-compact { grid-template-columns: minmax(0, 1fr); }

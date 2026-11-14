@@ -20,7 +20,7 @@
 .lr-nav{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
 .lr-nav-link{display:flex;align-items:center;justify-content:center;gap:7px;padding:7px 10px;min-height:33px;font-size:12px;font-weight:800;white-space:nowrap;position:relative}
 .lr-nav-link:not(:last-of-type)::after{content:'';position:absolute;right:-5px;top:8px;bottom:8px;width:1px;background:#567db28c}
-.lr-active{border-radius:22px;background:linear-gradient(var(--brand-red-hi) 0%,var(--brand-red) 55%,var(--brand-red));color:white!important;box-shadow:inset 0 1px 3px white,0 4px 9px rgb(var(--brand-red-rgb) / .35)}
+.lr-active{border-radius:22px;background:linear-gradient(var(--brand-red) 0%,var(--brand-red) 55%,var(--brand-red));color:white!important;box-shadow:inset 0 1px 3px white,0 4px 9px rgb(var(--brand-red-rgb) / .35)}
 .lr-language{display:flex;align-items:center;gap:5px;margin:0 7px 0 5px;padding-left:8px;border-left:1px solid #567db28c}
 .lr-language select{max-width:99px;background:transparent;border:0;font-weight:700;font-size:13px;padding:5px 0;cursor:pointer}
 .lr-language option{background:#edf3fc;color:#07083e}
@@ -61,7 +61,7 @@
 .lr-step-box{border-radius:19px;margin-top:5px}
 .lr-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:12px 26px 8px!important;gap:24px}
 .lr-steps li{display:grid;grid-template-columns:42px 37px 1fr;align-items:start;column-gap:10px;position:relative;padding-right:17px;min-width:0}
-.lr-step-number{display:grid;place-items:center;width:37px;height:37px;background:linear-gradient(var(--brand-red-hi),var(--brand-red) 60%,var(--brand-red));color:white;border-radius:50%;border:1px solid #fff9;box-shadow:0 3px 6px rgb(var(--brand-red-rgb) / .35);font-size:19px;font-weight:800}
+.lr-step-number{display:grid;place-items:center;width:37px;height:37px;background:linear-gradient(var(--brand-red),var(--brand-red) 60%,var(--brand-red));color:white;border-radius:50%;border:1px solid #fff9;box-shadow:0 3px 6px rgb(var(--brand-red-rgb) / .35);font-size:19px;font-weight:800}
 .lr-steps h3{font-size:17px;font-weight:800;line-height:1.05;letter-spacing:-.55px}
 .lr-steps li>div{min-width:0}
 .lr-steps p{font-size:13px;letter-spacing:-.4px;line-height:1.13;margin-top:5px}

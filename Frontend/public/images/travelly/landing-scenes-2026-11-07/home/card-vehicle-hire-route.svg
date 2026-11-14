@@ -34,7 +34,7 @@
       <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="pin" cx=".35" cy=".28" r=".85">
-      <stop offset="0" stop-color="#ff6a62"/><stop offset=".35" stop-color="#ff1a14"/><stop offset="1" stop-color="#c70a08"/>
+      <stop offset="0" stop-color="#f20d18"/><stop offset="1" stop-color="#f20d18"/>
     </radialGradient>
     <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#8dc6f6" stop-opacity="0"/><stop offset=".25" stop-color="#8dc6f6"/><stop offset="1" stop-color="#bfe0fb"/>
@@ -70,7 +70,7 @@
       <rect x="1000" y="654" width="200" height="30" rx="15" fill="#173b71"/>
       <rect x="1012" y="662" width="176" height="6" rx="3" fill="#6fa6e6" opacity=".7"/>
       <rect x="1040" y="728" width="120" height="40" rx="12" fill="#f4f8fe"/>
-      <rect x="1040" y="728" width="120" height="14" rx="7" fill="#ff1a14"/>
+      <rect x="1040" y="728" width="120" height="14" rx="7" fill="#f20d18"/>
       <!-- edge light -->
       <path d="M860 640 Q850 600 890 596" fill="none" stroke="#9cc8f5" stroke-width="5" stroke-linecap="round" opacity=".7"/>
     </g>
@@ -101,11 +101,11 @@
       </g>
 
   <!-- red pin -->
-    <g transform="translate(592 368) scale(.84) translate(-688 -462)"><ellipse cx="688" cy="464" rx="74" ry="22" fill="#ff1a14" opacity=".2"/><ellipse cx="688" cy="464" rx="42" ry="12" fill="#ff1a14" opacity=".32"/></g>
+    <g transform="translate(592 368) scale(.84) translate(-688 -462)"><ellipse cx="688" cy="464" rx="74" ry="22" fill="#f20d18" opacity=".2"/><ellipse cx="688" cy="464" rx="42" ry="12" fill="#f20d18" opacity=".32"/></g>
   <g filter="url(#drop)" transform="translate(592 368) scale(.84) translate(-688 -462)">
     <path d="M640 120 C560 120 504 178 504 250 C504 340 600 400 640 470 C680 400 776 340 776 250 C776 178 720 120 640 120 Z" fill="url(#pin)" transform="translate(48 -6)"/>
-    <circle cx="688" cy="244" r="46" fill="#fff6f4"/>
-    <circle cx="688" cy="244" r="46" fill="none" stroke="#c70a08" stroke-width="6" opacity=".25"/>
+    <circle cx="688" cy="244" r="46" fill="#ffffff"/>
+    <circle cx="688" cy="244" r="46" fill="none" stroke="#f20d18" stroke-width="6" opacity=".25"/>
     <path d="M590 190 C610 150 660 132 704 138" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity=".55"/>
   </g>
 

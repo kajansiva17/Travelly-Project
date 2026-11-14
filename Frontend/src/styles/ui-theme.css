@@ -11,7 +11,7 @@
   --ui-placeholder: #7d8fa8;
 
   /* Brand */
-  --ui-red-top: var(--brand-red-hi);
+  --ui-red-top: var(--brand-red);
   --ui-red: var(--brand-red);
   --ui-red-bottom: var(--brand-red);
   --ui-red-text: var(--brand-red);
@@ -51,7 +51,7 @@
   --ui-shadow-button: inset 0 1px 1px rgb(255 255 255 / .5), 0 6px 14px rgb(var(--brand-red-rgb) / .3);
 
   /* Gradients */
-  --ui-red-gradient: linear-gradient(180deg, var(--ui-red-top), var(--ui-red) 55%, var(--ui-red-bottom));
+  --ui-red-gradient: var(--brand-red-gradient);
 
   /* Backgrounds (photos from public/images/travelly) */
   --ui-scenic: url('/images/travelly/heroes/travelly-dashboard-sigiriya-background.png');

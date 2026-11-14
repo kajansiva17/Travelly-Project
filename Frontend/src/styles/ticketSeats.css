@@ -19,7 +19,7 @@
 .seat-map .seat.selected .seat-art{filter:drop-shadow(0 0 5px rgba(10,53,232,1)) drop-shadow(0 1.5px 1px rgba(0,0,0,.35))}
 .seat-map .seat.selected .seat-art rect{stroke-width:2}
 .seat-map .seat.selected .seat-num{font-size:.9rem}
-.seat-map .seat.booked{--sf:var(--brand-red);--sc:var(--brand-red-dark);--ss:var(--brand-red-dark);color:#fff}
+.seat-map .seat.booked{--sf:var(--brand-red);--sc:var(--brand-red);--ss:var(--brand-red);color:#fff}
 .seat-map .seat.not-sold{--sf:#6f7684;--sc:#565d6a;--ss:#2b3039;color:#fff}
 .seat-map .seat.crew{--sf:#4b5563;--sc:#374151;--ss:#111827;color:#111827}
 .seat-map .seat.crew .seat-num{display:none}
@@ -29,7 +29,7 @@
 .seat-legend li{display:flex;align-items:center;gap:6px}
 .seat-legend .swatch{display:inline-flex;width:20px;height:20px;border-radius:6px 6px 4px 4px;border:2px solid #27303d;border-bottom-width:4px;background:#fff;align-items:center;justify-content:center}
 .seat-legend .swatch.selected{background:#0a35e8;border-color:#041660}
-.seat-legend .swatch.booked{background:var(--brand-red);border-color:var(--brand-red-dark)}
+.seat-legend .swatch.booked{background:var(--brand-red);border-color:var(--brand-red)}
 .seat-legend .swatch.not-sold{background:#6f7684;border-color:#2b3039}
 .seat-legend .swatch.crew{background:#eceef1}
 .seat-legend .swatch svg{width:14px;height:14px}

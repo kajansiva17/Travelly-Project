@@ -205,6 +205,6 @@ html body .ui-tabs button.ui-tab:hover, html body .ui-tabs a.ui-tab:hover { back
 html body .ui-tabs .ui-tab.is-active { background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55); box-shadow: var(--ui-shadow-button); text-shadow: 0 1px 1px rgb(0 0 0 / .25); }
 html body .ui-tabs .ui-tab.is-active > svg { color: #fff; }
 /* Chip tones used by checklists: danger (required, missing) and muted (optional). */
-.ui-chip-danger { background: var(--brand-red-tint); border-color: var(--brand-red-border); color: var(--brand-red-dark); }
+.ui-chip-danger { background: var(--brand-red-tint); border-color: var(--brand-red-border); color: var(--brand-red); }
 .ui-chip-danger > svg { color: var(--brand-red); }
 .ui-chip-muted { background: #eef1f5; border-color: #d8dee8; color: #5b6f8f; }

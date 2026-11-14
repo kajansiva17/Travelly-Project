@@ -184,3 +184,10 @@ html body .auth-page .journey-sun > i {
   html body .auth-page .journey-sun { background: linear-gradient(135deg, rgb(246 193 74 / .85), rgb(255 244 214 / .6)); }
   html body .auth-page .journey-sun > i { display: none; animation: none; will-change: auto; }
 }
+
+/* Tamil / Sinhala headings and fields must wrap inside the card on a phone instead of widening the form column */
+html body .auth-page .auth-form-inner { grid-template-columns: minmax(0, 1fr); }
+html body .auth-page .auth-heading h1 { overflow-wrap: anywhere; }
+html body .auth-page .auth-form-inner :is(form, fieldset, .auth-field, .auth-input) { min-width: 0; max-width: 100%; }
+html body .auth-page .auth-form-inner form { grid-template-columns: minmax(0, 1fr); }
+html body .auth-page .auth-form-inner :is(.terms-check, .terms-check span, .auth-links) { flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
