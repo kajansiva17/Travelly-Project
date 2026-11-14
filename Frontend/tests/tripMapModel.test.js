@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {alertMarkers,boundsOf,routeLine,routePoints,routeText,positionLatLng} from '../src/features/trips/tripMapModel.js'
+import {alertMarkers,boundsOf,routeLine,routePoints,routeText,positionLatLng,tripFinished,withTripRead} from '../src/features/trips/tripMapModel.js'
 import {drivesTrip,tripLink} from '../src/features/trips/tripLinks.js'
 
 const data={points:[{kind:'START',label:'Kandy',latitude:'7.29',longitude:'80.63'},{kind:'STOP',label:'Mid',latitude:null,longitude:null},{kind:'END',label:'Colombo',latitude:'6.93',longitude:'79.85'}],
@@ -31,4 +31,18 @@ test('trip cards open the right map per workspace', () => {
   assert.equal(tripLink(rider,'OWNER'),'/owner/travel/trips/t1/map')
   assert.equal(tripLink(driver,'DRIVER'),'/driver/trips/t2/live')
   assert.equal(tripLink(both,'OWNER'),'/owner/driving/trips/t3')
+})
+
+test('the map is read once; GET /trips/{id} then gives status and location, and polling stops when the trip ends', () => {
+  const map={trip_id:'t1',status:'IN_PROGRESS',points:[{kind:'START',label:'A',latitude:'7',longitude:'80'}],line:null,position:null}
+  // no position until the first update: the "not shared yet" line stays
+  assert.equal(withTripRead(map,{status:'IN_PROGRESS',location:null}).position,null)
+  const seen=withTripRead(map,{status:'IN_PROGRESS',location:{latitude:'7.1',longitude:'80.1',accuracy_m:'5',updated_at:'2026-11-14T08:00:00Z'}})
+  assert.deepEqual(seen.position,{latitude:'7.1',longitude:'80.1',updated_at:'2026-11-14T08:00:00Z'})
+  assert.deepEqual(seen.points,map.points)
+  // tracking ended (location null): keep the last position shown, take the new status
+  const done=withTripRead(seen,{status:'COMPLETED',location:null})
+  assert.equal(done.status,'COMPLETED'); assert.equal(done.position.updated_at,'2026-11-14T08:00:00Z')
+  assert.equal(tripFinished('COMPLETED'),true); assert.equal(tripFinished('CANCELLED'),true); assert.equal(tripFinished('IN_PROGRESS'),false)
+  assert.equal(withTripRead(map,null),map)
 })

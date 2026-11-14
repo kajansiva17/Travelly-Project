@@ -2,23 +2,33 @@ import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {fieldErrorText} from '../../services/fieldErrors.js'
 import {usePoll} from './usePoll'
+import {tripFinished,withTripRead} from './tripMapModel'
 
 export const MAP_POLL_MS=20000      // a Passenger's read-only map follows the vehicle
 export const ACTIVE_POLL_MS=30000   // contract 03O: the dashboard list, about every 30 s while it is open
 
-/* GET /trips/{id}/map: the route points, the road line and the current position. With `poll` it is read again every 20 s
-   (a Passenger watching the vehicle); the Driver's own map reads it once and takes its position from its own location updates. */
+/* GET /trips/{id}/map once: the route points, the road line and the first position. With `poll` (a Passenger watching the
+   vehicle) GET /trips/{id} is then read every 20 s for the status and the location, and polling stops once the trip is
+   COMPLETED or CANCELLED. The Driver's own map reads the map once and takes its position from its own location updates. */
 export function useTripMap(tripId,{poll=false,enabled=true}={}){
   const [state,setState]=useState({data:null,error:'',loaded:false}),inFlight=useRef(false)
+  const id=encodeURIComponent(tripId)
   const load=useCallback(async()=>{
     if(inFlight.current)return
     inFlight.current=true
-    try{setState({data:await api(`/trips/${encodeURIComponent(tripId)}/map`,{cache:'no-store'}),error:'',loaded:true})}
+    try{setState({data:await api(`/trips/${id}/map`,{cache:'no-store'}),error:'',loaded:true})}
     catch(error){setState(current=>({...current,error:fieldErrorText(error,''),loaded:true}))}
     finally{inFlight.current=false}
-  },[tripId])
+  },[id])
+  const refresh=useCallback(async()=>{
+    if(inFlight.current)return
+    inFlight.current=true
+    try{const trip=await api(`/trips/${id}`,{cache:'no-store'});setState(current=>current.data?{...current,data:withTripRead(current.data,trip),error:''}:current)}
+    catch{/* a failed read keeps what is shown; the next poll tries again */}
+    finally{inFlight.current=false}
+  },[id])
   useEffect(()=>{if(!enabled)return;setState({data:null,error:'',loaded:false});load()},[load,enabled])
-  usePoll(load,poll&&enabled,MAP_POLL_MS)
+  usePoll(refresh,poll&&enabled&&Boolean(state.data)&&!tripFinished(state.data.status),MAP_POLL_MS)
   return {...state,reload:load}
 }
 

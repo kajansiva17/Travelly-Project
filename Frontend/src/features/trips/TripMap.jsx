@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {alertColor,alertMarkers,boundsOf,pointColor,positionLatLng,routeLine,routePoints,routeText} from './tripMapModel'
@@ -24,7 +24,8 @@ export default function TripMap({data,position,alerts,selectedId,onSelect,follow
     // Keep the map sized to its box (the side column and the window change size).
     const watch=typeof ResizeObserver!=='undefined'?new ResizeObserver(()=>instance.invalidateSize()):null
     watch?.observe(holder.current)
-    return()=>{watch?.disconnect();instance.remove();map.current=null;layers.current={}}
+    // A new map (React may mount twice) is fitted to the route again; stop() ends a running pan before the map goes away.
+    return()=>{watch?.disconnect();instance.stop();instance.remove();map.current=null;layers.current={};fitted.current=false}
   },[])
 
   // The route: points and the road line. The map is fitted to it once.
@@ -38,7 +39,8 @@ export default function TripMap({data,position,alerts,selectedId,onSelect,follow
       if(point.label)marker.bindTooltip(point.label,{direction:'top'})
     }
     const bounds=boundsOf(latlngs)
-    if(bounds&&!fitted.current){fitted.current=true;instance.fitBounds(bounds,{padding:[28,28],maxZoom:16})}
+    // No zoom animation here: its end timer would run after the map is removed when the page changes quickly.
+    if(bounds&&!fitted.current){fitted.current=true;instance.fitBounds(bounds,{padding:[28,28],maxZoom:16,animate:false})}
   },[data])
 
   // The vehicle: a marker, and the map follows it when "Follow me" is on.
@@ -48,7 +50,8 @@ export default function TripMap({data,position,alerts,selectedId,onSelect,follow
     const spot=positionLatLng(position)
     if(!spot)return
     L.circleMarker(spot,{radius:11,color:'#fff',weight:4,fillColor:'#c8102e',fillOpacity:1}).addTo(layers.current.vehicle).bindTooltip(t('Vehicle'),{direction:'top'})
-    if(follow)instance.setView(spot,Math.max(instance.getZoom(),15),{animate:true})
+    // Zoom in without animation (same reason as the fit), then pan smoothly; stop() can end a pan.
+    if(follow){if(instance.getZoom()<15)instance.setView(spot,15,{animate:false});else instance.panTo(spot,{animate:true})}
   },[position,follow])
 
   // Alert markers; the selected one is larger.

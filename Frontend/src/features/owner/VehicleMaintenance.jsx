@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
@@ -8,11 +8,12 @@ import {Pager} from '../booking/flow/FlowParts'
 import {DateTimeFields,Empty} from '../ticketing/TicketParts'
 import {formatDateTime,formatDate} from '../../i18n/dateTime.js'
 import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 // Vehicle Maintenance tab (Vehicle records contract 03M): summary of tasks, records list, and a two-step "Add record" form.
 // The type picker comes from allowed_record_types; the fields of each type follow the contract table.
 const TYPE_LABELS={OIL_CHANGE:'Oil change',OIL_FILTER_CHANGE:'Oil filter change',TYRE_CHANGE:'Tyre change',TYRE_ROTATION:'Tyre rotation',WHEEL_ALIGNMENT:'Wheel alignment',WHEEL_BALANCING:'Wheel balancing',GENERAL_SERVICE:'General service',BRAKE_SERVICE:'Brake service',BATTERY_SERVICE:'Battery service',REPAIR:'Repair',FUEL_PURCHASE:'Fuel purchase',EV_CHARGING:'EV charging',ODOMETER_UPDATE:'Odometer reading',PERSONAL_EXTRA_USE:'Personal or off-platform use'}
-const typeLabel=type=>TYPE_LABELS[type]?t(TYPE_LABELS[type]):String(type||'').replaceAll('_',' ').toLowerCase().replace(/^./,c=>c.toUpperCase())
+const typeLabel=type=>t(TYPE_LABELS[type]||codeEnglish(type))
 const SERVICE_TYPES=['OIL_CHANGE','OIL_FILTER_CHANGE','TYRE_CHANGE','TYRE_ROTATION','WHEEL_ALIGNMENT','WHEEL_BALANCING','GENERAL_SERVICE','BRAKE_SERVICE','BATTERY_SERVICE']
 // Extra fields per type (contract table). "step1" fields are asked with the date, the rest in step 2.
 const FIELD_SPEC=type=>{
@@ -181,7 +182,7 @@ export default function VehicleMaintenance({vehicle,Footer}){
       {sumError&&<p className="tk-line is-warn" role="status">{explain(sumError).text}</p>}
       {summary?.estimate_note&&<p className="tk-line">{t(summary.estimate_note)}</p>}
       {summary&&summary.items?.length>0
-        ?<><div className="tk-rows">{taskPage.slice.map(item=>{const [tone,label,icon]=STATUS[item.status]||['muted',String(item.status||'').replaceAll('_',' ')]
+        ?<><div className="tk-rows">{taskPage.slice.map(item=>{const [tone,label,icon]=STATUS[item.status]||['muted',codeEnglish(item.status)]
           const left=item.remaining_km!=null?`${kmText(Math.abs(Number(item.remaining_km)))} ${Number(item.remaining_km)<0?t('overdue'):t('left')}`:null
           const due=item.estimated_due_date?`${t('Due about')} ${dateOnly(item.estimated_due_date)}`:item.next_due_odometer_km!=null&&item.estimate_note?t('Estimated date unavailable'):null
           const cal=item.genuine_calendar_due_date?`${t('Due date')} ${dateOnly(item.genuine_calendar_due_date)}`:null

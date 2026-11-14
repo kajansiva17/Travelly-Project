@@ -1,18 +1,18 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
-import Chip from '../../components/ui/Chip'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
 import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 // Admin: road alerts (contract 03A, section 6). Verify, Reject or Remove. Reject and Remove need a reason and a confirm step.
 const TYPES={POLICE_PRESENCE:'Police',SPEED_CHECK:'Speed check',ACCIDENT:'Accident',ROADBLOCK:'Roadblock',ROAD_HAZARD:'Road hazard'}
 const STATUSES={UNCONFIRMED:['muted','Unconfirmed'],ACTIVE:['info','Active'],VERIFIED:['success','Verified'],REJECTED:['danger','Rejected'],EXPIRED:['muted','Expired'],REMOVED:['danger','Removed']}
 const filters=[['','All alerts'],['UNCONFIRMED','Unconfirmed'],['ACTIVE','Active'],['VERIFIED','Verified'],['REJECTED','Rejected'],['EXPIRED','Expired'],['REMOVED','Removed']]
 const CLOSED=['REJECTED','EXPIRED','REMOVED']
-const chip=status=>STATUSES[status]||['muted',String(status||'—').replaceAll('_',' ')]
+const chip=status=>STATUSES[status]||['muted',status?codeEnglish(status):'—']
 const when=value=>value?formatDateTime(value):'—'
 const reporterName=reporter=>!reporter?'—':typeof reporter==='string'?reporter:[reporter.display_name||reporter.full_name,reporter.public_user_reference||reporter.reference].filter(Boolean).join(' · ')||'—'
 
@@ -61,7 +61,7 @@ export default function AdminRoadAlerts(){
   const problem=text=>{setNotice(text);load()}
   return <AdminList heading={t('Road alerts')} icon="alert" title={t('Road alerts')} notice={notice} error={error} items={items} empty={t('No road alerts match this filter.')}
     filters={<Field label="Show"><select name="alert-filter" value={filter} onChange={e=>setFilter(e.target.value)}>{filters.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></Field>} filterCols={4}
-    row={x=>{const [tone,label]=chip(x.status);return {key:x.id,title:`${t(TYPES[x.alert_type]||String(x.alert_type||'').replaceAll('_',' '))} · ${when(x.reported_at)}`,meta:`${reporterName(x.reporter)} · ${t('{value0} confirmed, {value1} denied',{value0:x.confirmation_count??0,value1:x.denial_count??0})}`,status:t(label),tone}}}
+    row={x=>{const [tone,label]=chip(x.status);return {key:x.id,title:`${t(TYPES[x.alert_type]||codeEnglish(x.alert_type))} · ${when(x.reported_at)}`,meta:`${reporterName(x.reporter)} · ${t('{value0} confirmed, {value1} denied',{value0:x.confirmation_count??0,value1:x.denial_count??0})}`,status:t(label),tone}}}
     detailTitle={x=>t(TYPES[x.alert_type]||'Road alert')}
     detail={x=><>
       <Facts cols={3} entries={[

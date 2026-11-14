@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
@@ -29,8 +29,8 @@ function Moderation({post,onChanged}){
     if(sending.current)return
     sending.current=true;setBusy(true);setMessage('');setErrors({})
     try{
-      await api(`/admin/social/posts/${post.id}/moderation`,{method:'POST',body:JSON.stringify({expected_version:post.version,action:verb,reason:reason.trim()})})
-      setAction(null);setConfirm(false);setReason('');const text=hidden?t('The post is visible again.'):t('The post is hidden.');setDone(text);onChanged()
+      const saved=await api(`/admin/social/posts/${post.id}/moderation`,{method:'POST',body:JSON.stringify({expected_version:post.version,action:verb,reason:reason.trim()})})
+      setAction(null);setConfirm(false);setReason('');const text=hidden?t('The post is visible again.'):t('The post is hidden.');setDone(text);onChanged('',false,saved)
     }catch(error){
       setConfirm(false);setErrors(fieldErrorMap(error));setMessage(fieldErrorText(error))
       if(error.code==='VERSION_CONFLICT'||error.code==='NO_CHANGE')onChanged('',true)
@@ -54,13 +54,22 @@ function Moderation({post,onChanged}){
 }
 
 export default function AdminSocialPosts(){
-  const [filter,setFilter]=useState('reported'),[items,setItems]=useState(null),[error,setError]=useState(null),[notice,setNotice]=useState('')
-  const load=()=>api('/admin/social/posts'+FILTERS.find(f=>f[0]===filter)[2],{cache:'no-store'}).then(r=>{setItems(r.items||[]);setError(null)}).catch(e=>{setError(e);setItems(items||[])})
-  useEffect(()=>{setItems(null);load()},[filter])
+  const [filter,setFilter]=useState('reported'),[items,setItems]=useState(null),[error,setError]=useState(null),[notice,setNotice]=useState(''),[fresh,setFresh]=useState({})
+  const load=()=>api('/admin/social/posts'+FILTERS.find(f=>f[0]===filter)[2],{cache:'no-store'}).then(r=>{setItems(r.items||[]);setError(null);return r.items||[]}).catch(e=>{setError(e);setItems(items||[]);return null})
+  useEffect(()=>{setItems(null);setFresh({});load()},[filter])
+  /* After Hide or Restore the open details show the post as it is now. Hiding closes its reports, so under "Reported" the post
+     leaves the list: then it is read again from the full list (GET /admin/social/posts). */
+  const keep=post=>post?.id&&setFresh(current=>({...current,[post.id]:post}))
+  async function changed(id,saved){
+    if(saved?.id===id&&saved.moderation_status)keep(saved)
+    const list=await load()
+    if(list&&!list.some(p=>p.id===id))api('/admin/social/posts',{cache:'no-store'}).then(r=>keep((r.items||[]).find(p=>p.id===id))).catch(()=>{})
+    else if(list)setFresh(current=>{const next={...current};delete next[id];return next})
+  }
   return <AdminList heading={t('Social reviews')} icon="video" title={t('Posts')} info={t('Hiding a post removes it from every feed. Restoring shows it again. Each decision is kept in the audit record.')} notice={notice} error={error}
     filters={<div className="tk-bar" role="group" aria-label={t('Show')}>{FILTERS.map(([code,name])=><Chip key={code} tone="info" selected={filter===code} onClick={()=>setFilter(code)}>{t(name)}</Chip>)}</div>} filterCols={1}
     items={items} empty={filter==='reported'?t('No post has an open report.'):t('No posts.')}
     row={p=>{const reports=(p.open_reports||[]).length;return {key:p.id,title:`${p.author?.name||'—'} · ${t(TYPE[p.post_type]||p.post_type)}`,meta:`${(p.caption||'').slice(0,90)||'—'} · ${when(p.published_at)}${reports?` · ${t('{value0} open reports',{value0:reports})}`:''}`,status:p.moderation_status==='HIDDEN'?t('Hidden'):t('Visible'),tone:p.moderation_status==='HIDDEN'?'danger':'success'}}}
     detailTitle={p=>`${p.author?.name||''} · ${t(TYPE[p.post_type]||p.post_type)}`}
-    detail={p=><Moderation key={p.id} post={p} onChanged={(text,quiet)=>{if(text)setNotice(text);load()}}/>}/>
+    detail={p=><Moderation key={p.id} post={fresh[p.id]||p} onChanged={(text,quiet,saved)=>{if(text)setNotice(text);changed(p.id,saved)}}/>}/>
 }

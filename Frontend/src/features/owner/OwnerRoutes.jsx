@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
 import {ErrorNotice,Header} from '../../components/components'

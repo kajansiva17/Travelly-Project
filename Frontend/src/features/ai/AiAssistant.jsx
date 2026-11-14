@@ -1,5 +1,5 @@
 import { t, getLanguage } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import {PlaceSearch} from '../owner/OwnerRates'
@@ -11,6 +11,7 @@ import {aiErrorText,topicRows} from './aiApi'
 import {askHelp,helpTopics,searchAssist} from './aiRequests'
 import {buildDraft,isHire,missingFor,ticketQuery,writeDraft} from './aiDraft'
 import {helpTarget} from './aiHelp'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 /* Travelly AI chat panel (contract 03AI): "Find a ride" fills the search form step by step and shows it for checking;
    "Help" answers questions about the app from the help guide. The AI never books or pays: the person presses Search,
@@ -35,7 +36,7 @@ function CardRow({row,filters,places,onChange,onPlace,hire}){
 function CheckCard({reply,state,onChange,onPlace,onSearch,onEditForm,busy,problem}){
   const hire=isHire(state.filters.service),missing=missingFor(state.filters,state.places)
   const labels=Object.fromEntries((reply.summary||[]).map(r=>[r.field,r.label]))
-  const needed=missing.map(f=>labels[f]||f.replaceAll('_',' ')).join(', ')
+  const needed=missing.map(f=>labels[f]||codeEnglish(f)).join(', ')
   return <section className="ai-card" aria-label={t('Check your search')}>
     <h3>{t('Check your search')}</h3>
     <div className="ai-rows">{(reply.summary||[]).map(row=><CardRow key={row.field} row={row} filters={state.filters} places={state.places} hire={hire} onChange={onChange} onPlace={onPlace}/>)}</div>

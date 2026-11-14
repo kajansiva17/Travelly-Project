@@ -71,6 +71,22 @@ html body .workspace-shell[data-workspace] .workspace-content :is(.flow-page, .d
 /* public booking pages (no sidebar): the page frame matches the navbar */
 html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; margin: 0 auto; padding-inline: 0; box-sizing: border-box; }
 
+/* Landing header on phones: the links, language and Log in / Sign up sit behind the menu button (same breakpoint as the landing CSS). */
+@media (max-width: 760px) {
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav:not(.lr-nav-open) { display: none; }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-menu { margin-left: auto; }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + 8px);
+    margin: 0; padding: 14px; box-sizing: border-box; border-radius: 23px; background: #edf5fff5; border: 1px solid #fff;
+    box-shadow: 0 9px 20px #5d789640; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  }
+}
+/* Up to 1000px the dashboard tiles stack in one column and keep their natural height (flow.css); the fixed one-screen
+   height above would squash them to their headers. */
+@media (max-width: 1000px) {
+  html body .workspace-shell[data-workspace] .workspace-content .dash-page { height: auto; }
+  html body .workspace-shell[data-workspace] .workspace-content .dash-page .dash-grid { grid-template-rows: none; }
+}
 @media (max-width: 767px) {
   html body .workspace-shell[data-workspace] .workspace-layout { grid-template-columns: minmax(0, 1fr); }
   html body .workspace-shell[data-workspace] .app-sidebar { display: none; }

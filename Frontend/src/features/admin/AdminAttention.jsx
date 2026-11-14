@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
@@ -8,6 +8,7 @@ import {money} from '../passenger/TicketCancel'
 import {statusChip} from '../owner/DepartureFulfilment'
 import AdminList,{Facts} from './AdminList'
 import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 // Admin: departures waiting for Travelly (contract 03F2, sections 3 and 4). Only references, amounts, status, dates and counts are shown.
 const filters=[['','All'],['DECISION_REQUIRED','Decision needed'],['DISRUPTED','Disrupted']]
@@ -63,12 +64,12 @@ export default function AdminAttention({base,onOpenRefunds}){
       return <>
         <Facts cols={3} entries={[
           [t('Route'),x.route?.route_name||'—'],[t('Departs'),formatDateTime(x.departure_at)],[t('Owner'),x.owner?`${x.owner.display_name||''} · ${x.owner.public_user_reference||''}`:'—'],
-          [t('Vehicle'),x.vehicle?`${x.vehicle.public_vehicle_reference||''} · ${x.vehicle.vehicle_type_code||''} · ${t('{value0} seats',{value0:x.vehicle.seat_capacity})}`:'—'],
+          [t('Vehicle'),x.vehicle?`${x.vehicle.public_vehicle_reference||''} · ${codeLabel(x.vehicle.vehicle_type_code)} · ${t('{value0} seats',{value0:x.vehicle.seat_capacity})}`:'—'],
           [t('Departure type'),t(POLICY[x.fulfilment_policy]||'—')],
           [t('Seats'),`${x.booked_seats} ${t('booked')} · ${x.held_seats} ${t('held')} · ${money(x.currency,x.paid_amount)}`],
           ...(x.minimum_confirmed_seats?[[t('Minimum seats'),String(x.minimum_confirmed_seats)]]:[]),
           ...(x.decision_deadline?[[t('Decision deadline'),formatDateTime(x.decision_deadline)]]:[]),
-          [t('Replacement'),String(x.replacement_status||'—').replaceAll('_',' ')]]}/>
+          [t('Replacement'),x.replacement_status?codeLabel(x.replacement_status):'—']]}/>
         {result
           ?<div className="tk-pane">
             <p className="tk-line"><Chip tone="success">{t('Closed')}</Chip> <strong>{t('{value0} refunds created, {value1} in total.',{value0:(result.refunds||[]).length,value1:money(x.currency,refundTotal(result))})}</strong></p>

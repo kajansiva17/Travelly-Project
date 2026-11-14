@@ -1,11 +1,12 @@
 import { t, getLanguage } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import {CONFIRM_SECONDS,answerOf,readSetting,recognitionConstructor,saveSetting,speak,speechLang} from './roadAlertSpeech'
 import {acquireWakeLock,releaseWakeLock} from './screenWakeLock'
 import {usePoll as usePollEvery} from '../trips/usePoll'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 /* Road alerts on the Driver's live trip (contract 03A). Only the assigned Driver of a running trip reports. Every alert
    needs one tap (buttons) or one confirmation (voice). The server decides who sees what, in each person's language. */
@@ -276,7 +277,7 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
       {speaker.enabled&&speaker.textOnly&&<p className="tk-line" role="status">{t('This device has no voice for this language. Alerts are shown as text only.')}</p>}
       {renderMap&&<div className="ra-map">{renderMap({selectedId:selected?.id||null,onSelect:setSelectedId})}</div>}
       {renderMap&&alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
-      {renderMap&&selected&&(()=>{const item=selected,[tone,label]=STATUS[item.status]||['muted',String(item.status||'').replaceAll('_',' ')]
+      {renderMap&&selected&&(()=>{const item=selected,[tone,label]=STATUS[item.status]||['muted',codeEnglish(item.status)]
         return <article className="tk-row ra-item ra-info" aria-label={t('Road alerts near you')}>
           <div className="tk-row-main"><strong>{item.name}</strong><span title={item.message}>{item.message}</span></div>
           <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>
@@ -284,7 +285,7 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
       {!renderMap&&<div className="ra-list" aria-label={t('Road alerts near you')}>
         {alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
         {alerts.items.length
-          ?alerts.items.map(item=>{const [tone,label]=STATUS[item.status]||['muted',String(item.status||'').replaceAll('_',' ')]
+          ?alerts.items.map(item=>{const [tone,label]=STATUS[item.status]||['muted',codeEnglish(item.status)]
             return <article className="tk-row ra-item" key={item.id}>
               <div className="tk-row-main"><strong>{item.name}</strong><span title={item.message}>{item.message}</span></div>
               <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>

@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {useNavigate,useParams} from 'react-router-dom'
 import {api} from '../../services/api'
 import {Header} from '../../components/components'
@@ -36,7 +36,7 @@ export default function TripMapPage(){
       :map.data&&<div className="flow-fields tm-view">
         <RoadAlertsPanel readOnly trip={{id:tripId}} alerts={alerts} speaker={speaker} disabled keepScreenOn={speaker.enabled&&wake.unavailable}
           strip={<div className="tm-strip"><Chip tone={running?'success':'muted'} icon="pin">{running?t('Trip in progress'):t('Trip finished')}</Chip>
-            <span className="ra-position">{position?.updated_at?t('Vehicle position at {value0}',{value0:clock(position.updated_at)}):t('The vehicle position is not shared yet.')}</span></div>}
+            <span className="ra-position">{position?.updated_at?t('Last seen at {value0}',{value0:clock(position.updated_at)}):t('The vehicle position is not shared yet.')}</span></div>}
           renderMap={({selectedId,onSelect})=><TripMap data={map.data} position={position} alerts={alerts.items} selectedId={selectedId} onSelect={onSelect} follow={follow} onFollow={setFollow}/>}/>
       </div>}
   </FlowShell></>

@@ -1,10 +1,11 @@
 import { t } from '../../i18n/language.js'
-import React,{useState} from 'react'
+import {useState} from 'react'
 import {Header,ErrorNotice} from '../../components/components'
 import {Compact} from '../owner/OwnerRates'
 import {FlowShell,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import Chip from '../../components/ui/Chip'
 import {Notice,Empty} from '../ticketing/TicketParts'
+import {CODE_LABELS,codeLabel} from '../../i18n/codeLabels.js'
 
 // One layout for every Admin list page: optional filter row, compact rows, paging, and a details view
 // (opened with Details, closed with Back) so nothing needs a long page. Presentation only; pages pass their own data.
@@ -41,7 +42,7 @@ const hidden=/token|secret|pin|qr|email|phone|contact|path|password|hash|digest/
 // Plain facts of a record (one nested level), without anything private. Used for details views.
 export function factsOf(item){
   const out=[]
-  const add=(k,v)=>{if(v==null||typeof v==='object'||hidden.test(k))return;out.push([k.replaceAll('_',' '),String(v)])}
+  const add=(k,v)=>{if(v==null||typeof v==='object'||hidden.test(k))return;out.push([codeLabel(k),typeof v==='string'&&(CODE_LABELS[v]||/^[A-Z0-9]+(_[A-Z0-9]+)+$/.test(v))?codeLabel(v):String(v)])}
   Object.entries(item||{}).forEach(([k,v])=>{if(v&&typeof v==='object'&&!Array.isArray(v))Object.entries(v).forEach(([k2,v2])=>add(k+' '+k2,v2));else add(k,v)})
   return out
 }

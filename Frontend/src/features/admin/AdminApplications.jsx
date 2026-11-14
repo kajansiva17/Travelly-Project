@@ -1,6 +1,6 @@
 import { getLocale } from '../../i18n/language.js'
 import { t } from '../../i18n/language.js'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { api, hasSession, clearSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
@@ -11,6 +11,7 @@ import { FlowShell, usePaged, useRowCount } from '../booking/flow/FlowParts'
 import { Notice, Empty } from '../ticketing/TicketParts'
 import PrivateDocumentPreview from '../../components/PrivateDocumentPreview'
 import { actionLabel, roleActions, documentActions, needsReason, decisionPayload, mayReview } from './reviewRules'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 const dateText = value => value ? new Date(value).toLocaleString(getLocale(), { timeZone: 'Asia/Colombo' }) + ' (Sri Lanka)' : '—'
 
@@ -114,7 +115,7 @@ export default function AdminApplications() {
   const statusText = value => value === 'PENDING' ? t('Pending Review') : value
   const detail = Boolean(roleId && app && person)
   const tabs = detail && !action ? [{ label: t('Application'), icon: 'users', active: view === 0, onClick: () => setView(0) }, { label: t('Evidence'), icon: 'document', active: view === 1, onClick: () => setView(1) }] : undefined
-  const title = action ? `${t(actionLabel(action.decision))} ${t(action.label.replaceAll('_', ' '))}` : detail ? `${person.full_name} · ${t(app.role_code)}` : roleId ? t('Review application') : t('Owner & Driver applications')
+  const title = action ? `${t(actionLabel(action.decision))} ${codeLabel(action.label)}` : detail ? `${person.full_name} · ${codeLabel(app.role_code)}` : roleId ? t('Review application') : t('Owner & Driver applications')
   const decisionBar = detail && !action && <>{roleActions(app.approval_status).map(decision => <button type="button" className="ui-button ui-button-secondary" key={decision} aria-describedby={decision === 'APPROVED' && data.approval_readiness?.ready === false ? 'approval-blocked' : undefined} disabled={busy || (decision === 'APPROVED' && data.approval_readiness?.ready === false)} onClick={() => choose('role', app, decision)}>{t(actionLabel(decision))} {app.role_code === 'OWNER' ? t('Owner') : t('Driver')}</button>)}</>
   return <><Header/><FlowShell heading={t('Application review')} icon="users" title={title} tabs={tabs} info={t("Independent role decisions. Passenger always stays available.")}>
     <Compact.Provider value={true}>
@@ -130,7 +131,7 @@ export default function AdminApplications() {
         <div style={{ alignSelf: 'end' }}><button className="ui-button ui-button-primary" disabled={busy}>{t("Search")}</button></div>
       </form></div>}
       <div className="tk-pane">{(data.items || []).length
-        ? <div className="tk-rows">{queue.slice.map(item => <article className="tk-row" key={item.id}><div className="tk-row-main"><strong><Link to={`/admin/applications/${item.id}`}>{item.applicant?.full_name}</Link></strong><span>{item.applicant?.public_user_reference} · {t(item.role_code)} · {dateText(item.requested_at)}</span></div>
+        ? <div className="tk-rows">{queue.slice.map(item => <article className="tk-row" key={item.id}><div className="tk-row-main"><strong><Link to={`/admin/applications/${item.id}`}>{item.applicant?.full_name}</Link></strong><span>{item.applicant?.public_user_reference} · {codeLabel(item.role_code)} · {dateText(item.requested_at)}</span></div>
           <div className="tk-row-actions"><Chip tone={statusTone(item.approval_status)}>{statusText(item.approval_status)}</Chip><Link className="ui-button ui-button-secondary" to={`/admin/applications/${item.id}`}>{t("Review application")}</Link></div></article>)}</div>
         : <Empty>{filters.status === 'PENDING' && !filters.q && !filters.role_code ? t('No pending applications') : t('No applications match these filters')}</Empty>}</div>
       <div className="flow-actions"><span className="tk-line">{data.total}{t(" application")}{data.total === 1 ? '' : 's'}</span>{queue.pages > 1 && queue.pager}
@@ -156,10 +157,10 @@ export default function AdminApplications() {
     </>
     : <>
       <div className="tk-bar"><strong className="tk-line">{t("Private evidence")}</strong><InfoTip>{t("Step 1:")}{t(" Start review and confirm. ")}{t("Step 2:")}{t(" Inspect the document, choose Approve document and confirm. Repeat for each required document before approving the role.")} {t("Confirm the document matches this applicant and ownership case before verification. A correction request keeps the role PENDING.")}</InfoTip></div>
-      {reviewNext && <div className="tk-bar" aria-label={t("Complete document verification")}><strong className="tk-line" ref={nextReviewHeading} tabIndex={-1}>{t("Step 2: Verify ")}{t(reviewNext.document_type.replaceAll('_', ' '))}</strong><InfoTip>{t("Starting review has not approved this document. Inspect the private document above and check that it is current, readable and matches this applicant before recording your decision.")}</InfoTip>
+      {reviewNext && <div className="tk-bar" aria-label={t("Complete document verification")}><strong className="tk-line" ref={nextReviewHeading} tabIndex={-1}>{t("Step 2: Verify ")}{codeLabel(reviewNext.document_type)}</strong><InfoTip>{t("Starting review has not approved this document. Inspect the private document above and check that it is current, readable and matches this applicant before recording your decision.")}</InfoTip>
         {documentActions(reviewNext.status).map(decision => <button type="button" className="ui-button ui-button-secondary" key={decision} disabled={busy} onClick={() => choose('document', reviewNext, decision)}>{decision === 'APPROVED' ? t('Approve document') : decision === 'REJECTED' ? t('Reject document') : t(actionLabel(decision))}</button>)}</div>}
       <div className="tk-pane">{!(data.documents || []).length && <Empty>{t("No current relevant evidence has been submitted. Approval requires the verified checklist.")}</Empty>}
-        <div className="tk-rows">{docs.slice.map(doc => <article className="tk-row" id={`evidence-${doc.id}`} key={doc.id}><div className="tk-row-main"><strong>{t((doc.document_type || '').replaceAll('_', ' '))}</strong><span>{t(doc.status)}{t(" · version ")}{doc.version}{doc.issuing_country && ` · ${doc.issuing_country}`}{doc.expiry_date && t(" · expires {value0}", { value0: doc.expiry_date })}{doc.rejection_reason && ` · ${doc.rejection_reason}`}</span></div>
+        <div className="tk-rows">{docs.slice.map(doc => <article className="tk-row" id={`evidence-${doc.id}`} key={doc.id}><div className="tk-row-main"><strong>{codeLabel(doc.document_type)}</strong><span>{t(doc.status)}{t(" · version ")}{doc.version}{doc.issuing_country && ` · ${doc.issuing_country}`}{doc.expiry_date && t(" · expires {value0}", { value0: doc.expiry_date })}{doc.rejection_reason && ` · ${doc.rejection_reason}`}</span></div>
           <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={() => setPreview(doc)} disabled={busy}>{t("View private document")}</button>{documentActions(doc.status).map(decision => <button type="button" className="ui-button ui-button-secondary" key={decision} disabled={busy} onClick={() => choose('document', doc, decision)}>{t(actionLabel(decision))}</button>)}</div></article>)}</div></div>
       <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/admin/applications">{t("Back to queue")}</Link>{docs.pages > 1 && docs.pager}</div>
     </>}

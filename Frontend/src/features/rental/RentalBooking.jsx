@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useRef,useState} from 'react'
+import {useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
@@ -7,18 +7,19 @@ import {Checkbox} from '../../components/ui'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import {FlowShell} from '../booking/flow/FlowParts'
 import {money} from '../passenger/TicketCancel'
-import {formatDate,formatDateTime} from '../../i18n/dateTime.js'
+import {formatDateTime} from '../../i18n/dateTime.js'
 import {fieldErrorMap,fieldErrorText} from '../../services/fieldErrors.js'
 import HirePayment from '../booking/HirePayment'
 import OdometerStep from '../odometer/OdometerStep'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {STATUS_CHIP,ownerSteps,renterConfirms,rentalOf} from './rentalModel'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 /* A self-drive rental booking (contract 03RN): status, the rates the Owner had when it was asked, the estimate (before the return) or the final bill
    (after it), the Owner's steps (accept, decline, cancel, hand over, take back, each with a confirm step), the renter's confirmations, payment after
    COMPLETED and the odometer proof. Odometer photos use the existing 03O step on the rental trip (booking.trip.id). */
 const km=value=>value==null||value===''?'—':`${Number(value).toLocaleString('en-LK',{maximumFractionDigits:1})} km`
-const chip=status=>{const [tone,label]=STATUS_CHIP[status]||['muted',String(status||'').replaceAll('_',' ')];return <Chip tone={tone}>{t(label)}</Chip>}
+const chip=status=>{const [tone,label]=STATUS_CHIP[status]||['muted',codeEnglish(status)];return <Chip tone={tone}>{t(label)}</Chip>}
 
 function BillTable({price,label}){
   return <table className="rp-table rb-bill" aria-label={label}><thead><tr><th scope="col">{t('Charge')}</th><th scope="col">{t('Quantity')}</th><th scope="col">{t('Rate')}</th><th scope="col">{t('Amount')}</th></tr></thead>
@@ -70,7 +71,7 @@ export default function RentalBooking({booking,user,personal=false,reload,backTo
   </div>
   const nothing=!actionList.props.children.some(Boolean)
 
-  return <FlowShell heading={booking.reference} title={t(STATUS_CHIP[booking.status]?.[1]||String(booking.status).replaceAll('_',' '))} icon="key" tabs={tabItems}>
+  return <FlowShell heading={booking.reference} title={t(STATUS_CHIP[booking.status]?.[1]||codeEnglish(booking.status))} icon="key" tabs={tabItems}>
     <RateErrors.Provider value={errors}><div className="rb-pane">
       {message.text&&<p className={'tk-line'+(message.warn?' is-warn':'')} role={message.warn?'alert':'status'}>{message.text}</p>}
       {active==='Rental'&&<div className="tk-pane">

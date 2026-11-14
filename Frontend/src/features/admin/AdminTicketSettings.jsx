@@ -17,7 +17,7 @@ function ServiceHold({row,onSaved,pager}){
     catch(problem){setError(problem)}finally{setBusy(false)}
   }
   return <form className="flow-wizard-form tk-pane" onSubmit={save}>
-    <div className="tk-bar"><strong className="tk-line">{row.name}</strong><span className="tk-line">{row.code}</span><Chip tone={row.is_active?'success':'muted'}>{row.is_active?'ACTIVE':'INACTIVE'}</Chip></div>
+    <div className="tk-bar"><strong className="tk-line">{row.name}</strong><span className="tk-line">{row.code}</span><Chip tone={row.is_active?'success':'muted'}>{row.is_active?t('Active'):t('Inactive')}</Chip></div>
     <ErrorNotice error={error}/><Notice>{saved?'Hold time saved.':''}</Notice>
     <div className="tk-grid" style={{'--cols':2}}>
       <Field label="Seat hold time (minutes)" help="How long selected seats stay reserved for a Passenger before they are released automatically. New holds use the new time; existing holds keep theirs.">

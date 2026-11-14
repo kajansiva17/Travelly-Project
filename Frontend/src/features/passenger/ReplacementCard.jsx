@@ -6,11 +6,12 @@ import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Pager} from '../booking/flow/FlowParts'
 import {isReplacementAction,noticeBookingId} from '../notifications/notices'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 // Replacement vehicle decision (contract 03F2, section 6). Shown only while pending_change.status is PENDING.
 // No answer means the passenger travels, so "Travel in the new vehicle" is a plain answer and Reject asks to confirm first.
 export const isPending=booking=>booking?.pending_change?.kind==='REPLACEMENT_VEHICLE'&&booking.pending_change.status==='PENDING'&&booking.status==='CONFIRMED'
-export const vehicleLine=v=>v?[`${v.make||''} ${v.model||''}`.trim(),v.vehicle_type_code,v.colour,v.air_conditioned?'AC':null,v.seat_capacity!=null?t('{value0} seats',{value0:v.seat_capacity}):null].filter(Boolean).join(' · '):''
+export const vehicleLine=v=>v?[`${v.make||''} ${v.model||''}`.trim(),codeLabel(v.vehicle_type_code),v.colour,v.air_conditioned?'AC':null,v.seat_capacity!=null?t('{value0} seats',{value0:v.seat_capacity}):null].filter(Boolean).join(' · '):''
 
 function explain(error){
   const code=error.code

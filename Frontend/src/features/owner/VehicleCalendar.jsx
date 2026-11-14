@@ -1,6 +1,6 @@
 import { getLocale } from '../../i18n/language.js'
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Link,Navigate,useParams} from 'react-router-dom'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
@@ -10,13 +10,14 @@ import {FlowShell,useRowCount,usePaged} from '../booking/flow/FlowParts'
 import '../../styles/rates.css'
 import '../../styles/calendar.css'
 import {fieldErrors} from '../../services/fieldErrors.js'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 const zone='Asia/Colombo'
 const local=value=>new Date(new Date(value).getTime()+330*60000).toISOString().slice(0,16)
 const today=()=>local(new Date()).slice(0,10)
 const iso=value=>new Date(value+'+05:30').toISOString()
 const display=value=>new Date(value).toLocaleString(getLocale(),{timeZone:zone,dateStyle:'medium',timeStyle:'short'})
-const words=value=>(value||'Unclassified').replaceAll('_',' ')
+const words=value=>value?codeEnglish(value):'Unclassified'
 const initial=()=>({kind:'PERSONAL',start_at:today()+'T09:00',end_at:today()+'T17:00',reason:''})
 
 export default function VehicleCalendar({reviewer=false}){

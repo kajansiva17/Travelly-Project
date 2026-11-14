@@ -1,9 +1,9 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {useParams} from 'react-router-dom'
 import {Link,useNavigate} from './travelRouter'
 import {api,hasSession,publicRead,publicRequest} from '../../services/api'
-import {Icon,ErrorNotice} from '../../components/components'
+import {ErrorNotice} from '../../components/components'
 import {PlaceSearch} from '../owner/OwnerRates'
 import {TravellyField,TravellyState} from '../../components/TravellyVisualFoundation'
 import '../../styles/passengerBookingFlow.css'
@@ -11,6 +11,7 @@ import {FlowShell,ServiceChoice,SegmentedChoice,FlowActions,TripSummary,FlowVehi
 import {Button,Chip,InfoCallout} from '../../components/ui'
 import PickupCode from './PickupCode'
 import NotAvailableNotice from '../../components/NotAvailableNotice'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 const STORE='travelly.passenger.booking-draft.v2'
 const cards=[{scope:'AIRPORT',id:'airport',label:'Airport hire',icon:'pin',detail:'One way or return'},{scope:'LOCAL',id:'local',label:'Local hire',icon:'car',detail:'One way or return'},{scope:'LONG_DISTANCE',id:'long-distance',label:'Long distance',icon:'route',detail:'One day or multi-day'},{scope:'EVENT',id:'event',label:'Event hire',icon:'calendar',detail:'A fixed package: one vehicle and Driver'},{id:'ticket',label:'Ticket booking',icon:'ticket',detail:'Scheduled Bus and Van departures'},{id:'rental',label:'Vehicle rent',icon:'car',detail:'Not in the approved contract',unavailable:true}]
@@ -48,7 +49,7 @@ function BookingState({confirmed=false}){
   async function acceptQuote(){if(!quote)return;setBusy(true);setError(null);try{setBooking(await api(`/bookings/${booking.id}/price-acceptance`,{method:'POST',body:JSON.stringify({expected_version:booking.version,digest:quote.digest})}))}catch(err){setError(err)}finally{setBusy(false)}}
   // Every field may be missing while a booking is still being reviewed: read them defensively.
   const route=(booking?.itinerary?.itinerary?.stops||[]).map(stop=>stop?.place?.label).filter(Boolean).join(' → ')
-  const status=String(booking?.status||'').replaceAll('_',' ')
+  const status=booking?.status?codeLabel(booking.status):''
   const showCode=booking?.trip?.id&&!['COMPLETED','CANCELLED'].includes(booking.trip.status)
   const details=<dl className="flow-review"><div><dt>{t("Reference")}</dt><dd>{booking?.reference||'—'}</dd></div><div><dt>{t("Route")}</dt><dd>{route||'—'}</dd></div></dl>
   return <Shell title={confirmed?t('Your ride confirmation'):t('Request status')} subtitle={t("This screen reads real booking data only; no status, QR code, or PIN is fabricated.")} step={3} flow="order" icon={confirmed?'check':'clock'}>

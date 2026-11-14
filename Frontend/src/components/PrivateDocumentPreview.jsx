@@ -1,7 +1,8 @@
 import { t } from '../i18n/language.js'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../services/api'
 import { ErrorNotice } from './components'
+import {codeLabel} from '../i18n/codeLabels.js'
 
 export default function PrivateDocumentPreview({ document, onClose, onDenied }) {
   const [blob, setBlob] = useState(null)
@@ -15,7 +16,7 @@ export default function PrivateDocumentPreview({ document, onClose, onDenied }) 
     return () => { cancelled = true; if (url) URL.revokeObjectURL(url) }
   }, [document.id, onDenied])
   return <section className="review-preview" aria-label={t("Private document preview")}>
-    <div className="review-panel-heading"><h3>{t(document.document_type.replaceAll('_', ' '))}</h3><button type="button" className="button outline" onClick={onClose}>{t("Close preview")}</button></div>
+    <div className="review-panel-heading"><h3>{codeLabel(document.document_type)}</h3><button type="button" className="button outline" onClick={onClose}>{t("Close preview")}</button></div>
     <ErrorNotice error={error}/>
     {!blob && !error && <p role="status">{t("Loading protected document…")}</p>}
     {blob && (blob.type === 'application/pdf' ? <iframe src={blob.url} title={t("Private PDF evidence")}/> : <img src={blob.url} alt={t("Private application evidence")}/>)}

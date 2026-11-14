@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../services/api'
 import {eventPackageOf} from '../features/booking/eventPackage'
 import {isRentalBooking,rentalLabel} from '../features/rental/rentalLabel'
+import {codeEnglish} from '../i18n/codeLabels.js'
 
 // Every result belongs to the current workspace, not to an earlier request.
 export function useWorkspaceData(loader,dependencies=[]){
@@ -11,7 +12,7 @@ export function useWorkspaceData(loader,dependencies=[]){
  const reload=useCallback(()=>setRevision(n=>n+1),[])
  return {...state,reload}
 }
-export const words=value=>(value||'Not reported').replaceAll('_',' ')
+export const words=value=>value?codeEnglish(value):'Not reported'
 export const displayTime=value=>value?new Date(value).toLocaleString(getLocale(),{timeZone:'Asia/Colombo',dateStyle:'medium',timeStyle:'short'}):'Time not reported'
 // Event hire (03EV): the package name and hours follow the route (read paths in features/booking/eventPackage.js).
 export const tripRoute=booking=>{if(isRentalBooking(booking))return rentalLabel(booking)   // 03RN: a rental has no stops

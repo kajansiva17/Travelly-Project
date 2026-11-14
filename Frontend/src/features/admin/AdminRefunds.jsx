@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
@@ -8,6 +8,7 @@ import {money,REFUND_STATUS} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import AdminList,{Facts} from './AdminList'
 import {fieldErrors,fieldErrorMap,firstFieldMessage} from '../../services/fieldErrors.js'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 // Admin refunds (Payments contract 03P, section E2 to E5). Lists never show tokens, card or bank details:
 // only references, amounts, status and dates that the refund item itself carries.
@@ -113,7 +114,7 @@ export function DirectRefund({payment,onDone,onBack}){
     <p className="tk-line">{done.status==='PROCESSING'?t('Refund it in the PayHere portal, then record it under Refunds.'):t('The money has gone back to the Passenger.')}</p>
     <div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={onBack}>{t('Back')}</button></div></div>
   return <RateErrors.Provider value={errors}><div className="tk-pane">
-    <p className="tk-line"><strong>{payment.payment_reference}</strong> · {money(payment.currency,payment.amount)} · {payment.provider_name==='PAYHERE'?'PayHere':t('Sandbox')} · {t(payment.status==='PAID'?'Paid':String(payment.status||'').replaceAll('_',' '))}</p>
+    <p className="tk-line"><strong>{payment.payment_reference}</strong> · {money(payment.currency,payment.amount)} · {payment.provider_name==='PAYHERE'?'PayHere':t('Sandbox')} · {codeLabel(payment.status)}</p>
     {message&&<p className="tk-line is-warn" role="status">{message}</p>}
     <div className="tk-bar" role="group" aria-label={t('How much?')}><Chip tone="info" selected={full} onClick={()=>{setFull(true);setAsk(false)}}>{t('Refund in full')}</Chip><Chip tone="info" selected={!full} onClick={()=>{setFull(false);setAsk(false)}}>{t('Part of it')}</Chip></div>
     <div className="tk-grid" style={{'--cols':full?1:3}}>
@@ -140,7 +141,7 @@ function PayLookup({onPick,onBack,start}){
     <div className="tk-grid" style={{'--cols':2}}><Field label="Booking ID" help="The booking's ID from the refund details or the Passenger's booking link."><input name="booking" required maxLength="60" value={bookingId} onChange={e=>setBookingId(e.target.value)}/></Field></div>
     {error&&<p className="tk-line is-warn" role="status">{error}</p>}
     {rows&&(rows.length?<div className="tk-rows">{rows.slice(0,3).map(p=><article className="tk-row" key={p.id}><div className="tk-row-main"><strong>{p.payment_reference} · {money(p.currency,p.amount)}</strong><span>{p.provider_name==='PAYHERE'?'PayHere':t('Sandbox')} · {when(p.captured_at||p.created_at)}</span></div>
-      <div className="tk-row-actions"><Chip tone={p.status==='PAID'?'success':'muted'}>{t(p.status==='PAID'?'Paid':String(p.status).replaceAll('_',' '))}</Chip><button type="button" className="ui-button ui-button-secondary" disabled={p.status!=='PAID'&&p.status!=='PARTIALLY_REFUNDED'} onClick={()=>onPick(p)}>{t('Refund')}</button></div></article>)}</div>:<p className="tk-line">{t('This booking has no payments to refund.')}</p>)}
+      <div className="tk-row-actions"><Chip tone={p.status==='PAID'?'success':'muted'}>{codeLabel(p.status)}</Chip><button type="button" className="ui-button ui-button-secondary" disabled={p.status!=='PAID'&&p.status!=='PARTIALLY_REFUNDED'} onClick={()=>onPick(p)}>{t('Refund')}</button></div></article>)}</div>:<p className="tk-line">{t('This booking has no payments to refund.')}</p>)}
     <div className="tk-bar"><button type="submit" className="ui-button ui-button-primary" disabled={busy||!bookingId.trim()}>{busy?t('Please wait…'):t('Find payments')}</button><button type="button" className="ui-button ui-button-secondary" onClick={onBack}>{t('Back')}</button></div>
   </form>
 }

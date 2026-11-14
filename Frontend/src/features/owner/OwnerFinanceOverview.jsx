@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
 import Chip from '../../components/ui/Chip'
@@ -8,6 +8,7 @@ import {FlowShell,useRowCount,usePaged} from '../booking/flow/FlowParts'
 import {money} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import CommissionBanner from '../settlements/CommissionBanner'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 /* Owner settlements (Payments contract 03P, section F5): what Travelly owes the Owner, what the Owner owes Travelly,
    items waiting for Admin review, and recent settled rows. Every payable row shows payable_amount, the amount the
@@ -21,7 +22,7 @@ const TABS=[
 const STATUS={OWNER_PAYABLE:['info','Payable'],OWNER_PAID:['success','Paid out'],COMMISSION_DUE:['danger','Commission due'],COMMISSION_PAID:['success','Commission paid']}
 const day=value=>value?formatDateTime(value):'—'
 function Row({row,tab,currency}){
-  const [tone,label]=tab==='needs_review'?['info','Refund waiting']:STATUS[row.owner_settlement_status]||['muted',String(row.owner_settlement_status||'—').replaceAll('_',' ')]
+  const [tone,label]=tab==='needs_review'?['info','Refund waiting']:STATUS[row.owner_settlement_status]||['muted',row.owner_settlement_status?codeEnglish(row.owner_settlement_status):'—']
   const cur=row.currency||currency
   return <article className="tk-row"><div className="tk-row-main"><strong>{row.booking_reference||row.payment_reference} · {money(cur,row.amount)}</strong>
     <span>{row.payment_reference} · {tab==='settled'?day(row.owner_paid_at||row.captured_at):tab==='payable'&&row.owner_payable_at?day(row.owner_payable_at):day(row.captured_at||row.created_at)}{row.commission_amount?` · ${t('Commission')} ${money(cur,row.commission_amount)}`:''}</span></div>

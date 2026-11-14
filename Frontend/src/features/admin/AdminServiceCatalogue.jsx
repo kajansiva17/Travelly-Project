@@ -1,18 +1,18 @@
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {Link} from 'react-router-dom'
 import {api} from '../../services/api'
 import {t} from '../../i18n/language.js'
 import {Field} from '../owner/OwnerRates'
-import Chip from '../../components/ui/Chip'
 import AdminList,{Facts} from './AdminList'
 import AdminPaymentSettings from './AdminPaymentSettings'
 import AdminRefunds from './AdminRefunds'
 import AdminAttention from './AdminAttention'
+import {codeEnglish} from '../../i18n/codeLabels.js'
 
 const scopes=[['AIRPORT','Airport Hire'],['LOCAL','Local Hire'],['LONG_DISTANCE','Long Distance'],['EVENT','Event Hire']]
 const tone={ACTIVE:'success',INACTIVE:'muted',DRAFT:'info',NEEDS_REVIEW:'danger'}
 const codeFor=scope=>scope+'_HIRE'
-const plain=value=>(value||'').replaceAll('_',' ')
+const plain=value=>codeEnglish(value)
 
 export default function AdminServiceCatalogue(){
  const [items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(''),[form,setForm]=useState({scope:'AIRPORT',name:'Airport Hire',status:'DRAFT'}),[tab,setTab]=useState(0)

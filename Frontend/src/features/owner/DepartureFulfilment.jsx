@@ -1,18 +1,19 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useState} from 'react'
+import {useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field,RateErrors} from './OwnerRates'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import {fieldErrors,fieldErrorMap} from '../../services/fieldErrors.js'
+import {codeEnglish,codeLabel} from '../../i18n/codeLabels.js'
 
 // Protected fulfilment (contract 03F2). Status values are the contract's: PUBLISHED, BOOKING_OPEN, COMMITTED,
 // DECISION_REQUIRED, DISRUPTED, READY, CANCELLED. Nothing here is decided on the screen: every answer comes from the API.
 export const FULFILMENT_STATUS={
   PUBLISHED:['success','Published'],BOOKING_OPEN:['success','Booking open'],COMMITTED:['success','Committed'],READY:['success','Ready'],
   DECISION_REQUIRED:['danger','Decision needed'],DISRUPTED:['danger','Disrupted'],CANCELLED:['muted','Cancelled'],DRAFT:['muted','Draft']}
-export const statusChip=status=>{const [tone,label]=FULFILMENT_STATUS[status]||['muted',String(status||'').replaceAll('_',' ')];return {tone,label:t(label)}}
+export const statusChip=status=>{const [tone,label]=FULFILMENT_STATUS[status]||['muted',codeEnglish(status)];return {tone,label:t(label)}}
 
 const MINIMUM='MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT'
 const COMMITTABLE=['PUBLISHED','BOOKING_OPEN','DECISION_REQUIRED','DISRUPTED']
@@ -72,7 +73,7 @@ export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack
     finally{setLooking(false)}
   }
   useEffect(()=>{if(mode==='vehicle'&&options===null)loadOptions()},[mode])
-  const vehicleText=v=>[`${v.make||''} ${v.model||''}`.trim(),v.vehicle_type_code,v.colour,v.air_conditioned?'AC':null,t('{value0} seats',{value0:v.seat_capacity}),t('{value0} bookable',{value0:v.bookable_seats})].filter(Boolean).join(' · ')
+  const vehicleText=v=>[`${v.make||''} ${v.model||''}`.trim(),codeLabel(v.vehicle_type_code),v.colour,v.air_conditioned?'AC':null,t('{value0} seats',{value0:v.seat_capacity}),t('{value0} bookable',{value0:v.bookable_seats})].filter(Boolean).join(' · ')
   const route=`${x.route?.origin_name||''} → ${x.route?.destination_name||''}`
   return <RateErrors.Provider value={errors}><div className="tk-pane">
     <p className="tk-line"><strong>{route}</strong> · {formatDateTime(x.departure_at)} <Chip tone={tone}>{label}</Chip>

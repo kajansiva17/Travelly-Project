@@ -1,5 +1,5 @@
 import { t } from '../i18n/language.js'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../services/api'
 import { ErrorNotice } from './components'
@@ -8,6 +8,7 @@ import DocumentUploadForm from './DocumentUploadForm'
 import Chip from './ui/Chip'
 import InfoTip from './ui/InfoTip'
 import {usePaged,useRowCount} from '../features/booking/flow/FlowParts'
+import {codeLabel} from '../i18n/codeLabels.js'
 
 export default function OwnDocuments({ user, flow = 'SHARED', evidencePath }) {
   const [items, setItems] = useState(null)
@@ -45,7 +46,7 @@ export default function OwnDocuments({ user, flow = 'SHARED', evidencePath }) {
       {loading && <p role="status">{t("Loading your documents…")}</p>}
       {items?.length === 0 && <p className="flow-note">{t("No private documents submitted yet.")}</p>}
       {items?.length>0&&visible.length===0&&<p className="flow-note">{t("No matching evidence on this page. Browse the other pages or view all retained documents.")}</p>}
-      {rows.slice.map(doc => {const code=['VEHICLE_REGISTRATION','OWNER_AUTHORISATION'].includes(doc.document_type)?'OWNER':doc.document_type==='DRIVING_LICENCE'?'DRIVER':null;return <article className="review-document own-document-row" key={doc.id}><strong>{t(doc.document_type.replaceAll('_', ' '))}</strong><Chip tone={doc.status==='APPROVED'?'success':/REJECT|CORRECTION|SUSPEND/.test(doc.status)?'danger':'muted'}>{t(doc.status)}</Chip>{doc.rejection_reason && <span className="review-reason" title={doc.rejection_reason}>{doc.rejection_reason}</span>}<span className="own-document-actions"><button type="button" className="ui-button ui-button-secondary" onClick={() => setPreview(doc)}>{t("View private document")}</button>{library&&(code&&code!==flow&&evidencePath?<Link className="inline-link" to={evidencePath(code)+'#own-documents-heading'}>{t("Manage ")}{code==='OWNER'?t('Owner'):t('Driver')}{t(" evidence")}</Link>:<button type="button" className="inline-link" onClick={()=>setLibrary(false)}>{t("Manage in this evidence flow")}</button>)}</span></article>})}
+      {rows.slice.map(doc => {const code=['VEHICLE_REGISTRATION','OWNER_AUTHORISATION'].includes(doc.document_type)?'OWNER':doc.document_type==='DRIVING_LICENCE'?'DRIVER':null;return <article className="review-document own-document-row" key={doc.id}><strong>{codeLabel(doc.document_type)}</strong><Chip tone={doc.status==='APPROVED'?'success':/REJECT|CORRECTION|SUSPEND/.test(doc.status)?'danger':'muted'}>{t(doc.status)}</Chip>{doc.rejection_reason && <span className="review-reason" title={doc.rejection_reason}>{doc.rejection_reason}</span>}<span className="own-document-actions"><button type="button" className="ui-button ui-button-secondary" onClick={() => setPreview(doc)}>{t("View private document")}</button>{library&&(code&&code!==flow&&evidencePath?<Link className="inline-link" to={evidencePath(code)+'#own-documents-heading'}>{t("Manage ")}{code==='OWNER'?t('Owner'):t('Driver')}{t(" evidence")}</Link>:<button type="button" className="inline-link" onClick={()=>setLibrary(false)}>{t("Manage in this evidence flow")}</button>)}</span></article>})}
     </div>}
     {!uploading&&<div className="flow-actions">{rows.pager}{items && (page>1||hasNext) && <nav className="flow-pager" aria-label={t("Your document pages")}><button type="button" className="ui-button ui-button-secondary" disabled={loading || page === 1} onClick={() => load(page - 1)}>{t("Previous")}</button><span>{t("Page ")}{page}</span><button type="button" className="ui-button ui-button-secondary" disabled={loading || !hasNext} onClick={() => load(page + 1)}>{t("Next")}</button></nav>}{error && <button type="button" className="ui-button ui-button-secondary" disabled={loading} onClick={() => load(page)}>{t("Reload your documents")}</button>}</div>}
     {preview && <PrivateDocumentPreview key={preview.id} document={preview} onClose={() => setPreview(null)}/>}

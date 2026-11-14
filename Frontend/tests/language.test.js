@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { messages } from '../src/i18n/messages.js'
 import { getLanguage, getLocale, languageKey, setLanguage, subscribeLanguage, translate } from '../src/i18n/language.js'
+import { CODE_LABELS, codeEnglish } from '../src/i18n/codeLabels.js'
 
 const require = createRequire(import.meta.url)
 const { parse } = require('@babel/parser')
@@ -81,4 +82,14 @@ test('translation preserves values, inline whitespace and safe fallbacks', () =>
   assert.ok(translated.includes('Sri Lanka'))
   assert.ok(translated.includes('94'))
   assert.ok(!translated.includes('{value'))
+})
+
+test('every friendly label for an API code has Tamil and Sinhala, and raw codes are never shown as they are', () => {
+  const missing = Object.entries(CODE_LABELS).filter(([, label]) => !messages[label]?.ta || !messages[label]?.si).map(([code]) => code)
+  assert.deepEqual(missing, [])
+  assert.equal(codeEnglish('AWAITING_DRIVER'), 'Waiting for a Driver')
+  assert.equal(codeEnglish('SOME_NEW_CODE'), 'Some new code')
+  assert.equal(codeEnglish('booking_status'), 'Booking status')
+  assert.equal(codeEnglish('Item 1'), 'Item 1')
+  assert.equal(codeEnglish(null), '')
 })

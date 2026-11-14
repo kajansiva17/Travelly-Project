@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {Link,Navigate,useParams} from 'react-router-dom'
 import {useWorkspace} from '../../context/workspaceContext'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
@@ -14,6 +14,7 @@ import {Button,Checkbox,Chip,FormField,Input,Select,InfoCallout} from '../../com
 import HirePayment from '../booking/HirePayment'
 import InfoTip from '../../components/ui/InfoTip'
 import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useScreenWakeLock,useSpeaker} from './RoadAlerts'
+import {codeLabel} from '../../i18n/codeLabels.js'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
    report a problem on the road, and finish. Everything uses the trip the Owner committed. */
@@ -21,7 +22,6 @@ const RUNNING=['IN_PROGRESS','BREAKDOWN','ASSISTANCE_REQUIRED']
 const LIVE_SECONDS=30
 const NOTICE_STYLE={background:'#e6f7ec',color:'#0b5d2a',border:'1px solid #7bcf9b',borderRadius:10,padding:'10px 14px',fontWeight:600,margin:0}
 const PIN_INPUT={fontSize:'1.5rem',letterSpacing:'.3em',textAlign:'center'}
-const words=value=>String(value||'').replaceAll('_',' ').toLowerCase()
 const clock=iso=>iso?new Date(iso).toLocaleTimeString('en-GB',{timeZone:'Asia/Colombo',hour:'2-digit',minute:'2-digit'}):''
 const request=(path,body,method='POST')=>api(path,{method,body:JSON.stringify(body)})
 const canScan=()=>typeof window!=='undefined'&&'BarcodeDetector'in window&&navigator.mediaDevices?.getUserMedia
@@ -142,7 +142,7 @@ export default function DriverTripPage(){
   const tabs=panels.length>1?panels.map(([id,label,icon])=>({label:t(label),icon,active:open===id,onClick:()=>setTab(id)})):undefined
   const backToMap=running&&open!=='map'?<Button variant="secondary" onClick={()=>setTab(null)}>{t('Back to the map')}</Button>:null
 
-  return <><Header/><FlowShell heading={t('Operate trip')} icon="car" title={t('Trip ')+words(trip.status)}
+  return <><Header/><FlowShell heading={t('Operate trip')} icon="car" title={codeLabel(trip.status)}
     subtitle={t('Planned ')+clock(trip.scheduled_start_at)+t(' to ')+clock(trip.scheduled_end_at)+t(' Sri Lanka time')} tabs={tabs}>
     {notice&&<p role="status" style={NOTICE_STYLE}>{'✓ '}{notice}</p>}
     <ErrorNotice error={error}/>
@@ -191,7 +191,7 @@ export default function DriverTripPage(){
     </div>}
 
     {open==='problem'&&<form className="flow-fields" onSubmit={report}>
-      {trip.breakdown_details&&<FlowBanner tone="warning" icon="alert" title={t(words(trip.status))}>{trip.breakdown_details}</FlowBanner>}
+      {trip.breakdown_details&&<FlowBanner tone="warning" icon="alert" title={codeLabel(trip.status)}>{trip.breakdown_details}</FlowBanner>}
       <FormField label={t('What is happening?')} required error={fieldMsg.kind}>
         {({id})=><Select id={id} value={kind} onChange={e=>setKind(e.target.value)}>
           <option value="BREAKDOWN">{t('The vehicle broke down')}</option>
@@ -219,7 +219,7 @@ export default function DriverTripPage(){
     </div>}
 
     {finished&&!showProof&&<div className="flow-fields">
-      <FlowBanner tone="success" icon="check" title={t('Trip ')+words(trip.status)}>{trip.completion_notes||t('Thank you. This trip is closed.')}</FlowBanner>
+      <FlowBanner tone="success" icon="check" title={codeLabel(trip.status)}>{trip.completion_notes||t('Thank you. This trip is closed.')}</FlowBanner>
       <dl className="flow-review">
         <div><dt>{t('Started')}</dt><dd>{clock(trip.actual_start_at)}</dd></div>
         <div><dt>{t('Finished')}</dt><dd>{clock(trip.actual_end_at)}</dd></div>

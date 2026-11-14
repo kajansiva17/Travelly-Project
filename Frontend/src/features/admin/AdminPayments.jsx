@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import React,{useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import {Field,RateErrors} from '../owner/OwnerRates'
 import {Checkbox} from '../../components/ui'
@@ -12,6 +12,7 @@ import {formatDate,formatDateTime} from '../../i18n/dateTime.js'
 import {daysOpenMessage,nothingTakenOut,owesCommission,stageChip} from '../settlements/commissionStanding'
 import AdminList,{Facts} from './AdminList'
 import {fieldErrors,fieldErrorMap,settlementIds} from '../../services/fieldErrors.js'
+import {codeEnglish,codeLabel} from '../../i18n/codeLabels.js'
 
 /* Admin payments and Owner settlement (Payments contract 03P, section F).
    F1 totals and the payments list, F2 the Owners Travelly owes or is owed by, F3 record a payout after the bank transfer,
@@ -21,8 +22,8 @@ const TYPES={PAYMENT:'Payment',FULL_REFUND:'Full refund',PARTIAL_REFUND:'Partial
 const typeFilters=[['','All transactions'],['PAYMENT','Payments'],['REFUND','Refunds'],['OWNER_PAYOUT','Owner payouts']]
 const TOTALS=[['collected_online','Collected online'],['collected_cash','Collected in cash'],['refunded','Refunded'],['refunds_waiting','Refunds waiting'],['commission_earned','Commission earned'],['owner_payable','Payable to Owners'],['owner_paid','Paid to Owners'],['commission_due_from_owners','Commission due from Owners']]
 const when=value=>value?formatDateTime(value):'—'
-const label=code=>t(TYPES[code]||String(code||'').replaceAll('_',' ').toLowerCase().replace(/^./,c=>c.toUpperCase()))
-const settlementChip=code=>SETTLEMENT[code]?[SETTLEMENT[code][0],t(SETTLEMENT[code][1])]:['muted',code?t(String(code).replaceAll('_',' ').toLowerCase().replace(/^./,c=>c.toUpperCase())):'']
+const label=code=>t(TYPES[code]||codeEnglish(code))
+const settlementChip=code=>SETTLEMENT[code]?[SETTLEMENT[code][0],t(SETTLEMENT[code][1])]:['muted',code?codeLabel(code):'']
 // Cash commission standing (contract 03CM): stage chip and days open per Owner.
 const standingChip=standing=>{const [tone,name]=stageChip(standing);return [tone,t(name)]}
 const standingLine=standing=>standing&&standing.stage&&standing.stage!=='NONE'?[t(...daysOpenMessage(standing.days_open)),standing.extended_until?t('Extended until {value0}',{value0:formatDate(standing.extended_until)}):''].filter(Boolean).join(' · '):''
