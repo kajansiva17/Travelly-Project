@@ -2,7 +2,7 @@
    Layout: shared navbar pill on top, ticket-style "Your journey, your way" glass card on the left,
    white frosted-glass form card on the right, sunset-coast photo behind. Presentation only. */
 html body .auth-page {
-  --ag-red: var(--brand-red); --ag-field: 40px; --ag-btn: 40px; --ag-input-font: 15px;
+  --ag-red: var(--brand-red); --ag-field: 44px; --ag-btn: 44px; --ag-input-font: 15px;
   position: relative; display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden;
   color: var(--ui-ink);
   background: linear-gradient(180deg, rgb(255 255 255 / .06), rgb(18 21 82 / .1)), url('/images/travelly/heroes/auth-sunset-coast.jpg') center / cover no-repeat #7fb2e6;
@@ -13,13 +13,14 @@ html body .auth-page > .site-header { flex: none; position: relative; z-index: 5
 html body .auth-page {
   --auth-card-w: min(480px, calc(100vw - 40px));
   --auth-gap-y: clamp(10px, 2.4vh, 28px);
-  --auth-card-h: min(720px, calc(100dvh - var(--frame-top) - var(--nav-h) - 2 * var(--auth-gap-y)));
+  --auth-content-h: 613px;   /* height of the taller of Login / Register step 1 (set per window class below) */
+  --auth-card-h: min(var(--auth-content-h), calc(100dvh - var(--frame-top) - var(--nav-h) - 2 * var(--auth-gap-y)));   /* never taller than the window minus navbar and margins */
   --auth-card-top: max(var(--auth-gap-y), calc((100dvh - var(--frame-top) - var(--nav-h) - var(--auth-card-h)) / 2));
   --auth-vcard-ratio: .88;
   --auth-vcard-w: calc(var(--auth-card-w) * var(--auth-vcard-ratio));
-  --auth-vcard-h: calc(var(--auth-card-h) * var(--auth-vcard-ratio));
-  --auth-pad-x: clamp(22px, 3vw, 40px); --auth-pad-y: clamp(14px, 2.6vh, 30px);
-  --auth-gap: 12px;
+  --auth-vcard-h: var(--auth-card-h);   /* the two cards are one matched pair: same height, same top and bottom */
+  --auth-pad-x: clamp(22px, 3vw, 40px); --auth-pad-y: 20px;
+  --auth-gap: 8px;
 }
 html body .auth-page .auth-layout {
   flex: 1 1 auto; min-height: 0; width: 100%; margin: 0 auto; box-sizing: border-box;
@@ -141,12 +142,12 @@ html body .auth-page .registration-back { min-height: 36px; padding: 4px 16px; b
 
 
 /* ---- Controls: inputs, the primary button and the Google button share one width (the card's inner area), one height and fully rounded ends ---- */
-html body .auth-page { --ag-field: 40px; --ag-btn: 40px; --ag-input-font: 15px; }
+html body .auth-page { --ag-field: 44px; --ag-btn: 44px; --ag-input-font: 15px; }
 html body .auth-page .auth-credentials-form { gap: var(--auth-gap); }
 html body .auth-page .auth-submit { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: var(--ag-btn); height: var(--ag-btn); padding: 0 22px; border-radius: 999px; font-size: 16px; line-height: 1.2; }
 html body .auth-page .auth-divider { margin: 0; }
 html body .google-sign-in { display: grid; justify-items: stretch; gap: 6px; width: 100%; margin: 0; }
-html body .google-sign-in > div { display: flex; justify-content: center; width: 100%; max-width: 100%; border-radius: 999px; overflow: hidden; }
+html body .google-sign-in > div { display: flex; align-items: center; justify-content: center; width: 100%; max-width: 100%; border-radius: 999px; overflow: hidden; }
 html body .google-button-unavailable:disabled { width: 100%; height: var(--ag-field); min-height: var(--ag-field); border-radius: 999px; padding: 0 18px; }
 html body .auth-page .auth-form-inner :is(.terms-check, .terms-check span, .auth-links) { flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
 
@@ -180,7 +181,7 @@ html body .auth-page .journey-pass::after { content: none; }
 }
 /* Medium and short windows: tighter spacing so a whole step still fits; anything left over scrolls inside the card */
 @media (max-height: 700px) {
-  html body .auth-page { --auth-gap: 8px; --auth-pad-y: 12px; }
+  html body .auth-page { --auth-pad-y: 14px; }
   html body .auth-page .auth-heading h1 { font-size: 22px; }
   html body .auth-page .auth-heading h2 { margin: 2px 0 0; font-size: 13px; }
   html body .auth-page .field-error { margin: 1px 12px 0; font-size: 11px; line-height: 1.2; }
@@ -204,3 +205,16 @@ html body .auth-page .auth-form-inner .terms-check > input + span { display: blo
   html body header.site-header.auth-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation:not(.open) { display: none; }
 }
 @media (max-width: 1023px) { html body .auth-page .auth-heading h1 { font-size: 26px; } }
+
+/* ---- Card height: fits the taller of Login and Register step 1 (English, 44px controls, incl. the Google notice); anything taller scrolls inside ---- */
+@media (min-width: 1024px) and (max-height: 820px) { html body .auth-page { --auth-content-h: 507px; } }   /* Register runs in two steps here */
+@media (min-width: 1024px) and (max-height: 700px) { html body .auth-page { --auth-content-h: 450px; } }
+@media (max-width: 1023px) { html body .auth-page { --auth-content-h: 599px; } }
+@media (max-height: 640px) { html body .auth-page { --auth-pad-y: 10px; --auth-gap: 6px; } }
+
+/* ---- Vehicle card: same height as the form card; its content is spaced evenly inside it ---- */
+html body .auth-page .journey-pass { align-content: space-evenly; gap: clamp(8px, 1.6vh, 18px); padding: 16px clamp(16px, 1.8vw, 24px); }
+html body .auth-page .journey-services svg { width: clamp(28px, 4.2vh, 38px); height: clamp(28px, 4.2vh, 38px); }
+html body .auth-page .journey-steps b { width: clamp(28px, 4vh, 34px); height: clamp(28px, 4vh, 34px); }
+html body .google-sign-in > div:empty { display: none; }
+html body .google-sign-in > div:not(:empty) { min-height: var(--ag-field); }
