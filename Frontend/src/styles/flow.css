@@ -67,7 +67,7 @@ html body .flow-page a.ui-button { text-decoration: none; }
 
 /* Service choice grid. */
 html body .flow-service-grid { display: grid; grid-template-columns: repeat(var(--tiles, 3), minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; }
-html body .flow-service-grid > .ui-tile, html body .travel-service-tiles > .ui-tile { min-height: clamp(84px, 15vh, 140px); width: 100%; box-sizing: border-box; }
+html body .flow-service-grid > .ui-tile { min-height: clamp(84px, 15vh, 140px); width: 100%; box-sizing: border-box; }
 @media (max-width: 1100px) { html body .flow-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { html body .flow-service-grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -728,8 +728,6 @@ html body .flow-page .state-card { align-items: center; justify-content: center;
 html body .flow-page .state-card h1 { margin: 0; font-size: 1.3em; }
 html body .flow-page .state-card p { margin: 0; line-height: 1.4; }
 html body .flow-page .state-card .state-card-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
-html body .flow-page .travel-service-label { display: flex; align-items: center; gap: 10px; }
-html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
 
 /* Very short windows (1280x585): the busiest dashboard tiles tighten so their content never clips. */
 @media (max-height: 640px) {
