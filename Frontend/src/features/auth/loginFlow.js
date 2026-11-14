@@ -8,6 +8,10 @@ export const cleanCode = value => String(value ?? '').replace(/\s+/g, '')
 export const twoFactorBody = (challenge, code) => ({ challenge, code: cleanCode(code) })
 export const codeMinutes = expiresIn => Math.max(1, Math.round(Number(expiresIn || 300) / 60))
 
+// A sign-in that brings a deactivated account back carries account_reactivated (and delete_request_cancelled when a delete request was
+// pending) on the token answer of POST /auth/login, Google sign-in and POST /auth/2fa, and only then.
+export const welcomeBack = result => (result?.account_reactivated === true ? { cancelled: result?.delete_request_cancelled === true } : null)
+
 // Landing cards send a signed-out visitor to sign-in with a return target; only these pages are accepted.
 export const RETURN_PAGES = ['/travel/book/tickets', '/travel/book/rental', '/owner/vehicles']
 export const returnTarget = state => (RETURN_PAGES.includes(state?.returnTo) ? state.returnTo : null)
@@ -32,21 +36,21 @@ export function confirmBody({ hasPassword, password, code }) {
 }
 export const closeBody = ({ hasPassword, password, twoFactorOn, code }) => ({ confirm: true, ...(hasPassword ? { password } : {}), ...(twoFactorOn ? { code: cleanCode(code) } : {}) })
 
-/* Account closure blockers: the UI's own text per code (the server message is only the fallback). The contract gives no page for
-   a blocker, so none is linked; `path` is where a link would go when one is documented. */
+/* Account closure blockers: the UI's own text per code (the server message is only the fallback) and the page that fixes it,
+   as the contract's table gives them. */
 export const BLOCKERS = {
-  OPEN_BOOKINGS_AS_PASSENGER: { key: 'Your bookings that are not finished: {value0}', path: null },
-  OPEN_BOOKINGS_AS_OWNER: { key: 'Bookings for your vehicles that are not finished: {value0}', path: null },
-  OPEN_TRIPS_AS_DRIVER: { key: 'Trips you still have to drive or run: {value0}', path: null },
-  OPEN_DEPARTURES: { key: 'Ticket departures that are not finished: {value0}', path: null },
-  COMMISSION_DUE: { key: 'Commission payments you still owe: {value0}', path: null },
-  OWNER_PAYOUT_PENDING: { key: 'Payouts to you that are not paid out yet: {value0}', path: null },
-  REFUND_PENDING: { key: 'Refunds that are still being paid back to you: {value0}', path: null },
+  OPEN_BOOKINGS_AS_PASSENGER: { key: 'Your bookings that are not finished: {value0}', path: '/passenger/bookings' },
+  OPEN_BOOKINGS_AS_OWNER: { key: 'Bookings for your vehicles that are not finished: {value0}', path: '/owner/bookings' },
+  OPEN_TRIPS_AS_DRIVER: { key: 'Trips you still have to drive or run: {value0}', path: '/driver/assignments', ownerPath: '/owner/assignments' },   // an Owner who drives or operates
+  OPEN_DEPARTURES: { key: 'Ticket departures that are not finished: {value0}', path: '/owner/ticket-departures' },
+  COMMISSION_DUE: { key: 'Commission payments you still owe: {value0}', path: '/owner/earnings' },
+  OWNER_PAYOUT_PENDING: { key: 'Payouts to you that are not paid out yet: {value0}', path: '/owner/earnings' },
+  REFUND_PENDING: { key: 'Refunds that are still being paid back to you: {value0}', path: '/passenger/bookings' },   // the refund is shown on the booking
 }
-export const blockerLines = blockers => (Array.isArray(blockers) ? blockers : []).filter(item => item?.code).map(item => {
+export const blockerLines = (blockers, role = null) => (Array.isArray(blockers) ? blockers : []).filter(item => item?.code).map(item => {
   const known = BLOCKERS[item.code]
   return known
-    ? { code: item.code, key: known.key, params: { value0: Number(item.count ?? 0) }, path: known.path }
+    ? { code: item.code, key: known.key, params: { value0: Number(item.count ?? 0) }, path: role === 'OWNER' && known.ownerPath ? known.ownerPath : known.path }
     : { code: item.code, key: null, text: item.message || item.code, path: null }
 })
 export const canClose = status => status?.can_close === true && !(status?.blockers || []).length

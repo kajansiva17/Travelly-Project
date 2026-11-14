@@ -1826,6 +1826,8 @@ const rows = [
   ["Commission payments you still owe: {value0}","நீங்கள் இன்னும் செலுத்த வேண்டிய கமிஷன் கட்டணங்கள்: {value0}","ඔබට තවමත් ගෙවීමට ඇති කොමිස් ගෙවීම්: {value0}"],
   ["Payouts to you that are not paid out yet: {value0}","உங்களுக்கு இன்னும் வழங்கப்படாத பணப்பட்டுவாடாக்கள்: {value0}","ඔබට තවමත් ගෙවා නොමැති ගෙවීම්: {value0}"],
   ["Refunds that are still being paid back to you: {value0}","உங்களுக்கு இன்னும் திருப்பிச் செலுத்தப்படும் பணத்திருப்பங்கள்: {value0}","ඔබට තවමත් ආපසු ගෙවමින් පවතින ආපසු ගෙවීම්: {value0}"],
+  ["Welcome back, your account is active again.","மீண்டும் வருக, உங்கள் கணக்கு மீண்டும் செயலில் உள்ளது.","නැවත සාදරයෙන් පිළිගනිමු, ඔබේ ගිණුම නැවත සක්‍රීයයි."],
+  ["Your delete request was cancelled.","உங்கள் நீக்கக் கோரிக்கை ரத்து செய்யப்பட்டது.","ඔබේ මකාදැමීමේ ඉල්ලීම අවලංගු කරන ලදී."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -19,11 +19,11 @@ export default function TwoFactorStep({ expiresIn, message, onSubmit, onBack, on
       setError(err); setCode('')
     } finally { sending.current = false; setBusy(false) }
   }
-  const friendly = error && twoFactorMessage(error)
+  const friendly = error && twoFactorMessage(error), onField = error?.code === 'TWO_FACTOR_CODE_WRONG'
   return <form className="auth-credentials-form" onSubmit={submit} noValidate aria-label={t('Enter your code')}>
-    {friendly ? <div className="notice error" role="alert">{t(friendly)}{error.retryAfter && <span>{t(' Try again in ')}{error.retryAfter}{t(' seconds.')}</span>}</div> : <ErrorNotice error={error}/>}
+    {friendly && !onField ? <div className="notice error" role="alert">{t(friendly)}{error.retryAfter && <span>{t(' Try again in ')}{error.retryAfter}{t(' seconds.')}</span>}</div> : <ErrorNotice error={onField ? null : error}/>}
     <p className="auth-hint">{t('Open your authenticator app and enter the 6-digit code, or enter one of your backup codes.')} {t('You have {value0} minutes to enter it.', { value0: codeMinutes(expiresIn) })}</p>
-    <FormField label={t('Code')} required>{({ id }) => <Input id={id} name="code" autoFocus autoComplete="one-time-code" autoCapitalize="characters" spellCheck="false" maxLength={20} value={code} onChange={e => setCode(e.target.value)}/>}</FormField>
+    <FormField label={t('Code')} required error={onField ? t(friendly) : undefined}>{({ id }) => <Input id={id} name="code" autoFocus autoComplete="one-time-code" autoCapitalize="characters" spellCheck="false" maxLength={20} value={code} onChange={e => setCode(e.target.value)}/>}</FormField>
     <button type="submit" className="ui-button ui-button-primary auth-submit" disabled={busy}>{busy ? t('Checking…') : t('Continue')}</button>
     <Button type="button" variant="secondary" disabled={busy} onClick={onBack}>{t('Back to sign in')}</Button>
   </form>

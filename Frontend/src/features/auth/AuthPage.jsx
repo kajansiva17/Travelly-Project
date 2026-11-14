@@ -13,7 +13,7 @@ import { emailError, passwordErrors, passwordHint } from './authValidation'
 import { loginDestination } from '../../routes/workspaceRoutes'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
 import TwoFactorStep from './TwoFactorStep'
-import {isTwoFactor,returnTarget,twoFactorBody} from './loginFlow'
+import {isTwoFactor,returnTarget,twoFactorBody,welcomeBack} from './loginFlow'
 
 export default function AuthPage({ signup = false }) {
   const language = getLanguage()
@@ -23,6 +23,8 @@ export default function AuthPage({ signup = false }) {
   const location=useLocation()
   const journey=signup?journeyRole(location.search):authJourney(location.search)
   const notice=useNotice()
+  // The notice closes when the page changes, so it opens just after the move to the destination page.
+  function announceWelcomeBack(result){const back=welcomeBack(result);if(back)setTimeout(()=>notice({title:'Travelly',message:'Welcome back, your account is active again.',content:back.cancelled?<p>{t('Your delete request was cancelled.')}</p>:null}),400)}
   const [pending,setPending]=useState(false)
   const [resolvedDestination,setResolvedDestination]=useState(null)
   const [error,setError]=useState(null)
@@ -112,7 +114,7 @@ export default function AuthPage({ signup = false }) {
         // data in browser history or persistent storage.
         const destination = await signedInDestination()
         try{if(remember)localStorage.setItem('travelly-remembered-identifier',values.identifier);else localStorage.removeItem('travelly-remembered-identifier')}catch{/* Login remains available when browser storage is disabled. */}
-        navigate(destination,{replace:true})
+        navigate(destination,{replace:true});announceWelcomeBack(result)
       }
     } catch(err) {
       setError(err instanceof TypeError?new Error('We could not reach Travelly. Please try again.'):err)
@@ -123,10 +125,11 @@ export default function AuthPage({ signup = false }) {
   async function submitCode(code) {
     setPending(true)
     try {
-      acceptAuthResult(await publicAuth('2fa', twoFactorBody(twoFactor.challenge, code)))
+      const tokens = await publicAuth('2fa', twoFactorBody(twoFactor.challenge, code))
+      acceptAuthResult(tokens)
       const destination = await signedInDestination()
       if (twoFactor.identifier) { try { if (twoFactor.remember) localStorage.setItem('travelly-remembered-identifier', twoFactor.identifier); else localStorage.removeItem('travelly-remembered-identifier') } catch { /* Login remains available when browser storage is disabled. */ } }
-      navigate(destination, { replace: true })
+      navigate(destination, { replace: true }); announceWelcomeBack(tokens)
     } finally { setPending(false) }
   }
   function handleSubmit(event) {
@@ -168,6 +171,7 @@ export default function AuthPage({ signup = false }) {
           acceptAuthResult(result)
           if(!result.access_token)setAuthFlow({...result,journey})
           navigate(result.status === 'completion_required' ? journeyLink('/google-complete',journey) : result.status === 'verification_required' ? journeyLink('/check-email',journey) : await signedInDestination(),{replace:true,state:{returnTo:returnTarget(location.state)}})
+          announceWelcomeBack(result)
         } catch(error) {setError(error)}
         finally {setPending(false)}
       }}/>

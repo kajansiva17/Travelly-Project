@@ -6,13 +6,14 @@ import { ErrorNotice } from '../../components/components'
 import { Button } from '../../components/ui'
 import { usePaged, useRowCount } from '../booking/flow/FlowParts'
 import { ConfirmForm } from './TwoFactorSettings'
+import { useWorkspace } from '../../context/workspaceContext'
 import { blockerLines, canClose, closeBody } from './loginFlow'
 
 /* Deactivate or delete the account (contract 03SV, section 2). The open business listed by GET /users/me/account-closure must be
    finished first: the buttons stay off while it exists. Success signs the person out (the server already ended every session). */
 export default function CloseAccount({ hasPassword, twoFactorOn }) {
   const [status, setStatus] = useState(null), [error, setError] = useState(null), [action, setAction] = useState(null)   // null | 'deactivate' | 'delete'
-  const lines = blockerLines(status?.blockers), rows = usePaged(lines, useRowCount(48))
+  const role = useWorkspace()?.role, lines = blockerLines(status?.blockers, role), rows = usePaged(lines, useRowCount(48))
   const load = () => api('/users/me/account-closure', { cache: 'no-store' }).then(r => { setStatus(r); setError(null) }).catch(setError)
   useEffect(() => { load() }, [])
   const days = status?.delete_after_days ?? 30

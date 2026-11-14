@@ -559,3 +559,16 @@ against the dev server; no screenshots.
   and wrap (`rates.css`). No wording was changed.
 - Result: all 54 checks pass; cards fit at 1280x585 and 1920x1080, on 390x844 only the setup view and the delete confirm scroll inside the card.
 - Not a defect: the decorative `journey-sun` shape on the sign-in layout is wider than its box by design (aria-hidden).
+
+## 03SV update (commit 3e7e89a): welcome back, error codes, blocker pages
+
+- **Welcome back:** a token answer with `account_reactivated: true` (email login, Google sign-in and `POST /auth/2fa` alike) opens a notice after
+  the move to the destination page: "Welcome back, your account is active again." plus "Your delete request was cancelled." when
+  `delete_request_cancelled` is true. A normal sign-in has neither field and shows nothing (`welcomeBack` in `loginFlow.js`).
+- **Second step errors:** names already matched the contract (422 `TWO_FACTOR_CODE_WRONG`, 429 `RATE_LIMITED`, 401 `TWO_FACTOR_CHALLENGE_EXPIRED`).
+  The wrong code is now shown on the code field and the screen stays, as the contract says (it was a banner).
+- **Blockers:** each code links to the contract's page: OPEN_BOOKINGS_AS_PASSENGER and REFUND_PENDING `/passenger/bookings`, OPEN_BOOKINGS_AS_OWNER
+  `/owner/bookings`, OPEN_TRIPS_AS_DRIVER `/driver/assignments` (`/owner/assignments` in the Owner workspace), OPEN_DEPARTURES
+  `/owner/ticket-departures`, COMMISSION_DUE and OWNER_PAYOUT_PENDING `/owner/earnings`.
+- Nothing else in the update differed from the UI (bodies, statuses and endpoints unchanged). Fit re-checked in Tamil and Sinhala at 1280x585,
+  1920x1080 and 390x844: welcome notice and the blocker rows with their Open button (54 screen checks and 18 notice checks).
