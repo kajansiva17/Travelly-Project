@@ -43,12 +43,12 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { 
   --lr-glass-blur: blur(14px) saturate(1.4);
   --lr-red-deep: color-mix(in srgb, var(--brand-red) 74%, #000);        /* derived from the one brand red */
   /* red glass: about 70% of Sign up's strength, still see-through */
-  --lr-gr-top: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 86%, #000) 90%, transparent);
-  --lr-gr-bottom: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 72%, #000) 94%, transparent);
-  --lr-gr-top-hover: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 84%, #000) 92%, transparent);
-  --lr-gr-bottom-hover: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 70%, #000) 96%, transparent);
-  --lr-gr-top-active: color-mix(in srgb, var(--brand-red) 70%, #000);
-  --lr-gr-bottom-active: color-mix(in srgb, var(--brand-red) 62%, #000);
+  --lr-gr-top: rgb(var(--brand-red-rgb) / .64);
+  --lr-gr-bottom: rgb(var(--brand-red-rgb) / .86);
+  --lr-gr-top-hover: rgb(var(--brand-red-rgb) / .8);
+  --lr-gr-bottom-hover: rgb(var(--brand-red-rgb) / .96);
+  --lr-gr-top-active: var(--brand-red);
+  --lr-gr-bottom-active: var(--brand-red);
   --lr-gr-text: #fff;
   --lr-gr-glow: 0 0 16px rgb(var(--brand-red-rgb) / .45);
   --lr-gr-depth: 0 8px 18px rgb(var(--brand-red-rgb) / .28), 0 2px 4px rgb(60 0 4 / .22);
@@ -88,7 +88,7 @@ html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral)
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; box-shadow: var(--lr-rim) !important; cursor: default; }
 /* Sign up: the strongest button, solid, deepest and most saturated red, glossy */
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup {
-  background: var(--lr-sheen), linear-gradient(180deg, color-mix(in srgb, var(--brand-red) 80%, #000), color-mix(in srgb, var(--brand-red) 56%, #000)) !important; color: #fff !important; text-shadow: 0 1px 1px rgb(60 0 4 / .5);
+  background: var(--lr-sheen), var(--brand-red-gradient) !important; color: #fff !important; text-shadow: 0 1px 1px rgb(60 0 4 / .5);
   border: 1px solid rgb(255 255 255 / .85) !important; box-shadow: var(--lr-rim), 0 0 16px rgb(var(--brand-red-rgb) / .5), 0 8px 18px rgb(var(--brand-red-rgb) / .35) !important;
 }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: var(--lr-rim), 0 0 22px rgb(var(--brand-red-rgb) / .7), 0 8px 18px rgb(var(--brand-red-rgb) / .35) !important; }
@@ -178,10 +178,6 @@ html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions .lr-p
   html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-scene { transform: scale(1.06); transform-origin: 0 0; }
 }
 @media (min-width: 1700px) { html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-scene { transform: scale(1.1); } }
-/* the active Hire tab sits on the light search card, so its red glass is a little more opaque there */
-html body .lr-page.lr-page.lr-page.lr-page .lr-tabs { --lr-gr-top: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 74%, #000) 99%, transparent); --lr-gr-bottom: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 62%, #000) 100%, transparent); }
-/* hero buttons sit straight on the photo (and on the light fade on For Owners), so their red glass is nearly opaque to keep white text readable */
-html body .lr-page.lr-page.lr-page.lr-page :is(.lr-hero-actions, .lr-cta) { --lr-gr-top: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 78%, #000) 97%, transparent); --lr-gr-bottom: color-mix(in srgb, color-mix(in srgb, var(--brand-red) 64%, #000) 98%, transparent); }
 /* the two hero buttons stay on one row on every page (For Owners stacks them, see above) */
 @media (min-width: 761px) { html body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions { flex-wrap: nowrap; } }
 /* Tamil / Sinhala: the longer button labels may use a second row (Home), and the For Owners subtext keeps to the strip left of the bus */
