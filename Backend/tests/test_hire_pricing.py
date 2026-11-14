@@ -561,3 +561,20 @@ def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(c
     assert policies['WAITING']['mode'] == 'NOT_OFFERED' and policies['EXTRA_KM']['mode'] == 'CHARGED' and policies['EXTRA_KM']['km_rate'] == '50'
     waiting = search('30')
     assert waiting['items'] == [] and len(waiting['quote_on_request']) == 1
+
+
+def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup):
+    c = hire_setup
+    ask = lambda names: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
+        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()['items'][0]
+    first = ask(('A', 'B'))
+    assert first['location_source'] == 'SERVICE_AREA' and first['distance_km'] > 50 and first['near'] is False   # centre of the Owner's pickup area
+    row = committed(client, c)                                        # booked A -> B; the vehicle finishes at B
+    with client.app.state.sessions() as db:
+        trip = db.scalar(select(Trip).where(Trip.booking_id == UUID(row['id'])))
+        trip.status = 'COMPLETED'; trip.actual_end_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        db.get(Booking, UUID(row['id'])).status = 'COMPLETED'; db.commit()
+    later = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': {**c.itinerary(('B', 'A')), 'start_at': (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()},
+                                                         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
+    entry = (later['items'] + later['quote_on_request'])[0]
+    assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True
