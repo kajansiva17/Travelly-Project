@@ -26,6 +26,27 @@ def night_distance(km, start, seconds):
 class HireRouting:
     def __init__(self, settings, locations): self.settings, self.locations = settings, locations
 
+    def road_km(self, stops):
+        """Road distance of the whole stop chain in km, or None when it cannot be measured (the price step then reports the real problem).
+        One directions call per distinct chain; the answer is kept in memory so a search does not spend the free routing quota again."""
+        for stop in stops: self.locations.verify(stop.place)
+        if not self.settings.routing_api_key: return None
+        coordinates = [[float(s.place.longitude), float(s.place.latitude)] for s in stops]
+        key = tuple((round(c[0], 5), round(c[1], 5)) for c in coordinates)
+        cache = self.__dict__.setdefault('_road_km_cache', {})
+        if key in cache: return cache[key]
+        try:
+            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/driving-car/geojson',
+                headers={'Authorization': self.settings.routing_api_key}, timeout=15, json={'coordinates': coordinates, 'instructions': False})
+            response.raise_for_status()
+            km = Decimal(str(response.json()['features'][0]['properties']['summary']['distance'])) / 1000
+            if not km.is_finite() or km < 0: return None
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError):
+            return None
+        if len(cache) >= 300: cache.pop(next(iter(cache)))
+        cache[key] = km
+        return km
+
     def measure(self, itinerary, profile):
         for stop in itinerary.stops: self.locations.verify(stop.place)
         if not self.settings.routing_api_key:

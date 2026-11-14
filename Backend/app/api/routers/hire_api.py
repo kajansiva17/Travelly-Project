@@ -28,6 +28,7 @@ from app.services.pricing_scope import require_supported_private_hire, private_h
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
 from app.services import commission_overdue, vehicle_whereabouts
+from app.services.airports import active_airports, airports_of, min_distance_km, near_airport
 
 router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 
@@ -59,8 +60,21 @@ def service_for(db, sid, new_offer=True):
     return service
 
 
-def validate_service_itinerary(service, itinerary):
+def validate_service_itinerary(service, itinerary, db=None, request=None):
     scope = private_hire_scope(service)
+    # Airport hire (owner decision 15 Nov 2026): the pickup or the destination is an airport of the Admin's list (a place next to it counts).
+    if scope == 'AIRPORT' and db is not None:
+        airports = active_airports(db)
+        if airports and not any(near_airport(airports, stop.place) for stop in itinerary.stops):
+            raise ApiError(422, 'AIRPORT_LOCATION_REQUIRED', 'Airport hire is for trips to or from an airport. Choose an airport as the pickup or the destination, or choose Local hire.',
+                [{'field': 'itinerary.stops', 'message': 'Choose an airport as the pickup or the destination.'}])
+    # Long distance: the road distance of the whole trip (all stops, every service day) reaches the Admin's minimum (default 100 km).
+    if scope == 'LONG_DISTANCE' and request is not None:
+        minimum = min_distance_km(service)
+        km = request.app.state.hire_routing.road_km(itinerary.stops) if minimum else None
+        if km is not None and km < minimum:
+            raise ApiError(422, 'TRIP_TOO_SHORT_FOR_LONG_DISTANCE', f'This trip is about {km:.0f} km. Long distance is for trips of {minimum} km or more. Choose Local hire.',
+                [{'field': 'distance_km', 'message': f'{km:.0f}'}, {'field': 'min_distance_km', 'message': str(minimum)}])
     if scope == 'AIRPORT' and itinerary.direction == 'RETURN' and itinerary.return_start_at is None:
         raise ApiError(422, 'RETURN_INTERVAL_REQUIRED', 'Airport return journeys require a verified return pickup date and time.')
     if scope != 'EVENT' and itinerary.event_package_id is not None:
@@ -176,7 +190,7 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
-    validate_service_itinerary(service, body.itinerary)
+    validate_service_itinerary(service, body.itinerary, db, request)
     items, asks = [], []
     rows = db.scalars(select(Vehicle).where(Vehicle.is_published.is_(True)).order_by(Vehicle.id).limit(100)).all()
     unavailable = False
@@ -240,7 +254,7 @@ def selected_vehicle_quote(vehicle_id: UUID, body: SearchRequest, request: Reque
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
-    validate_service_itinerary(service, body.itinerary)
+    validate_service_itinerary(service, body.itinerary, db, request)
     vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.is_published.is_(True)))
     if not vehicle:
         raise ApiError(404, 'VEHICLE_NOT_FOUND', 'The selected published vehicle is unavailable.')
@@ -273,7 +287,7 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
                 raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'The request identifier belongs to a different request.')
             return booking_summary(existing)
         eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); commission_gate(request, db, vehicle); usable_capacity(vehicle, body)
-        service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary)
+        service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary, db, request)
         snapshot = None
         for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
         try: snapshot = offer(request, db, vehicle, service, body.itinerary)
@@ -1154,6 +1168,8 @@ def admin_services(user=Depends(admin), db: Session = Depends(get_db)):
         items.append({'id': str(row.id), 'code': row.code, 'name': row.name, 'is_active': row.is_active,
             'version': row.version, 'default_pricing_basis': row.default_pricing_basis, 'pricing_scope': scope,
             'status': catalogue_status(row), 'ready_vehicle_count': len(ready),
+            'supports_min_distance': scope == 'LONG_DISTANCE', 'min_distance_km': min_distance_km(row) if scope == 'LONG_DISTANCE' else None,
+            'supports_airports': scope == 'AIRPORT', 'airports': airports_of(row) if scope == 'AIRPORT' else None,
             'ready_owner_count': len({vehicle.owner_user_id for vehicle in ready}),
             'ready_vehicles': [{'vehicle_reference': vehicle.public_vehicle_reference,
                 'owner_reference': db.get(User, vehicle.owner_user_id).public_user_reference} for vehicle in ready[:100]]})

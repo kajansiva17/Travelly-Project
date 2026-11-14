@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import {useRef,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Link,useNavigate} from '../passenger/travelRouter'
 import {api,hasSession,publicRequest} from '../../services/api'
 import {Header} from '../../components/components'
@@ -15,6 +15,8 @@ import {RENTAL_LIMITS,extraAmount,previewTotal,validDays,validLicence} from './r
 /* Self-drive rental (contract 03RN): when and how long, a vehicle with optional extras, the licence number, then the request.
    POST /rentals/search {start_at, days} lists the vehicles free for those dates; POST /rentals asks (one idempotency key per request, reused on retry).
    The renter drives; the final price is worked out when the vehicle comes back. */
+// A guest can search, choose a vehicle and extras and type the licence number; sign-in is asked at "Request this rental" and the choice waits in session storage.
+const PENDING='travelly.rental.pending.v1'
 const steps=['When and how long','Choose a vehicle','Licence and request','Request sent']
 const vehicleName=v=>[v?.make,v?.model].filter(Boolean).join(' ')||v?.reference||t('Vehicle')
 const startIso=(date,time)=>new Date(`${date}T${time||'00:00'}:00`).toISOString()
@@ -33,9 +35,24 @@ export function PassengerRental(){
     try{const result=await publicRequest('/rentals/search',{start_at:startIso(when.date,when.time),days});setItems(result.items||[]);setNote(result.message||'');setStep(1)}
     catch(err){setError(err)}finally{sending.current=false;setBusy(false)}
   }
+  // Back from sign-in: the same dates, vehicle, extras and licence come back (the vehicle must still be free for those dates).
+  useEffect(()=>{
+    if(!hasSession())return
+    let saved=null
+    try{saved=JSON.parse(sessionStorage.getItem(PENDING)||'null');sessionStorage.removeItem(PENDING)}catch{/* Without storage the person simply chooses again. */}
+    if(!saved?.when||!saved.vehicleId)return
+    setWhen(saved.when);setLicence(saved.licence||'');setExtraIds(saved.extraIds||{})
+    ;(async()=>{try{
+      const result=await publicRequest('/rentals/search',{start_at:startIso(saved.when.date,saved.when.time),days:Number(saved.when.days)})
+      const list=result.items||[],found=list.find(v=>v.id===saved.vehicleId);setItems(list);setNote(result.message||'')
+      if(found){setVehicle(found);setStep(2)}else setStep(1)
+    }catch(err){setError(err)}})()
+  },[])
   async function request(){
     if(sending.current||!validLicence(licence))return
-    if(!hasSession()){navigate('/login');return}
+    if(!hasSession()){
+      try{sessionStorage.setItem(PENDING,JSON.stringify({when,vehicleId:vehicle.id,extraIds,licence}))}catch{/* Storage can be unavailable. */}
+      navigate('/login',{state:{returnTo:'/travel/book/rental'}});return}
     sending.current=true;setBusy(true);setError(null);setErrors({})
     // One key per request; a retry after a lost answer reuses it so the same rental is never made twice.
     const ids=chosen.map(x=>x.id),signature=JSON.stringify([vehicle.id,startIso(when.date,when.time),days,licence.trim(),ids])

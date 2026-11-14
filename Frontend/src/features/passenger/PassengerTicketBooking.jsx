@@ -1,13 +1,13 @@
 import { t } from '../../i18n/language.js'
 import {useEffect,useState} from 'react'
 import {api,publicRead} from '../../services/api'
-import {ButtonLink,Header,useSession} from '../../components/components'
+import {Header,useSession} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import SeatMap from '../../components/SeatMap'
 import {Field,Compact} from '../owner/OwnerRates'
 import {FlowShell,useWizard,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Empty} from '../ticketing/TicketParts'
-import {useLocation} from 'react-router-dom'
+import {useLocation,useNavigate} from 'react-router-dom'
 import TicketPayment from './TicketPayment'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
@@ -15,6 +15,8 @@ import FulfilmentNotice from './FulfilmentNotice'
 import ReplacementCard,{isPending,vehicleLine} from './ReplacementCard'
 import NotAvailableNotice from '../../components/NotAvailableNotice'
 
+/* A guest can search, pick a departure and seats and type names; sign-in is asked at "hold seats". The choice waits in session storage across the sign-in and is checked again against the live seat map. */
+const PENDING='travelly.ticket.pending.v1'
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
 function useCountdown(until){
@@ -28,7 +30,7 @@ function useCountdown(until){
 }
 
 export default function PassengerTicketBooking(){
-  const signedIn=useSession()
+  const signedIn=useSession(),navigate=useNavigate()
   const [query,setQuery]=useState({origin:'',destination:'',date:'',travellers:1}),[items,setItems]=useState(null),[departure,setDeparture]=useState(null),
     [seats,setSeats]=useState([]),[selected,setSelected]=useState([]),[error,setError]=useState(null)
   const [names,setNames]=useState({}),[stops,setStops]=useState({boarding:'',dropoff:''}),[booking,setBooking]=useState(null),[busy,setBusy]=useState(false),[key,setKey]=useState(newKey),[cancelOpen,setCancelOpen]=useState(false),[cancelResult,setCancelResult]=useState(null)
@@ -45,6 +47,24 @@ export default function PassengerTicketBooking(){
       setDeparture({...detail,currency:map.currency});w.setStep(2)
     }catch(e){setError(e)}})()
   },[bookingParam,signedIn])
+
+  // Back from sign-in: the same departure and seats come back (seats taken meanwhile are dropped) and the person only presses Hold.
+  useEffect(()=>{
+    if(!signedIn||bookingParam)return
+    let saved=null
+    try{saved=JSON.parse(sessionStorage.getItem(PENDING)||'null');sessionStorage.removeItem(PENDING)}catch{/* Without storage the person simply chooses again. */}
+    if(!saved?.departureId)return
+    ;(async()=>{try{
+      const [detail,map]=await Promise.all([publicRead(`/scheduled-trips/${saved.departureId}`),loadSeats(saved.departureId)])
+      const free=(saved.selected||[]).filter(code=>map.seats.find(s=>s.code===code)?.status==='AVAILABLE')
+      setDeparture({...detail,currency:map.currency});if(saved.query)setQuery(saved.query)
+      setSelected(free);setNames(saved.names||{});setStops(saved.stops||{boarding:'',dropoff:''});w.setStep(free.length?2:1)
+    }catch(e){setError(e)}})()
+  },[signedIn])
+  function signInToHold(){
+    try{sessionStorage.setItem(PENDING,JSON.stringify({departureId:departure.id,selected,names,stops,query}))}catch{/* Storage can be unavailable. */}
+    navigate('/login',{state:{returnTo:'/travel/book/tickets'}})
+  }
 
   async function find(q){
     setError(null);setDeparture(null);setSeats([]);setSelected([]);setBooking(null)
@@ -200,7 +220,7 @@ export default function PassengerTicketBooking(){
           :confirmed||cancelledPaid?<button type="button" className="ui-button ui-button-primary" onClick={bookMore}>{t('Find another departure')}</button>
           :signedIn
             ?<button type="button" className="ui-button ui-button-primary" disabled={busy||!namesReady||!stopsReady||fareBad} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
-            :<ButtonLink to="/login">{t('Sign in to hold seats')}</ButtonLink>}
+            :<button type="button" className="ui-button ui-button-primary" disabled={!namesReady||!stopsReady||fareBad} onClick={signInToHold}>{t('Sign in to hold seats')}</button>}
       </div>
     </div>}
 

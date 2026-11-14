@@ -2,7 +2,7 @@ import { t } from './i18n/language.js'
 import { useLanguage } from './i18n/useLanguage.js'
 import React, { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { NoticeProvider, ScrollToPage, useSession } from './components/components'
+import { Header, NoticeProvider, ScrollToPage, useSession } from './components/components'
 import { DriverPage, OwnerPage, PassengerPage } from './features/landing/ReferenceLandingPages'
 import AuthPage from './features/auth/AuthPage'
 import AccountPage from './pages/AccountPage'
@@ -180,6 +180,8 @@ function OldPersonalPath(){const {pathname,search}=useLocation();return <Navigat
 // My driving needs both approved roles (an Owner-only person never drives).
 function DrivingGate({children}){const {user}=useWorkspace();return canDriveAsOwner(user)?children:<Navigate to="/owner/dashboard" replace/>}
 function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="PASSENGER"/>:<Outlet/>}
+// Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
+function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
  OWNER:['ticket-departures','seat-inventory','earnings','reviews','support','reports'],
  DRIVER:['road-alerts','reels','feed','earnings','availability','support'],
@@ -219,19 +221,6 @@ export default function App() {
             <Route path="/passenger/payments" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/settings" element={<WorkspaceSettings/>}/>
-            <Route path="/travel/book/service" element={<PassengerServiceSelection/>}/>
-            <Route path="/travel/book/event" element={<Navigate to="/travel/book/details/event" replace/>}/>
-            <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
-            <Route path="/travel/book/rental" element={<PassengerRental/>}/>
-            <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>
-            <Route path="/travel/book/details/local" element={<PassengerTripDetails variant="local"/>}/>
-            <Route path="/travel/book/details/event" element={<PassengerTripDetails variant="event"/>}/>
-            <Route path="/travel/book/details/long-distance/one-day" element={<PassengerLongDistanceDetails/>}/>
-            <Route path="/travel/book/details/long-distance/multi-day" element={<PassengerLongDistanceDetails multiDay/>}/>
-            <Route path="/travel/book/requirements" element={<PassengerRequirements/>}/>
-            <Route path="/travel/book/vehicles" element={<PassengerVehicleMatching/>}/>
-            <Route path="/travel/book/vehicles/:vehicleId/review" element={<PassengerVehicleReview/>}/>
-            <Route path="/travel/book/review" element={<PassengerRequestReview/>}/>
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
             <Route path="/trips/:tripId/map" element={<TripMapPage/>}/>
@@ -304,6 +293,23 @@ export default function App() {
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>
             <Route path="/admin/settings" element={<WorkspaceSettings/>}/>
             {placeholders.ADMIN.map(path=><Route key={path} path={'/admin/'+path} element={<WorkspacePlaceholder/>}/>)}
+          </Route>
+          <Route element={<GuestOrWorkspace header/>}>
+            <Route path="/travel/book/event" element={<Navigate to="/travel/book/details/event" replace/>}/>
+            <Route path="/travel/book/service" element={<PassengerServiceSelection/>}/>
+            <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>
+            <Route path="/travel/book/details/local" element={<PassengerTripDetails variant="local"/>}/>
+            <Route path="/travel/book/details/event" element={<PassengerTripDetails variant="event"/>}/>
+            <Route path="/travel/book/details/long-distance/one-day" element={<PassengerLongDistanceDetails/>}/>
+            <Route path="/travel/book/details/long-distance/multi-day" element={<PassengerLongDistanceDetails multiDay/>}/>
+            <Route path="/travel/book/requirements" element={<PassengerRequirements/>}/>
+            <Route path="/travel/book/vehicles" element={<PassengerVehicleMatching/>}/>
+            <Route path="/travel/book/vehicles/:vehicleId/review" element={<PassengerVehicleReview/>}/>
+            <Route path="/travel/book/review" element={<PassengerRequestReview/>}/>
+          </Route>
+          <Route element={<GuestOrWorkspace/>}>
+            <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
+            <Route path="/travel/book/rental" element={<PassengerRental/>}/>
           </Route>
           <Route element={<OptionalPassengerWorkspace/>}>
             <Route path="/vehicles/:vehicleId" element={<PublicVehicle/>}/>

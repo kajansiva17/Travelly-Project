@@ -7,6 +7,7 @@ import AdminList,{Facts} from './AdminList'
 import AdminPaymentSettings from './AdminPaymentSettings'
 import AdminRefunds from './AdminRefunds'
 import AdminAttention from './AdminAttention'
+import {AirportListForm,DistanceRuleForm} from './AdminServiceRules'
 import {codeEnglish} from '../../i18n/codeLabels.js'
 
 const scopes=[['AIRPORT','Airport Hire'],['LOCAL','Local Hire'],['LONG_DISTANCE','Long Distance'],['EVENT','Event Hire']]
@@ -40,6 +41,8 @@ export default function AdminServiceCatalogue(){
   detail={row=><>
    <Facts entries={[[t('Ready vehicles'),String(row.ready_vehicle_count??0)],[t('Ready Owners'),String(row.ready_owner_count??0)],[t('Rate basis'),plain(row.default_pricing_basis)||'—']]}/>
    <p className="tk-line">{(row.ready_vehicles||[]).length?(row.ready_vehicles||[]).slice(0,6).map(item=>`${item.vehicle_reference} · ${item.owner_reference}`).join('  |  '):t('No approved, published vehicle has an active complete rate rule for this service.')}</p>
+   {row.supports_min_distance&&<DistanceRuleForm key={row.id} row={row} onSaved={load}/>}
+   {row.supports_airports&&<AirportListForm key={row.id} row={row} onSaved={load}/>}
    <div className="tk-bar"><div style={{minWidth:200}}><Field label="Classification"><select value={row.pricing_scope||''} disabled={busy===row.id} onChange={event=>save(row,row.status,event.target.value)}>{scopes.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></Field></div>
     {['DRAFT','ACTIVE','INACTIVE','NEEDS_REVIEW'].map(status=><button type="button" key={status} className={'ui-button '+(status==='ACTIVE'?'ui-button-primary':'ui-button-secondary')} disabled={busy===row.id||row.status===status} onClick={()=>save(row,status)}>{t(plain(status))}</button>)}</div>
   </>}/>

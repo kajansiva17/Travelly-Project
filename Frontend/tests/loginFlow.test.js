@@ -26,6 +26,7 @@ test('error codes of the second step map to friendly text; an expired step goes 
 test('the return page of a landing card is kept (only the documented pages)', () => {
   assert.equal(returnTarget({ returnTo: '/travel/book/tickets' }), '/travel/book/tickets')
   assert.equal(returnTarget({ returnTo: '/owner/vehicles' }), '/owner/vehicles')
+  assert.equal(returnTarget({ returnTo: '/travel/book/review' }), '/travel/book/review')   // a guest asks for sign-in only when sending the request
   assert.equal(returnTarget({ returnTo: 'https://evil.example' }), null)
   assert.equal(returnTarget(undefined), null)
 })

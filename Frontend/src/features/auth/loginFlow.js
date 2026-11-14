@@ -13,7 +13,7 @@ export const codeMinutes = expiresIn => Math.max(1, Math.round(Number(expiresIn 
 export const welcomeBack = result => (result?.account_reactivated === true ? { cancelled: result?.delete_request_cancelled === true } : null)
 
 // Landing cards send a signed-out visitor to sign-in with a return target; only these pages are accepted.
-export const RETURN_PAGES = ['/travel/book/tickets', '/travel/book/rental', '/owner/vehicles']
+export const RETURN_PAGES = ['/travel/book/tickets', '/travel/book/rental', '/travel/book/review', '/owner/vehicles']
 export const returnTarget = state => (RETURN_PAGES.includes(state?.returnTo) ? state.returnTo : null)
 
 // Friendly text (English key for t()) for the errors of the second step; null means "show the server message".

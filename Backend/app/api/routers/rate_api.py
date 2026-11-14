@@ -12,6 +12,7 @@ from app.models.rate_models import ServiceType, VehicleService
 from app.schemas.rate_schemas import RateConfiguration, ExamplePreview
 from app.schemas.hire_schemas import EventPackages
 from app.services.rate_calculation import calculate
+from app.services.airports import min_distance_km
 from app.services.pricing_scope import private_hire_scope, require_supported_private_hire
 
 router = APIRouter(prefix='/api/v1', tags=['Vehicle rates'])
@@ -68,7 +69,8 @@ def locations(request: Request):
 @router.get('/service-types')
 def service_types(db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).where(ServiceType.is_active.is_(True), ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.display_order, ServiceType.id).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r)} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE','EVENT')]}
+    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r),
+                       **({'min_distance_km': min_distance_km(r)} if private_hire_scope(r) == 'LONG_DISTANCE' else {})} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE','EVENT')]}
 
 
 @router.get('/owners/me/vehicles')

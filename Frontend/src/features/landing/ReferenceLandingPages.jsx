@@ -32,8 +32,8 @@ function LandingIcon({ name, size = 26, ...props }) {
 }
 
 function Action({ to, children, className = '', onUnavailable, ...props }) {
-  // go:/path opens a booking page; a signed-out visitor signs in first and comes back to it.
-  if (to?.startsWith('go:')) { const target = to.slice(3), signedIn = hasSession(); return <Link to={signedIn ? target : '/login'} state={signedIn ? undefined : { returnTo: target }} className={className} {...props}>{children}</Link> }
+  // go:/path opens a page; the booking pages (/travel/book/...) are open to guests (sign-in is asked when the request is sent), the others ask a signed-out visitor to sign in first and come back.
+  if (to?.startsWith('go:')) { const target = to.slice(3), signedIn = hasSession() || target.startsWith('/travel/book/'); return <Link to={signedIn ? target : '/login'} state={signedIn ? undefined : { returnTo: target }} className={className} {...props}>{children}</Link> }
   if (to?.startsWith('notice:')) return <button type="button" className={className} onClick={() => onUnavailable(to.slice(7))} {...props}>{children}</button>
   if (to?.startsWith('#')) return <a href={to} className={className} {...props}>{children}</a>
   return <Link to={to} className={className} {...props}>{children}</Link>
@@ -76,7 +76,7 @@ function JourneySearch({ unavailable }) {
   const tabs = [['Hire', 'car'], ['Tickets', 'ticket'], ['Rentals', 'car']]
   function search(event) {
     event.preventDefault()
-    if (active) { const target = active === 1 ? '/travel/book/tickets' : '/travel/book/rental'; navigate(hasSession() ? target : '/login', hasSession() ? undefined : { state: { returnTo: target } }); return }
+    if (active) { const target = active === 1 ? '/travel/book/tickets' : '/travel/book/rental'; navigate(target); return }
     if (!departure || !dateRef.current.checkValidity()) { requestAnimationFrame(() => { dateRef.current.focus(); dateRef.current.reportValidity() }); return }
     navigate('/hire', { state: { seed: { pickup, destination, departure } } })
   }

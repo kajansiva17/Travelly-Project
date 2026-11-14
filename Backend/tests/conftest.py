@@ -54,6 +54,7 @@ def client(postgres_engine, tmp_path):
     store = SessionStore(settings.redis_url, prefix='travelly-test:' + uuid4().hex + ':')
     assert store.client.ping()
     app = create_app(settings, postgres_engine, store)
+    app.state.hire_routing.road_km = lambda stops: None   # tests never call the real routing service; the Long distance minimum is tested with a stand-in
     with TestClient(app) as c:
         yield c
     keys = list(store.client.scan_iter(store.prefix + '*'))
