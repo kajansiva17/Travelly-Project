@@ -5,9 +5,10 @@
   --frame-inset-x: var(--lr-gutter);                                  /* navbar, hero text and sections share one left/right edge */
   --frame-w: min(calc(100% - 2 * var(--frame-inset-x)), var(--frame-max));
   --lr-edge: calc((100% - var(--frame-w)) / 2);
-  --lr-hero-gap: clamp(28px, 6vh, 56px);                              /* navbar bottom -> hero heading */
-  --lr-h1: clamp(32px, 6.6vh, 60px);
-  --lr-sub: clamp(16px, 2.9vh, 24px);
+  --lr-edge-vw: max(var(--lr-gutter), calc((100vw - var(--frame-max)) / 2));   /* same edge in viewport units, for widths */
+  --lr-hero-gap: clamp(36px, 8vh, 100px);                              /* navbar bottom -> hero heading */
+  --lr-h1: clamp(32px, 6.6vh, 52px);
+  --lr-sub: clamp(16px, 2.9vh, 22px);
   --lr-btn-h: clamp(40px, 5.6vh, 50px);
   --lr-btn-fs: clamp(15px, 2.3vh, 18px);
 }
@@ -15,13 +16,13 @@
 /* ---- hero: exactly one viewport, same box and type scale on every page ---- */
 html body .lr-page.lr-page.lr-page.lr-page .lr-hero {
   display: flex; flex-direction: column; box-sizing: border-box; gap: 0; height: auto; min-height: 100dvh;
-  padding: calc(var(--lr-header-bottom, 68px) + var(--lr-hero-gap)) var(--lr-edge) clamp(10px, 2.6vh, 28px);
+  padding: calc(var(--lr-header-bottom, 68px) + var(--lr-hero-gap)) var(--lr-edge) clamp(10px, 2.6vh, 28px) calc(var(--lr-edge) + var(--nav-pad-x));   /* left edge = the navbar logo's left edge */
 }
-html body .lr-page.lr-page.lr-page.lr-page .lr-hero-copy { width: min(720px, 100%); max-width: 100%; margin: 0; padding: 0; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-hero-copy { width: clamp(300px, calc(40vw - var(--lr-edge-vw) - var(--nav-pad-x)), 720px); max-width: 100%;   /* right edge of the text stays within 40% of the viewport */ margin: 0; padding: 0; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-hero h1 { max-width: none; font-size: var(--lr-h1); line-height: 1.06; letter-spacing: -.03em; font-weight: 800; }
-html:not([lang=en]) html body .lr-page.lr-page.lr-page.lr-page .lr-hero h1 { font-size: calc(var(--lr-h1) * .86); line-height: 1.3; letter-spacing: 0; }
+html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-hero h1 { font-size: calc(var(--lr-h1) * .78); line-height: 1.3; letter-spacing: 0; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-description { max-width: 26em; margin: clamp(6px, 1.4vh, 14px) 0 0 !important; font-size: var(--lr-sub); line-height: 1.3; font-weight: 600; letter-spacing: -.01em; }
-html:not([lang=en]) html body .lr-page.lr-page.lr-page.lr-page .lr-description { font-size: calc(var(--lr-sub) * .88); line-height: 1.5; }
+html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-description { font-size: calc(var(--lr-sub) * .84); line-height: 1.5; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: clamp(12px, 2.6vh, 24px); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions .lr-pill { min-height: var(--lr-btn-h); padding: 0 clamp(16px, 1.8vw, 26px); font-size: var(--lr-btn-fs); font-weight: 700; gap: 10px; line-height: 1.2; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions .lr-pill svg { width: 20px; height: 20px; }
@@ -31,24 +32,52 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content { padding-top: 0; }
 /* ---- the strip under the steps is a normal section now (it has a heading); keep it flush with its neighbours ---- */
 html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { margin: 0; }
 
-/* ---- buttons: Sign up is the only solid red; every other red control is light glass with red text and icon ---- */
-html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup) {
-  background: rgb(255 255 255 / .6) !important; color: var(--brand-red) !important; text-shadow: none;
-  border: 1px solid var(--brand-red-border) !important;
-  box-shadow: 0 6px 16px rgb(18 40 90 / .14), inset 0 1px 0 rgb(255 255 255 / .85) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
-  transition: background-color .15s, box-shadow .15s, transform .15s;
+/* ---- buttons: three looks only. Sign up = the one solid glossy red. Red glass = every other red-text button. Neutral glass = every
+   other button. Both glass looks are driven by the variables below (one place to tune); no per-button colours. ---- */
+.lr-page {
+  --lr-glass-blur: blur(14px) saturate(1.3);
+  --lr-glass-shadow: 0 6px 16px rgb(18 40 90 / .14), inset 0 1px 0 rgb(255 255 255 / .8);
+  --lr-glass-red-base: rgb(255 255 255 / .66);
+  --lr-glass-red-tint: rgb(var(--brand-red-rgb) / .15);
+  --lr-glass-red-tint-hover: rgb(var(--brand-red-rgb) / .24);
+  --lr-glass-red-tint-active: rgb(var(--brand-red-rgb) / .32);
+  --lr-glass-red-border: rgb(var(--brand-red-rgb) / .4);
+  --lr-glass-red-text: var(--brand-red);                    /* the one red; point this at --brand-red-dark for higher text contrast */
+  --lr-glass-neutral-bg: rgb(255 255 255 / .62);
+  --lr-glass-neutral-bg-hover: rgb(255 255 255 / .86);
+  --lr-glass-neutral-border: rgb(255 255 255 / .92);
+  --lr-glass-neutral-text: var(--ui-ink);
 }
-html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup):hover { background: rgb(255 255 255 / .85) !important; box-shadow: 0 8px 20px var(--brand-red-shadow), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
+/* red glass: Explore rides, Apply as a driver / owner, the active navbar pill, the active Hire tab, Search, the closing call-to-action */
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup) {
+  background: linear-gradient(var(--lr-glass-red-tint), var(--lr-glass-red-tint)), var(--lr-glass-red-base) !important;
+  color: var(--lr-glass-red-text) !important; text-shadow: 0 0 1px rgb(255 255 255 / .55);
+  border: 1px solid var(--lr-glass-red-border) !important; box-shadow: var(--lr-glass-shadow) !important;
+  -webkit-backdrop-filter: var(--lr-glass-blur); backdrop-filter: var(--lr-glass-blur);
+  transition: background .15s, box-shadow .15s, transform .15s;
+}
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup):hover { background: linear-gradient(var(--lr-glass-red-tint-hover), var(--lr-glass-red-tint-hover)), var(--lr-glass-red-base) !important; box-shadow: 0 8px 20px var(--brand-red-shadow), inset 0 1px 0 rgb(255 255 255 / .9) !important; transform: translateY(-1px); }
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup):active { background: linear-gradient(var(--lr-glass-red-tint-active), var(--lr-glass-red-tint-active)), var(--lr-glass-red-base) !important; transform: translateY(0); box-shadow: inset 0 2px 5px rgb(var(--brand-red-rgb) / .25) !important; }
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup):focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; box-shadow: none !important; cursor: default; }
+/* neutral glass: Create an account, Driver / Owner log in, Log in, the inactive Tickets / Rentals tabs, the closing Log in */
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-light, .lr-login, .lr-tabs button:not(.lr-red)) {
+  background: var(--lr-glass-neutral-bg) !important; color: var(--lr-glass-neutral-text) !important;
+  border: 1px solid var(--lr-glass-neutral-border) !important; box-shadow: var(--lr-glass-shadow) !important;
+  -webkit-backdrop-filter: var(--lr-glass-blur); backdrop-filter: var(--lr-glass-blur);
+  transition: background .15s, box-shadow .15s, transform .15s;
+}
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-light, .lr-login, .lr-tabs button:not(.lr-red)):hover { background: var(--lr-glass-neutral-bg-hover) !important; transform: translateY(-1px); }
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-light, .lr-login, .lr-tabs button:not(.lr-red)):active { transform: translateY(0); box-shadow: inset 0 2px 5px rgb(18 40 90 / .18) !important; }
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-light, .lr-login, .lr-tabs button:not(.lr-red)):focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-light, .lr-login, .lr-tabs button:not(.lr-red)):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; box-shadow: none !important; cursor: default; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup { background: var(--brand-red-gradient) !important; color: #fff !important; border: 1px solid rgb(255 255 255 / .85) !important; box-shadow: 0 5px 12px var(--brand-red-shadow), inset 0 0 6px rgb(255 255 255 / .7) !important; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: 0 7px 16px var(--brand-red-shadow), inset 0 0 6px #fff !important; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
 /* role icons in the navbar take the text colour (red when the pill is active) */
 html body .lr-page.lr-page.lr-page.lr-page .lr-role-icon { background: currentColor; -webkit-mask: var(--lr-role-icon) center / contain no-repeat; mask: var(--lr-role-icon) center / contain no-repeat; filter: none; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-active .lr-role-icon { filter: none; }
-@media (prefers-reduced-motion: reduce) { html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active):not(.lr-signup) { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html body .lr-page.lr-page.lr-page.lr-page :is(.lr-red, .lr-active, .lr-light, .lr-login, .lr-tabs button):not(.lr-signup) { transition: none; transform: none !important; } }
 
 /* ---- footer: the navbar brand (NavbarBrand) at the navbar's logo width, same side edges as the page ---- */
 html body .lr-page.lr-page.lr-page.lr-page .lr-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 88px; padding: 16px var(--lr-edge); }
@@ -59,7 +88,7 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-footer nav > :first-child { min-w
 /* ---- phones ---- */
 @media (max-width: 760px) {
   html body .lr-page.lr-page.lr-page.lr-page .lr-hero { padding-bottom: 0; }
-  html body .lr-page.lr-page.lr-page.lr-page.lr-driver .lr-hero-art, html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-art { position: relative; inset: auto; flex: 1 1 auto; min-height: 230px; height: auto; margin: 16px calc(-1 * var(--lr-edge)) 0; width: auto; }
+  html body .lr-page.lr-page.lr-page.lr-page.lr-driver .lr-hero-art, html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-art { position: relative; inset: auto; flex: 1 1 auto; min-height: 230px; height: auto; margin: 16px calc(-1 * var(--lr-edge)) 0 calc(-1 * (var(--lr-edge) + var(--nav-pad-x))); width: auto; }
   html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero { padding-bottom: 16px; }
   html body .lr-page.lr-page.lr-page.lr-page .lr-footer { flex-direction: column; justify-content: center; gap: 12px; }
 }
@@ -86,4 +115,42 @@ html body .lr-page.lr-owner .lr-hero-scene { object-position: center 0%; }
 }
 @media (max-width: 760px) {
   html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+}
+
+@media (max-width: 760px) { html body .lr-page.lr-page.lr-page.lr-page .lr-hero-copy { width: 100%; } }
+
+/* ---- Home: the text block is centred between the navbar and the search card (equal free space above and below, never less than
+   the shared gap); For Drivers and For Owners start the same shared gap below the navbar. ---- */
+html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero { padding-top: var(--lr-header-bottom, 68px); }
+html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero::before { content: ''; flex: 0 0 var(--lr-hero-gap); }
+html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero-copy { margin-block: auto; }
+html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-search { margin-top: var(--lr-hero-gap); }
+
+html body .lr-page.lr-page.lr-page.lr-page :is(.lr-hero h1, .lr-description, .lr-hero-helper) { text-wrap: balance; }
+
+/* optical centre: a block that is exactly centred reads as low, so Home lifts it a little (also keeps it off the bus at 1920) */
+@media (min-width: 761px) { html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero-copy { position: relative; top: calc(-1 * min(4vh, 44px)); } }
+/* For Owners: the bus starts at about 27% of the width, right under the text. Keep the text where it is and put a soft light fade behind it. */
+html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-copy { position: relative; isolation: isolate; }
+html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-copy::before { content: ''; position: absolute; z-index: -1; inset: -20px -44px -20px -64px; border-radius: 40px; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 255 255 / .6), rgb(255 255 255 / .36) 60%, rgb(255 255 255 / 0)); border-radius: 50%; }
+/* For Owners (tablet and desktop): the two buttons stack so they stay in the narrow strip left of the bus */
+@media (min-width: 761px) {
+  html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-actions { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+@media (min-width: 761px) {
+  html body .lr-page.lr-page.lr-page.lr-page.lr-owner { --lr-clear-w: max(190px, calc(27vw - var(--lr-edge-vw) - var(--nav-pad-x) - 16px)); }   /* room left of the bus */
+  html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-actions .lr-pill { max-width: max(var(--lr-clear-w), 240px); white-space: normal; text-align: left; justify-content: flex-start; padding-block: 7px; }
+  html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-helper { max-width: max(var(--lr-clear-w), 230px); }
+}
+html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions .lr-pill { padding-inline: 14px; }
+@media (max-width: 760px) { html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-copy::before { display: none; } }
+
+/* phones: the Home photo behind the text is busy (palms, lighthouse), so a soft light fade sits behind it; the search tabs keep whole words */
+@media (max-width: 760px) {
+  html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero-copy { position: relative; isolation: isolate; }
+  html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero-copy::before { content: ''; position: absolute; z-index: -1; inset: -18px -14px -24px -22px; pointer-events: none; border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(255 255 255 / .72), rgb(255 255 255 / .46) 62%, rgb(255 255 255 / 0)); }
+  html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-tabs button { padding: 0 6px; gap: 5px; font-size: 14px; line-height: 1.2; }
+  html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-tabs button svg { width: 18px; height: 18px; }
 }
