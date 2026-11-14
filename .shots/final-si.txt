@@ -1,0 +1,91 @@
+si 1280x585 home red මුල් පිටුව (14px)                         min 4.76 p10 5.14 median 5.48 need 4.5 ok
+si 1280x585 home neutral පිවිසෙන්න (14px)                      min 14.69 p10 14.86 median 15.22 need 4.5 ok
+si 1280x585 home signup ලියාපදිංචි වන්න (14px)                 min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1280x585 home red ගමන් සොයන්න (15px)                        min 6.09 p10 6.30 median 6.85 need 4.5 ok
+si 1280x585 home neutral ගිණුමක් සාදන්න (15px)                 min 11.20 p10 11.44 median 11.90 need 4.5 ok
+si 1280x585 home red වාහන සේවා (14px)                          min 5.43 p10 6.55 median 7.34 need 4.5 ok
+si 1280x585 home neutral ප්‍රවේශපත්‍ර (14px)                   min 14.05 p10 14.55 median 14.93 need 4.5 ok
+si 1280x585 home neutral කුලී වාහන (14px)                      min 14.00 p10 14.45 median 14.83 need 4.5 ok
+si 1280x585 home red සොයන්න (16px)                             min 5.02 p10 5.27 median 5.60 need 4.5 ok
+si 1280x585 home red මගී ගිණුමක් සාදන්න (16px)                 min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1280x585 home neutral පිවිසෙන්න (16px)                      min 15.17 p10 15.43 median 15.80 need 4.5 ok
+si 1280x585 drv red රියදුරන් සඳහා (14px)                       min 1.25 p10 5.16 median 5.61 need 4.5 ok(p10)
+si 1280x585 drv neutral පිවිසෙන්න (14px)                       min 14.72 p10 14.86 median 15.22 need 4.5 ok
+si 1280x585 drv signup ලියාපදිංචි වන්න (14px)                  min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1280x585 drv red රියදුරෙකු ලෙස අයදුම් ක (15px)              min 6.06 p10 6.36 median 6.87 need 4.5 ok
+si 1280x585 drv neutral රියදුරු පිවිසුම (15px)                 min 13.22 p10 13.56 median 14.27 need 4.5 ok
+si 1280x585 drv red රියදුරෙකු ලෙස අයදුම් ක (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1280x585 drv neutral දැනටමත් ලියාපදිංචිද? ප (16px)          min 15.01 p10 15.30 median 15.60 need 4.5 ok
+si 1280x585 own red හිමිකරුවන් සඳහා (14px)                     min 1.32 p10 5.13 median 5.54 need 4.5 ok(p10)
+si 1280x585 own neutral පිවිසෙන්න (14px)                       min 14.69 p10 14.84 median 15.19 need 4.5 ok
+si 1280x585 own signup ලියාපදිංචි වන්න (14px)                  min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1280x585 own red හිමිකරුවෙකු ලෙස අයදුම් (15px)              min 5.00 p10 5.42 median 6.71 need 4.5 ok
+si 1280x585 own neutral හිමිකරු පිවිසුම (15px)                 min 9.17 p10 10.43 median 11.90 need 4.5 ok
+si 1280x585 own red හිමිකරු අයදුම්පත ආරම්භ (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1280x585 own neutral පිවිසෙන්න (16px)                       min 15.04 p10 15.30 median 15.58 need 4.5 ok
+si 1366x768 home red මුල් පිටුව (14px)                         min 4.76 p10 5.14 median 5.51 need 4.5 ok
+si 1366x768 home neutral පිවිසෙන්න (14px)                      min 14.59 p10 14.81 median 15.22 need 4.5 ok
+si 1366x768 home signup ලියාපදිංචි වන්න (14px)                 min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1366x768 home red ගමන් සොයන්න (17.664px)                    min 5.84 p10 6.15 median 6.84 need 4.5 ok
+si 1366x768 home neutral ගිණුමක් සාදන්න (17.664px)             min 12.52 p10 12.77 median 13.40 need 4.5 ok
+si 1366x768 home red වාහන සේවා (16.896px)                      min 5.74 p10 6.53 median 7.34 need 4.5 ok
+si 1366x768 home neutral ප්‍රවේශපත්‍ර (16.896px)               min 14.14 p10 14.45 median 14.96 need 4.5 ok
+si 1366x768 home neutral කුලී වාහන (16.896px)                  min 14.02 p10 14.40 median 14.84 need 4.5 ok
+si 1366x768 home red සොයන්න (18.432px)                         min 5.24 p10 5.42 median 5.60 need 4.5 ok
+si 1366x768 home red මගී ගිණුමක් සාදන්න (16px)                 min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1366x768 home neutral පිවිසෙන්න (16px)                      min 15.17 p10 15.42 median 15.71 need 4.5 ok
+si 1366x768 drv red රියදුරන් සඳහා (14px)                       min 1.25 p10 5.16 median 5.61 need 4.5 ok(p10)
+si 1366x768 drv neutral පිවිසෙන්න (14px)                       min 14.72 p10 14.84 median 15.22 need 4.5 ok
+si 1366x768 drv signup ලියාපදිංචි වන්න (14px)                  min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1366x768 drv red රියදුරෙකු ලෙස අයදුම් ක (17.664px)          min 5.81 p10 6.23 median 6.83 need 4.5 ok
+si 1366x768 drv neutral රියදුරු පිවිසුම (17.664px)             min 12.62 p10 13.00 median 13.78 need 4.5 ok
+si 1366x768 drv red රියදුරෙකු ලෙස අයදුම් ක (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1366x768 drv neutral දැනටමත් ලියාපදිංචිද? ප (16px)          min 15.01 p10 15.30 median 15.60 need 4.5 ok
+si 1366x768 own red හිමිකරුවන් සඳහා (14px)                     min 1.32 p10 5.13 median 5.54 need 4.5 ok(p10)
+si 1366x768 own neutral පිවිසෙන්න (14px)                       min 14.72 p10 14.84 median 15.22 need 4.5 ok
+si 1366x768 own signup ලියාපදිංචි වන්න (14px)                  min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1366x768 own red හිමිකරුවෙකු ලෙස අයදුම් (17.664px)          min 4.87 p10 5.39 median 6.79 need 4.5 ok
+si 1366x768 own neutral හිමිකරු පිවිසුම (17.664px)             min 9.05 p10 10.07 median 11.97 need 4.5 ok
+si 1366x768 own red හිමිකරු අයදුම්පත ආරම්භ (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1366x768 own neutral පිවිසෙන්න (16px)                       min 15.04 p10 15.30 median 15.58 need 4.5 ok
+si 1920x1080 home red මුල් පිටුව (14px)                        min 4.76 p10 5.14 median 5.48 need 4.5 ok
+si 1920x1080 home neutral පිවිසෙන්න (14px)                     min 14.68 p10 14.84 median 15.23 need 4.5 ok
+si 1920x1080 home signup ලියාපදිංචි වන්න (14px)                min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1920x1080 home red ගමන් සොයන්න (18px)                       min 6.06 p10 6.42 median 6.79 need 4.5 ok
+si 1920x1080 home neutral ගිණුමක් සාදන්න (18px)                min 12.57 p10 12.85 median 13.36 need 4.5 ok
+si 1920x1080 home red වාහන සේවා (19px)                         min 4.31 p10 5.18 median 7.40 need 3 ok
+si 1920x1080 home neutral ප්‍රවේශපත්‍ර (19px)                  min 14.27 p10 14.43 median 14.83 need 3 ok
+si 1920x1080 home neutral කුලී වාහන (19px)                     min 14.24 p10 14.40 median 14.80 need 3 ok
+si 1920x1080 home red සොයන්න (20px)                            min 5.35 p10 5.42 median 5.62 need 3 ok
+si 1920x1080 home red මගී ගිණුමක් සාදන්න (16px)                min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1920x1080 home neutral පිවිසෙන්න (16px)                     min 15.17 p10 15.42 median 15.71 need 4.5 ok
+si 1920x1080 drv red රියදුරන් සඳහා (14px)                      min 1.25 p10 5.16 median 5.61 need 4.5 ok(p10)
+si 1920x1080 drv neutral පිවිසෙන්න (14px)                      min 14.68 p10 14.91 median 15.23 need 4.5 ok
+si 1920x1080 drv signup ලියාපදිංචි වන්න (14px)                 min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1920x1080 drv red රියදුරෙකු ලෙස අයදුම් ක (18px)             min 6.13 p10 6.51 median 6.90 need 4.5 ok
+si 1920x1080 drv neutral රියදුරු පිවිසුම (18px)                min 11.45 p10 12.29 median 13.54 need 4.5 ok
+si 1920x1080 drv red රියදුරෙකු ලෙස අයදුම් ක (16px)             min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1920x1080 drv neutral දැනටමත් ලියාපදිංචිද? ප (16px)         min 15.01 p10 15.30 median 15.60 need 4.5 ok
+si 1920x1080 own red හිමිකරුවන් සඳහා (14px)                    min 1.32 p10 5.13 median 5.54 need 4.5 ok(p10)
+si 1920x1080 own neutral පිවිසෙන්න (14px)                      min 14.68 p10 14.93 median 15.24 need 4.5 ok
+si 1920x1080 own signup ලියාපදිංචි වන්න (14px)                 min 6.12 p10 6.42 median 7.24 need 4.5 ok
+si 1920x1080 own red හිමිකරුවෙකු ලෙස අයදුම් (18px)             min 4.87 p10 5.33 median 6.78 need 4.5 ok
+si 1920x1080 own neutral හිමිකරු පිවිසුම (18px)                min 10.62 p10 11.30 median 12.18 need 4.5 ok
+si 1920x1080 own red හිමිකරු අයදුම්පත ආරම්භ (16px)             min 5.74 p10 6.24 median 6.76 need 4.5 ok
+si 1920x1080 own neutral පිවිසෙන්න (16px)                      min 15.04 p10 15.30 median 15.58 need 4.5 ok
+si 390x844 home red ගමන් සොයන්න (15px)                         min 6.24 p10 6.52 median 6.90 need 4.5 ok
+si 390x844 home neutral ගිණුමක් සාදන්න (15px)                  min 9.08 p10 10.14 median 11.98 need 4.5 ok
+si 390x844 home red වාහන සේවා (14px)                           min 4.94 p10 5.57 median 7.34 need 4.5 ok
+si 390x844 home neutral ප්‍රවේශපත්‍ර (14px)                    min 14.20 p10 14.50 median 14.99 need 4.5 ok
+si 390x844 home neutral කුලී වාහන (14px)                       min 14.18 p10 14.36 median 14.88 need 4.5 ok
+si 390x844 home red සොයන්න (20px)                              min 4.96 p10 5.26 median 5.60 need 3 ok
+si 390x844 home red මගී ගිණුමක් සාදන්න (14px)                  min 5.85 p10 6.31 median 6.76 need 4.5 ok
+si 390x844 home neutral පිවිසෙන්න (14px)                       min 15.29 p10 15.42 median 15.73 need 4.5 ok
+si 390x844 drv red රියදුරෙකු ලෙස අයදුම් ක (15px)               min 6.16 p10 6.44 median 6.82 need 4.5 ok
+si 390x844 drv neutral රියදුරු පිවිසුම (15px)                  min 14.65 p10 14.91 median 15.21 need 4.5 ok
+si 390x844 drv red රියදුරෙකු ලෙස අයදුම් ක (14px)               min 5.31 p10 5.74 median 6.59 need 4.5 ok
+si 390x844 drv neutral දැනටමත් ලියාපදිංචිද? ප (14px)           min 14.42 p10 15.07 median 15.75 need 4.5 ok
+si 390x844 own red හිමිකරුවෙකු ලෙස අයදුම් (15px)               min 4.54 p10 4.90 median 6.46 need 4.5 ok
+si 390x844 own neutral හිමිකරු පිවිසුම (15px)                  min 14.51 p10 14.79 median 15.09 need 4.5 ok
+si 390x844 own red හිමිකරු අයදුම්පත ආරම්භ (14px)               min 5.31 p10 5.65 median 6.54 need 4.5 ok
+si 390x844 own neutral පිවිසෙන්න (14px)                        min 15.13 p10 15.40 median 15.69 need 4.5 ok

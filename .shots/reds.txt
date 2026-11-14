@@ -1,0 +1,111 @@
+src/components/SeatMap.jsx:77:#d94343
+src/components/SeatMap.jsx:77:#8f1d1d
+src/components/SeatMap.jsx:77:#d94343
+src/components/SeatMap.jsx:77:#8f1d1d
+src/features/auth/GoogleSignIn.jsx:56:#ea4335
+src/features/landing/referenceLanding.css:4:#ff090b
+src/features/landing/referenceLanding.css:23:#ff4b51
+src/features/landing/referenceLanding.css:23:#ff0205
+src/features/landing/referenceLanding.css:23:#f00003
+src/features/landing/referenceLanding.css:23:#d4434a66
+src/features/landing/referenceLanding.css:28:#ff5962
+src/features/landing/referenceLanding.css:28:#ff1017
+src/features/landing/referenceLanding.css:28:#ff0000
+src/features/landing/referenceLanding.css:28:#f00808
+src/features/landing/referenceLanding.css:28:#fa343659
+src/features/landing/referenceLanding.css:48:#ff1015
+src/features/landing/referenceLanding.css:64:#ff7e84
+src/features/landing/referenceLanding.css:64:#ff0000
+src/features/landing/referenceLanding.css:64:#e90000
+src/features/landing/referenceLanding.css:64:#c8403960
+src/features/landing/referenceLanding.css:73:#ff1115
+src/features/landing/referenceLanding.css:77:#ff1015
+src/features/landing/referenceLanding.css:122:#ff1115
+src/features/landing/referenceLanding.css:146:#ff1115
+src/features/trips/TripMap.jsx:52:#c8102e
+src/features/trips/tripMapModel.js:13:#d11a2a
+src/features/trips/tripMapModel.js:34:#d11a2a
+src/styles/adminProfile.css:14:#d63a3a
+src/styles/adminProfile.css:22:#e53935
+src/styles/adminProfile.css:22:#e53935
+src/styles/adminReferenceGlass.css:30:#681625
+src/styles/adminReferenceGlass.css:31:rgb(117 42 58 / .16)
+src/styles/adminReferenceGlass.css:53:#ff6f7c
+src/styles/adminReferenceGlass.css:53:#f21730
+src/styles/adminReferenceGlass.css:53:#cf001c
+src/styles/adminReferenceGlass.css:53:rgb(175 0 31 / .28)
+src/styles/adminReferenceGlass.css:64:#ef6070
+src/styles/adminReferenceGlass.css:64:rgb(240 24 44 / .15)
+src/styles/adminReferenceGlass.css:66:#642335
+src/styles/adminReferenceGlass.css:67:#7b1c31
+src/styles/ai.css:19:#a3160c
+src/styles/ai.css:31:#a3160c
+src/styles/ai.css:42:#c8102e
+src/styles/ai.css:67:#c8102e
+src/styles/ai.css:83:#c8102e
+src/styles/app-sidebar.css:51:rgb(217 15 10 / .3)
+src/styles/auth.css:1:#612418
+src/styles/auth.css:1:#8e4c34
+src/styles/auth.css:1:#7a3828
+src/styles/authGlass.css:5:#e8231a
+src/styles/authGlass.css:43:rgb(200 20 10 / .35)
+src/styles/colorTokens.css:1:#d32c50
+src/styles/dashboardLightGlass.css:8:#5e2730
+src/styles/dashboardReferences.css:5:#ff4b60
+src/styles/dashboardReferences.css:12:#ff5969
+src/styles/dashboardReferences.css:21:#ff6575
+src/styles/flow.css:93:#ee3a2a
+src/styles/flow.css:285:#ee3a2a
+src/styles/flow.css:454:#f3a9a1
+src/styles/flow.css:454:#a3160c
+src/styles/flow.css:521:#ee3a2a
+src/styles/reports.css:21:#e9a3a3
+src/styles/reports.css:21:#a3160c
+src/styles/reports.css:33:#d11a2a
+src/styles/reports.css:33:#a3160c
+src/styles/responsive.css:9:#4c1a1120
+src/styles/responsive.css:23:#4c1a1120
+src/styles/roleReferenceGlass.css:35:#ef6070
+src/styles/roleReferenceGlass.css:35:rgb(240 24 44 / .15)
+src/styles/roleReferenceGlass.css:36:#7b1c31
+src/styles/roleReferenceGlass.css:40:#7b2140
+src/styles/social.css:11:#8a1630
+src/styles/social.css:26:#c8102e
+src/styles/social.css:43:#c8102e
+src/styles/social.css:48:#a3160c
+src/styles/social.css:88:#c8102e
+src/styles/ticketing.css:65:#d62839
+src/styles/ticketing.css:72:#d62839
+src/styles/ticketing.css:91:#d62839
+src/styles/ticketing.css:96:#a3160c
+src/styles/ticketing.css:135:#c8102e
+src/styles/ticketing.css:136:#c8102e
+src/styles/ticketing.css:140:#c8102e
+src/styles/ticketing.css:151:#c8102e
+src/styles/ticketing.css:162:#c8102e
+src/styles/ticketSeats.css:22:#e11d1d
+src/styles/ticketSeats.css:22:#b50f0f
+src/styles/ticketSeats.css:22:#640808
+src/styles/ticketSeats.css:32:#e11d1d
+src/styles/ticketSeats.css:32:#640808
+src/styles/travellyVisualFoundation.css:18:#ff6f7c
+src/styles/travellyVisualFoundation.css:18:#f21730
+src/styles/travellyVisualFoundation.css:18:#cf001c
+src/styles/travellyVisualFoundation.css:18:rgb(175 0 31 / .28)
+src/styles/travellyVisualFoundation.css:21:#ef6070
+src/styles/travellyVisualFoundation.css:21:rgb(240 24 44 / .15)
+src/styles/travellyVisualFoundation.css:26:#8d1730
+src/styles/ui-kit.css:33:rgb(120 0 0 / .25)
+src/styles/ui-kit.css:86:#ee3a2a
+src/styles/ui-kit.css:160:#ee3a2a
+src/styles/ui-kit.css:177:#ee3a2a
+src/styles/ui-kit.css:205:rgb(120 0 0 / .25)
+src/styles/ui-kit.css:208:#f3a9a1
+src/styles/ui-kit.css:208:#a3160c
+src/styles/ui-kit.css:209:#d90f0a
+src/styles/ui-theme.css:14:#ff4a3c
+src/styles/ui-theme.css:15:#ed2b18
+src/styles/ui-theme.css:16:#d90f0a
+src/styles/ui-theme.css:17:#e8231a
+src/styles/ui-theme.css:23:#f11e00
+src/styles/ui-theme.css:51:rgb(217 15 10 / .3)

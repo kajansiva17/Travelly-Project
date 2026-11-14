@@ -57,6 +57,8 @@ def test_search_shows_the_owner_rates_and_the_base_price(client, hire_setup):
     assert (item['base_price'], item['free_km_total'], item['extra_km_rate']) == ('24000.00', '300', '40') and 'deposit' in item['notes']
     too_long = client.post('/api/v1/rentals/search', json={'start_at': start().isoformat(), 'days': 9})
     assert too_long.json()['items'] == []
+    shown = {e['name']: e['amount'] for e in found.json()['items'][0]['rental']['extras']}
+    assert shown == {'Child seat': '900.00', 'GPS': '1000.00'}   # 300 x 3 days, once
 
 
 def test_full_rental_bill_comes_from_the_two_odometer_readings(client, hire_setup):

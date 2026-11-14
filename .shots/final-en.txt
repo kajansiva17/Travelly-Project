@@ -1,0 +1,91 @@
+en 1280x585 home red Home (14px)                               min 4.79 p10 5.14 median 5.54 need 4.5 ok
+en 1280x585 home neutral Log in (14px)                         min 14.38 p10 14.45 median 14.97 need 4.5 ok
+en 1280x585 home signup Sign up (14px)                         min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1280x585 home red Explore rides (15px)                      min 6.05 p10 6.28 median 6.83 need 4.5 ok
+en 1280x585 home neutral Create an account (15px)              min 9.93 p10 11.81 median 12.98 need 4.5 ok
+en 1280x585 home red Hire (14px)                               min 5.43 p10 6.28 median 7.40 need 4.5 ok
+en 1280x585 home neutral Tickets (14px)                        min 14.02 p10 14.30 median 14.84 need 4.5 ok
+en 1280x585 home neutral Rentals (14px)                        min 14.00 p10 14.27 median 14.81 need 4.5 ok
+en 1280x585 home red Search (16px)                             min 4.77 p10 5.11 median 5.62 need 4.5 ok
+en 1280x585 home red Create passenger accou (16px)             min 5.74 p10 6.24 median 6.82 need 4.5 ok
+en 1280x585 home neutral Log in (16px)                         min 15.12 p10 15.31 median 15.63 need 4.5 ok
+en 1280x585 drv red For Drivers (14px)                         min 4.23 p10 5.14 median 5.57 need 4.5 ok(p10)
+en 1280x585 drv neutral Log in (14px)                          min 14.52 p10 14.57 median 15.09 need 4.5 ok
+en 1280x585 drv signup Sign up (14px)                          min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1280x585 drv red Apply as a driver (15px)                   min 6.06 p10 6.31 median 6.83 need 4.5 ok
+en 1280x585 drv neutral Driver log in (15px)                   min 12.49 p10 12.86 median 13.40 need 4.5 ok
+en 1280x585 drv red Apply as a driver (16px)                   min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1280x585 drv neutral Already registered? Lo (16px)          min 15.08 p10 15.43 median 15.71 need 4.5 ok
+en 1280x585 own red For Owners (14px)                          min 3.99 p10 5.14 median 5.58 need 4.5 ok(p10)
+en 1280x585 own neutral Log in (14px)                          min 14.57 p10 14.66 median 15.09 need 4.5 ok
+en 1280x585 own signup Sign up (14px)                          min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1280x585 own red Apply as an owner (15px)                   min 6.04 p10 6.29 median 6.82 need 4.5 ok
+en 1280x585 own neutral Owner log in (15px)                    min 11.57 p10 11.96 median 12.93 need 4.5 ok
+en 1280x585 own red Start owner applicatio (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1280x585 own neutral Log in (16px)                          min 15.12 p10 15.35 median 15.63 need 4.5 ok
+en 1366x768 home red Home (14px)                               min 4.82 p10 5.18 median 5.53 need 4.5 ok
+en 1366x768 home neutral Log in (14px)                         min 14.41 p10 14.55 median 14.96 need 4.5 ok
+en 1366x768 home signup Sign up (14px)                         min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1366x768 home red Explore rides (17.664px)                  min 5.84 p10 6.25 median 6.83 need 4.5 ok
+en 1366x768 home neutral Create an account (17.664px)          min 12.59 p10 12.82 median 13.34 need 4.5 ok
+en 1366x768 home red Hire (16.896px)                           min 5.74 p10 6.53 median 7.36 need 4.5 ok
+en 1366x768 home neutral Tickets (16.896px)                    min 14.14 p10 14.43 median 14.93 need 4.5 ok
+en 1366x768 home neutral Rentals (16.896px)                    min 14.00 p10 14.40 median 14.81 need 4.5 ok
+en 1366x768 home red Search (18.432px)                         min 5.18 p10 5.36 median 5.62 need 4.5 ok
+en 1366x768 home red Create passenger accou (16px)             min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1366x768 home neutral Log in (16px)                         min 15.12 p10 15.34 median 15.70 need 4.5 ok
+en 1366x768 drv red For Drivers (14px)                         min 4.23 p10 5.14 median 5.61 need 4.5 ok(p10)
+en 1366x768 drv neutral Log in (14px)                          min 14.42 p10 14.57 median 15.09 need 4.5 ok
+en 1366x768 drv signup Sign up (14px)                          min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1366x768 drv red Apply as a driver (17.664px)               min 5.81 p10 6.23 median 6.83 need 4.5 ok
+en 1366x768 drv neutral Driver log in (17.664px)               min 11.26 p10 12.28 median 13.41 need 4.5 ok
+en 1366x768 drv red Apply as a driver (16px)                   min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1366x768 drv neutral Already registered? Lo (16px)          min 15.08 p10 15.43 median 15.71 need 4.5 ok
+en 1366x768 own red For Owners (14px)                          min 3.99 p10 5.14 median 5.67 need 4.5 ok(p10)
+en 1366x768 own neutral Log in (14px)                          min 14.52 p10 14.66 median 15.09 need 4.5 ok
+en 1366x768 own signup Sign up (14px)                          min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1366x768 own red Apply as an owner (17.664px)               min 5.87 p10 6.29 median 6.89 need 4.5 ok
+en 1366x768 own neutral Owner log in (17.664px)                min 9.68 p10 10.78 median 11.92 need 4.5 ok
+en 1366x768 own red Start owner applicatio (16px)              min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1366x768 own neutral Log in (16px)                          min 15.12 p10 15.35 median 15.63 need 4.5 ok
+en 1920x1080 home red Home (14px)                              min 4.82 p10 5.18 median 5.54 need 4.5 ok
+en 1920x1080 home neutral Log in (14px)                        min 14.40 p10 14.54 median 14.96 need 4.5 ok
+en 1920x1080 home signup Sign up (14px)                        min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1920x1080 home red Explore rides (18px)                     min 6.20 p10 6.50 median 6.85 need 4.5 ok
+en 1920x1080 home neutral Create an account (18px)             min 12.48 p10 12.78 median 13.31 need 4.5 ok
+en 1920x1080 home red Hire (19px)                              min 6.19 p10 6.66 median 7.40 need 3 ok
+en 1920x1080 home neutral Tickets (19px)                       min 14.14 p10 14.43 median 14.84 need 3 ok
+en 1920x1080 home neutral Rentals (19px)                       min 14.11 p10 14.40 median 14.81 need 3 ok
+en 1920x1080 home red Search (20px)                            min 5.18 p10 5.36 median 5.60 need 3 ok
+en 1920x1080 home red Create passenger accou (16px)            min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1920x1080 home neutral Log in (16px)                        min 15.12 p10 15.34 median 15.70 need 4.5 ok
+en 1920x1080 drv red For Drivers (14px)                        min 4.23 p10 5.14 median 5.61 need 4.5 ok(p10)
+en 1920x1080 drv neutral Log in (14px)                         min 14.54 p10 14.69 median 15.08 need 4.5 ok
+en 1920x1080 drv signup Sign up (14px)                         min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1920x1080 drv red Apply as a driver (18px)                  min 6.27 p10 6.59 median 6.94 need 4.5 ok
+en 1920x1080 drv neutral Driver log in (18px)                  min 11.69 p10 12.39 median 13.28 need 4.5 ok
+en 1920x1080 drv red Apply as a driver (16px)                  min 5.74 p10 6.24 median 6.82 need 4.5 ok
+en 1920x1080 drv neutral Already registered? Lo (16px)         min 15.07 p10 15.40 median 15.62 need 4.5 ok
+en 1920x1080 own red For Owners (14px)                         min 3.99 p10 5.11 median 5.62 need 4.5 ok(p10)
+en 1920x1080 own neutral Log in (14px)                         min 14.52 p10 14.66 median 15.08 need 4.5 ok
+en 1920x1080 own signup Sign up (14px)                         min 5.83 p10 6.10 median 7.18 need 4.5 ok
+en 1920x1080 own red Apply as an owner (18px)                  min 6.23 p10 6.54 median 6.90 need 4.5 ok
+en 1920x1080 own neutral Owner log in (18px)                   min 11.74 p10 12.44 median 13.78 need 4.5 ok
+en 1920x1080 own red Start owner applicatio (16px)             min 5.74 p10 6.24 median 6.76 need 4.5 ok
+en 1920x1080 own neutral Log in (16px)                         min 15.12 p10 15.35 median 15.63 need 4.5 ok
+en 390x844 home red Explore rides (15px)                       min 6.24 p10 6.52 median 6.90 need 4.5 ok
+en 390x844 home neutral Create an account (15px)               min 9.07 p10 10.16 median 11.98 need 4.5 ok
+en 390x844 home red Hire (14px)                                min 6.91 p10 7.10 median 7.40 need 4.5 ok
+en 390x844 home neutral Tickets (14px)                         min 14.69 p10 14.83 median 15.30 need 4.5 ok
+en 390x844 home neutral Rentals (14px)                         min 14.77 p10 14.91 median 15.29 need 4.5 ok
+en 390x844 home red Search (20px)                              min 4.96 p10 5.29 median 5.60 need 3 ok
+en 390x844 home red Create passenger accou (14px)              min 5.85 p10 6.31 median 6.76 need 4.5 ok
+en 390x844 home neutral Log in (14px)                          min 15.17 p10 15.43 median 15.74 need 4.5 ok
+en 390x844 drv red Apply as a driver (15px)                    min 6.16 p10 6.44 median 6.82 need 4.5 ok
+en 390x844 drv neutral Driver log in (15px)                    min 14.76 p10 14.92 median 15.23 need 4.5 ok
+en 390x844 drv red Apply as a driver (14px)                    min 5.85 p10 6.31 median 6.82 need 4.5 ok
+en 390x844 drv neutral Already registered? Lo (14px)           min 14.90 p10 15.28 median 15.60 need 4.5 ok
+en 390x844 own red Apply as an owner (15px)                    min 6.21 p10 6.46 median 6.87 need 4.5 ok
+en 390x844 own neutral Owner log in (15px)                     min 14.61 p10 14.80 median 15.09 need 4.5 ok
+en 390x844 own red Start owner applicatio (14px)               min 5.85 p10 6.47 median 6.82 need 4.5 ok
+en 390x844 own neutral Log in (14px)                           min 15.14 p10 15.40 median 15.71 need 4.5 ok

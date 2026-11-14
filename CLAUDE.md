@@ -33,10 +33,14 @@ _None found._
 
 <!-- cloude-code-toolbox:mcp-skills-awareness-end -->
 
-## UI revamp rules
-- Work ONLY inside Frontend/. Never edit backend code.
-- Do NOT change API paths, request/response field names, api() call logic, auth/token handling, or routing logic.
-- Change only presentation: JSX markup/classes, CSS, layout components, styling.
+## Who works where (updated 15 Nov 2026)
+- One Claude now does both the backend (Backend/) and the frontend (Frontend/). There is no separate UI Claude any more.
+- The API contract docs (docs/03-API) were removed from the repo. The backend code is the source of truth for field names and errors. Do not look for docs/ unless the task asks for it.
+- When a change touches an API path, a request/response field or an error code, change the backend and the frontend together and run both test suites (Backend: pytest; Frontend: npm test and a build).
+
+## UI rules (apply to every UI change)
+- Do NOT change api() call logic, auth/token handling or routing logic unless the task needs it.
+- Presentation work: JSX markup/classes, CSS, layout components, styling.
 - Target design reference: - Design references: Frontend/design-reference/ (see REFERENCE_MAP.md). Only source of truth.
 - Remove the old blue form theme completely; do not leave old styles as fallback.
 - Prefer shared components/styles over per-page duplicate CSS.

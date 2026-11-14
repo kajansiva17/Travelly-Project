@@ -1,0 +1,12 @@
+en 1280x585 home {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":585,"hsc":false,"clipped":0} 
+en 1280x585 drv  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":585,"hsc":false,"clipped":0} 
+en 1280x585 own  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":585,"hsc":false,"clipped":0} 
+en 1366x768 home {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":768,"hsc":false,"clipped":0} 
+en 1366x768 drv  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":768,"hsc":false,"clipped":0} 
+en 1366x768 own  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":768,"hsc":false,"clipped":0} 
+en 1920x1080 home {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":1080,"hsc":false,"clipped":0} 
+en 1920x1080 drv  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":1080,"hsc":false,"clipped":0} 
+en 1920x1080 own  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":1080,"hsc":false,"clipped":0} 
+en 390x844 home {"overlap":36,"w":[[38,314,197,358],[41,233,104,350]],"stackedOk":true,"searchOk":true,"heroH":844,"hsc":false,"clipped":0} <<<
+en 390x844 drv  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":844,"hsc":false,"clipped":0} 
+en 390x844 own  {"overlap":0,"stackedOk":true,"searchOk":true,"heroH":844,"hsc":false,"clipped":0} 

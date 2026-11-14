@@ -1,0 +1,66 @@
+en 1280x585 home red | Home | 14px | need 4.5 | navy p10 9.66 med 9.72 | brand p10 2.50 med 2.52
+en 1280x585 home neutral | Log in | 14px | need 4.5 | navy p10 14.45 med 14.99 | brand p10 3.74 med 3.88
+en 1280x585 home signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1280x585 home red | Explore rides | 15px | need 4.5 | navy p10 8.22 med 8.69 | brand p10 2.13 med 2.25
+en 1280x585 home neutral | Create an account | 15px | need 4.5 | navy p10 11.81 med 12.98 | brand p10 3.06 med 3.36
+en 1280x585 home red | Hire | 14px | need 4.5 | navy p10 9.41 med 9.47 | brand p10 2.44 med 2.45
+en 1280x585 home neutral | Tickets | 14px | need 4.5 | navy p10 14.30 med 14.84 | brand p10 3.70 med 3.84
+en 1280x585 home neutral | Rentals | 14px | need 4.5 | navy p10 14.27 med 14.81 | brand p10 3.69 med 3.83
+en 1280x585 home red | Search | 16px | need 4.5 | navy p10 9.08 med 9.16 | brand p10 2.35 med 2.37
+en 1280x585 home red | Create passenger acc | 16px | need 4.5 | navy p10 9.75 med 9.93 | brand p10 2.53 med 2.57
+en 1280x585 home neutral | Log in | 16px | need 4.5 | navy p10 15.31 med 15.62 | brand p10 3.97 med 4.05
+en 1280x585 drv red | For Drivers | 14px | need 4.5 | navy p10 9.50 med 9.64 | brand p10 2.46 med 2.50
+en 1280x585 drv neutral | Log in | 14px | need 4.5 | navy p10 14.57 med 15.12 | brand p10 3.77 med 3.91
+en 1280x585 drv signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1280x585 drv red | Apply as a driver | 15px | need 4.5 | navy p10 9.74 med 9.78 | brand p10 2.52 med 2.53
+en 1280x585 drv neutral | Driver log in | 15px | need 4.5 | navy p10 15.14 med 15.45 | brand p10 3.92 med 4.00
+en 1280x585 drv red | Apply as a driver | 16px | need 4.5 | navy p10 9.74 med 9.89 | brand p10 2.52 med 2.56
+en 1280x585 drv neutral | Already registered?  | 16px | need 4.5 | navy p10 15.43 med 15.71 | brand p10 4.00 med 4.07
+en 1280x585 own red | For Owners | 14px | need 4.5 | navy p10 9.45 med 9.54 | brand p10 2.45 med 2.47
+en 1280x585 own neutral | Log in | 14px | need 4.5 | navy p10 14.66 med 15.12 | brand p10 3.80 med 3.91
+en 1280x585 own signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1280x585 own red | Apply as an owner | 15px | need 4.5 | navy p10 8.55 med 9.28 | brand p10 2.21 med 2.40
+en 1280x585 own neutral | Owner log in | 15px | need 4.5 | navy p10 12.01 med 13.09 | brand p10 3.11 med 3.39
+en 1280x585 own red | Start owner applicat | 16px | need 4.5 | navy p10 9.75 med 9.93 | brand p10 2.53 med 2.57
+en 1280x585 own neutral | Log in | 16px | need 4.5 | navy p10 15.35 med 15.63 | brand p10 3.97 med 4.05
+en 1920x1080 home red | Home | 14px | need 4.5 | navy p10 9.56 med 9.62 | brand p10 2.48 med 2.49
+en 1920x1080 home neutral | Log in | 14px | need 4.5 | navy p10 14.54 med 14.97 | brand p10 3.77 med 3.88
+en 1920x1080 home signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1920x1080 home red | Explore rides | 18px | need 4.5 | navy p10 8.41 med 8.48 | brand p10 2.18 med 2.20
+en 1920x1080 home neutral | Create an account | 18px | need 4.5 | navy p10 12.78 med 13.31 | brand p10 3.31 med 3.45
+en 1920x1080 home red | Hire | 19px | need 3 | navy p10 9.29 med 9.32 | brand p10 2.41 med 2.41
+en 1920x1080 home neutral | Tickets | 19px | need 3 | navy p10 14.43 med 14.84 | brand p10 3.74 med 3.84
+en 1920x1080 home neutral | Rentals | 19px | need 3 | navy p10 14.40 med 14.81 | brand p10 3.73 med 3.83
+en 1920x1080 home red | Search | 20px | need 3 | navy p10 9.14 med 9.17 | brand p10 2.37 med 2.37
+en 1920x1080 home red | Create passenger acc | 16px | need 4.5 | navy p10 9.75 med 9.95 | brand p10 2.53 med 2.58
+en 1920x1080 home neutral | Log in | 16px | need 4.5 | navy p10 15.34 med 15.70 | brand p10 3.97 med 4.07
+en 1920x1080 drv red | For Drivers | 14px | need 4.5 | navy p10 9.54 med 9.63 | brand p10 2.47 med 2.49
+en 1920x1080 drv neutral | Log in | 14px | need 4.5 | navy p10 14.69 med 15.09 | brand p10 3.80 med 3.91
+en 1920x1080 drv signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1920x1080 drv red | Apply as a driver | 18px | need 4.5 | navy p10 8.11 med 8.34 | brand p10 2.10 med 2.16
+en 1920x1080 drv neutral | Driver log in | 18px | need 4.5 | navy p10 12.39 med 13.31 | brand p10 3.21 med 3.45
+en 1920x1080 drv red | Apply as a driver | 16px | need 4.5 | navy p10 9.74 med 9.88 | brand p10 2.52 med 2.56
+en 1920x1080 drv neutral | Already registered?  | 16px | need 4.5 | navy p10 15.40 med 15.61 | brand p10 3.99 med 4.04
+en 1920x1080 own red | For Owners | 14px | need 4.5 | navy p10 9.45 med 9.50 | brand p10 2.45 med 2.46
+en 1920x1080 own neutral | Log in | 14px | need 4.5 | navy p10 14.66 med 15.09 | brand p10 3.80 med 3.91
+en 1920x1080 own signup | Sign up | 14px | need 4.5 | white p10 4.22 med 4.33
+en 1920x1080 own red | Apply as an owner | 18px | need 4.5 | navy p10 7.84 med 8.49 | brand p10 2.03 med 2.20
+en 1920x1080 own neutral | Owner log in | 18px | need 4.5 | navy p10 12.44 med 13.93 | brand p10 3.22 med 3.61
+en 1920x1080 own red | Start owner applicat | 16px | need 4.5 | navy p10 9.75 med 9.93 | brand p10 2.53 med 2.57
+en 1920x1080 own neutral | Log in | 16px | need 4.5 | navy p10 15.35 med 15.63 | brand p10 3.97 med 4.05
+en 390x844 home red | Explore rides | 15px | need 4.5 | navy p10 7.89 med 8.18 | brand p10 2.04 med 2.12
+en 390x844 home neutral | Create an account | 15px | need 4.5 | navy p10 10.15 med 12.07 | brand p10 2.63 med 3.12
+en 390x844 home red | Hire | 14px | need 4.5 | navy p10 9.53 med 9.63 | brand p10 2.47 med 2.49
+en 390x844 home neutral | Tickets | 14px | need 4.5 | navy p10 14.90 med 15.30 | brand p10 3.86 med 3.96
+en 390x844 home neutral | Rentals | 14px | need 4.5 | navy p10 14.91 med 15.29 | brand p10 3.86 med 3.96
+en 390x844 home red | Search | 20px | need 3 | navy p10 9.14 med 9.16 | brand p10 2.37 med 2.37
+en 390x844 home red | Create passenger acc | 14px | need 4.5 | navy p10 9.67 med 9.91 | brand p10 2.51 med 2.57
+en 390x844 home neutral | Log in | 14px | need 4.5 | navy p10 15.43 med 15.73 | brand p10 4.00 med 4.07
+en 390x844 drv red | Apply as a driver | 15px | need 4.5 | navy p10 9.41 med 9.57 | brand p10 2.44 med 2.48
+en 390x844 drv neutral | Driver log in | 15px | need 4.5 | navy p10 14.93 med 15.32 | brand p10 3.87 med 3.97
+en 390x844 drv red | Apply as a driver | 14px | need 4.5 | navy p10 9.71 med 9.91 | brand p10 2.51 med 2.57
+en 390x844 drv neutral | Already registered?  | 14px | need 4.5 | navy p10 15.28 med 15.61 | brand p10 3.96 med 4.04
+en 390x844 own red | Apply as an owner | 15px | need 4.5 | navy p10 9.26 med 9.43 | brand p10 2.40 med 2.44
+en 390x844 own neutral | Owner log in | 15px | need 4.5 | navy p10 14.80 med 15.18 | brand p10 3.83 med 3.93
+en 390x844 own red | Start owner applicat | 14px | need 4.5 | navy p10 9.69 med 9.88 | brand p10 2.51 med 2.56
+en 390x844 own neutral | Log in | 14px | need 4.5 | navy p10 15.40 med 15.71 | brand p10 3.99 med 4.07

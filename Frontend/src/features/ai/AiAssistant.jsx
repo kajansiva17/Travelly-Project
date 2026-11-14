@@ -131,7 +131,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   // --- the "Check your search" card ---
   const edit=(field,value)=>{setCardProblem('');setSearch(s=>({...s,filters:{...s.filters,[field]:value}}))}
   const pickPlace=(field,place)=>setSearch(s=>({...s,places:{...s.places,[field]:place||undefined},filters:place?{...s.filters,[field]:place.label}:s.filters}))
-  const go=path=>{close();navigate(path)}
+  const go=(path,options)=>{close();navigate(path,options)}
   async function runSearch(){
     const f=latest.current.search.filters
     if(f.service==='ticket'){go('/travel/book/tickets?'+ticketQuery(f));return}
@@ -151,7 +151,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
       let services=[];if(isHire(f.service)){services=(await publicRead('/service-types')).items||[]}
       writeDraft(buildDraft(f,{services,places:s.places}))
     }catch{/* The form still opens, without the saved values. */}
-    go(s.formPath||'/travel/book/service')
+    go(s.formPath||'/travel/book/service',{state:{resume:true}})   // the AI just filled the draft: keep it
   }
 
   const lastAi=[...search.messages].reverse().find(m=>m.role==='ai'),convo=tab==='search'?search.messages:help.messages

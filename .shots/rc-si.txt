@@ -1,0 +1,66 @@
+si 1280x585 home red | මුල් පිටුව | 14px | need 4.5 | navy p10 9.75 med 9.88 | brand p10 2.52 med 2.56
+si 1280x585 home neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.86 med 15.22 | brand p10 3.85 med 3.94
+si 1280x585 home signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1280x585 home red | ගමන් සොයන්න | 15px | need 4.5 | navy p10 7.55 med 7.97 | brand p10 1.96 med 2.06
+si 1280x585 home neutral | ගිණුමක් සාදන්න | 15px | need 4.5 | navy p10 11.44 med 11.95 | brand p10 2.96 med 3.09
+si 1280x585 home red | වාහන සේවා | 14px | need 4.5 | navy p10 9.41 med 9.54 | brand p10 2.44 med 2.47
+si 1280x585 home neutral | ප්‍රවේශපත්‍ර | 14px | need 4.5 | navy p10 14.55 med 14.93 | brand p10 3.77 med 3.87
+si 1280x585 home neutral | කුලී වාහන | 14px | need 4.5 | navy p10 14.45 med 14.83 | brand p10 3.74 med 3.84
+si 1280x585 home red | සොයන්න | 16px | need 4.5 | navy p10 9.08 med 9.17 | brand p10 2.35 med 2.37
+si 1280x585 home red | මගී ගිණුමක් සාදන්න | 16px | need 4.5 | navy p10 9.77 med 9.94 | brand p10 2.53 med 2.57
+si 1280x585 home neutral | පිවිසෙන්න | 16px | need 4.5 | navy p10 15.43 med 15.76 | brand p10 4.00 med 4.08
+si 1280x585 drv red | රියදුරන් සඳහා | 14px | need 4.5 | navy p10 9.78 med 9.88 | brand p10 2.53 med 2.56
+si 1280x585 drv neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.84 med 15.21 | brand p10 3.84 med 3.94
+si 1280x585 drv signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1280x585 drv red | රියදුරෙකු ලෙස අයදුම් | 15px | need 4.5 | navy p10 8.18 med 8.89 | brand p10 2.12 med 2.30
+si 1280x585 drv neutral | රියදුරු පිවිසුම | 15px | need 4.5 | navy p10 13.55 med 14.35 | brand p10 3.51 med 3.72
+si 1280x585 drv red | රියදුරෙකු ලෙස අයදුම් | 16px | need 4.5 | navy p10 9.68 med 9.85 | brand p10 2.51 med 2.55
+si 1280x585 drv neutral | දැනටමත් ලියාපදිංචිද? | 16px | need 4.5 | navy p10 15.30 med 15.60 | brand p10 3.96 med 4.04
+si 1280x585 own red | හිමිකරුවන් සඳහා | 14px | need 4.5 | navy p10 9.53 med 9.66 | brand p10 2.47 med 2.50
+si 1280x585 own neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.84 med 15.22 | brand p10 3.84 med 3.94
+si 1280x585 own signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1280x585 own red | හිමිකරුවෙකු ලෙස අයදු | 15px | need 4.5 | navy p10 7.96 med 8.55 | brand p10 2.06 med 2.21
+si 1280x585 own neutral | හිමිකරු පිවිසුම | 15px | need 4.5 | navy p10 10.43 med 12.02 | brand p10 2.70 med 3.11
+si 1280x585 own red | හිමිකරු අයදුම්පත ආරම | 16px | need 4.5 | navy p10 9.74 med 9.93 | brand p10 2.52 med 2.57
+si 1280x585 own neutral | පිවිසෙන්න | 16px | need 4.5 | navy p10 15.30 med 15.59 | brand p10 3.96 med 4.04
+si 1920x1080 home red | මුල් පිටුව | 14px | need 4.5 | navy p10 9.72 med 9.85 | brand p10 2.52 med 2.55
+si 1920x1080 home neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.84 med 15.23 | brand p10 3.84 med 3.94
+si 1920x1080 home signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1920x1080 home red | ගමන් සොයන්න | 18px | need 4.5 | navy p10 8.40 med 8.48 | brand p10 2.17 med 2.20
+si 1920x1080 home neutral | ගිණුමක් සාදන්න | 18px | need 4.5 | navy p10 12.85 med 13.36 | brand p10 3.33 med 3.46
+si 1920x1080 home red | වාහන සේවා | 19px | need 3 | navy p10 9.29 med 9.39 | brand p10 2.41 med 2.43
+si 1920x1080 home neutral | ප්‍රවේශපත්‍ර | 19px | need 3 | navy p10 14.43 med 14.83 | brand p10 3.74 med 3.84
+si 1920x1080 home neutral | කුලී වාහන | 19px | need 3 | navy p10 14.40 med 14.80 | brand p10 3.73 med 3.83
+si 1920x1080 home red | සොයන්න | 20px | need 3 | navy p10 9.14 med 9.16 | brand p10 2.37 med 2.37
+si 1920x1080 home red | මගී ගිණුමක් සාදන්න | 16px | need 4.5 | navy p10 9.77 med 9.94 | brand p10 2.53 med 2.57
+si 1920x1080 home neutral | පිවිසෙන්න | 16px | need 4.5 | navy p10 15.42 med 15.71 | brand p10 3.99 med 4.07
+si 1920x1080 drv red | රියදුරන් සඳහා | 14px | need 4.5 | navy p10 9.72 med 9.81 | brand p10 2.52 med 2.54
+si 1920x1080 drv neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.91 med 15.23 | brand p10 3.86 med 3.94
+si 1920x1080 drv signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1920x1080 drv red | රියදුරෙකු ලෙස අයදුම් | 18px | need 4.5 | navy p10 8.02 med 8.22 | brand p10 2.08 med 2.13
+si 1920x1080 drv neutral | රියදුරු පිවිසුම | 18px | need 4.5 | navy p10 12.29 med 13.68 | brand p10 3.18 med 3.54
+si 1920x1080 drv red | රියදුරෙකු ලෙස අයදුම් | 16px | need 4.5 | navy p10 9.65 med 9.85 | brand p10 2.50 med 2.55
+si 1920x1080 drv neutral | දැනටමත් ලියාපදිංචිද? | 16px | need 4.5 | navy p10 15.30 med 15.60 | brand p10 3.96 med 4.04
+si 1920x1080 own red | හිමිකරුවන් සඳහා | 14px | need 4.5 | navy p10 9.53 med 9.66 | brand p10 2.47 med 2.50
+si 1920x1080 own neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 14.93 med 15.24 | brand p10 3.87 med 3.95
+si 1920x1080 own signup | ලියාපදිංචි වන්න | 14px | need 4.5 | white p10 4.28 med 4.33
+si 1920x1080 own red | හිමිකරුවෙකු ලෙස අයදු | 18px | need 4.5 | navy p10 7.63 med 8.44 | brand p10 1.98 med 2.19
+si 1920x1080 own neutral | හිමිකරු පිවිසුම | 18px | need 4.5 | navy p10 11.30 med 12.24 | brand p10 2.93 med 3.17
+si 1920x1080 own red | හිමිකරු අයදුම්පත ආරම | 16px | need 4.5 | navy p10 9.73 med 9.93 | brand p10 2.52 med 2.57
+si 1920x1080 own neutral | පිවිසෙන්න | 16px | need 4.5 | navy p10 15.30 med 15.59 | brand p10 3.96 med 4.04
+si 390x844 home red | ගමන් සොයන්න | 15px | need 4.5 | navy p10 8.04 med 8.34 | brand p10 2.08 med 2.16
+si 390x844 home neutral | ගිණුමක් සාදන්න | 15px | need 4.5 | navy p10 10.14 med 12.07 | brand p10 2.63 med 3.12
+si 390x844 home red | වාහන සේවා | 14px | need 4.5 | navy p10 9.43 med 9.53 | brand p10 2.44 med 2.47
+si 390x844 home neutral | ප්‍රවේශපත්‍ර | 14px | need 4.5 | navy p10 14.51 med 15.00 | brand p10 3.76 med 3.88
+si 390x844 home neutral | කුලී වාහන | 14px | need 4.5 | navy p10 14.36 med 14.88 | brand p10 3.72 med 3.85
+si 390x844 home red | සොයන්න | 20px | need 3 | navy p10 9.10 med 9.16 | brand p10 2.36 med 2.37
+si 390x844 home red | මගී ගිණුමක් සාදන්න | 14px | need 4.5 | navy p10 9.77 med 9.93 | brand p10 2.53 med 2.57
+si 390x844 home neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 15.42 med 15.74 | brand p10 3.99 med 4.08
+si 390x844 drv red | රියදුරෙකු ලෙස අයදුම් | 15px | need 4.5 | navy p10 9.29 med 9.54 | brand p10 2.40 med 2.47
+si 390x844 drv neutral | රියදුරු පිවිසුම | 15px | need 4.5 | navy p10 14.92 med 15.31 | brand p10 3.86 med 3.96
+si 390x844 drv red | රියදුරෙකු ලෙස අයදුම් | 14px | need 4.5 | navy p10 9.47 med 9.93 | brand p10 2.45 med 2.57
+si 390x844 drv neutral | දැනටමත් ලියාපදිංචිද? | 14px | need 4.5 | navy p10 15.08 med 15.75 | brand p10 3.91 med 4.08
+si 390x844 own red | හිමිකරුවෙකු ලෙස අයදු | 15px | need 4.5 | navy p10 9.30 med 9.74 | brand p10 2.41 med 2.52
+si 390x844 own neutral | හිමිකරු පිවිසුම | 15px | need 4.5 | navy p10 14.82 med 15.19 | brand p10 3.84 med 3.93
+si 390x844 own red | හිමිකරු අයදුම්පත ආරම | 14px | need 4.5 | navy p10 9.48 med 9.96 | brand p10 2.46 med 2.58
+si 390x844 own neutral | පිවිසෙන්න | 14px | need 4.5 | navy p10 15.40 med 15.71 | brand p10 3.99 med 4.07

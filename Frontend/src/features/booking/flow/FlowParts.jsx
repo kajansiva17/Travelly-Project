@@ -83,7 +83,7 @@ export function SegmentedChoice({ legend, name, value, options, onChange }) {
 /* Back (secondary) on the left, primary action on the right. */
 export function FlowActions({ back, children }) {
   return <div className="flow-actions">
-    {back ? <Link className="ui-button ui-button-secondary" to={back}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>{t("Back")}</span></Link> : <span/>}
+    {back ? <Link className="ui-button ui-button-secondary" to={back} state={{ resume: true }}><Icon name="arrow" size={18} className="ui-back-arrow" aria-hidden="true"/><span>{t("Back")}</span></Link> : <span/>}
     {children}
   </div>
 }
