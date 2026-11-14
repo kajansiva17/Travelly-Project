@@ -2,58 +2,74 @@
    Layout: shared navbar pill on top, ticket-style "Your journey, your way" glass card on the left,
    white frosted-glass form card on the right, sunset-coast photo behind. Presentation only. */
 html body .auth-page {
-  --ag-red: var(--brand-red); --ag-field: 46px; --ag-btn: 50px; --ag-input-font: 16px;
+  --ag-red: var(--brand-red); --ag-field: 40px; --ag-btn: 40px; --ag-input-font: 15px;
   position: relative; display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden;
   color: var(--ui-ink);
   background: linear-gradient(180deg, rgb(255 255 255 / .06), rgb(18 21 82 / .1)), url('/images/travelly/heroes/auth-sunset-coast.jpg') center / cover no-repeat #7fb2e6;
 }
 html body .auth-page > .site-header { flex: none; position: relative; z-index: 5; }
-/* Both cards share one row: same top and bottom edge, the pair centred in the space under the navbar. */
+/* ONE set of card tokens for Login, Register (every step), Forgot password, the code screen and Google completion: the form card has the same
+   width, height and top offset everywhere. The vehicle card is a fixed share of it and is centred beside it. */
+html body .auth-page {
+  --auth-card-w: min(480px, calc(100vw - 40px));
+  --auth-gap-y: clamp(10px, 2.4vh, 28px);
+  --auth-card-h: min(720px, calc(100dvh - var(--frame-top) - var(--nav-h) - 2 * var(--auth-gap-y)));
+  --auth-card-top: max(var(--auth-gap-y), calc((100dvh - var(--frame-top) - var(--nav-h) - var(--auth-card-h)) / 2));
+  --auth-vcard-ratio: .88;
+  --auth-vcard-w: calc(var(--auth-card-w) * var(--auth-vcard-ratio));
+  --auth-vcard-h: calc(var(--auth-card-h) * var(--auth-vcard-ratio));
+  --auth-pad-x: clamp(22px, 3vw, 40px); --auth-pad-y: clamp(14px, 2.6vh, 30px);
+  --auth-gap: 12px;
+}
 html body .auth-page .auth-layout {
   flex: 1 1 auto; min-height: 0; width: 100%; margin: 0 auto; box-sizing: border-box;
-  display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 560px); grid-auto-rows: auto; justify-content: center; align-content: center; align-items: stretch;
-  gap: clamp(20px, 3.4vw, 56px); padding: clamp(8px, 2vh, 24px) clamp(20px, 4vw, 56px);
+  display: grid; grid-template-columns: var(--auth-vcard-w) var(--auth-card-w); grid-template-rows: var(--auth-card-h); justify-content: center; align-content: start; align-items: center;
+  column-gap: clamp(24px, 3.4vw, 56px); padding: var(--auth-card-top) 20px 0;
 }
 
-/* ---- Left: ticket card ---- */
-html body .auth-page .auth-brand-panel { display: flex; min-width: 0; padding: 0; background: none; }
-html body .auth-page .journey-pass-frame { display: flex; width: 100%; filter: drop-shadow(0 16px 30px rgb(18 40 90 / .3)); }
+/* ---- Left: ticket card (smaller than the form card, vertically centred against it) ---- */
+html body .auth-page .auth-brand-panel { display: flex; align-items: center; min-width: 0; padding: 0; background: none; }
+html body .auth-page .journey-pass-frame { display: flex; width: 100%; height: var(--auth-vcard-h); filter: drop-shadow(0 16px 30px rgb(18 40 90 / .3)) drop-shadow(0 0 7px rgb(255 226 150 / .22)); }
 html body .auth-page .journey-pass {
-  position: relative; flex: 1 1 auto; display: grid; justify-items: center; align-content: space-evenly; gap: clamp(6px, 1.4vh, 14px); padding: clamp(14px, 2.4vh, 26px) clamp(16px, 1.8vw, 26px);
-  border-radius: 28px; box-sizing: border-box;
+  position: relative; flex: 1 1 auto; display: grid; justify-items: center; align-content: space-evenly; gap: clamp(6px, 1.4vh, 14px); padding: clamp(12px, 2vh, 24px) clamp(16px, 1.8vw, 24px);
+  border-radius: 28px; box-sizing: border-box; min-height: 0; overflow: hidden;
   background: linear-gradient(180deg, rgb(255 255 255 / .5), rgb(255 255 255 / .3));
   -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2);
   box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .7);
   -webkit-mask: radial-gradient(circle 9px at 0 50%, #0000 98%, #000) left / 51% 38px repeat-y, radial-gradient(circle 9px at 100% 50%, #0000 98%, #000) right / 51% 38px repeat-y;
   mask: radial-gradient(circle 9px at 0 50%, #0000 98%, #000) left / 51% 38px repeat-y, radial-gradient(circle 9px at 100% 50%, #0000 98%, #000) right / 51% 38px repeat-y;
 }
-html body .auth-page .journey-pass h2 { margin: 0; text-align: center; font-size: clamp(17px, 2.8vh, 26px); font-weight: 800; letter-spacing: .01em; text-transform: uppercase; color: var(--ui-ink); }
+html body .auth-page .journey-pass h2 { margin: 0; text-align: center; font-size: clamp(16px, 2.6vh, 24px); line-height: 1.25; font-weight: 800; letter-spacing: .01em; text-transform: uppercase; color: var(--ui-ink); overflow-wrap: break-word; }
 html body .auth-page .journey-pass h2 span { color: var(--ag-red); }
 html body .auth-page .journey-rule { display: block; width: 25%; height: 3px; border-radius: 2px; background: var(--ag-red); }
-html body .auth-page .journey-fleet { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: clamp(56px, 13vh, 120px); }
-html body .auth-page .journey-fleet img { height: 100%; width: auto; min-width: 0; object-fit: contain; margin-inline: -4%; filter: drop-shadow(0 6px 8px rgb(18 40 90 / .25)); }
-html body .auth-page .journey-fleet img:nth-child(1) { height: 100%; } html body .auth-page .journey-fleet img:nth-child(2) { height: 90%; }
-html body .auth-page .journey-fleet img:nth-child(3) { height: 76%; } html body .auth-page .journey-fleet img:nth-child(4) { height: 68%; }
-html body .auth-page .journey-services { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; margin: 0; padding: 0; list-style: none; }
-html body .auth-page .journey-services li { display: grid; justify-items: center; gap: 2px; padding: 0 4px; font-size: clamp(12px, 1.9vh, 16px); font-weight: 800; color: var(--ui-ink); }
+/* the four vehicles stand on one ground line (their tyre bottoms), evenly spaced, none overlapping, each with a soft ground shadow */
+html body .auth-page .journey-fleet { position: relative; display: flex; align-items: flex-end; justify-content: space-evenly; width: 100%; padding-bottom: 8px; box-sizing: border-box; }
+html body .auth-page .journey-fleet::after { content: ''; position: absolute; left: 4%; right: 4%; bottom: 3px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgb(18 21 82 / 0), rgb(18 21 82 / .22) 14%, rgb(18 21 82 / .22) 86%, rgb(18 21 82 / 0)); }
+html body .auth-page .journey-vehicle { position: relative; flex: none; display: block; aspect-ratio: var(--v-w) / var(--v-h); }
+html body .auth-page .journey-vehicle::before { content: ''; position: absolute; left: 3%; right: 3%; bottom: -4px; height: 9px; border-radius: 50%; background: radial-gradient(ellipse at center, rgb(18 21 82 / .4), rgb(18 21 82 / 0) 72%); }
+html body .auth-page .journey-vehicle img { position: absolute; z-index: 1; display: block; max-width: none; width: var(--v-scale); height: auto; left: var(--v-left); top: var(--v-top); }
+html body .auth-page .journey-vehicle-bus { width: 28%; } html body .auth-page .journey-vehicle-van { width: 24%; }
+html body .auth-page .journey-vehicle-car { width: 22%; } html body .auth-page .journey-vehicle-tuk-tuk { width: 15%; }
+html body .auth-page .journey-services { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; margin: 0; padding: 0; list-style: none; }
+html body .auth-page .journey-services li { display: grid; justify-items: center; align-content: start; gap: 8px; padding: 0 8px; text-align: center; font-size: clamp(12px, 1.8vh, 15px); line-height: 1.25; font-weight: 800; color: var(--ui-ink); }
 html body .auth-page .journey-services li + li { border-left: 1px solid rgb(18 21 82 / .2); }
 html body .auth-page .journey-services svg { color: var(--ag-red); }
-html body .auth-page .journey-steps { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; margin: 0; padding: 6px 10px; box-sizing: border-box; list-style: none; border-radius: 18px; background: rgb(255 255 255 / .42); border: 1px solid rgb(255 255 255 / .7); }
-html body .auth-page .journey-steps li:not(.journey-arrow) { display: flex; align-items: center; gap: 8px; min-width: 0; }
-html body .auth-page .journey-steps b { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: 15px; background: var(--ui-red-gradient); box-shadow: 0 2px 6px rgb(var(--brand-red-rgb) / .35); }
-html body .auth-page .journey-steps span { display: grid; font-size: 11px; line-height: 1.2; color: var(--ui-ink); }
-html body .auth-page .journey-steps strong { font-size: 13px; }
-html body .auth-page .journey-arrow { flex: none; color: var(--ui-ink); }
+html body .auth-page .journey-services span { overflow-wrap: break-word; }
+html body .auth-page .journey-steps { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; width: 100%; margin: 0; padding: 10px 12px; box-sizing: border-box; list-style: none; border-radius: 18px; background: rgb(255 255 255 / .42); border: 1px solid rgb(255 255 255 / .7); }
+html body .auth-page .journey-steps li:not(.journey-arrow) { display: grid; justify-items: center; align-content: start; gap: 6px; min-width: 0; text-align: center; }
+html body .auth-page .journey-steps b { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 800; background: var(--ui-red-gradient); box-shadow: 0 2px 6px rgb(var(--brand-red-rgb) / .35); }
+html body .auth-page .journey-steps span { display: block; font-size: 12px; line-height: 1.25; font-weight: 600; color: var(--ui-ink); overflow-wrap: break-word; }
+html body .auth-page .journey-arrow { align-self: start; margin-top: 7px; color: var(--ui-ink); }
 
-/* ---- Right: frosted form card ---- */
+/* ---- Right: frosted form card (fixed size; a step with more content scrolls inside it, the page never scrolls) ---- */
 html body .auth-page .auth-form-panel {
-  display: flex; align-items: center; justify-self: stretch; width: 100%; box-sizing: border-box; min-width: 0;
-  padding: clamp(14px, 2.6vh, 32px) clamp(22px, 2.6vw, 40px); border-radius: 34px;
+  display: flex; flex-direction: column; justify-self: center; align-self: center; width: var(--auth-card-w); height: var(--auth-card-h); box-sizing: border-box; min-width: 0;
+  padding: var(--auth-pad-y) var(--auth-pad-x); border-radius: 34px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgb(18 21 82 / .3) transparent;
   background: linear-gradient(180deg, rgb(255 255 255 / .62), rgb(255 255 255 / .42));
   -webkit-backdrop-filter: blur(18px) saturate(1.25); backdrop-filter: blur(18px) saturate(1.25);
   border: 1.5px solid rgb(255 255 255 / .85); box-shadow: 0 18px 40px rgb(18 40 90 / .28), inset 0 1px 0 rgb(255 255 255 / .9);
 }
-html body .auth-page .auth-form-inner { display: grid; gap: clamp(6px, 1.3vh, 12px); width: 100%; max-width: none; }
+html body .auth-page .auth-form-inner { display: grid; gap: var(--auth-gap); width: 100%; max-width: none; margin-block: auto; }
 html body .auth-page .auth-heading { margin: 0 0 2px; text-align: center; }
 html body .auth-page .auth-heading h1 { margin: 0; font-size: clamp(26px, 4.6vh, 40px); line-height: 1.1; font-weight: 800; color: var(--ui-ink); text-transform: capitalize; }
 html body .auth-page .auth-heading h1 span { color: var(--ag-red); }
@@ -124,70 +140,67 @@ html body .auth-page .registration-progress-track > span { display: block; heigh
 html body .auth-page .registration-back { min-height: 36px; padding: 4px 16px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .95); background: rgb(255 255 255 / .85); color: var(--ui-ink); font: inherit; font-weight: 600; cursor: pointer; }
 
 
-/* Sunlight travelling around the journey card's border (follows the rounded, notched ticket edge via the card's own mask). */
+/* ---- Controls: inputs, the primary button and the Google button share one width (the card's inner area), one height and fully rounded ends ---- */
+html body .auth-page { --ag-field: 40px; --ag-btn: 40px; --ag-input-font: 15px; }
+html body .auth-page .auth-credentials-form { gap: var(--auth-gap); }
+html body .auth-page .auth-submit { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: var(--ag-btn); height: var(--ag-btn); padding: 0 22px; border-radius: 999px; font-size: 16px; line-height: 1.2; }
+html body .auth-page .auth-divider { margin: 0; }
+html body .google-sign-in { display: grid; justify-items: stretch; gap: 6px; width: 100%; margin: 0; }
+html body .google-sign-in > div { display: flex; justify-content: center; width: 100%; max-width: 100%; border-radius: 999px; overflow: hidden; }
+html body .google-button-unavailable:disabled { width: 100%; height: var(--ag-field); min-height: var(--ag-field); border-radius: 999px; padding: 0 18px; }
+html body .auth-page .auth-form-inner :is(.terms-check, .terms-check span, .auth-links) { flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
+
+/* ---- Sunlight on the vehicle card's border: a soft pale-gold band travels around the outline at a constant speed (about 9 s a turn).
+   A rotating conic-gradient (angle registered with @property) seen only through a 2 px ring mask, plus a faint blurred copy just inside
+   the edge. Under the band a plain static soft border always shows, which is the whole effect where @property is not supported. ---- */
 @property --ag-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 @keyframes ag-border-run { to { --ag-angle: 360deg; } }
-html body .auth-page .journey-pass::before, html body .auth-page .journey-pass::after {
-  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 2.5px; pointer-events: none;
-  background: conic-gradient(from var(--ag-angle), transparent 0deg 250deg, rgb(255 214 120 / .35) 290deg, #ffc84a 328deg, #ff8a1f 348deg, rgb(255 138 31 / .2) 358deg, transparent 360deg);
+html body .auth-page .journey-sun, html body .auth-page .journey-pass::before {
+  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; box-sizing: border-box; pointer-events: none; display: block;
+  background:
+    conic-gradient(from var(--ag-angle, 0deg), rgb(255 238 190 / 0) 0deg, rgb(243 222 164 / .55) 38deg, rgb(255 246 214 / .95) 68deg, rgb(243 222 164 / .55) 98deg, rgb(255 238 190 / 0) 136deg 360deg),
+    linear-gradient(rgb(243 222 164 / .4), rgb(243 222 164 / .4));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: ag-border-run 6s linear infinite;
+  animation: ag-border-run 9s linear infinite;
 }
-html body .auth-page .journey-pass::after { padding: 5px; filter: blur(5px); opacity: .7; }
+html body .auth-page .journey-sun { padding: 2px; }
+html body .auth-page .journey-pass::before { padding: 8px; filter: blur(5px); opacity: .5; }
+html body .auth-page .journey-pass::after { content: none; }
 @media (prefers-reduced-motion: reduce) {
-  html body .auth-page .journey-pass::before, html body .auth-page .journey-pass::after { animation: none; background: linear-gradient(135deg, rgb(255 214 120 / .85), rgb(255 138 31 / .55)); }
-  html body .auth-page .journey-pass::after { display: none; }
+  html body .auth-page .journey-sun { animation: none; background: linear-gradient(rgb(243 222 164 / .5), rgb(243 222 164 / .5)); }
+  html body .auth-page .journey-pass::before { display: none; animation: none; }
 }
 
+/* ---- Tablets and phones: one column, the form card alone (same card tokens), the page itself never scrolls ---- */
 @media (max-width: 1023px) {
-  html body .auth-page { height: auto; min-height: 100dvh; overflow: auto; }
-  html body .auth-page .auth-layout { grid-template-columns: minmax(0, 1fr); justify-items: center; padding-block: 12px 24px; }
+  html body .auth-page .auth-layout { grid-template-columns: var(--auth-card-w); }
   html body .auth-page .auth-brand-panel { display: none; }
-  html body .auth-page .auth-form-panel { justify-self: center; }
+  html body .auth-page { --auth-pad-x: 24px; }
 }
-
-/* Medium windows (about 768 high): slightly smaller controls so the whole form fits. */
-@media (min-width: 1024px) and (max-height: 820px) {
-  html body .auth-page { --ag-field: 40px; --ag-btn: 44px; --ag-input-font: 15px; }
-  html body .auth-page .auth-credentials-form { gap: 8px; }
-}
-/* Short windows (1280x585): tighter spacing so even the error state stays on one screen. */
-@media (min-width: 1024px) and (max-height: 640px) {
-  html body .auth-page { --ag-field: 36px; --ag-btn: 38px; }
-  html body .auth-page .auth-layout { padding-block: 6px 10px; }
-  html body .auth-page .auth-form-panel { padding: 10px 26px; }
-  html body .auth-page .auth-form-inner { gap: 4px; }
+/* Medium and short windows: tighter spacing so a whole step still fits; anything left over scrolls inside the card */
+@media (max-height: 700px) {
+  html body .auth-page { --auth-gap: 8px; --auth-pad-y: 12px; }
   html body .auth-page .auth-heading h1 { font-size: 22px; }
   html body .auth-page .auth-heading h2 { margin: 2px 0 0; font-size: 13px; }
-  html body .auth-page .auth-credentials-form { gap: 5px; }
-  html body .auth-page .field-error { margin: 1px 12px 0; font-size: 11px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  html body .auth-page .field-error { margin: 1px 12px 0; font-size: 11px; line-height: 1.2; }
+  html body .auth-page .journey-pass { gap: 6px; padding-block: 10px; }
+  html body .auth-page .journey-services li { gap: 4px; }
+  html body .auth-page .journey-steps { padding-block: 8px; }
 }
 
-/* ---- Sunlight on the journey card's border: one thin ring, a warm gold to soft white light travelling around it ----
-   Replaces the earlier conic-angle animation and its blurred glow (which spilled outside the card). The ring is a masked
-   window inside the card's own box; only a big gradient layer inside it turns (transform), so nothing leaves the card,
-   nothing changes size and nothing causes layout or repaint of the page. The older ::before/::after rules above stay but are switched off here. */
-html body .auth-page .journey-pass::before, html body .auth-page .journey-pass::after { content: none; animation: none; display: none; }
-html body .auth-page .journey-sun {
-  position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 1.5px; box-sizing: border-box; overflow: hidden; pointer-events: none;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-html body .auth-page .journey-sun > i {
-  position: absolute; left: -60%; top: -60%; right: -60%; bottom: -60%; display: block; transform-origin: 50% 50%;
-  background: conic-gradient(from 0deg, transparent 0deg 240deg, rgb(255 200 74 / .25) 282deg, #f6c14a 318deg, #fff4d6 346deg, rgb(255 248 232 / .35) 356deg, transparent 360deg);
-  animation: ag-sun-turn 7s linear infinite; will-change: transform;
-}
-@keyframes ag-sun-turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  html body .auth-page .journey-sun { background: linear-gradient(135deg, rgb(246 193 74 / .85), rgb(255 244 214 / .6)); }
-  html body .auth-page .journey-sun > i { display: none; animation: none; will-change: auto; }
-}
-
-/* Tamil / Sinhala headings and fields must wrap inside the card on a phone instead of widening the form column */
+/* Tamil / Sinhala headings and fields wrap inside the card instead of widening the form column */
 html body .auth-page .auth-form-inner { grid-template-columns: minmax(0, 1fr); }
 html body .auth-page .auth-heading h1 { overflow-wrap: anywhere; }
 html body .auth-page .auth-form-inner :is(form, fieldset, .auth-field, .auth-input) { min-width: 0; max-width: 100%; }
 html body .auth-page .auth-form-inner form { grid-template-columns: minmax(0, 1fr); }
-html body .auth-page .auth-form-inner :is(.terms-check, .terms-check span, .auth-links) { flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
+html body .auth-page .journey-rule { margin-top: calc(-1 * clamp(6px, 1.6vh, 18px)); }
+html body .auth-page .auth-form-inner .terms-check { flex-wrap: nowrap; align-items: flex-start; }
+html body .auth-page .auth-form-inner .terms-check > input { flex: none; margin-top: 1px; }
+html body .auth-page .auth-form-inner .terms-check > input + span { display: block; flex: 1 1 auto; min-width: 0; }
+
+/* Phones and tablets: the sign-in navbar links sit behind the menu button (they were always open and covered the card's heading) */
+@media (max-width: 1023px) {
+  html body header.site-header.auth-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation:not(.open) { display: none; }
+}
+@media (max-width: 1023px) { html body .auth-page .auth-heading h1 { font-size: 26px; } }

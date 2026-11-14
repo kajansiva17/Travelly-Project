@@ -105,7 +105,7 @@ export default function GoogleSignIn({ onResult, linking = false, onCredential, 
             }
           } })
         host.current.replaceChildren()
-        window.google.accounts.id.renderButton(host.current, { theme: 'outline', size: 'large', text: 'continue_with', locale: language, width: Math.min(350, host.current.parentElement.clientWidth || 250) })
+        window.google.accounts.id.renderButton(host.current, { theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', locale: language, width: Math.min(400, Math.max(200, host.current.parentElement.clientWidth || 250)) })
         setReady(true)
         setMessage('')
       } catch (err) {

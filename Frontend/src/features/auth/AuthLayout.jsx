@@ -5,24 +5,30 @@ import InfoTip from '../../components/ui/InfoTip'
 
 const fleet = '/images/travelly/vehicles/'
 
+// Visible box of each vehicle picture (px inside its 400 px wide webp): the tyres' bottom edge is the ground line, so the CSS can stand
+// all four on one baseline. [name, image height, visible left edge, visible width, visible top, tyre bottom]
+const fleetArt = [['bus', 212, 19, 376, 20, 197], ['van', 243, 19, 377, 9, 218], ['car', 222, 14, 376, 30, 200], ['tuk-tuk', 262, 58, 287, 11, 247]]
+
 // "Your journey, your way" ticket card shown beside every sign-in form (presentation only).
 export function JourneyCard() {
   return <div className="journey-pass-frame"><div className="journey-pass">
-    <span className="journey-sun" aria-hidden="true"><i/></span>
+    <span className="journey-sun" aria-hidden="true"/>
     <h2>{t('Your journey,')} <span>{t('your way')}</span></h2>
     <i className="journey-rule" aria-hidden="true"/>
     <div className="journey-fleet" aria-hidden="true">
-      {['bus', 'van', 'car', 'tuk-tuk'].map(name => <img key={name} src={`${fleet}vehicle-${name}-400.webp`} alt="" width="400" height="260" decoding="async"/>)}
+      {fleetArt.map(([name, height, left, width, top, ground]) => <span key={name} className={`journey-vehicle journey-vehicle-${name}`} style={{ '--v-w': width, '--v-h': ground - top, '--v-left': `${(-left / width * 100).toFixed(2)}%`, '--v-top': `${(-top / (ground - top) * 100).toFixed(2)}%`, '--v-scale': `${(400 / width * 100).toFixed(2)}%` }}>
+        <img src={`${fleet}vehicle-${name}-400.webp`} alt="" width="400" height={height} decoding="async"/>
+      </span>)}
     </div>
     <ul className="journey-services">
-      <li><Icon name="car" size={34}/><span>{t('Vehicle Hire')}</span></li>
-      <li><Icon name="ticket" size={34}/><span>{t('Tickets')}</span></li>
-      <li><Icon name="calendar" size={34}/><span>{t('Rentals')}</span></li>
+      <li><Icon name="car" size={30}/><span>{t('Vehicle Hire')}</span></li>
+      <li><Icon name="ticket" size={30}/><span>{t('Tickets')}</span></li>
+      <li><Icon name="calendar" size={30}/><span>{t('Rentals')}</span></li>
     </ul>
     <ol className="journey-steps">
       {[['01', 'Choose a ride'], ['02', 'Book with ease'], ['03', 'Travel your way']].map(([n, label], i) => <React.Fragment key={n}>
-        {i > 0 && <li className="journey-arrow" aria-hidden="true"><Icon name="arrow" size={18}/></li>}
-        <li><b>{i + 1}</b><span><strong>{n}</strong>{t(label)}</span></li>
+        {i > 0 && <li className="journey-arrow" aria-hidden="true"><Icon name="arrow" size={16}/></li>}
+        <li><b>{n}</b><span>{t(label)}</span></li>
       </React.Fragment>)}
     </ol>
   </div></div>
