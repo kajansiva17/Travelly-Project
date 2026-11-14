@@ -21,7 +21,7 @@ if redis.call('HGET', KEYS[1], 'uid') ~= ARGV[1] or redis.call('HGET', KEYS[1], 
 if redis.call('HGET', KEYS[1], 'current') ~= ARGV[2] then
  redis.call('HSET', KEYS[1], 'revoked', '1'); return -1
 end
-redis.call('HSET', KEYS[1], 'current', ARGV[3])
+redis.call('HSET', KEYS[1], 'current', ARGV[3], 'last', ARGV[4])
 return 1
 """
 LOGOUT = """
@@ -70,9 +70,28 @@ class SessionStore:
     def clear_failures(self, identifier):
         self.client.delete(self.failure_key(identifier), self.key('lock:' + digest(identifier)))
 
-    def create(self, sid, uid, token, expires):
+    def create(self, sid, uid, token, expires, meta=None):
         if not self.client.eval(CREATE, 1, self.key('session:' + sid), str(uid), digest(token), expires, int(time.time())):
             raise ApiError(503, 'AUTH_DEPENDENCY_UNAVAILABLE', 'Unable to create a session.')
+        # A per-user index so the person can see and end their own sessions (Settings, Account security).
+        index = self.key('usessions:' + str(uid))
+        pipe = self.client.pipeline()
+        pipe.hset(self.key('session:' + sid), mapping={'last': int(time.time()), **{k: v for k, v in (meta or {}).items() if v}})
+        pipe.sadd(index, sid)
+        pipe.expireat(index, int(expires) + 86400)
+        pipe.execute()
+
+    def sessions_of(self, uid):
+        """Live sessions of one user as {sid: data}; ended or expired ones are dropped from the index."""
+        index = self.key('usessions:' + str(uid))
+        live = {}
+        for sid in self.client.smembers(index):
+            data = self.client.hgetall(self.key('session:' + sid))
+            if data and data.get('uid') == str(uid) and data.get('revoked') == '0' and int(data['exp']) > time.time():
+                live[sid] = data
+            else:
+                self.client.srem(index, sid)
+        return live
 
     def get(self, sid, uid, allow_revoked=False):
         data = self.client.hgetall(self.key('session:' + sid))
@@ -81,7 +100,7 @@ class SessionStore:
         return data
 
     def rotate(self, sid, uid, old_token, new_token):
-        if self.client.eval(ROTATE, 1, self.key('session:' + sid), str(uid), digest(old_token), digest(new_token)) != 1:
+        if self.client.eval(ROTATE, 1, self.key('session:' + sid), str(uid), digest(old_token), digest(new_token), int(time.time())) != 1:
             raise unauthorized('INVALID_REFRESH_TOKEN')
 
     def revoke(self, sid):

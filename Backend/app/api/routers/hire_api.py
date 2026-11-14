@@ -1038,7 +1038,11 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
 
 @router.get('/notifications')
 def own_notifications(user=Depends(current), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Notification).where(Notification.recipient_user_id == user.id).order_by(Notification.created_at.desc()).limit(100)).all()
+    from app.api.routers.account_settings_api import muted_types
+    query = select(Notification).where(Notification.recipient_user_id == user.id)
+    if muted_types(user):                       # types the person turned off in Settings (only optional ones can be)
+        query = query.where(Notification.notification_type.notin_(muted_types(user)))
+    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
     return {'items': [notification_out(r) for r in rows]}
 
 

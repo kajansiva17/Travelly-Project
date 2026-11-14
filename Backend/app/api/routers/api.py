@@ -19,6 +19,18 @@ router = APIRouter(prefix='/api/v1')
 logger = logging.getLogger('travelly.audit')
 
 
+def session_meta(request):
+    """What the sessions list shows: a device label from the browser and a coarse address (last part hidden)."""
+    agent = (request.headers.get('user-agent') or '')[:300]
+    low = agent.lower()
+    system = next((n for k, n in (('windows', 'Windows'), ('android', 'Android'), ('iphone', 'iPhone'), ('ipad', 'iPad'), ('mac os', 'Mac'), ('linux', 'Linux')) if k in low), None)
+    browser = next((n for k, n in (('edg/', 'Edge'), ('opr/', 'Opera'), ('chrome/', 'Chrome'), ('firefox/', 'Firefox'), ('safari/', 'Safari')) if k in low), None)
+    host = request.client.host if request.client else ''
+    parts = host.split('.')
+    hint = '.'.join(parts[:2]) + '.x.x' if len(parts) == 4 else (host.split(':')[0] + ':x' if ':' in host else '')
+    return {'device': ' on '.join(x for x in (browser, system) if x) or 'Unknown device', 'ip_hint': hint}
+
+
 def touch(row):
     # PostgreSQL and the Windows clock can differ by sub-millisecond precision.
     # Never move an audit timestamp behind its persisted creation/update time.
@@ -131,7 +143,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     db.commit()
     store.clear_failures(body.identifier)
     tokens, sid, expires = issue_tokens(user.id, settings, auth_version=user.auth_version, remember=body.remember_me)
-    store.create(sid, user.id, tokens['refresh_token'], expires)
+    store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens, body.remember_me)
     logger.info('login user=%s session=%s trace=%s', user.id, sid, request.state.trace_id)
     return tokens
