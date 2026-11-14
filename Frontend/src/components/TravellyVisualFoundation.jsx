@@ -13,7 +13,7 @@ export function TravellyStatusChip({tone='info',icon,children,className='',...pr
 }
 
 export function TravellyField({label,help,optional,children,className='',...props}){   // `optional` only marks the field in the form code; it is not a DOM attribute
- return <label className={`travelly-field ${className}`.trim()} {...props}><span>{label}</span>{children}{help&&<small>{help}</small>}</label>
+ return <label className={`travelly-field ${className}`.trim()} {...props}><span title={typeof label==='string'?label:undefined}>{label}</span>{children}{help&&<small>{help}</small>}</label>
 }
 
 
