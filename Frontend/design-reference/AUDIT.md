@@ -524,3 +524,27 @@ against the dev server; no screenshots.
 - **Return after login:** email login returns to the clicked landing page. Google sign-in returns too when the account exists
   (checked with a simulated Google callback); a brand-new Google account goes to /google-complete and the return target is not kept.
 - **Fit:** the Admin payment form and the three settings tabs measure 449/449 at 1280x585 and fit at 1920x1080; on 390x844 the form card scrolls inside.
+
+## Two-step verification and closing the account (contract 03SV)
+
+- **Login:** a login or Google answer with `status: two_factor_required` and a `challenge` opens an "Enter your code" screen in `AuthPage`
+  (`TwoFactorStep`). `POST /auth/2fa {challenge, code}` answers like login; then the normal role destination (03W) or the landing-card
+  return page. Wrong code (`TWO_FACTOR_CODE_WRONG`) and rate limit (429, with Retry-After) show friendly text and keep the screen; an expired
+  step (`TWO_FACTOR_CHALLENGE_EXPIRED`) goes back to the sign-in form with the message. Email and Google follow the same branch (tested with a
+  simulated Google callback). Rules and request bodies are in `features/auth/loginFlow.js` (`tests/loginFlow.test.js`).
+- **Return page through /google-complete:** the return target is passed in the navigation state to /google-complete and used after the
+  profile is completed (small change in `AuthPage.jsx` and `AuthFlows.jsx`). Tested: Rentals card, new Google account, ends on /travel/book/rental.
+- **Settings, Two-step tab:** `GET /users/me/2fa`, `POST .../setup {}` (secret as text and QR made in the UI), `POST .../enable {code}`
+  (10 backup codes shown once with Copy and Download; Done only after "I have saved my backup codes"; kept only in component state, never in
+  storage or logs), `POST .../disable` and `POST .../backup-codes` with `password` (only when the account has one, from
+  `GET /users/me/auth-methods`) and `code`.
+- **Settings, Close account tab:** `GET /users/me/account-closure`; blockers listed with the UI's own text per code and the count; both buttons
+  off while any exist; confirm step asks for the password (if the account has one) and the code (only when two-step is on); then
+  `POST /users/me/deactivate` or `/delete-request` `{confirm:true, password?, code?}`. `409 ACCOUNT_HAS_OPEN_ITEMS` reloads the blockers.
+  Success clears the session and loads the landing page fresh.
+- **Fit:** checked with the mocked API at 1280x585, 1920x1080 and 390x844 in English, Tamil and Sinhala (code screen, two-step on/off, setup,
+  backup codes, off form, blockers, confirm form): no page scroll, no cut labels; on 390x844 the setup card scrolls inside.
+- **Unclear in the contract:** no page is given for any blocker, so none is linked (`BLOCKERS[code].path` is where one would go);
+  the contract does not say how the client learns a delete request was cancelled by signing in (the "Welcome back" message is not shown);
+  the login and disable code accepts an app code or a backup code (letters and a hyphen), so those inputs are text fields with
+  `autocomplete="one-time-code"`; only the setup confirmation (app code only) is numeric.

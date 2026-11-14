@@ -5,6 +5,7 @@ import { ErrorNotice, Icon, useNotice } from '../../components/components'
 import { AuthLayout, Field } from './AuthLayout'
 import { api, hasSession, getAuthFlow, setAuthFlow, publicAuth, acceptAuthResult } from '../../services/api'
 import {authJourney as journeyRole,journeyLink} from './onboardingJourney'
+import {returnTarget} from './loginFlow'
 import { emailError, passwordErrors, passwordHint } from './authValidation'
 import RegisterPhoneField from './RegisterPhoneField'
 import { registrationPhone } from './registrationPhone'
@@ -91,7 +92,7 @@ export function ForgotPassword() {
 }
 
 export function GoogleCompletion() {
-  const journey=journeyRole(useLocation().search)
+  const location=useLocation(),journey=journeyRole(location.search)
   const navigate = useNavigate(), notice = useNotice(), flow = getAuthFlow()
   const [country, setCountry] = useState('LK'), [phone, setPhone] = useState(''), [fields, setFields] = useState({}), [error, setError] = useState(null), [busy, setBusy] = useState(false)
   async function submit(event) {
@@ -107,7 +108,7 @@ export function GoogleCompletion() {
       const result = acceptAuthResult(await publicAuth('google/complete', { ticket: flow.ticket, full_name: data.full_name, phone_e164: number, preferred_language: getLanguage(), accept_terms: true, ...(['OWNER','DRIVER'].includes(journey)?{journey}:{}) }))
       if(!result.access_token)setAuthFlow({...result,journey})
       if(result.status==='verification_required')navigate(journeyLink('/check-email',journey),{replace:true})
-      else {const [user,roles]=await Promise.all([api('/users/me'),api('/users/me/roles')]);navigate(loginDestination(user,roles.items||[],journey),{replace:true})}
+      else {const [user,roles]=await Promise.all([api('/users/me'),api('/users/me/roles')]);navigate(returnTarget(location.state)||loginDestination(user,roles.items||[],journey),{replace:true})}
     } catch (err) { setError(err); setFields(fieldErrorMap(err)) }
     finally { setBusy(false) }
   }

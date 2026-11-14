@@ -18,3 +18,10 @@ html body .search-away { font-size: 12px; font-weight: 600; color: var(--ui-text
 
 /* the vehicle list scrolls inside itself when headings and extra lines make it taller than the card */
 @media (min-width: 961px) { html body .flow-card > .flow-vehicle-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: start; } }
+
+/* Two-step verification and backup codes (03SV) */
+html body .backup-codes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; max-width: 420px; }
+html body .backup-codes code, html body .two-factor-secret { font-size: 14px; font-weight: 700; letter-spacing: .06em; word-break: break-all; }
+html body .two-factor-setup { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+html body .two-factor-qr { flex: none; }
+html body .two-factor-steps { flex: 1 1 280px; min-width: 0; display: grid; gap: 4px; }

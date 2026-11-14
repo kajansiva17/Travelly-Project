@@ -11,10 +11,29 @@ import { codeLabel } from '../../i18n/codeLabels.js'
 import { formatDateTime } from '../../i18n/dateTime.js'
 import { journeyLink } from './onboardingJourney'
 import { passwordErrors } from './authValidation'
+import TwoFactorSettings from './TwoFactorSettings'
+import CloseAccount from './CloseAccount'
 
 /* Account security in Settings (contract 03ST): signed-in devices, change password, notification preferences. The same endpoints
    serve every role. A POST without fields sends {}. */
 const when = value => (value ? formatDateTime(value) : '—')
+
+// Whether the account has a password (GET /users/me/auth-methods) and whether two-step verification is on (GET /users/me/2fa).
+function useAccountFacts() {
+  const [facts, setFacts] = useState(null), [error, setError] = useState(null)
+  useEffect(() => { Promise.all([api('/users/me/auth-methods', { cache: 'no-store' }), api('/users/me/2fa', { cache: 'no-store' })]).then(([methods, tf]) => setFacts({ hasPassword: methods?.password !== false, twoFactorOn: Boolean(tf?.enabled) })).catch(setError) }, [])
+  return { facts, error }
+}
+export function TwoStepTab() {
+  const { facts, error } = useAccountFacts()
+  if (error) return <ErrorNotice error={error}/>
+  return facts ? <TwoFactorSettings hasPassword={facts.hasPassword}/> : <p role="status">{t('Loading…')}</p>
+}
+export function CloseAccountTab() {
+  const { facts, error } = useAccountFacts()
+  if (error) return <ErrorNotice error={error}/>
+  return facts ? <CloseAccount hasPassword={facts.hasPassword} twoFactorOn={facts.twoFactorOn}/> : <p role="status">{t('Loading…')}</p>
+}
 
 export function Sessions() {
   const [items, setItems] = useState(null), [error, setError] = useState(null), [notice, setNotice] = useState(''), [busy, setBusy] = useState(''), working = useRef(false)

@@ -1,7 +1,7 @@
 import { t, getLanguage } from '../../i18n/language.js'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { api, clearSession, login, register, setAuthFlow, getAuthFlow, acceptAuthResult } from '../../services/api'
+import { api, clearSession, login, register, setAuthFlow, getAuthFlow, acceptAuthResult, publicAuth } from '../../services/api'
 import { ErrorNotice, Icon, useNotice, useSession } from '../../components/components'
 import { AuthLayout, Field } from './AuthLayout'
 import RegisterPhoneField from './RegisterPhoneField'
@@ -12,6 +12,8 @@ import GoogleSignIn from './GoogleSignIn'
 import { emailError, passwordErrors, passwordHint } from './authValidation'
 import { loginDestination } from '../../routes/workspaceRoutes'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
+import TwoFactorStep from './TwoFactorStep'
+import {isTwoFactor,returnTarget,twoFactorBody} from './loginFlow'
 
 export default function AuthPage({ signup = false }) {
   const language = getLanguage()
@@ -24,6 +26,7 @@ export default function AuthPage({ signup = false }) {
   const [pending,setPending]=useState(false)
   const [resolvedDestination,setResolvedDestination]=useState(null)
   const [error,setError]=useState(null)
+  const [twoFactor,setTwoFactor]=useState(null)   // {challenge, expires_in, identifier, remember} after status two_factor_required (03SV)
   const [fields,setFields]=useState({})
   const [registrationValues,setRegistrationValues]=useState({full_name:'',email:'',password:'',confirm_password:''})
   const [registerStep,setRegisterStep]=useState(1)
@@ -67,8 +70,7 @@ export default function AuthPage({ signup = false }) {
     try {
       const [user, roles] = await Promise.all([api('/users/me',{cache:'no-store'}), api('/users/me/roles',{cache:'no-store'})])
       // A landing card for tickets or rentals sends a signed-out visitor here first; they return to that booking page.
-      const back = location.state?.returnTo
-      const destination = ['/travel/book/tickets', '/travel/book/rental', '/owner/vehicles'].includes(back) ? back : loginDestination(user, roles.items || [], journey)
+      const destination = returnTarget(location.state) || loginDestination(user, roles.items || [], journey)
       setResolvedDestination(destination)
       return destination
     } catch(error) {
@@ -103,6 +105,7 @@ export default function AuthPage({ signup = false }) {
         navigate(journeyLink('/check-email',journey),{replace:true})
       } else {
         const result = await login({identifier:values.identifier,password:values.password,remember_me:remember,...(['OWNER','DRIVER'].includes(journey)?{journey}:{})})
+        if (isTwoFactor(result)) { setTwoFactor({ challenge: result.challenge, expires_in: result.expires_in, identifier: values.identifier, remember }); return }
         if (result.status === 'verification_required') { setAuthFlow({...getAuthFlow(),journey}); navigate(journeyLink('/check-email',journey), { replace:true }); return }
         // Confirm current identity and membership before entering private UI.
         // Dashboard entry revalidates these reads rather than storing profile
@@ -116,11 +119,22 @@ export default function AuthPage({ signup = false }) {
       setFields(fieldErrorMap(err))
     } finally {setPending(false)}
   }
+  // Second step: POST /auth/2fa {challenge, code} answers like login; then the normal destination (role, or the landing-card return page).
+  async function submitCode(code) {
+    setPending(true)
+    try {
+      acceptAuthResult(await publicAuth('2fa', twoFactorBody(twoFactor.challenge, code)))
+      const destination = await signedInDestination()
+      if (twoFactor.identifier) { try { if (twoFactor.remember) localStorage.setItem('travelly-remembered-identifier', twoFactor.identifier); else localStorage.removeItem('travelly-remembered-identifier') } catch { /* Login remains available when browser storage is disabled. */ } }
+      navigate(destination, { replace: true })
+    } finally { setPending(false) }
+  }
   function handleSubmit(event) {
     if(signup&&compactRegistration&&registerStep===1){advanceRegistration(event);return}
     submit(event)
   }
   if (signedIn && !pending) return <Navigate to={resolvedDestination || authDestination(journey)} replace/>
+  if (twoFactor) return <AuthLayout variant="login" title={t('Enter your code')} subtitle={t('Two-step verification is on for this account.')}><TwoFactorStep expiresIn={twoFactor.expires_in} onSubmit={submitCode} onBack={() => setTwoFactor(null)} onExpired={err => { setTwoFactor(null); setError(err) }}/></AuthLayout>
   return <AuthLayout variant={signup?'register':'login'} title={signup?t('Create your account'):t('Welcome back')} subtitle={signup?t('Start your journey with Travelly'):t('Log in to continue your journey')}>
       {signup&&compactRegistration&&<div className="registration-progress"><div><span>{t("Step ")}{registerStep}{t(" of 2")}</span><strong>{registerStep===1?t('Your details'):t('Secure your account')}</strong></div><div className="registration-progress-track" role="progressbar" aria-label={t("Registration progress")} aria-valuemin={1} aria-valuemax={2} aria-valuenow={registerStep}><span style={{width:registerStep===1?'50%':'100%'}}/></div></div>}
       {!signup && location.state?.registered && <div className="notice success" role="status"><Icon name="check"/>{t(" Your account is ready. Sign in to continue.")}</div>}<ErrorNotice error={error}/>
@@ -148,11 +162,12 @@ export default function AuthPage({ signup = false }) {
       <GoogleSignIn journey={journey} onResult={async result => {
         if (result.status === 'link_required') { setError(new Error(result.message)); return }
         if(journey==='ADMIN'&&result.status==='completion_required'){setError(new Error('Sign in with your existing approved Admin account. This Google identity has no Travelly account.'));return}
+        if (isTwoFactor(result)) { setTwoFactor({ challenge: result.challenge, expires_in: result.expires_in, identifier: null, remember: false }); return }
         setPending(true)
         try {
           acceptAuthResult(result)
           if(!result.access_token)setAuthFlow({...result,journey})
-          navigate(result.status === 'completion_required' ? journeyLink('/google-complete',journey) : result.status === 'verification_required' ? journeyLink('/check-email',journey) : await signedInDestination(),{replace:true})
+          navigate(result.status === 'completion_required' ? journeyLink('/google-complete',journey) : result.status === 'verification_required' ? journeyLink('/check-email',journey) : await signedInDestination(),{replace:true,state:{returnTo:returnTarget(location.state)}})
         } catch(error) {setError(error)}
         finally {setPending(false)}
       }}/>
