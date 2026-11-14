@@ -66,7 +66,7 @@ def test_wrong_or_past_answers_are_asked_again_and_edits_are_kept(client):
                                            'date': TOMORROW, 'time': '05:00'})
     assert back['filters']['journey'] == 'RETURN' and back['asking'] == 'return_date'
     rent = turn(client, 'I want a self drive rental')
-    assert rent['notes'] == [ai_assist.OTHER_SERVICE['rental']['en']] and rent['asking'] == 'service'
+    assert rent['notes'] == [ai_assist.OTHER_SERVICE['rental']['en']] and rent['asking'] is None and rent['filters']['service'] == 'rental'
     bad = client.post('/api/v1/ai/search-assist', json={'message': 'x', 'filters': {'passengers': 0}})
     assert bad.status_code == 422
 

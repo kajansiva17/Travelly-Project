@@ -47,6 +47,7 @@ from app.services.refunds import queue_refund
 router = APIRouter(prefix='/api/v1', tags=['Payments'])
 OPEN = ('PENDING', 'PROCESSING')
 WAITING = OPEN + ('CASH_AWAITING_CONFIRMATION',)  # any payment still in flight blocks a second one
+HIRED = ('PRIVATE_HIRE', 'RENTAL')  # paid after the trip is completed
 ALL_PROVIDERS = {'SANDBOX': SANDBOX, 'PAYHERE': PAYHERE}  # for reading old payments and webhooks, even if not offered now
 
 
@@ -140,7 +141,7 @@ def payment_view(db, booking, viewer):
     passenger = db.get(User, booking.passenger_user_id)
     latest = latest_of(db, booking)
     trip = finished_trip(db, booking)
-    due = booking.booking_type == 'PRIVATE_HIRE' and booking.status == 'COMPLETED' and booking.payment_status_snapshot != 'PAID'
+    due = booking.booking_type in HIRED and booking.status == 'COMPLETED' and booking.payment_status_snapshot != 'PAID'
     cash = None
     if latest is not None and latest.payment_method == 'CASH':
         settled = latest.status == 'PAID'
@@ -167,7 +168,7 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
     booking = db.get(Booking, booking_id)
     if not booking or booking.passenger_user_id != user.id:
         raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
-    if booking.booking_type not in ('TICKET_HIRE', 'PRIVATE_HIRE'):
+    if booking.booking_type not in ('TICKET_HIRE',) + HIRED:
         raise ApiError(409, 'PAYMENT_NOT_AVAILABLE', 'Online payment for this booking type is not available yet.')
     ticket = booking.booking_type == 'TICKET_HIRE'
     stored_key = f'{user.id.hex}:{body.idempotency_key}'
@@ -296,7 +297,7 @@ def apply_event(db, provider, event, actor=None, sandbox=False):
         db.commit()
         return payment
     capture(db, payment, booking, provider, event, actor, moment)
-    if booking.booking_type == 'PRIVATE_HIRE':
+    if booking.booking_type in HIRED:
         # The trip is already completed, so the Owner's share is payable now (PRD 6.6).
         payment.owner_settlement_status = 'OWNER_PAYABLE'
         payment.owner_payable_at = moment
@@ -401,8 +402,8 @@ def cash_receipt(booking_id: UUID, body: CashReceipt, user=Depends(current), db:
     collector = trip.driver_user_id if trip else None
     if not booking or user.id not in (booking.passenger_user_id, collector):
         raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
-    if booking.booking_type != 'PRIVATE_HIRE':
-        raise ApiError(409, 'CASH_NOT_AVAILABLE', 'Cash is available only for private hire.')
+    if booking.booking_type not in HIRED:
+        raise ApiError(409, 'CASH_NOT_AVAILABLE', 'Cash is available only for private hire and rental.')
     if body.collection_stage != 'END':
         raise ApiError(422, 'CASH_COLLECTION_STAGE_INVALID', 'Cash is collected at the end of the trip.',
                        [{'field': 'collection_stage', 'message': 'Use END.'}])
@@ -490,7 +491,7 @@ def payment_summary(booking_id: UUID, user=Depends(current), db: Session = Depen
     trip = finished_trip(db, booking) if booking else None
     allowed = booking and (user.id in (booking.passenger_user_id, booking.owner_user_id) or (trip and user.id == trip.driver_user_id)
                            or is_admin(db, user))
-    if not allowed or booking.booking_type != 'PRIVATE_HIRE':
+    if not allowed or booking.booking_type not in HIRED:
         raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
     return {'booking_id': str(booking.id), 'booking_status': booking.status, **payment_view(db, booking, user)}
 

@@ -20,6 +20,7 @@ class Itinerary(RateModel):
     service_hours: list[Amount] = Field(min_length=1, max_length=30)
     flight_number: str | None = Field(default=None, max_length=24, pattern=r'^[A-Za-z0-9 -]+$')
     return_start_at: AwareDatetime | None = None
+    event_package_id: UUID | None = None   # Event hire only: which of the vehicle's Owner packages is booked
 
     @model_validator(mode='after')
     def coherent(self):
@@ -200,4 +201,37 @@ class Compatibility(Version):
         import re
         if set(self.matrix) != set(self.routing_profiles) or any(not re.fullmatch(r'[A-Z0-9_]{1,60}', k) or not v or len(v) > 30 or any(not re.fullmatch(r'[A-Z0-9_-]{1,20}', c) for c in v) for k, v in self.matrix.items()):
             raise ValueError('Provide explicit category, licence codes and routing profile for every matrix entry.')
+        return self
+
+
+class EventPackage(RateModel):
+    """One Owner event package: this vehicle with its Driver for a fixed number of hours at a fixed price."""
+    id: UUID
+    name: str = Field(min_length=1, max_length=120)
+    hours: Amount
+    price: Amount
+    notes: str | None = Field(default=None, max_length=500)
+
+    @field_validator('hours')
+    @classmethod
+    def sensible_hours(cls, value):
+        if not 0 < value <= 24: raise ValueError('An event package covers more than zero and at most 24 hours.')
+        return value
+
+    @field_validator('price')
+    @classmethod
+    def sensible_price(cls, value):
+        if not 0 < value <= Decimal('9999999999.99') or -value.as_tuple().exponent > 2: raise ValueError('Enter a price above zero with at most two decimals.')
+        return value
+
+
+class EventPackages(RateModel):
+    service_type_id: UUID
+    expected_version: int = Field(strict=True, ge=0)
+    enabled: bool = Field(strict=True)
+    packages: list[EventPackage] = Field(min_length=1, max_length=20)
+
+    @model_validator(mode='after')
+    def unique(self):
+        if len({p.id for p in self.packages}) != len(self.packages): raise ValueError('Package identifiers must be unique.')
         return self

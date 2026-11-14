@@ -1,11 +1,11 @@
 """Private hire: reusable quotes, accepted snapshots and conflict-safe changes."""
 import copy
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, func
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.models import User, UserRole
@@ -15,13 +15,13 @@ from app.api.routers.review_api import admin, locked_authority, query_values
 from app.models.review_models import Vehicle, Document
 from app.models.rate_models import ServiceType, VehicleService
 from app.api.routers.rate_api import persist_rates
-from app.schemas.rate_schemas import RateRule
+from app.schemas.rate_schemas import RateRule, covered
 from app.models.hire_models import Booking, ScheduledTrip, Trip, Notification
 from app.services.vehicle_odometer import advance_odometer
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
     ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
     PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
-from app.services.hire_services import (digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
+from app.services.hire_services import (event_price, digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
     price, saved_rules, booking_summary, trip_summary, notify, audited, matches, matching_rules)
 from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
@@ -63,6 +63,8 @@ def validate_service_itinerary(service, itinerary):
     scope = private_hire_scope(service)
     if scope == 'AIRPORT' and itinerary.direction == 'RETURN' and itinerary.return_start_at is None:
         raise ApiError(422, 'RETURN_INTERVAL_REQUIRED', 'Airport return journeys require a verified return pickup date and time.')
+    if scope != 'EVENT' and itinerary.event_package_id is not None:
+        raise ApiError(422, 'EVENT_PACKAGE_UNAVAILABLE', 'Event packages are available only for Event hire.')
     if scope != 'AIRPORT' and itinerary.flight_number is not None:
         raise ApiError(422, 'FLIGHT_DETAILS_UNAVAILABLE', 'Flight details are available only for Airport hire.')
 
@@ -112,7 +114,8 @@ def offer(request, db, vehicle, service, itinerary, *, rules=None, gate=True):
     eligible_vehicle(db, vehicle, public=True, at=itinerary.start_at)
     if gate: commission_gate(request, db, vehicle)   # a change to a booking already made is never blocked
     row, configured = saved_rules(db, vehicle.id, service.id)
-    snapshot = price(request, service, vehicle, itinerary, configured if rules is None else rules)
+    if private_hire_scope(service) == 'EVENT': snapshot = event_price(service, row, itinerary)
+    else: snapshot = price(request, service, vehicle, itinerary, configured if rules is None else rules)
     snapshot['rate_version'] = row.version if row else None
     for start, end in itinerary.availability_intervals():
         no_conflict(db, vehicle.id, start, end)
@@ -153,34 +156,73 @@ def browse(request: Request, db: Session = Depends(get_db)):
     return {'items': items[:100], 'has_next': len(rows) > 100}
 
 
+QUOTEABLE = ('QUOTE_REQUIRED', 'ROUTING_UNAVAILABLE', 'ROUTING_NOT_CONFIGURED', 'ROUTING_PROFILE_REQUIRED')
+QUOTE_WAIT_HOURS = 24          # an unanswered "ask the Owner for a price" request lapses after this long
+MAX_OPEN_QUOTE_REQUESTS = 3    # a Passenger may wait for at most this many Owner prices at once
+
+
+def quote_candidate(request, db, vehicle, service, itinerary):
+    """A vehicle that offers this service around the pickup (one of its saved rates covers the pickup area) and is free then,
+    but has no saved rate for this exact journey: the Passenger may ask its Owner for a price. Nothing about its rates is shown."""
+    row, rules = saved_rules(db, vehicle.id, service.id)
+    if not rules or not any(covered(r.pickup_area, itinerary.stops[0].place) for r in rules): return None
+    eligible_vehicle(db, vehicle, public=True, at=itinerary.start_at); commission_gate(request, db, vehicle)
+    for start, end in itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end)
+    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None, 'quote_required': True}
+
+
 @router.post('/search/vehicles')
 def search(body: SearchRequest, request: Request, db: Session = Depends(get_db)):
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
     validate_service_itinerary(service, body.itinerary)
-    items = []
+    items, asks = [], []
     rows = db.scalars(select(Vehicle).where(Vehicle.is_published.is_(True)).order_by(Vehicle.id).limit(100)).all()
     unavailable = False
     availability_incomplete = False
     for vehicle in rows:
         try:
             usable_capacity(vehicle, body)
+            if private_hire_scope(service) == 'EVENT':
+                # Each vehicle lists the packages that are free at the requested time (hours differ per package).
+                event_row, _ = saved_rules(db, vehicle.id, service.id)
+                found = []
+                for package in (event_row.owner_terms.get('event_packages') if event_row else None) or []:
+                    asked = body.itinerary.model_copy(update={'event_package_id': UUID(package['id']), 'service_hours': [Decimal(package['hours'])], 'direction': 'ONE_WAY', 'return_start_at': None})
+                    try: snap = offer(request, db, vehicle, service, asked)
+                    except ApiError as exc:
+                        if exc.code == 'AVAILABILITY_INCOMPLETE': raise
+                        continue
+                    found.append({'package_id': package['id'], 'name': package['name'], 'hours': package['hours'], 'notes': package.get('notes'),
+                                  'price': snap['calculation'], 'reserved_end_at': snap['reserved_end_at']})
+                if not found: continue
+                found.sort(key=lambda f: Decimal(f['price']['total']))
+                items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': found[0]['price'],
+                              'reserved_end_at': found[0]['reserved_end_at'], 'packages': found})
+                continue
             snapshot = offer(request, db, vehicle, service, body.itinerary)
             # Every listed vehicle shows the Owner's own price for this itinerary, so the
             # Passenger compares before choosing. Selecting one still asks for a fresh quote.
             items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
                           'price': snapshot['calculation'], 'reserved_end_at': snapshot['reserved_end_at']})
         except ApiError as exc:
+            if exc.code in QUOTEABLE and private_hire_scope(service) != 'EVENT':
+                try:
+                    ask = quote_candidate(request, db, vehicle, service, body.itinerary)
+                    if ask: asks.append(ask); continue
+                except ApiError as inner:
+                    if inner.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
+                    continue
             if exc.status == 503: unavailable = True
             if exc.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
             continue
     if availability_incomplete:
         from app.services.availability import incomplete
         raise incomplete()
-    if unavailable and not items:
+    if unavailable and not items and not asks:
         raise ApiError(503, 'TRIP_PRICING_UNAVAILABLE', 'Trusted route pricing is temporarily unavailable. Browse vehicles for an Owner quote.')
-    return {'items': items, 'message': 'Only vehicles with an active approved service rate and checked availability are shown. Each price comes from that Owner\u2019s saved rates; selecting a vehicle calculates a fresh quote.'}
+    return {'items': items, 'quote_on_request': asks, 'message': 'Vehicles in `items` show the Owner\u2019s own price. Vehicles in `quote_on_request` serve this pickup area and are free, but have no saved price for this journey: ask the Owner for a price.'}
 
 
 @router.post('/search/vehicles/{vehicle_id}/quote')
@@ -231,6 +273,12 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
         if snapshot is None:
             for start, end in body.itinerary.availability_intervals():
                 no_conflict(db, vehicle.id, start, end)
+            waiting = db.scalar(select(func.count()).select_from(Booking).where(
+                Booking.passenger_user_id == user.id, Booking.booking_type == 'PRIVATE_HIRE', Booking.status == 'REQUESTED',
+                Booking.pending_change == {}, Booking.accepted_quote_digest.is_(None),
+                Booking.created_at > datetime.now(timezone.utc) - timedelta(hours=QUOTE_WAIT_HOURS))) or 0
+            if waiting >= MAX_OPEN_QUOTE_REQUESTS:
+                raise ApiError(409, 'TOO_MANY_OPEN_REQUESTS', f'You are already waiting for {MAX_OPEN_QUOTE_REQUESTS} Owner prices. Wait for an answer or cancel one first.')
         row = Booking(booking_reference='BKG-' + secrets.token_hex(10).upper(), passenger_user_id=user.id, booking_type='PRIVATE_HIRE',
             service_type_id=service.id, requested_owner_user_id=vehicle.owner_user_id, owner_user_id=vehicle.owner_user_id,
             vehicle_id=vehicle.id, origin_text=body.itinerary.stops[0].place.label, destination_text=body.itinerary.stops[-1].place.label,
@@ -284,6 +332,7 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version, owner=True)
         require_role(db, user, 'OWNER')
+        no_event_change(db, row)
         if not body.rates.enabled: raise ApiError(422, 'QUOTE_REUSE_REQUIRED', 'A structured quote must save enabled reusable rules for future matching requests.')
         manual_change = row.pending_change.get('kind') == 'CHANGE_REQUEST_UNPRICED' and row.status in ('CONFIRMED', 'IN_PROGRESS')
         if not manual_change and (row.status != 'REQUESTED' or row.accepted_quote_digest): raise ApiError(409, 'QUOTE_STATE_CONFLICT', 'An accepted booking uses change proposals, not a replacement quote.')
@@ -585,7 +634,7 @@ def active_trips(user=Depends(current), db: Session = Depends(get_db)):
             stops = (booking.itinerary_snapshot.get('itinerary') or {}).get('stops') or []
             origin = stops[0]['place']['label'] if stops else None
             destination = stops[-1]['place']['label'] if len(stops) > 1 else None
-            kind, riding_here = 'PRIVATE_HIRE', booking.passenger_user_id == user.id
+            kind, riding_here = ('RENTAL' if booking.booking_type == 'RENTAL' else 'PRIVATE_HIRE'), booking.passenger_user_id == user.id
         roles = [name for name, yes in (('DRIVER', trip.driver_user_id == user.id), ('OWNER', trip.operating_owner_user_id == user.id),
                                          ('PASSENGER', riding_here)) if yes]
         items.append({'trip_id': str(trip.id), 'kind': kind, 'viewer_roles': roles,
@@ -833,7 +882,13 @@ def validate_change(old, new, reason):
         raise ApiError(422, 'INVALID_TRIP_CHANGE', 'A waiting change cannot silently change the route.')
 
 
+def no_event_change(db, row):
+    if private_hire_scope(db.get(ServiceType, row.service_type_id)) == 'EVENT':
+        raise ApiError(409, 'EVENT_FIXED_PACKAGE', 'An event booking is a fixed package; it cannot be re-quoted or changed. Cancel and book again.')
+
+
 def prepare_change(row, body, request, db, vehicle):
+    no_event_change(db, row)
     initial = row.price_snapshot.get('current')
     if not initial: raise ApiError(409, 'PRICE_ACCEPTANCE_REQUIRED', 'This booking has no agreed price.')
     old = Itinerary.model_validate(initial['itinerary'])

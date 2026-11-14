@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select, text
 from app.api.routers.vehicle_records_api import summarise
 from app.models import User
-from app.models.hire_models import Notification
+from app.models.hire_models import Booking, Notification, Trip
 from app.models.payment_models import Payment
 from app.services import commission_overdue
 from app.models.review_models import Document, Vehicle
@@ -156,6 +156,57 @@ def commission_reminders(db, mailer, settings, moment):
     return sent
 
 
+def rental_reminders(db, mailer, settings, moment):
+    """Self-drive rental (owner decision 14 Nov 2026), once each per rental:
+    REQUESTED and unanswered for a day -> Owner; start within 24 h -> both ("tomorrow"); start passed and not handed over -> both;
+    IN_PROGRESS and due back within 24 h -> both; return time passed -> both."""
+    sent = 0
+    grace = timedelta(hours=1)
+    rows = db.scalars(select(Booking).where(Booking.booking_type == 'RENTAL', Booking.status.in_(('REQUESTED', 'CONFIRMED', 'IN_PROGRESS')))
+                      .order_by(Booking.start_at).limit(2000)).all()
+    for row in rows:
+        payload = {'booking_id': str(row.id), 'booking_reference': row.booking_reference}
+        both = (row.passenger_user_id, row.owner_user_id)
+        plan = []
+        if row.status == 'REQUESTED':
+            if moment - row.created_at >= timedelta(days=1) and row.start_at > moment:
+                plan.append(('UNANSWERED', (row.owner_user_id,), 'Rental request waiting', f'A rental request ({row.booking_reference}) has waited a day. Accept or decline it.'))
+        elif row.status == 'CONFIRMED':
+            if row.start_at <= moment:
+                plan.append(('NOT_HANDED_OVER', both, 'Rental not handed over', f'The pickup time of rental {row.booking_reference} has passed and the vehicle is not handed over yet.'))
+            elif row.start_at - moment <= timedelta(hours=24):
+                plan.append(('STARTS_SOON', both, 'Your rental starts soon', f'Rental {row.booking_reference} starts within 24 hours. Bring your driving licence.'))
+        else:
+            trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status == 'IN_PROGRESS').limit(1))
+            days = int(((row.itinerary_snapshot or {}).get('rental') or {}).get('days') or 0)
+            if trip is not None and trip.actual_start_at is not None and days:
+                due = trip.actual_start_at + timedelta(days=days) + grace
+                if due <= moment:
+                    plan.append(('OVERDUE', both, 'Rental return is late', f'Rental {row.booking_reference} should have been returned. Late hours are charged per the Owner\u2019s rate.'))
+                elif due - moment <= timedelta(hours=24):
+                    plan.append(('RETURN_SOON', both, 'Return the vehicle soon', f'Rental {row.booking_reference} is due back within 24 hours.'))
+        for stage, people, title, body in plan:
+            for person in people:
+                sent += remind(db, mailer, settings, person, 'RECONFIRMATION', f'rental:{row.id}:{stage}', title, body, {**payload, 'stage': stage}, moment)
+    return sent
+
+
+def expire_quote_requests(db, moment, hours=24):
+    """A request that asks an Owner for a price (no saved rate) lapses when the Owner has not answered in `hours`.
+    The Passenger is told and can ask another Owner."""
+    old = db.scalars(select(Booking).where(Booking.booking_type == 'PRIVATE_HIRE', Booking.status == 'REQUESTED',
+                                           Booking.pending_change == {}, Booking.accepted_quote_digest.is_(None),
+                                           Booking.created_at <= moment - timedelta(hours=hours)).with_for_update(skip_locked=True).limit(500)).all()
+    for row in old:
+        row.status = 'CANCELLED'; row.vehicle_committed = False; row.cancelled_at = moment
+        row.cancellation_reason = 'The Owner did not send a price in time.'
+        row.updated_at = max(moment, row.created_at, row.updated_at); row.version += 1
+        db.add(Notification(recipient_user_id=row.passenger_user_id, booking_id=row.id, notification_type='RECONFIRMATION', channel='IN_APP',
+                            title='No price received', body='The Owner did not send a price in time, so this request was closed. You can ask another vehicle.',
+                            action_required=False, action_payload={'booking_id': str(row.id)}, status='QUEUED'))
+    return len(old)
+
+
 def run_reminders(db, settings, mailer=None, moment=None):
     """One pass of both checks. The caller commits. Returns how many new reminders were created."""
     moment = moment or datetime.now(timezone.utc)
@@ -163,4 +214,6 @@ def run_reminders(db, settings, mailer=None, moment=None):
     db.execute(text("SELECT pg_advisory_xact_lock(hashtext('travelly-reminders'))"))
     return {'documents': document_reminders(db, mailer, settings, today, moment),
             'maintenance': maintenance_reminders(db, mailer, settings, today, moment),
-            'commission': commission_reminders(db, mailer, settings, moment)}
+            'commission': commission_reminders(db, mailer, settings, moment),
+            'rental': rental_reminders(db, mailer, settings, moment),
+            'expired_requests': expire_quote_requests(db, moment)}

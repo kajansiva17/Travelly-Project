@@ -61,9 +61,9 @@ RETURN_BEFORE = {'en': 'The return must be after the pickup.', 'ta': 'திர�
 OTHER_SERVICE = {
     'event': {'en': 'Event hire has its own form. Open Event hire to continue.', 'ta': 'நிகழ்வு வாடகைக்கு தனி படிவம் உள்ளது. Event hire-ஐத் திறக்கவும்.',
               'si': 'උත්සව කුලියට වෙනම පෝරමයක් ඇත. Event hire විවෘත කරන්න.'},
-    'rental': {'en': 'Self-drive vehicle rent is not available yet. I can find a vehicle with a driver instead.',
-               'ta': 'சுயமாக ஓட்டும் வாடகை இன்னும் இல்லை. ஓட்டுநருடன் வாகனம் தேடலாம்.',
-               'si': 'තනියම පදවන කුලී සේවාව තවම නැහැ. රියදුරෙකු සමඟ වාහනයක් සොයා දිය හැක.'},
+    'rental': {'en': 'Self-drive rental has its own form. Open Vehicle rent to continue.',
+               'ta': 'சுயமாக ஓட்டும் வாடகைக்கு தனி படிவம் உள்ளது. Vehicle rent-ஐத் திறக்கவும்.',
+               'si': 'තනියම පදවන කුලියට වෙනම පෝරමයක් ඇත. Vehicle rent විවෘත කරන්න.'},
 }
 OPTIONS = {
     'service': [('local', {'en': 'Local hire', 'ta': 'உள்ளூர் வாடகை', 'si': 'දේශීය කුලී'}),
@@ -415,7 +415,7 @@ def gemini_extract(settings, message, asking, known, now):
         'Never guess a field the message does not give. Places: the place name as said, in English letters if you can '
         '(for example கொழும்பு -> Colombo). Dates as YYYY-MM-DD, times as 24-hour HH:MM. '
         'service: local = within a town/area, airport = to or from an airport, long-distance = between cities or a tour, '
-        'ticket = a seat on a scheduled bus or van, event = a wedding or event with several vehicles, rental = self-drive. '
+        'ticket = a seat on a scheduled bus or van, event = a wedding or event, one vehicle for a fixed number of hours, rental = self-drive. '
         'A bare answer (a number, a place, a time) answers the question being asked. '
         f'Now in Sri Lanka: {now:%A %Y-%m-%d %H:%M}. Question being asked: {asking or "none"}. '
         f'Already known: {json.dumps(known, ensure_ascii=False)}. Message: {masked(message)}')
@@ -511,6 +511,7 @@ def form_path(f):
         return '/travel/book/details/long-distance/' + ('multi-day' if f.get('duration') == 'MULTI_DAY' else 'one-day')
     if service in ('local', 'airport'): return f'/travel/book/details/{service}'
     if service == 'event': return '/travel/book/event'
+    if service == 'rental': return '/travel/book/rental'
     return '/travel/book/service'
 
 
@@ -547,9 +548,7 @@ def search_assist(settings, store, message, language, filters, asking, now=None,
     understood = bool(set(merged.items()) - set((k, v) for k, v in filters.items()))
     if merged.get('service') in ('event', 'rental'):
         kind = merged['service']
-        if kind == 'rental': merged.pop('service')
-        return response(merged, language, engine, notes=[say(OTHER_SERVICE[kind], language)],
-                        asking=None if kind == 'event' else 'service', ready=kind == 'event')
+        return response(merged, language, engine, notes=[say(OTHER_SERVICE[kind], language)], asking=None, ready=True)
     if merged.get('service') in ('local', 'airport'): merged.setdefault('journey', 'ONE_WAY')   # the form's default; editable
     if merged.get('service') == 'long-distance': merged.setdefault('duration', 'ONE_DAY')
     missing = still_needed(merged, now)

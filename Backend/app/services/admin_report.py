@@ -132,7 +132,7 @@ def build(db, year, month, moment=None):
     return {
         'period': f'{year:04d}-{month:02d}', 'period_label': date(year, month, 1).strftime('%B %Y'),
         'generated_at': local(moment).isoformat(timespec='minutes'), 'currency': 'LKR',
-        'summary': {'private_hire_bookings': made.get('PRIVATE_HIRE', 0), 'ticket_bookings': made.get('TICKET_HIRE', 0),
+        'summary': {'private_hire_bookings': made.get('PRIVATE_HIRE', 0), 'ticket_bookings': made.get('TICKET_HIRE', 0), 'rental_bookings': made.get('RENTAL', 0),
                     'cancelled_bookings': cancelled, 'completed_trips': finished[0], 'total_km': km(finished[1]),
                     'new_users': new_users, 'published_vehicles_today': live_vehicles,
                     'collected_online': money(online), 'collected_cash': money(cash_in), 'collected_total': money(online + cash_in),

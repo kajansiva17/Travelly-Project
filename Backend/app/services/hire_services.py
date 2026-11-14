@@ -97,6 +97,8 @@ def no_conflict(db, vehicle_id, start, end, *, exclude=None, driver_id=None):
     if driver_id:
         q = select(Trip.id).where(Trip.driver_user_id == driver_id, Trip.assignment_status == 'ACCEPTED', Trip.status.notin_(('COMPLETED', 'CANCELLED')), Trip.scheduled_start_at < end, Trip.scheduled_end_at > start)
         if exclude: q = q.where(Trip.booking_id != exclude)
+        # A self-drive rental has no Driver: the Owner is only the operator who hands over and takes back, so it never blocks them.
+        q = q.where(~exists(select(Booking.id).where(Booking.id == Trip.booking_id, Booking.booking_type == 'RENTAL')))
         if db.scalar(q.limit(1)):
             raise ApiError(409, 'DRIVER_SCHEDULE_CONFLICT', 'The Driver already has an overlapping accepted trip.')
 
@@ -148,6 +150,26 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     return {'calculation': {**result, 'service_scope': scope}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
             'measurement': {'source': measurement['source'], 'usage': measurement['usage'].model_dump(mode='json')},
             'reserved_end_at': end.isoformat()}
+
+
+def event_price(service, row, itinerary):
+    """Event hire: the Owner's fixed package price. No route measuring; the package fixes the hours."""
+    packages = (row.owner_terms.get('event_packages') if row else None) or []
+    package = next((p for p in packages if itinerary.event_package_id and p['id'] == str(itinerary.event_package_id)), None)
+    if not package:
+        raise ApiError(422, 'EVENT_PACKAGE_REQUIRED', 'Choose one of this vehicle\u2019s event packages.')
+    hours = Decimal(package['hours'])
+    if itinerary.direction != 'ONE_WAY' or itinerary.service_hours != [hours]:
+        raise ApiError(422, 'EVENT_PACKAGE_MISMATCH', 'An event booking is one day with the package hours, with no return leg.')
+    total = Decimal(package['price']).quantize(Decimal('.01'))
+    end = itinerary.start_at + timedelta(hours=float(hours))
+    line = {'code': 'EVENT_PACKAGE', 'label': package['name'], 'quantity': '1', 'rate': str(total), 'amount': str(total), 'kind': 'CHARGE'}
+    return {'calculation': {'method': 'EVENT_PACKAGE', 'currency': 'LKR', 'breakdown': [line], 'total': format(total, '.2f'),
+                            'exclusions': ['Hours or services beyond the package are agreed directly with the Owner.'],
+                            'policy': 'TRAVELLY_EVENT_2026_11_14', 'included_km': None, 'reserved_service_hours': [], 'service_scope': 'EVENT',
+                            'package': {'id': package['id'], 'name': package['name'], 'hours': str(hours)}},
+            'rule': {'method': 'EVENT_PACKAGE', **package}, 'itinerary': itinerary.model_dump(mode='json'),
+            'measurement': {'source': 'EVENT_PACKAGE', 'usage': None}, 'reserved_end_at': end.isoformat()}
 
 
 def saved_rules(db, vid, sid):
