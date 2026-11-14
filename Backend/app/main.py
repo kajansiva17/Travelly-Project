@@ -22,6 +22,7 @@ from app.api.routers.road_alerts_api import router as road_alerts_router
 from app.api.routers.ai_api import router as ai_router
 from app.api.routers.odometer_api import router as odometer_router
 from app.api.routers.social_api import router as social_router
+from app.api.routers.account_settings_api import router as account_settings_router
 from app.api.routers.report_api import router as report_router
 from app.schemas import MIN_PASSWORD_LENGTH, password_requirements
 from app.api.routers.auth_extension import router as auth_extension_router
@@ -236,6 +237,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(ai_router)
     app.include_router(odometer_router)
     app.include_router(social_router)
+    app.include_router(account_settings_router)
     app.include_router(report_router)
     app.include_router(ticket_router)
     app.include_router(route_router)

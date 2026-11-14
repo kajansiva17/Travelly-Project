@@ -37,6 +37,8 @@ class User(Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey('users.id', name='fk_users_created_by', ondelete='RESTRICT', onupdate='RESTRICT'))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey('users.id', name='fk_users_updated_by', ondelete='RESTRICT', onupdate='RESTRICT'))
     version: Mapped[int] = mapped_column(Integer, server_default='1')
+    # Owner decision 14 Nov 2026: which optional notification types the person has turned off ({'muted': [...]}).
+    notification_preferences: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     __table_args__ = (
         UniqueConstraint('public_user_reference', name='uq_users_public_reference'),
         UniqueConstraint('email', name='uq_users_email'), UniqueConstraint('phone_e164', name='uq_users_phone'),

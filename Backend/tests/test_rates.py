@@ -117,3 +117,19 @@ def test_unconfigured_location_provider_is_honest(client):
     client.app.state.settings.routing_api_key = ''
     result = client.get('/api/v1/locations?q=Colombo')
     assert result.status_code == 503 and result.json()['code'] == 'ROUTING_NOT_CONFIGURED'
+
+
+def policy_rule(**policy):
+    data = rule()
+    data['extra_policy'] = policy
+    return data
+
+
+def test_extra_policy_needs_zero_rates_unless_charged_and_only_for_used_extras():
+    ok = policy_rule(WAITING='NOT_OFFERED'); ok.update(free_wait_minutes='0', waiting_hour_rate='0')
+    assert RateRule.model_validate(ok).extra_policy == {'WAITING': 'NOT_OFFERED'}
+    with pytest.raises(Exception, match='enter 0'):
+        RateRule.model_validate(policy_rule(WAITING='FREE'))                         # still has a waiting rate
+    with pytest.raises(Exception, match='not used'):
+        RateRule.model_validate(policy_rule(EXTRA_HOURS='FREE'))                     # DISTANCE rule has no extra hours
+    assert RateRule.model_validate(rule()).extra_policy == {}                        # older rules mean CHARGED

@@ -8,7 +8,7 @@ from pydantic import Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from app.api.routers.api import current, allowed_account, profile, touch
+from app.api.routers.api import current, allowed_account, profile, touch, session_meta
 from app.dependencies.database import get_db
 from app.core.errors import ApiError, unauthorized
 from app.models import User, UserRole
@@ -230,7 +230,7 @@ def session_for(request, db, user, journey='PASSENGER'):
         return verification_result(request, user, journey=journey, sign_in=True)
     user.last_login_at = datetime.now(timezone.utc); touch(user); db.commit()
     tokens, sid, expires = issue_tokens(user.id, request.app.state.settings, auth_version=user.auth_version)
-    request.app.state.store.create(sid, user.id, tokens['refresh_token'], expires)
+    request.app.state.store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens)
     return tokens
 

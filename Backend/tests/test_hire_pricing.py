@@ -546,3 +546,35 @@ def test_a_passenger_waits_for_at_most_three_owner_prices_and_unanswered_ones_la
         assert out['expired_requests'] == 3
         assert {db.get(Booking, UUID(r['id'])).status for r in rows} == {'CANCELLED'}
     assert client.post('/api/v1/bookings/private-hires', headers=bearer(c.passenger), json={**body, 'idempotency_key': uuid4().hex}).status_code == 201
+
+
+def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(client, hire_setup):
+    c = hire_setup
+    r = deepcopy(c.rule); r.update(extra_policy={'WAITING': 'NOT_OFFERED'}, free_wait_minutes='0', waiting_hour_rate='0')
+    cfg = {**deepcopy(c.config), 'expected_version': 1, 'rules': [r]}
+    assert client.put(f'/api/v1/vehicles/{c.vehicle_id}/services', headers=bearer(c.owner), json=cfg).status_code == 200
+    search = lambda wait: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'B'), wait=wait),
+                                      'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
+    plain = search('0')
+    assert len(plain['items']) == 1 and plain['quote_on_request'] == []
+    policies = {p['code']: p for p in plain['items'][0]['price']['extra_policies']}
+    assert policies['WAITING']['mode'] == 'NOT_OFFERED' and policies['EXTRA_KM']['mode'] == 'CHARGED' and policies['EXTRA_KM']['km_rate'] == '50'
+    waiting = search('30')
+    assert waiting['items'] == [] and len(waiting['quote_on_request']) == 1
+
+
+def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup):
+    c = hire_setup
+    ask = lambda names: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
+        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()['items'][0]
+    first = ask(('A', 'B'))
+    assert first['location_source'] == 'SERVICE_AREA' and first['distance_km'] > 50 and first['near'] is False   # centre of the Owner's pickup area
+    row = committed(client, c)                                        # booked A -> B; the vehicle finishes at B
+    with client.app.state.sessions() as db:
+        trip = db.scalar(select(Trip).where(Trip.booking_id == UUID(row['id'])))
+        trip.status = 'COMPLETED'; trip.actual_end_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        db.get(Booking, UUID(row['id'])).status = 'COMPLETED'; db.commit()
+    later = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': {**c.itinerary(('B', 'A')), 'start_at': (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()},
+                                                         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
+    entry = (later['items'] + later['quote_on_request'])[0]
+    assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True

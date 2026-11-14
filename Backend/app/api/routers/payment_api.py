@@ -41,7 +41,8 @@ from app.models.rate_models import ServiceType, VehicleService
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
 from app.schemas.payment_schemas import CashReceipt, CheckoutRequest, PaymentIntentRequest, PaymentOptions, PaymentSettings, SandboxOutcome
-from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, split
+from app.services.pricing_scope import long_distance
+from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, service_days, split
 from app.services.refunds import queue_refund
 
 router = APIRouter(prefix='/api/v1', tags=['Payments'])
@@ -326,7 +327,7 @@ def apply_event(db, provider, event, actor=None, sandbox=False):
 
 
 def capture(db, payment, booking, provider, event, actor, moment):
-    commission, fee, net = split(payment.amount, db.get(ServiceType, booking.service_type_id), event.get('fee'))
+    commission, fee, net = split(payment.amount, db.get(ServiceType, booking.service_type_id), event.get('fee'), service_days(booking))
     payment.status = 'PAID'
     payment.provider_reference = event['provider_reference']
     if event.get('method'):
@@ -460,7 +461,7 @@ def cash_receipt(booking_id: UUID, body: CashReceipt, user=Depends(current), db:
         return cash_out(current_cash, booking, collector)  # repeat of a confirmation already given
     # The other side confirms: the cash payment is settled. Commission is owed by the Owner (owner decision).
     moment = now()
-    commission, _, net = split(current_cash.amount, db.get(ServiceType, booking.service_type_id), 0)
+    commission, _, net = split(current_cash.amount, db.get(ServiceType, booking.service_type_id), 0, service_days(booking))
     current_cash.status = 'PAID'
     current_cash.authorized_at = current_cash.created_at
     current_cash.captured_at = moment
@@ -526,7 +527,7 @@ def update_payment_options(vehicle_id: UUID, service_type_id: UUID, body: Paymen
 
 def settings_out(row):
     return {'id': str(row.id), 'code': row.code, 'name': row.name, 'category': row.category, 'is_active': row.is_active,
-            'version': row.version, **payment_settings(row), 'available_providers': sorted(providers())}
+            'version': row.version, **payment_settings(row), 'supports_multi_day_commission': long_distance(row), 'available_providers': sorted(providers())}
 
 
 @router.get('/admin/payment-settings')
@@ -541,6 +542,11 @@ def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Re
     if body.payment_provider not in providers():
         raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Add its credentials first, or use SANDBOX.',
                        [{'field': 'payment_provider', 'message': 'Not connected yet.'}])
+    multi = body.multi_day_commission_percent
+    if multi is not None:
+        if Decimal(multi) + Decimal(body.gateway_fee_percent) > 100:
+            raise ApiError(422, 'PAYMENT_SETTINGS_INVALID', 'Multi-day commission and gateway fee together cannot be more than 100%.',
+                           [{'field': 'multi_day_commission_percent', 'message': 'Commission + gateway fee must be 100% or less.'}])
     if Decimal(body.commission_percent) + Decimal(body.gateway_fee_percent) > 100:
         # The Owner must always keep something: commission and the gateway fee both come out of the fare.
         raise ApiError(422, 'PAYMENT_SETTINGS_INVALID', 'Commission and gateway fee together cannot be more than 100%.',
@@ -553,9 +559,16 @@ def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Re
             raise ApiError(404, 'SERVICE_NOT_FOUND', 'Service not found.')
         if row.version != body.expected_version:
             raise ApiError(409, 'VERSION_CONFLICT', 'Service configuration changed. Reload before saving.')
+        if multi is not None and not long_distance(row):
+            raise ApiError(422, 'MULTI_DAY_COMMISSION_NOT_ALLOWED', 'A separate multi-day commission is only for Long-distance services.',
+                           [{'field': 'multi_day_commission_percent', 'message': 'Only for Long-distance services.'}])
         before, old = row.version, json.loads(json.dumps(row.settings or {}))
-        row.settings = {**(row.settings or {}), 'payment_provider': body.payment_provider,
-                        'commission_percent': body.commission_percent, 'gateway_fee_percent': body.gateway_fee_percent}
+        new = {**(row.settings or {}), 'payment_provider': body.payment_provider,
+               'commission_percent': body.commission_percent, 'gateway_fee_percent': body.gateway_fee_percent}
+        new.pop('multi_day_commission_percent', None)
+        if multi is not None:
+            new['multi_day_commission_percent'] = multi
+        row.settings = new
         touch(row)
         row.updated_by = user.id
         request.app.state.audit.commit(db, actor=user.id, target={'resource': 'service_types', 'id': str(row.id)},

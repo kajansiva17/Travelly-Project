@@ -27,7 +27,7 @@ from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
-from app.services import commission_overdue
+from app.services import commission_overdue, vehicle_whereabouts
 
 router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 
@@ -220,6 +220,15 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
     if availability_incomplete:
         from app.services.availability import incomplete
         raise incomplete()
+    if items or asks:
+        by_id = {str(v.id): v for v in rows}
+        last = vehicle_whereabouts.last_places(db, [v.id for v in rows], datetime.now(timezone.utc))
+        pickup = body.itinerary.stops[0].place
+        for entry in items + asks:
+            vehicle = by_id[entry['id']]
+            _, rules = saved_rules(db, vehicle.id, service.id)
+            entry['distance_km'], entry['location_source'] = vehicle_whereabouts.locate(vehicle.id, last, rules, pickup)
+        vehicle_whereabouts.order(items); vehicle_whereabouts.order(asks)
     if unavailable and not items and not asks:
         raise ApiError(503, 'TRIP_PRICING_UNAVAILABLE', 'Trusted route pricing is temporarily unavailable. Browse vehicles for an Owner quote.')
     return {'items': items, 'quote_on_request': asks, 'message': 'Vehicles in `items` show the Owner\u2019s own price. Vehicles in `quote_on_request` serve this pickup area and are free, but have no saved price for this journey: ask the Owner for a price.'}
@@ -1029,7 +1038,11 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
 
 @router.get('/notifications')
 def own_notifications(user=Depends(current), db: Session = Depends(get_db)):
-    rows = db.scalars(select(Notification).where(Notification.recipient_user_id == user.id).order_by(Notification.created_at.desc()).limit(100)).all()
+    from app.api.routers.account_settings_api import muted_types
+    query = select(Notification).where(Notification.recipient_user_id == user.id)
+    if muted_types(user):                       # types the person turned off in Settings (only optional ones can be)
+        query = query.where(Notification.notification_type.notin_(muted_types(user)))
+    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
     return {'items': [notification_out(r) for r in rows]}
 
 

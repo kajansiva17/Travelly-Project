@@ -10,7 +10,7 @@ from app.models import User, UserRole
 from app.models.review_models import Document, Vehicle
 from app.models.rate_models import VehicleService, ServiceType
 from app.models.hire_models import Booking, Trip, VehicleRecord, ScheduledTrip, Notification
-from app.schemas.rate_schemas import RateRule, covered, departure_applies
+from app.schemas.rate_schemas import RateRule, covered, departure_applies, extra_mode, EXTRA_METHODS
 from app.services.pricing_scope import require_supported_private_hire
 from app.services.rate_calculation import calculate
 from app.core.errors import ApiError
@@ -127,6 +127,31 @@ def matching_rules(rules, itinerary, geometry=None):
     return candidates
 
 
+USED = {'WAITING': ('WAIT',), 'EXTRA_KM': ('EXTRA_KM',), 'EXTRA_HOURS': ('EXTRA_HOURS_',), 'OVERNIGHT': ('OVERNIGHT',)}
+EXTRA_NAMES = {'WAITING': 'waiting', 'EXTRA_KM': 'distance beyond the included km', 'EXTRA_HOURS': 'hours beyond the daily package', 'OVERNIGHT': 'overnight stays'}
+
+
+def refuse_unoffered_extras(rule, result):
+    """Owner decision 14 Nov 2026: an extra the Owner marked NOT_OFFERED cannot be part of the journey; the Passenger asks for a quote."""
+    for key, prefixes in USED.items():
+        if key in EXTRA_METHODS and rule.method in EXTRA_METHODS[key] and extra_mode(rule, key) == 'NOT_OFFERED':
+            if any(line['code'].startswith(prefixes) and Decimal(line['quantity']) > 0 and line['kind'] == 'CHARGE' for line in result['breakdown']):
+                raise ApiError(409, 'QUOTE_REQUIRED', f"This Owner does not offer {EXTRA_NAMES[key]} on this rate. Request an Owner quote.")
+
+
+def extra_policies(rule):
+    """What the Passenger is told before booking about every extra: not offered, free, or the rate."""
+    detail = {'WAITING': lambda: {'free_minutes': str(rule.free_wait_minutes), 'hour_rate': str(rule.waiting_hour_rate)},
+              'EXTRA_KM': lambda: {'km_rate': str(rule.extra_km_rate)}, 'EXTRA_HOURS': lambda: {'hour_rate': str(rule.extra_hour_rate)},
+              'OVERNIGHT': lambda: {'cost': str(rule.overnight_driver_cost)}}
+    out = []
+    for key in detail:
+        if rule.method in EXTRA_METHODS[key]:
+            mode = extra_mode(rule, key)
+            out.append({'code': key, 'mode': mode, **(detail[key]() if mode == 'CHARGED' else {})})
+    return out
+
+
 def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     scope = require_supported_private_hire(service)
     measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
@@ -138,6 +163,7 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
         raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed pickup coverage.')
     try: result = calculate(rule, measurement['usage'])
     except ValueError as exc: raise ApiError(422, 'PRICING_UNAVAILABLE', str(exc)) from None
+    if not agreed_rule: refuse_unoffered_extras(rule, result)
     end = itinerary.requested_end()
     if result['reserved_service_hours']:
         end = itinerary.start_at + timedelta(hours=24 * (len(itinerary.service_hours)-1) + float(Decimal(result['reserved_service_hours'][-1])))
@@ -147,7 +173,7 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     end = max(end, itinerary.requested_end())
     if not agreed_rule and rule.effective_until and (end - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until:
         raise ApiError(409, 'QUOTE_REQUIRED', 'The saved rate does not cover the complete reserved interval. Request an Owner quote.')
-    return {'calculation': {**result, 'service_scope': scope}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
+    return {'calculation': {**result, 'service_scope': scope, 'extra_policies': extra_policies(rule)}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
             'measurement': {'source': measurement['source'], 'usage': measurement['usage'].model_dump(mode='json')},
             'reserved_end_at': end.isoformat()}
 
@@ -178,7 +204,7 @@ def saved_rules(db, vid, sid):
 
 
 def booking_summary(row):
-    return {'id': str(row.id), 'reference': row.booking_reference, 'vehicle_id': str(row.vehicle_id), 'owner_user_id': str(row.owner_user_id),
+    return {'id': str(row.id), 'reference': row.booking_reference, 'booking_type': row.booking_type, 'vehicle_id': str(row.vehicle_id), 'owner_user_id': str(row.owner_user_id),
             'passenger_user_id': str(row.passenger_user_id), 'service_type_id': str(row.service_type_id), 'status': row.status, 'version': row.version,
             'start_at': row.start_at.isoformat(), 'end_at': row.end_at.isoformat(), 'passenger_count': row.passenger_count,
             'large_luggage_count': row.large_luggage_count, 'small_luggage_count': row.small_luggage_count,

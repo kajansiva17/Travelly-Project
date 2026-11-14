@@ -104,6 +104,18 @@ def departure_applies(value, local_start):
     return any(a <= minute < b for a, b in departure_intervals(value))
 
 
+# Owner decision 14 Nov 2026: for every extra charge the Owner chooses NOT_OFFERED (the journey needs a quote if it uses it),
+# FREE (no extra charge, the rate is 0) or CHARGED (the rates are filled in). Unset = CHARGED (older rules).
+EXTRA_RATE_FIELDS = {'WAITING': ('free_wait_minutes', 'waiting_hour_rate'), 'EXTRA_KM': ('extra_km_rate',),
+                     'EXTRA_HOURS': ('extra_hour_rate',), 'OVERNIGHT': ('overnight_driver_cost',)}
+EXTRA_METHODS = {'WAITING': ('DISTANCE', 'DAY_HIRE', 'FIXED_ROUTE'), 'EXTRA_KM': ('DISTANCE', 'DAY_HIRE'),
+                 'EXTRA_HOURS': ('DAY_HIRE',), 'OVERNIGHT': ('DAY_HIRE',)}
+
+
+def extra_mode(rule, key):
+    return rule.extra_policy.get(key, 'CHARGED')
+
+
 class RateRule(RateModel):
     id: UUID
     label: str = Field(min_length=1, max_length=120)
@@ -133,9 +145,15 @@ class RateRule(RateModel):
     parking: Literal['INCLUDED', 'SEPARATE_AT_COST']
     other_charges: list[OtherCharge] = Field(max_length=10)
     change_limits: ChangeLimits
+    extra_policy: dict[Literal['WAITING', 'EXTRA_KM', 'EXTRA_HOURS', 'OVERNIGHT'], Literal['NOT_OFFERED', 'FREE', 'CHARGED']] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def relevant_fields(self):
+        for key, mode in self.extra_policy.items():
+            if self.method not in EXTRA_METHODS[key]:
+                raise ValueError(f'extra_policy.{key}: not used by the {self.method} method.')
+            if mode != 'CHARGED' and any(getattr(self, name) != 0 for name in EXTRA_RATE_FIELDS[key]):
+                raise ValueError(f'extra_policy.{key}: enter 0 for the rate when it is not offered or free, or choose CHARGED.')
         distance = {'base_charge', 'included_km', 'extra_km_rate', 'night_km_rate'}
         day = {'day_charge', 'included_km_per_day', 'included_hours_per_day', 'extra_km_rate', 'extra_hour_rate', 'night_km_rate', 'overnight_driver_cost'}
         fixed = {'fixed_fare'}
