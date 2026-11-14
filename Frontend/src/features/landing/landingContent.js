@@ -24,6 +24,7 @@ export const landingContent = {
       ['user', 'Sign in and book', 'Create an account or sign in to book your ride.'],
       ['calendar', 'Manage your journey', 'View your bookings and keep your trip on track.'],
     ],
+    featureHeading: 'Stay on top of every trip.',
     features: [['bell', 'Booking updates', '/bookings'], ['calendar', 'Trip details', '/bookings'], ['video', 'Travel Reels', 'notice:reels'], ['headset', 'Help & support', '#faq']],
     faqHeading: 'Frequently asked questions.',
     faq: [

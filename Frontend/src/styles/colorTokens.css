@@ -1,6 +1,20 @@
-/* Find a ride's original red (#d32c50). Define its channels only once so solid
-   accents and translucent button backgrounds cannot use different base reds. */
+/* THE ONE BRAND RED. Its value is the Sign up button's red; every red in the app (buttons, icons, badges, step circles,
+   links, focus rings, errors, shadows and glass tints) comes from this variable or one of the shades derived from it below.
+   Do not write another red hex/rgb/hsl value anywhere: use these variables. Imported first in App.jsx. */
 :root {
-  --primary-red-rgb: 211 44 80;
-  --primary-red: rgb(var(--primary-red-rgb));
+  --brand-red: #ff1017;
+  --brand-red-rgb: 255 16 23;
+  /* derived from --brand-red only */
+  --brand-red-hi: color-mix(in srgb, var(--brand-red) 62%, #fff);     /* highlight at the top of a red gradient */
+  --brand-red-dark: color-mix(in srgb, var(--brand-red) 68%, #000);   /* small red text on a light surface (contrast >= 5:1) */
+  --brand-red-tint: rgb(var(--brand-red-rgb) / .1);                   /* soft red fill: selected rows, error panels */
+  --brand-red-border: rgb(var(--brand-red-rgb) / .35);                /* thin red border on a tint */
+  --brand-red-glass: rgb(var(--brand-red-rgb) / .12);                 /* red tint laid over white glass */
+  --brand-red-shadow: rgb(var(--brand-red-rgb) / .3);                 /* soft red glow under red controls */
+  --brand-red-focus: rgb(var(--brand-red-rgb) / .35);                 /* focus ring halo */
+  --brand-red-gradient: linear-gradient(180deg, var(--brand-red-hi), var(--brand-red) 55%);
+
+  /* older names kept as aliases so existing rules follow the one red */
+  --primary-red-rgb: var(--brand-red-rgb);
+  --primary-red: var(--brand-red);
 }

@@ -32,10 +32,10 @@ body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .wo
 
 /* Forms, filters, tables, messages and dialogs share the approved light glass treatment on every nested role route. */
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-content :is(input,select,textarea) {color:var(--ui-ink);border:1px solid rgb(111 139 153 / .55);border-radius:12px;background:rgb(255 255 255 / .82);box-shadow:inset 0 1px 4px rgb(54 85 97 / .09);accent-color:var(--ui-red)}
-body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-content :is(input,select,textarea):focus {border-color:#ef6070;outline:3px solid rgb(240 24 44 / .15)}
-body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is(.notice.error,.workspace-warning) {color:#7b1c31;background:#ffe5e8;border-color:#f4a7b1}
+body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-content :is(input,select,textarea):focus {border-color:var(--brand-red);outline:3px solid rgb(var(--brand-red-rgb) / .15)}
+body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) :is(.notice.error,.workspace-warning) {color:var(--brand-red-dark);background:var(--brand-red-tint);border-color:var(--brand-red-border)}
 body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .notice.success {color:#18583f;background:#dff5e9;border-color:#9dd6bb}
 body .workspace-shell[data-workspace="driver"] .reference-route {background:linear-gradient(145deg,rgb(218 242 233 / .45),rgb(255 255 255 / .4));border-radius:14px;padding:5px}
 body .workspace-shell[data-workspace="driver"] .reference-route li small {color:var(--ui-muted)}
-body :is(.workspace-shell[data-workspace="owner"],.workspace-shell[data-workspace="driver"]) .reference-help {color:#7b2140;border:1px solid #fff;background:linear-gradient(#fff,#eadff8);box-shadow:0 4px 14px rgb(117 60 155 / .22),0 0 14px rgb(221 86 255 / .2)}
+body :is(.workspace-shell[data-workspace="owner"],.workspace-shell[data-workspace="driver"]) .reference-help {color:var(--brand-red-dark);border:1px solid #fff;background:linear-gradient(#fff,#eadff8);box-shadow:0 4px 14px rgb(117 60 155 / .22),0 0 14px rgb(221 86 255 / .2)}
 @media (max-width:767px) {body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) {background-attachment:scroll} body .workspace-shell:is([data-workspace="owner"],[data-workspace="driver"]) .workspace-drawer-panel {color:#fff;background:linear-gradient(155deg,rgb(40 75 58 / .96),rgb(70 100 70 / .94));backdrop-filter:blur(22px)}}

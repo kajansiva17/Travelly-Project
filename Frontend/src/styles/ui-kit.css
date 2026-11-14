@@ -30,7 +30,7 @@
   background: var(--ui-red-gradient); color: #fff;
   border: 1px solid rgb(255 255 255 / .35);
   box-shadow: var(--ui-shadow-button);
-  text-shadow: 0 1px 1px rgb(120 0 0 / .25);
+  text-shadow: 0 1px 1px rgb(0 0 0 / .25);
 }
 .ui-button-secondary {
   background: var(--ui-glass-strong); color: var(--ui-ink);
@@ -57,7 +57,7 @@
   border-radius: var(--ui-radius-input); color: var(--ui-blue-deep);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.ui-control:focus-within { border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+.ui-control:focus-within { border-color: var(--ui-focus); box-shadow: 0 0 0 2px var(--brand-red-focus); }
 .ui-field-invalid .ui-control { border-color: var(--ui-red-text); }
 .ui-control > :is(input, select) {
   flex: 1; min-width: 0; width: 100%; height: 44px;
@@ -83,7 +83,7 @@ button.ui-chip:focus-visible { outline: 2px solid var(--ui-focus); outline-offse
 .ui-chip-success > svg { color: var(--ui-green); }
 .ui-chip-info { background: var(--ui-info-soft); border-color: rgb(47 111 228 / .3); }
 .ui-chip-info > svg { color: var(--ui-blue); }
-.ui-chip-selected { border-color: #ee3a2a; background: #fff0ee; }
+.ui-chip-selected { border-color: var(--brand-red); background: var(--brand-red-tint); }
 
 /* Checkbox */
 .ui-checkbox { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ui-ink); cursor: pointer; }
@@ -157,7 +157,7 @@ div.ui-tile { cursor: default; }
   background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-ink);
 }
 .ui-tile-go > svg { transform: rotate(-90deg); }
-.ui-tile-selected { border-color: #ee3a2a; background: #fff0ee; }
+.ui-tile-selected { border-color: var(--brand-red); background: var(--brand-red-tint); }
 .ui-tile-mark {
   position: absolute; top: 10px; right: 12px; display: grid; place-items: center;
   width: 24px; height: 24px; border-radius: 50%; background: var(--ui-red); color: #fff;
@@ -174,7 +174,7 @@ div.ui-tile { cursor: default; }
 .ui-tab > svg { color: var(--ui-blue-deep); }
 a.ui-tab:hover { background: rgb(255 255 255 / .9); }
 a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
-.ui-tab.is-active { background: #fff0ee; border-color: #ee3a2a; }
+.ui-tab.is-active { background: var(--brand-red-tint); border-color: var(--brand-red); }
 .ui-tab.is-active > svg { color: var(--ui-red-text); }
 
 /* Visually hidden but still focusable for native required-field validation. */
@@ -202,9 +202,9 @@ a.ui-tab:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px
 html body .ui-tabs .ui-tab { background: rgb(255 255 255 / .72); color: var(--ui-ink); border: 1px solid rgb(255 255 255 / .9); box-shadow: none; font: inherit; font-size: 15px; font-weight: 600; text-shadow: none; }
 html body .ui-tabs .ui-tab > svg { color: var(--ui-blue-deep); }
 html body .ui-tabs button.ui-tab:hover, html body .ui-tabs a.ui-tab:hover { background: #fff; }
-html body .ui-tabs .ui-tab.is-active { background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55); box-shadow: var(--ui-shadow-button); text-shadow: 0 1px 1px rgb(120 0 0 / .25); }
+html body .ui-tabs .ui-tab.is-active { background: var(--ui-red-gradient); color: #fff; border-color: rgb(255 255 255 / .55); box-shadow: var(--ui-shadow-button); text-shadow: 0 1px 1px rgb(0 0 0 / .25); }
 html body .ui-tabs .ui-tab.is-active > svg { color: #fff; }
 /* Chip tones used by checklists: danger (required, missing) and muted (optional). */
-.ui-chip-danger { background: #ffe3e0; border-color: #f3a9a1; color: #a3160c; }
-.ui-chip-danger > svg { color: #d90f0a; }
+.ui-chip-danger { background: var(--brand-red-tint); border-color: var(--brand-red-border); color: var(--brand-red-dark); }
+.ui-chip-danger > svg { color: var(--brand-red); }
 .ui-chip-muted { background: #eef1f5; border-color: #d8dee8; color: #5b6f8f; }

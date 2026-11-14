@@ -8,7 +8,7 @@ html body .rl-wrap { position: relative; height: 100%; max-width: 100%; display:
 html body .rl-frame { position: relative; height: 100%; aspect-ratio: 9 / 16; max-width: calc(100vw - 110px); border-radius: 18px; overflow: hidden; background: #0b1220; flex: none; }
 html body .rl-media { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #0b1220; cursor: pointer; }
 html body .rl-media video, html body .rl-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-html body .rl-media.rl-text { background: linear-gradient(160deg, #1d3b6f, #8a1630); cursor: default; }
+html body .rl-media.rl-text { background: linear-gradient(160deg, #1d3b6f, var(--brand-red-dark)); cursor: default; }
 html body .rl-sound { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgb(0 0 0 / .5); color: #fff; }
 html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 36px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .72), transparent); display: grid; gap: 4px; pointer-events: none; }
 html body .rl-overlay a, html body .rl-overlay button { pointer-events: auto; }
@@ -23,7 +23,7 @@ html body .rl-stars { font-size: 20px; color: #ffc233; opacity: 1; }
 html body .rl-rail { flex: none; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; align-self: flex-end; }
 html body .rl-btn { display: grid; justify-items: center; gap: 1px; min-width: 52px; min-height: 52px; padding: 6px; border: 0; border-radius: 16px; background: rgb(255 255 255 / .16); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
 html body .rl-btn:hover:not(:disabled) { background: rgb(255 255 255 / .28); }
-html body .rl-btn.is-on { background: var(--ui-red, #c8102e); }
+html body .rl-btn.is-on { background: var(--ui-red, var(--brand-red)); }
 html body .rl-btn:disabled { opacity: .6; cursor: default; }
 html body .rl-preload { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 html body .rl-note { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: rgb(255 255 255 / .95); color: var(--ui-ink); font-weight: 600; font-size: 13px; z-index: 6; }
@@ -40,12 +40,12 @@ html body .rl-comments ul { margin-left: 18px; margin-top: 6px; }
 html body .rl-comment p { margin: 2px 0; overflow-wrap: anywhere; }
 html body .rl-comment small { color: #5b6a85; }
 html body .rl-comment-actions { display: flex; gap: 12px; }
-html body .rl-comment-actions button, html body .rl-compose p button { border: 0; background: none; color: var(--ui-red, #c8102e); font-weight: 700; cursor: pointer; padding: 0; }
+html body .rl-comment-actions button, html body .rl-compose p button { border: 0; background: none; color: var(--ui-red, var(--brand-red)); font-weight: 700; cursor: pointer; padding: 0; }
 html body .rl-compose { display: grid; gap: 6px; position: sticky; bottom: 0; background: var(--ui-glass-strong, #fff); padding-top: 6px; }
 html body .rl-form { display: grid; gap: 8px; }
 html body .rl-form label { display: grid; gap: 2px; font-weight: 700; font-size: 13px; }
 html body .rl-form input, html body .rl-form select, html body .rl-compose input { min-height: 38px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--ui-glass-border); font: inherit; }
-html body .rl-form .is-warn { color: #a3160c; }
+html body .rl-form .is-warn { color: var(--brand-red-dark); }
 html body .rl-actions, html body .rl-menu { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 html body .rl-menu { justify-content: stretch; } html body .rl-menu > * { flex: 1; }
 
@@ -85,7 +85,7 @@ html body .vr-stars { color: #e0a000; }
 html body .rl-top .rl-post { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
 html body .pc-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 html body .pc-kind { display: grid; justify-items: center; align-content: center; gap: 6px; min-height: 110px; border-radius: 18px; border: 1px solid var(--ui-glass-border); background: var(--ui-glass); color: var(--ui-ink); cursor: pointer; font: inherit; }
-html body .pc-kind:hover { background: var(--ui-glass-strong, #fff); border-color: var(--ui-red, #c8102e); }
+html body .pc-kind:hover { background: var(--ui-glass-strong, #fff); border-color: var(--ui-red, var(--brand-red)); }
 html body .pc-file { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
 html body .pc-pick { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 html body .pc-preview { height: 120px; max-width: 200px; border-radius: 12px; object-fit: cover; }

@@ -9,6 +9,7 @@ import { landingContent } from './landingContent'
 import { heroArtwork, cardArtwork, artworkSources } from './landingAssets'
 import './referenceLanding.css'
 import './landingHero.css'
+import './landingShared.css'
 
 const brandAssets = '/images/travelly/branding/approved-2026-11-07/'
 function LandingIcon({ name, size = 26, ...props }) {
@@ -56,7 +57,7 @@ function LandingHeader({ role }) {
     <Brand/>
     <button className="lr-menu" type="button" aria-expanded={open} aria-controls="landing-navigation" aria-label={t('Navigation menu')} onClick={() => setOpen(!open)}><LandingIcon name={open ? 'close' : 'menu'}/></button>
     <nav id="landing-navigation" className={`lr-nav ${open ? 'lr-nav-open' : ''}`} aria-label={t('Main navigation')}>
-      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active' : ''}`}>{['steering','car'].includes(icon) ? <img className={`lr-role-icon lr-role-icon-${icon}`} src={`${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png`} alt="" width="22" height="22"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
+      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active' : ''}`}>{['steering','car'].includes(icon) ? <span className={`lr-role-icon lr-role-icon-${icon}`} style={{ '--lr-role-icon': `url(${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png)` }} aria-hidden="true"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
       <label className="lr-language"><LandingIcon name="globe" size={22}/><span className="lr-sr-only">{t('Language')}</span><select value={lang} onChange={event => setLanguage(event.target.value)} aria-label={t('Language')}>{languages.map(language => <option key={language.code} value={language.code}>{language.code === 'en' ? 'EN' : language.name}</option>)}</select></label>
       <Link className="lr-pill lr-login" to={journeyLink('/login', role.toUpperCase())}>{t('Log in')}</Link>
       <Link className="lr-pill lr-red lr-signup" to={journeyLink('/register', role.toUpperCase())}>{t('Sign up')}</Link>
@@ -142,7 +143,7 @@ function LandingPage({ role }) {
         <section className="lr-cta lr-glass"><h2>{t(data.cta)}</h2><div><Link className="lr-pill lr-red" to={register}><LandingIcon name={role === 'driver' ? 'steering' : role === 'owner' ? 'car' : 'users'}/>{t(data.ctaPrimary)}<LandingIcon name="arrow"/></Link><Link className="lr-pill lr-light" to={login}><LandingIcon name="user"/>{t(data.ctaSecondary)}</Link></div></section>
       </div>
     </main>
-    <footer className="lr-footer"><Link to="/" aria-label={t('Travelly Home')}><img src={`${brandAssets}${role === 'driver' ? 'driver' : 'standard'}-logo.png`} alt={t('Travelly')} width="175" height="39"/></Link><nav aria-label={t('Footer navigation')}>{['Help', 'Terms', 'Privacy', 'Contact'].map(label => <Action key={label} to={label === 'Help' ? '#faq' : 'notice:policy'} onUnavailable={unavailable}>{t(label)}</Action>)}</nav></footer>
+    <footer className="lr-footer"><div className="site-header lr-footer-brand"><Brand/></div><nav aria-label={t('Footer navigation')}>{['Help', 'Terms', 'Privacy', 'Contact'].map(label => <Action key={label} to={label === 'Help' ? '#faq' : 'notice:policy'} onUnavailable={unavailable}>{t(label)}</Action>)}</nav></footer>
   </div>
 }
 

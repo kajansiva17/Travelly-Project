@@ -49,7 +49,7 @@ export default function TripMap({data,position,alerts,selectedId,onSelect,follow
     layers.current.vehicle.clearLayers()
     const spot=positionLatLng(position)
     if(!spot)return
-    L.circleMarker(spot,{radius:11,color:'#fff',weight:4,fillColor:'#c8102e',fillOpacity:1}).addTo(layers.current.vehicle).bindTooltip(t('Vehicle'),{direction:'top'})
+    L.circleMarker(spot,{radius:11,color:'#fff',weight:4,fillColor:'#ff1017',fillOpacity:1}).addTo(layers.current.vehicle).bindTooltip(t('Vehicle'),{direction:'top'})
     // Zoom in without animation (same reason as the fit), then pan smoothly; stop() can end a pan.
     if(follow){if(instance.getZoom()<15)instance.setView(spot,15,{animate:false});else instance.panTo(spot,{animate:true})}
   },[position,follow])

@@ -572,3 +572,13 @@ against the dev server; no screenshots.
   `/owner/ticket-departures`, COMMISSION_DUE and OWNER_PAYOUT_PENDING `/owner/earnings`.
 - Nothing else in the update differed from the UI (bodies, statuses and endpoints unchanged). Fit re-checked in Tamil and Sinhala at 1280x585,
   1920x1080 and 390x844: welcome notice and the blocker rows with their Open button (54 screen checks and 18 notice checks).
+
+## Landing polish: one red, shared hero scale, glass buttons, brand footer
+
+- **Vehicle Hire card:** the family photo is replaced by `public/images/travelly/landing-scenes-2026-11-07/home/card-vehicle-hire-route.svg` (1536x1024, same 3:2 ratio as the other cards): light-blue sky, rounded map tile with a dotted route, glossy red pin, blue front-view car with floor reflection. It is a vector approximation of the 3D look of the Tickets and Rentals PNGs (flatter shading, no photographic hands). For an exact match supply `card-vehicle-hire-route.png`, 1536x1024, in the same folder and point `cardArtwork['home-hire']` (landingAssets.js) at it.
+- **Features strip:** Home now has the section heading "Stay on top of every trip." (messages.js, Tamil and Sinhala), the same h2 style and the same section padding as its neighbours. The extra Home-only top padding on the content area was removed.
+- **One red:** `--brand-red: #ff1017` (Sign up red) in `styles/colorTokens.css`; derived `--brand-red-hi`, `--brand-red-dark` (small text on light), `--brand-red-tint`, `--brand-red-border`, `--brand-red-glass`, `--brand-red-shadow`, `--brand-red-focus`, `--brand-red-gradient`. The old `--primary-red*` and `--ui-red*` tokens are aliases. Every other red hex/rgb in src/styles, the landing CSS, SeatMap and the trip map was replaced; focus rings are red too. Kept on purpose: Google's own logo colours.
+- **Buttons:** Sign up is the only solid red button on the landing pages. The active nav pill, Explore rides, Apply as a driver/owner, Hire tab, Search and the CTA button are translucent white glass with blur, thin border, soft shadow and red text/icon; hover, focus-visible and disabled kept.
+- **Hero scale (landingShared.css):** one set of tokens for navbar gap, h1, subtext, buttons and helper on all three pages; the hero is exactly one viewport (100dvh), the next heading starts below the fold.
+- **Footer:** the NavbarBrand component (speedometer and wordmark) at the navbar's logo width replaces the plain logo image.
+- Checked English, Tamil and Sinhala on a mocked API at 1280x585, 1366x768, 1920x1080 and 390x844: no horizontal scroll, no clipped text, hero height equals the viewport (Tamil Home on a 390x844 phone is 28px taller; its next heading is still below the fold).
