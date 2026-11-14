@@ -24,7 +24,8 @@ A code can be used once; after a code is accepted wait for the next one (30 s) b
 ```json
 { "status": "two_factor_required", "challenge": "…", "expires_in": 300, "message": "…" }
 ```
-Show a "Enter your code" screen (app code or a backup code), then `POST /auth/2fa` `{ "challenge": "…", "code": "123456" }` → the usual token response (same as login). 401 `TWO_FACTOR_CHALLENGE_EXPIRED` → back to the sign-in form. Devices already signed in are not asked again.
+Show a "Enter your code" screen (app code or a backup code), then `POST /auth/2fa` `{ "challenge": "…", "code": "123456" }` → the usual token response (same as login).
+Errors: **422 `TWO_FACTOR_CODE_WRONG`** (wrong or already used code; show it on the code field, keep the screen so the person can try again; field_errors `code`), 429 `RATE_LIMITED` after 5 wrong tries (`Retry-After`), 401 `TWO_FACTOR_CHALLENGE_EXPIRED` (more than 5 minutes passed, or the challenge was already used) → back to the sign-in form. Devices already signed in are not asked again.
 Handle `status` on the login response the same way as the existing `status` answers (email verification, Google).
 
 ## 2. Close the account
@@ -42,6 +43,20 @@ Blocker codes: `OPEN_BOOKINGS_AS_PASSENGER`, `OPEN_BOOKINGS_AS_OWNER`, `OPEN_TRI
 - `password` is needed when the account has one; `code` only when two-step verification is on (422 `TWO_FACTOR_CODE_REQUIRED`).
 - 409 `ACCOUNT_HAS_OPEN_ITEMS` (field_errors list the blocker codes) if something became open since the check.
 - A deactivated Owner's vehicles and departures are not shown in search and take no new bookings.
+
+### Where each blocker sends the person (UI routes as they are in `App.jsx` today; the UI owns the routes)
+| Blocker code | Link to |
+|---|---|
+| `OPEN_BOOKINGS_AS_PASSENGER` | `/passenger/bookings` |
+| `OPEN_BOOKINGS_AS_OWNER` | `/owner/bookings` |
+| `OPEN_TRIPS_AS_DRIVER` | `/driver/assignments` (an Owner who drives or operates: `/owner/assignments`) |
+| `OPEN_DEPARTURES` | `/owner/ticket-departures` |
+| `COMMISSION_DUE`, `OWNER_PAYOUT_PENDING` | `/owner/earnings` |
+| `REFUND_PENDING` | `/passenger/bookings` (the refund is shown on the booking) |
+
+### Welcome back after signing in again
+When a sign-in brings a deactivated account back, the token answer (`POST /auth/login`, Google sign-in, and `POST /auth/2fa`) carries two extra fields, and only then:
+`"account_reactivated": true` and `"delete_request_cancelled": true | false` (true when a delete request was pending). A normal sign-in has neither field. Show "Welcome back, your account is active again" (and "Your delete request was cancelled" when `delete_request_cancelled` is true).
 
 ### What is removed after 30 days (daily job `scripts/anonymize_deleted_accounts.py`)
 Name becomes "Deleted user", email, phone, photo, password and Google link are removed, the account becomes `CLOSED` and can never sign in. Booking, payment, trip, review records stay (under "Deleted user"). Uploaded documents and vehicle files are not touched by this job. A request whose person has open business again is skipped until it is clear.

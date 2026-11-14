@@ -225,11 +225,12 @@ def google_identity(body, request, user=None):
 
 
 def session_for(request, db, user, journey='PASSENGER'):
-    if user.account_status == 'DEACTIVATED' and not user.totp_enabled_at:   # Google proves who they are: welcome back
-        user.account_status, user.deletion_requested_at = 'ACTIVE', None
-    elif user.account_status == 'DEACTIVATED':
-        from app.api.routers.account_security_api import challenge_for
+    from app.api.routers.account_security_api import challenge_for, reactivate
+    welcome = {}
+    if user.account_status == 'DEACTIVATED' and user.totp_enabled_at:
         return challenge_for(request, user)
+    if user.account_status == 'DEACTIVATED':   # Google proves who they are: welcome back
+        welcome = reactivate(user)
     allowed_account(user)
     if user.email_login_required and not user.email_verified_at:
         return verification_result(request, user, journey=journey, sign_in=True)
@@ -240,7 +241,7 @@ def session_for(request, db, user, journey='PASSENGER'):
     tokens, sid, expires = issue_tokens(user.id, request.app.state.settings, auth_version=user.auth_version)
     request.app.state.store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens)
-    return tokens
+    return {**tokens, **welcome}
 
 
 @router.post('/auth/google')
