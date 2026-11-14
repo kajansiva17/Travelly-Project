@@ -25,3 +25,7 @@ html body .backup-codes code, html body .two-factor-secret { font-size: 14px; fo
 html body .two-factor-setup { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 html body .two-factor-qr { flex: none; }
 html body .two-factor-steps { flex: 1 1 280px; min-width: 0; display: grid; gap: 4px; }
+
+/* Rows with long text (two-step status, closure blockers, Tamil and Sinhala): wrap instead of cutting the line */
+html body .flow-page .tk-row-wrap { height: auto; }
+html body .flow-page .tk-row-wrap .tk-row-main > strong, html body .flow-page .tk-row-wrap .tk-row-main > span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }

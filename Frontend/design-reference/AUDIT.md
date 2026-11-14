@@ -548,3 +548,14 @@ against the dev server; no screenshots.
   the contract does not say how the client learns a delete request was cancelled by signing in (the "Welcome back" message is not shown);
   the login and disable code accepts an app code or a backup code (letters and a hyphen), so those inputs are text fields with
   `autocomplete="one-time-code"`; only the setup confirmation (app code only) is numeric.
+
+## Fit check of the 03SV screens in Tamil and Sinhala
+
+- Checked with the mocked API: login code screen, Two-step off, setup (QR and secret), backup codes, Two-step on, turn-off form, Close account
+  with blockers, clear, and the delete confirm, in Tamil and Sinhala at 1280x585, 1920x1080 and 390x844 (54 checks): page scroll, horizontal
+  scroll, cut text (any element whose text is wider than its box) and anything past the card edge.
+- Found and fixed (CSS only): the two-step status row and the closure blocker rows used the shared one-line ellipsis row, so long Tamil and
+  Sinhala text was cut (the Tamil hint line at 1280x585, and the status and blocker lines at 390x844). Those rows now carry `tk-row-wrap`
+  and wrap (`rates.css`). No wording was changed.
+- Result: all 54 checks pass; cards fit at 1280x585 and 1920x1080, on 390x844 only the setup view and the delete confirm scroll inside the card.
+- Not a defect: the decorative `journey-sun` shape on the sign-in layout is wider than its box by design (aria-hidden).

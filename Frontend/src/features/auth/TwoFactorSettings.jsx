@@ -110,7 +110,7 @@ export default function TwoFactorSettings({ hasPassword }) {
     {view === 'off' && <ConfirmForm hasPassword={hasPassword} intro={t('Enter your password and a code to turn two-step verification off.')} submitLabel={t('Turn off')} onSubmit={turnOff} onCancel={() => setView('status')}/>}
     {view === 'newcodes' && <ConfirmForm hasPassword={hasPassword} intro={t('Making new backup codes stops the old ones from working.')} submitLabel={t('Make new backup codes')} onSubmit={newCodes} onCancel={() => setView('status')}/>}
     {view === 'status' && status && <>
-      <div className="tk-row"><div className="tk-row-main"><strong>{status.enabled ? t('Two-step verification is on') : t('Two-step verification is off')}</strong>
+      <div className="tk-row tk-row-wrap"><div className="tk-row-main"><strong>{status.enabled ? t('Two-step verification is on') : t('Two-step verification is off')}</strong>
         <span>{status.enabled ? `${status.enabled_at ? formatDateTime(status.enabled_at) + ' · ' : ''}${t('Backup codes left: {value0}', { value0: status.backup_codes_left ?? 0 })}` : t('When it is on, signing in on a new device asks for a code from your authenticator app.')}</span></div>
         <div className="tk-row-actions">{status.enabled ? <Chip tone="success">{t('On')}</Chip> : <Chip tone="muted">{t('Off')}</Chip>}</div></div>
       <div className="flow-actions"><span/>{status.enabled

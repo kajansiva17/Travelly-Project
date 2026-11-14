@@ -32,7 +32,7 @@ export default function CloseAccount({ hasPassword, twoFactorOn }) {
     {!status && !error ? <p role="status">{t('Loading…')}</p> : status && <>
       {ok ? <p className="tk-line">{t('Nothing is open on your account. You can deactivate or delete it.')}</p>
         : <><p className="tk-line is-warn" role="alert">{t('Finish or settle these first:')}</p>
-          <div className="tk-rows">{rows.slice.map(line => <article className="tk-row" key={line.code}><div className="tk-row-main"><strong>{line.key ? t(line.key, line.params) : line.text}</strong></div>
+          <div className="tk-rows">{rows.slice.map(line => <article className="tk-row tk-row-wrap" key={line.code}><div className="tk-row-main"><strong>{line.key ? t(line.key, line.params) : line.text}</strong></div>
             {line.path && <div className="tk-row-actions"><Link className="ui-button ui-button-secondary" to={line.path}>{t('Open')}</Link></div>}</article>)}</div></>}
       {action
         ? <ConfirmForm hasPassword={hasPassword} needCode={twoFactorOn} danger
