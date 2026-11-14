@@ -18,7 +18,7 @@ html body .auth-page {
   --auth-card-top: max(var(--auth-gap-y), calc((100dvh - var(--frame-top) - var(--nav-h) - var(--auth-card-h)) / 2));
   --auth-vcard-ratio: .88;
   --auth-vcard-w: calc(var(--auth-card-w) * var(--auth-vcard-ratio));
-  --auth-vcard-h: var(--auth-card-h);   /* the two cards are one matched pair: same height, same top and bottom */
+  --auth-vcard-h: calc(var(--auth-card-h) * .88);   /* shorter than the form card, centred against it */
   --auth-pad-x: clamp(22px, 3vw, 40px); --auth-pad-y: 20px;
   --auth-gap: 8px;
 }

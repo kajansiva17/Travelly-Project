@@ -629,3 +629,7 @@ against the dev server; no screenshots.
 - **Padding:** the form content is centred, so the space above the title and below the last line is equal on every screen (13px on Register step 1 at 1280x585, more on the shorter Login and code screens).
 - **Scrolls inside the card, never the page:** Register step 2 (English at 1280x585 and 1366x768) and some Tamil and Sinhala steps.
 - **Fixed:** an empty 44px host element of the Google button added a gap before the Google fallback button; it is hidden until Google fills it. Controls are 44px high.
+
+## Vehicle card height
+
+- The vehicle card is now 88% of the form card's height (`--auth-vcard-h: calc(var(--auth-card-h) * .88)`), same width (422px), centred vertically against it (centre difference 0px). Measured height x top: 1280x585 396 at 129 (form 450 at 102); 1366x768 446 at 205 (form 507 at 175); 1920x1080 539 at 314 (form 613 at 278). Its content fits without overflow in English, Tamil and Sinhala.
