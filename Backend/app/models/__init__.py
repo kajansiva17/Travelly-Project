@@ -39,6 +39,12 @@ class User(Base):
     version: Mapped[int] = mapped_column(Integer, server_default='1')
     # Owner decision 14 Nov 2026: which optional notification types the person has turned off ({'muted': [...]}).
     notification_preferences: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    # Owner decisions 14 Nov 2026: two-step verification (secret stored encrypted, backup codes as hashes) and account closure.
+    totp_secret: Mapped[str | None] = mapped_column(Text)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    totp_backup_codes: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    totp_last_step: Mapped[int | None] = mapped_column(Integer)
+    deletion_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint('public_user_reference', name='uq_users_public_reference'),
         UniqueConstraint('email', name='uq_users_email'), UniqueConstraint('phone_e164', name='uq_users_phone'),
@@ -55,7 +61,7 @@ class User(Base):
         CheckConstraint('display_name IS NULL OR (display_name = btrim(display_name) AND char_length(display_name) BETWEEN 1 AND 100)', name='ck_users_display_name'),
         CheckConstraint("preferred_language IN ('en','ta','si')", name='ck_users_language'),
         CheckConstraint("timezone = 'Asia/Colombo'", name='ck_users_timezone'),
-        CheckConstraint("account_status IN ('PENDING_VERIFICATION','ACTIVE','SUSPENDED','BLOCKED','CLOSED')", name='ck_users_account_status'),
+        CheckConstraint("account_status IN ('PENDING_VERIFICATION','ACTIVE','SUSPENDED','BLOCKED','CLOSED','DEACTIVATED')", name='ck_users_account_status'),
         CheckConstraint('email_verified_at IS NULL OR email IS NOT NULL', name='ck_users_verified_email'),
         CheckConstraint('phone_verified_at IS NULL OR phone_e164 IS NOT NULL', name='ck_users_verified_phone'),
         CheckConstraint("account_status <> 'ACTIVE' OR email_verified_at IS NOT NULL OR phone_verified_at IS NOT NULL", name='ck_users_activation'),
