@@ -121,7 +121,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     if user and user.locked_until and user.locked_until > now:
         store.limited((user.locked_until - now).total_seconds())
     valid = verify_password(body.password, user.password_hash if user else DUMMY_HASH)
-    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION'):
+    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION', 'DEACTIVATED'):
         count = store.failure(body.identifier)
         if user:
             user.failed_login_count = count
@@ -136,6 +136,14 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         store.clear_failures(body.identifier)
         from app.api.routers.auth_extension import verification_result
         return verification_result(request, user, journey=body.journey, sign_in=True)
+    if user.totp_enabled_at:                    # second step: the authenticator code (owner decision 14 Nov 2026)
+        from app.api.routers.account_security_api import challenge_for
+        user.failed_login_count, user.locked_until = 0, None
+        touch(user); db.commit()
+        store.clear_failures(body.identifier)
+        return challenge_for(request, user, body.remember_me)
+    if user.account_status == 'DEACTIVATED':    # signing in again brings a deactivated account back and cancels a delete request
+        user.account_status, user.deletion_requested_at = 'ACTIVE', None
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, now
     if hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hasher.hash(body.password)

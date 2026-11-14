@@ -15,7 +15,7 @@ Days: COMMISSION_FREE_DAYS (14) and COMMISSION_BLOCK_DAYS (18). No new table.
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from sqlalchemy import func, select
-from app.models import UserRole
+from app.models import User, UserRole
 from app.models.payment_models import Payment
 
 OWNER_SHARE = ('PAYMENT', 'REALLOCATION')
@@ -66,8 +66,11 @@ def blocked_owner_ids(db, settings, now=None):
     cutoff = now - timedelta(days=settings.commission_block_days)
     late = db.execute(select(Payment.payee_owner_user_id).where(*_due()).group_by(Payment.payee_owner_user_id)
                       .having(func.min(func.coalesce(Payment.captured_at, Payment.created_at)) <= cutoff)).scalars().all()
-    return {o for o in late if o is not None and not ((e := extension_until(db, o)) and now < e)}
+    stopped = {o for o in late if o is not None and not ((e := extension_until(db, o)) and now < e)}
+    # an Owner who deactivated the account takes no new bookings either (owner decision 14 Nov 2026)
+    return stopped | set(db.scalars(select(User.id).where(User.account_status.in_(('DEACTIVATED', 'CLOSED')))).all())
 
 
 def is_blocked(db, settings, owner_id, now=None):
-    return standing(db, settings, owner_id, now)['blocked']
+    status = db.scalar(select(User.account_status).where(User.id == owner_id))
+    return status in ('DEACTIVATED', 'CLOSED') or standing(db, settings, owner_id, now)['blocked']
