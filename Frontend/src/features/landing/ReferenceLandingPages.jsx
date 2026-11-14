@@ -9,6 +9,7 @@ import { landingContent } from './landingContent'
 import { heroArtwork, cardArtwork, artworkSources } from './landingAssets'
 import './referenceLanding.css'
 import './landingHero.css'
+import './landingShared.css'
 
 const brandAssets = '/images/travelly/branding/approved-2026-11-07/'
 function LandingIcon({ name, size = 26, ...props }) {
@@ -56,9 +57,9 @@ function LandingHeader({ role }) {
     <Brand/>
     <button className="lr-menu" type="button" aria-expanded={open} aria-controls="landing-navigation" aria-label={t('Navigation menu')} onClick={() => setOpen(!open)}><LandingIcon name={open ? 'close' : 'menu'}/></button>
     <nav id="landing-navigation" className={`lr-nav ${open ? 'lr-nav-open' : ''}`} aria-label={t('Main navigation')}>
-      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active' : ''}`}>{['steering','car'].includes(icon) ? <img className={`lr-role-icon lr-role-icon-${icon}`} src={`${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png`} alt="" width="22" height="22"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
+      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active lr-glass-red' : ''}`}>{['steering','car'].includes(icon) ? <span className={`lr-role-icon lr-role-icon-${icon}`} style={{ '--lr-role-icon': `url(${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png)` }} aria-hidden="true"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
       <label className="lr-language"><LandingIcon name="globe" size={22}/><span className="lr-sr-only">{t('Language')}</span><select value={lang} onChange={event => setLanguage(event.target.value)} aria-label={t('Language')}>{languages.map(language => <option key={language.code} value={language.code}>{language.code === 'en' ? 'EN' : language.name}</option>)}</select></label>
-      <Link className="lr-pill lr-login" to={journeyLink('/login', role.toUpperCase())}>{t('Log in')}</Link>
+      <Link className="lr-pill lr-login lr-glass-neutral" to={journeyLink('/login', role.toUpperCase())}>{t('Log in')}</Link>
       <Link className="lr-pill lr-red lr-signup" to={journeyLink('/register', role.toUpperCase())}>{t('Sign up')}</Link>
     </nav>
   </header>
@@ -80,7 +81,7 @@ function JourneySearch({ unavailable }) {
     navigate('/hire', { state: { seed: { pickup, destination, departure } } })
   }
   return <section id="search" className="lr-search lr-glass" aria-label={t('Plan your journey')}>
-    <div className="lr-tabs" role="tablist" aria-label={t('Travel service')}>{tabs.map(([label, icon], index) => <button key={label} type="button" role="tab" id={`lr-tab-${index}`} aria-selected={active === index} aria-controls="lr-search-fields" tabIndex={active === index ? 0 : -1} className={active === index ? 'lr-red' : ''} onClick={() => setActive(index)} onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3; setActive(next); event.currentTarget.parentElement.children[next].focus() } }}><LandingIcon name={icon}/><span>{t(label)}</span></button>)}</div>
+    <div className="lr-tabs" role="tablist" aria-label={t('Travel service')}>{tabs.map(([label, icon], index) => <button key={label} type="button" role="tab" id={`lr-tab-${index}`} aria-selected={active === index} aria-controls="lr-search-fields" tabIndex={active === index ? 0 : -1} className={active === index ? 'lr-red lr-glass-red' : 'lr-glass-neutral'} onClick={() => setActive(index)} onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3; setActive(next); event.currentTarget.parentElement.children[next].focus() } }}><LandingIcon name={icon}/><span>{t(label)}</span></button>)}</div>
     <form id="lr-search-fields" role="tabpanel" aria-labelledby={`lr-tab-${active}`} onSubmit={search}>
       <label className="lr-field"><span>{t('Pickup location')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="pickup" value={pickup} onChange={event => setPickup(event.target.value)} placeholder={t('e.g. Jaffna')} maxLength={100} required={!active} autoComplete="off"/><button type="button" aria-label={t('Swap pickup and destination')} onClick={() => { setPickup(destination); setDestination(pickup) }}><LandingIcon name="swap" size={16}/></button></span></label>
       <label className="lr-field"><span>{t('Destination')}</span><span className="lr-field-input"><LandingIcon name="pin" size={22}/><input name="destination" value={destination} onChange={event => setDestination(event.target.value)} placeholder={t('e.g. Colombo')} maxLength={100} required={!active} autoComplete="off"/></span></label>
@@ -88,7 +89,7 @@ function JourneySearch({ unavailable }) {
         <input ref={dateRef} className="lr-date-native" form="lr-date-selection" name="departure" type="datetime-local" min={earliestDeparture} required value={departure} aria-labelledby="lr-date-label lr-date-value" disabled={!!active}
           onClick={event => { try { event.currentTarget.showPicker?.() } catch { /* the native picker is optional */ } }}
           onChange={event => { setDeparture(event.target.value); const input = event.currentTarget; if (event.target.value) requestAnimationFrame(() => input.blur()) }}/></div></div>
-      <button type="submit" className="lr-pill lr-red lr-search-submit"><LandingIcon name="search"/>{t('Search')}<LandingIcon name="arrow"/></button>
+      <button type="submit" className="lr-pill lr-red lr-glass-red lr-search-submit"><LandingIcon name="search"/>{t('Search')}<LandingIcon name="arrow"/></button>
     </form>
   </section>
 }
@@ -131,7 +132,7 @@ function LandingPage({ role }) {
   return <div className={`lr-page lr-${role}`}>
     <LandingHeader role={role}/>
     <main id="main">
-      <section className="lr-hero"><div className="lr-hero-art" aria-hidden="true"><img className="lr-hero-scene" {...artworkSources(heroArtwork[role])} sizes="100vw" alt="" fetchPriority="high"/></div><div className="lr-hero-copy"><h1>{role === 'owner' && getLanguage() === 'en' ? ['Your fleet.', 'More possibilities.'].map((line, index) => <React.Fragment key={line}>{index > 0 && ' '}<span className="lr-title-line">{line}</span></React.Fragment>) : t(data.title)}</h1><p className="lr-description">{t(data.description)}</p><div className="lr-hero-actions"><Action to={role === 'home' ? '#search' : register} className="lr-pill lr-red">{t(data.primary)}<LandingIcon name="arrow"/></Action><Link to={role === 'home' ? register : login} className="lr-pill lr-light"><LandingIcon name="user"/>{t(data.secondary)}</Link></div>{role === 'home' ? <p className="lr-hero-helper">{t('Already have an account?')} <Link to={login}>{t('Sign in')}</Link></p> : <p className="lr-hero-helper">{t(data.helper)}</p>}</div>{role === 'home' && <JourneySearch unavailable={unavailable}/>}</section>
+      <section className="lr-hero"><div className="lr-hero-art" aria-hidden="true"><img className="lr-hero-scene" {...artworkSources(heroArtwork[role])} sizes="100vw" alt="" fetchPriority="high"/></div><div className="lr-hero-copy"><h1>{role === 'owner' && getLanguage() === 'en' ? ['Your fleet.', 'More possibilities.'].map((line, index) => <React.Fragment key={line}>{index > 0 && ' '}<span className="lr-title-line">{line}</span></React.Fragment>) : t(data.title)}</h1><p className="lr-description">{t(data.description)}</p><div className="lr-hero-actions"><Action to={role === 'home' ? '#search' : register} className="lr-pill lr-red lr-glass-red">{t(data.primary)}<LandingIcon name="arrow"/></Action><Link to={role === 'home' ? register : login} className="lr-pill lr-light lr-glass-neutral"><LandingIcon name="user"/>{t(data.secondary)}</Link></div>{role === 'home' ? <p className="lr-hero-helper">{t('Already have an account?')} <Link to={login}>{t('Sign in')}</Link></p> : <p className="lr-hero-helper">{t(data.helper)}</p>}</div>{role === 'home' && <JourneySearch unavailable={unavailable}/>}</section>
       <div className="lr-content">
         <section className="lr-first-section"><h2>{t(data.firstHeading)}</h2><Cards items={data.firstCards} kind="first" unavailable={unavailable}/></section>
         <section className="lr-second-section"><h2>{t(data.secondHeading)}</h2><Cards items={data.secondCards} kind="second" unavailable={unavailable}/></section>
@@ -139,10 +140,10 @@ function LandingPage({ role }) {
         <Steps data={data} role={role}/>
         {role !== 'owner' && <Features data={data} unavailable={unavailable}/>}
         <section className="lr-faq" id="faq"><h2>{t(data.faqHeading)}</h2><div className="lr-faq-list">{data.faq.map(([question, answer]) => <FaqItem key={question} question={question} answer={answer}/>)}</div></section>
-        <section className="lr-cta lr-glass"><h2>{t(data.cta)}</h2><div><Link className="lr-pill lr-red" to={register}><LandingIcon name={role === 'driver' ? 'steering' : role === 'owner' ? 'car' : 'users'}/>{t(data.ctaPrimary)}<LandingIcon name="arrow"/></Link><Link className="lr-pill lr-light" to={login}><LandingIcon name="user"/>{t(data.ctaSecondary)}</Link></div></section>
+        <section className="lr-cta lr-glass"><h2>{t(data.cta)}</h2><div><Link className="lr-pill lr-red lr-glass-red" to={register}><LandingIcon name={role === 'driver' ? 'steering' : role === 'owner' ? 'car' : 'users'}/>{t(data.ctaPrimary)}<LandingIcon name="arrow"/></Link><Link className="lr-pill lr-light lr-glass-neutral" to={login}><LandingIcon name="user"/>{t(data.ctaSecondary)}</Link></div></section>
       </div>
     </main>
-    <footer className="lr-footer"><Link to="/" aria-label={t('Travelly Home')}><img src={`${brandAssets}${role === 'driver' ? 'driver' : 'standard'}-logo.png`} alt={t('Travelly')} width="175" height="39"/></Link><nav aria-label={t('Footer navigation')}>{['Help', 'Terms', 'Privacy', 'Contact'].map(label => <Action key={label} to={label === 'Help' ? '#faq' : 'notice:policy'} onUnavailable={unavailable}>{t(label)}</Action>)}</nav></footer>
+    <footer className="lr-footer"><div className="site-header lr-footer-brand"><Brand/></div><nav aria-label={t('Footer navigation')}>{['Help', 'Terms', 'Privacy', 'Contact'].map(label => <Action key={label} to={label === 'Help' ? '#faq' : 'notice:policy'} onUnavailable={unavailable}>{t(label)}</Action>)}</nav></footer>
   </div>
 }
 

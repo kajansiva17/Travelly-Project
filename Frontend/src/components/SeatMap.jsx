@@ -1,3 +1,4 @@
+import { BRAND_RED } from './brandColor.js'
 import { t } from '../i18n/language.js'
 import {useLayoutEffect,useRef,useState} from 'react'
 import '../styles/ticketSeats.css'
@@ -74,7 +75,7 @@ function VehicleArt({W,H,driverX}){
     <ellipse cx="34" cy="62" rx="9" ry="5" transform="rotate(-48 34 62)" fill="url(#vh)" stroke="#b58a12" strokeWidth="1.2"/>
     <ellipse cx={W-34} cy="62" rx="9" ry="5" transform={`rotate(48 ${W-34} 62)`} fill="url(#vh)" stroke="#b58a12" strokeWidth="1.2"/>
     <rect x="4" y="80" width="14" height="10" rx="5" fill="#5d6570"/><rect x={W-18} y="80" width="14" height="10" rx="5" fill="#5d6570"/>
-    <rect x="26" y={H-18} width="22" height="8" rx="3" fill="#d94343" stroke="#8f1d1d"/><rect x={W-48} y={H-18} width="22" height="8" rx="3" fill="#d94343" stroke="#8f1d1d"/>
+    <rect x="26" y={H-18} width="22" height="8" rx="3" fill={BRAND_RED} stroke={BRAND_RED}/><rect x={W-48} y={H-18} width="22" height="8" rx="3" fill={BRAND_RED} stroke={BRAND_RED}/>
     <rect x="62" y={H-16} width={W-124} height="6" rx="3" fill="#a9afb8"/>
   </svg>
 }

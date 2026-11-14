@@ -1,3 +1,4 @@
+import { BRAND_RED } from '../../components/brandColor.js'
 /* Live trip map data (contract 03O, sections 5 and C): points, the road line and the vehicle position, as the map draws them.
    The API sends latitude and longitude as strings and the road line as [lng, lat] pairs; Leaflet wants numbers and [lat, lng]. */
 const num=value=>{const n=Number(value);return value===null||value===undefined||value===''||!Number.isFinite(n)?null:n}
@@ -10,7 +11,7 @@ export function routeLine(data){
   if(line.length>=2)return {latlngs:line,straight:false}
   return {latlngs:routePoints(data).map(point=>point.latlng),straight:true}
 }
-export const POINT_COLORS={START:'#1a9d4a',END:'#d11a2a',STOP:'#7b8499'}
+export const POINT_COLORS={START:'#1a9d4a',END:BRAND_RED,STOP:'#7b8499'}
 export const pointColor=kind=>POINT_COLORS[kind]||POINT_COLORS.STOP
 export const positionLatLng=position=>position?pointLatLng(position):null
 // Polling GET /trips/{id} stops once the trip has ended.
@@ -31,7 +32,7 @@ export function boundsOf(latlngs){
 }
 // Alerts on the map: only those with a usable position.
 export const alertMarkers=items=>(items||[]).map(item=>({id:item.id,type:item.alert_type,status:item.status,latlng:pointLatLng(item)})).filter(item=>item.id&&item.latlng)
-export const ALERT_COLORS={POLICE_PRESENCE:'#2f6fe4',SPEED_CHECK:'#7c4dff',ACCIDENT:'#d11a2a',ROADBLOCK:'#e07b00',ROAD_HAZARD:'#c9a100'}
+export const ALERT_COLORS={POLICE_PRESENCE:'#2f6fe4',SPEED_CHECK:'#7c4dff',ACCIDENT:BRAND_RED,ROADBLOCK:'#e07b00',ROAD_HAZARD:'#c9a100'}
 export const alertColor=type=>ALERT_COLORS[type]||'#e07b00'
 // The route as text for the fallback when the map pictures cannot be loaded: first and last point.
 export function routeText(data){

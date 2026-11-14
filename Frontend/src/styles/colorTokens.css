@@ -1,6 +1,18 @@
-/* Find a ride's original red (#d32c50). Define its channels only once so solid
-   accents and translucent button backgrounds cannot use different base reds. */
+/* THE ONE BRAND RED: the red of the "ly" in the Travelly logo (wordmark.png, flat fill rgb(242 13 24) = #f20d18).
+   Every red in the app comes from this variable. The only allowed variation is the same colour at a lower alpha
+   (rgb(var(--brand-red-rgb) / a)). Do not write another red hex/rgb/hsl, and no darker, lighter or hue-shifted reds. Imported first in App.jsx. */
 :root {
-  --primary-red-rgb: 211 44 80;
-  --primary-red: rgb(var(--primary-red-rgb));
+  --brand-red: #f20d18;
+  --brand-red-rgb: 242 13 24;
+  /* same colour, lower alpha only */
+  --brand-red-tint: rgb(var(--brand-red-rgb) / .1);       /* soft fill: selected rows, error panels */
+  --brand-red-border: rgb(var(--brand-red-rgb) / .35);    /* thin border on a tint */
+  --brand-red-glass: rgb(var(--brand-red-rgb) / .3);      /* red glass fill over a white base */
+  --brand-red-shadow: rgb(var(--brand-red-rgb) / .3);     /* soft shadow under red controls */
+  --brand-red-focus: rgb(var(--brand-red-rgb) / .35);     /* focus halo */
+  --brand-red-gradient: linear-gradient(var(--brand-red), var(--brand-red));   /* flat, kept so background-image rules keep working */
+
+  /* older names kept as aliases */
+  --primary-red-rgb: var(--brand-red-rgb);
+  --primary-red: var(--brand-red);
 }

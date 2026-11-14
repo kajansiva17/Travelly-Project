@@ -11,16 +11,16 @@
   --ui-placeholder: #7d8fa8;
 
   /* Brand */
-  --ui-red-top: #ff4a3c;
-  --ui-red: #ed2b18;
-  --ui-red-bottom: #d90f0a;
-  --ui-red-text: #e8231a;
+  --ui-red-top: var(--brand-red);
+  --ui-red: var(--brand-red);
+  --ui-red-bottom: var(--brand-red);
+  --ui-red-text: var(--brand-red);
   --ui-blue: #2f6fe4;
   --ui-blue-deep: #1f3fa8;
   --ui-green: #3fb950;
   --ui-green-soft: #dff3e2;
   --ui-info-soft: #e3efff;
-  --ui-badge: #f11e00;
+  --ui-badge: var(--brand-red);
   --ui-disabled: #848c9e;
 
   /* Glass surfaces */
@@ -37,7 +37,7 @@
   --ui-input-bg: #edf3f9;
   --ui-input-border: #cfe0f0;
   --ui-input-auth-bg: #e8eaf2;
-  --ui-focus: var(--ui-blue);
+  --ui-focus: var(--brand-red);
 
   /* Radius */
   --ui-radius-card: 26px;
@@ -48,10 +48,10 @@
 
   /* Shadows */
   --ui-shadow-card: inset 0 1px 8px rgb(255 255 255 / .9), 0 8px 24px rgb(40 80 120 / .18);
-  --ui-shadow-button: inset 0 1px 1px rgb(255 255 255 / .5), 0 6px 14px rgb(217 15 10 / .3);
+  --ui-shadow-button: inset 0 1px 1px rgb(255 255 255 / .5), 0 6px 14px rgb(var(--brand-red-rgb) / .3);
 
   /* Gradients */
-  --ui-red-gradient: linear-gradient(180deg, var(--ui-red-top), var(--ui-red) 55%, var(--ui-red-bottom));
+  --ui-red-gradient: var(--brand-red-gradient);
 
   /* Backgrounds (photos from public/images/travelly) */
   --ui-scenic: url('/images/travelly/heroes/travelly-dashboard-sigiriya-background.png');

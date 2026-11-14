@@ -7,7 +7,7 @@ export const heroArtwork = {
   owner: 'owner/hero-fleet-depot',
 }
 export const cardArtwork = {
-  'home-hire': 'home/card-vehicle-hire-family',
+  'home-hire': 'home/card-vehicle-hire-route.svg',
   'home-tickets': 'home/card-bus-van-tickets',
   'home-rentals': 'home/card-rental-key-handover',
   'home-airport': 'home/card-airport-pickup',
@@ -32,6 +32,8 @@ export const cardArtwork = {
 export function artworkSources(file) {
   const [role, name] = file.split('/')
   const hero = name.startsWith('hero-')
+  // Vector artwork (1536 x 1024 viewBox, same 3:2 ratio as the PNG cards) has no responsive raster sizes.
+  if (name.endsWith('.svg')) return { src: `${landingArtwork}${file}`, width: 1536, height: 1024 }
   return {
     src: `${landingArtwork}${file}.png`,
     srcSet: `${landingArtwork}${role}/responsive/${name}-768w.png 768w, ${landingArtwork}${file}.png ${hero ? 1672 : 1536}w`,

@@ -2,14 +2,14 @@
    This final, operational-only layer does not affect Passenger or public pages. */
 body .workspace-shell {
  --workspace-sidebar-width:clamp(190px,13.1vw,240px);
- --primary-red:#ff4b60;--primary-red-rgb:255 75 96;
+ 
  background:url('/images/travelly/heroes/passenger-hero-1920.webp') center bottom / auto 125dvh fixed #03152d;
 }
 body .workspace-shell[data-workspace="driver"] {background-image:url('/images/travelly/heroes/cta-landscape-1920.webp');background-size:cover;}
 body .workspace-shell .workspace-header .navigation {gap:clamp(12px,1.8vw,30px);font-size:14px;flex:1;justify-content:space-between;min-width:0;}
 body .workspace-shell[data-workspace] .workspace-header .navigation {justify-content:flex-end;gap:24px;}
 body .workspace-shell .workspace-header .navigation>a {display:inline-flex;align-items:center;gap:7px;}
-body .workspace-shell .workspace-header .nav-reels svg {color:#ff5969;}
+body .workspace-shell .workspace-header .nav-reels svg {color:var(--brand-red);}
 body .workspace-shell .workspace-profile {padding-left:18px;border-left:1px solid #9bc6ff55;flex:none;}
 body .workspace-shell .workspace-profile-name {max-width:130px;}
 body .workspace-shell .workspace-profile-name strong {font-size:13px;}
@@ -18,7 +18,7 @@ body .workspace-shell .dashboard-avatar {border-radius:50%;border:2px solid #d6e
 /* Decorative bars are not operational statistics. */
 body .workspace-shell .workspace-card-heading {border:0;padding:0;margin:0 0 10px;gap:8px;}
 body .workspace-shell .workspace-card-heading h2 {font-size:clamp(16px,1.25vw,22px);font-weight:700;}
-body .workspace-shell .workspace-card-heading h2>svg {color:#ff6575;width:29px;height:29px;}
+body .workspace-shell .workspace-card-heading h2>svg {color:var(--brand-red);width:29px;height:29px;}
 body .workspace-shell .workspace-card-heading>div>p {color:var(--ui-text);font-size:11px;}
 body .workspace-shell .workspace-card-heading>a {font-size:11px;min-height:30px;}
 body .workspace-shell .reference-platform-map {flex:1;min-height:390px;}

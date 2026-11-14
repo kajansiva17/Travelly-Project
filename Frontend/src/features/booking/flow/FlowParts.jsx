@@ -40,7 +40,7 @@ export function FlowShell({ title, subtitle, icon = 'calendar', info, tabs, step
   useStandaloneFlow()
   const body = card
     ? <section className="flow-card ui-card">
-        <header className="flow-card-head"><span className="flow-card-icon"><Icon name={icon} size={26} aria-hidden="true"/></span><div><h2>{title}{info && <InfoTip>{info}</InfoTip>}</h2>{subtitle && <p>{subtitle}</p>}</div></header>
+        <header className="flow-card-head"><span className="flow-card-icon"><Icon name={icon} size={26} aria-hidden="true"/></span><div><h2>{t(title)}{info && <InfoTip>{info}</InfoTip>}</h2>{subtitle && <p>{t(subtitle)}</p>}</div></header>
         {children}
       </section>
     : children
@@ -68,7 +68,7 @@ export function StateCard({ icon = 'shield', title, children, actions, busy = fa
 
 /* Tiles for choosing a service. items: [{ id, icon, title, description, badge, selected, onChoose }] */
 export function ServiceChoice({ items }) {
-  return <div className="flow-service-grid" style={{ '--tiles': items.length % 4 === 0 ? 4 : 3 }}>{items.map(item => <ServiceTile key={item.id} icon={item.icon} title={item.title} description={item.description} badge={item.badge} selected={item.selected} onClick={item.onChoose}/>)}</div>
+  return <div className="flow-service-grid" style={{ '--tiles': items.length % 4 === 0 ? 4 : 3 }}>{items.map(item => <ServiceTile key={item.id} icon={item.icon} title={item.title} description={item.description} badge={item.badge} disabled={item.disabled} selected={item.selected} onClick={item.onChoose}/>)}</div>
 }
 
 /* Two-or-more way toggle drawn as a segmented control (radio group). */

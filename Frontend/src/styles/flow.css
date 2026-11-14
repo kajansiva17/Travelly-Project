@@ -42,7 +42,7 @@ html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > l
   font: inherit; font-size: 15px; font-weight: 500; box-shadow: none;
 }
 html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) textarea { min-height: 76px; resize: vertical; }
-html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea):focus { outline: 0; border-color: var(--ui-focus); box-shadow: 0 0 0 2px rgb(47 111 228 / .28); }
+html body .flow-page :is(.travelly-field, .flow-grid-2 > label, .flow-grid-3 > label) :is(input, select, textarea):focus { outline: 0; border-color: var(--ui-focus); box-shadow: 0 0 0 2px var(--brand-red-focus); }
 
 /* Segmented choice (One way / Return, One day / Multi-day). */
 html body .flow-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -67,7 +67,7 @@ html body .flow-page a.ui-button { text-decoration: none; }
 
 /* Service choice grid. */
 html body .flow-service-grid { display: grid; grid-template-columns: repeat(var(--tiles, 3), minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; }
-html body .flow-service-grid > .ui-tile, html body .travel-service-tiles > .ui-tile { min-height: clamp(84px, 15vh, 140px); width: 100%; box-sizing: border-box; }
+html body .flow-service-grid > .ui-tile { min-height: clamp(84px, 15vh, 140px); width: 100%; box-sizing: border-box; }
 @media (max-width: 1100px) { html body .flow-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { html body .flow-service-grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -90,7 +90,7 @@ html body .flow-summary-empty { margin: 0; font-size: 13px; color: var(--ui-mute
 
 /* Vehicle cards (matching list and selected vehicle). */
 html body .flow-vehicle { display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr); gap: 14px; padding: 12px; align-items: stretch; }
-html body .flow-vehicle.is-selected { border-color: #ee3a2a; }
+html body .flow-vehicle.is-selected { border-color: var(--brand-red); }
 html body .flow-vehicle-photo { position: relative; display: grid; place-items: center; min-height: 140px; border-radius: 16px; overflow: hidden; background: #e7eef6; color: var(--ui-blue-deep); }
 html body .flow-vehicle-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 html body .flow-vehicle-badge { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--ui-green); color: #fff; font-size: 12px; font-weight: 700; }
@@ -282,7 +282,7 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-form-host[hidden], html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .wizard-pane[hidden] { display: none; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button { min-height: 32px; padding: 2px 14px; border-radius: 999px; background: var(--ui-glass-strong); border: 1px solid var(--ui-glass-border); color: var(--ui-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button[aria-pressed="true"] { background: #fff0ee; border-color: #ee3a2a; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button[aria-pressed="true"] { background: var(--brand-red-tint); border-color: var(--brand-red); }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane { display: grid; gap: 8px; align-content: start; background: none; border: 0; padding: 0; box-shadow: none; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > h2, html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-preview-pane > p:first-of-type { display: none; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-row-actions { justify-content: flex-start; gap: 4px 14px; }
@@ -451,7 +451,7 @@ html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page
 
 /* Field errors float under the control so they never change the step's height. */
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field { position: relative; }
-html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: #fff0ee; border: 1px solid #f3a9a1; color: #a3160c; font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-field > .field-error { position: absolute; z-index: 8; left: 4px; top: calc(100% - 8px); max-width: 94%; padding: 2px 8px; border-radius: 8px; background: var(--brand-red-tint); border: 1px solid var(--brand-red-border); color: var(--brand-red); font-size: 11.5px; line-height: 1.3; box-shadow: 0 4px 10px rgb(40 80 120 / .18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 @media (max-height: 640px) {
   html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page:has(.flow-stepper) .flow-card-head { display: none; }
 }
@@ -518,7 +518,7 @@ html body .create-row form fieldset > button { min-height: 44px; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; }
 html body .cal-day { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 6px 8px; border-radius: 14px; background: rgb(255 255 255 / .62); border: 1px solid rgb(255 255 255 / .9); color: var(--ui-ink); }
 html body .cal-day > strong { font-size: 13px; font-weight: 700; color: var(--ui-ink); white-space: nowrap; }
-html body .cal-day.is-today { border-color: #ee3a2a; background: #fff0ee; }
+html body .cal-day.is-today { border-color: var(--brand-red); background: var(--brand-red-tint); }
 html body .cal-day.is-today > strong { color: var(--ui-red-text); }
 html body .cal-free { font-size: 11.5px; color: var(--ui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html body .cal-chip { display: block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #e6f0ff; color: #1f3fa8; border: 1px solid #b8d2ff; }
@@ -728,8 +728,6 @@ html body .flow-page .state-card { align-items: center; justify-content: center;
 html body .flow-page .state-card h1 { margin: 0; font-size: 1.3em; }
 html body .flow-page .state-card p { margin: 0; line-height: 1.4; }
 html body .flow-page .state-card .state-card-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
-html body .flow-page .travel-service-label { display: flex; align-items: center; gap: 10px; }
-html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
 
 /* Very short windows (1280x585): the busiest dashboard tiles tighten so their content never clips. */
 @media (max-height: 640px) {
@@ -754,3 +752,17 @@ html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
 html body .flow-stepper .ui-step { min-width: 0; }
 html body .flow-stepper .ui-step-button { min-width: 0; }
 html body .flow-stepper .ui-step + .ui-step::before { flex: 1 1 14px; }
+
+/* ---- Step 1 "Choose your service": one screen, no scroll. The 3 x 2 grid shares the free height (cards capped, never huge); on phones it is one column and the page scrolls ---- */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card:has(.flow-service-grid) { display: flex; flex-direction: column; }
+html body .flow-card .flow-service-grid { flex: 1 1 auto; min-height: 0; align-content: center; grid-auto-rows: minmax(84px, 190px); }
+html body .flow-service-grid > .ui-tile { min-height: 0; height: 100%; }
+html body .flow-service-grid .ui-tile-text { overflow-wrap: anywhere; }
+html body .flow-service-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 0; padding: 4px 4px 0; font-size: 13px; color: var(--ui-text); }
+html body .flow-service-note:empty { display: none; }
+html body .flow-service-note .inline-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--ui-blue-deep); text-decoration: underline; cursor: pointer; }
+/* an unavailable card is muted, not clickable and never shows the selected look */
+html body .ui-tile.ui-tile-disabled { opacity: .62; cursor: not-allowed; filter: grayscale(.35); border-color: var(--ui-input-border); background: var(--ui-glass-soft); box-shadow: none; }
+html body .ui-tile.ui-tile-disabled:hover { transform: none; }
+@media (max-width: 560px) { html body .flow-card .flow-service-grid { align-content: start; grid-auto-rows: auto; } html body .flow-service-grid > .ui-tile { min-height: 84px; } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > :is(.flow-service-grid, .flow-service-note) { max-width: none !important; }
