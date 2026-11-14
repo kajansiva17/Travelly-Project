@@ -7,6 +7,8 @@ Settings live in service_types.settings (no new table):
     payment_provider     'SANDBOX' or 'PAYHERE' (PAYHERE only when its credentials are configured)
     commission_percent   '0.00'..'100.00', Travelly's share of each payment
     gateway_fee_percent  '0.00'..'100.00', the Sandbox fee; a real provider reports its own fee instead
+    multi_day_commission_percent  Long-distance services only (owner decision 14 November 2026): the commission for a booking of two or
+                         more service days (24-hour blocks counted from pickup, the same days the price uses). Missing = the normal percent.
 Unset settings mean Sandbox with 0% commission and 0% fee.
 """
 import hashlib
@@ -38,14 +40,28 @@ def payment_settings(service):
     settings = (service.settings or {}) if service else {}
     return {'payment_provider': settings.get('payment_provider') or 'SANDBOX',
             'commission_percent': format(percent(settings, 'commission_percent'), '.2f'),
-            'gateway_fee_percent': format(percent(settings, 'gateway_fee_percent'), '.2f')}
+            'gateway_fee_percent': format(percent(settings, 'gateway_fee_percent'), '.2f'),
+            'multi_day_commission_percent': None if settings.get('multi_day_commission_percent') is None
+            else format(percent(settings, 'multi_day_commission_percent'), '.2f')}
 
 
-def split(amount, service, provider_fee=None):
+def service_days(booking):
+    """Service days of a private hire: the 24-hour blocks from pickup that the price is built on (never calendar dates)."""
+    hours = ((getattr(booking, 'itinerary_snapshot', None) or {}).get('itinerary') or {}).get('service_hours')
+    return len(hours) if isinstance(hours, list) and hours else 1
+
+
+def commission_rate(settings, days=1):
+    if days >= 2 and (settings or {}).get('multi_day_commission_percent') is not None:
+        return percent(settings, 'multi_day_commission_percent')
+    return percent(settings, 'commission_percent')
+
+
+def split(amount, service, provider_fee=None, days=1):
     """Return (commission, gateway_fee, owner_net). Each is rounded once to cents; the Owner absorbs the fee."""
     settings = (service.settings or {}) if service else {}
     amount = money(amount)
-    commission = money(amount * percent(settings, 'commission_percent') / HUNDRED)
+    commission = money(amount * commission_rate(settings, days) / HUNDRED)
     fee = money(provider_fee) if provider_fee is not None else money(amount * percent(settings, 'gateway_fee_percent') / HUNDRED)
     net = amount - commission - fee
     return commission, fee, max(net, ZERO)

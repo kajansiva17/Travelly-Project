@@ -57,10 +57,13 @@ class PaymentSettings(Strict):
     payment_provider: Literal['SANDBOX', 'PAYHERE']
     commission_percent: str
     gateway_fee_percent: str
+    multi_day_commission_percent: Optional[str] = None
 
-    @field_validator('commission_percent', 'gateway_fee_percent')
+    @field_validator('commission_percent', 'gateway_fee_percent', 'multi_day_commission_percent')
     @classmethod
     def valid_percent(cls, value):
+        if value is None:
+            return value
         if not isinstance(value, str) or not re.fullmatch(r'[0-9]{1,3}(\.[0-9]{1,2})?', value) or Decimal(value) > 100:
             raise ValueError('Enter a percentage from 0 to 100 with at most two decimal places.')
         return format(Decimal(value), '.2f')

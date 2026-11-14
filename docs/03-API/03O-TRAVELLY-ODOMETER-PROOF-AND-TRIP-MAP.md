@@ -198,8 +198,24 @@ Returns the caller's trips with status `IN_PROGRESS` (newest first, at most 20):
                "start_odometer_km": "45120.0", "tracking_status": "ACTIVE" } ] }
 ```
 
-- `kind`: `PRIVATE_HIRE` or `TICKET` (a published departure).
+- `kind`: `PRIVATE_HIRE`, `RENTAL` (self-drive, no map) or `TICKET` (a published departure).
 - `viewer_roles`: `DRIVER` = drives it, `OWNER` = operates it, `PASSENGER` = booked it / holds a seat.
 - Empty `items` = no card. Tap the card → open the live map screen for `trip_id` and load `GET /trips/{id}/map`.
 - The trip stays `IN_PROGRESS` on the server while the person goes back or to the dashboard. Poll this list when the
   dashboard opens (and about every 30 s while it is open).
+
+## Live position and status for the map — `GET /trips/{trip_id}` (14 Nov 2026)
+
+The live map screen polls this (about every 15–30 s while it is open) next to `GET /trips/{id}/map`. Same people as the map (Passenger, Owner, Driver of the trip, Admin). The fields the map uses:
+
+```json
+{ "id": "…", "status": "IN_PROGRESS", "tracking_status": "ACTIVE",
+  "location": { "latitude": "7.2906000", "longitude": "80.6337000", "accuracy_m": "12.0", "speed_kph": "46.0",
+                "updated_at": "2026-11-14T08:15:30+00:00" } }
+```
+
+- `status`: the trip status (`READY`, `IN_PROGRESS`, `BREAKDOWN`, `ASSISTANCE_REQUIRED`, `COMPLETED`, `CANCELLED`). The marker is live while the status is `IN_PROGRESS`, `BREAKDOWN` or `ASSISTANCE_REQUIRED`. Stop polling and drop it once the status is `COMPLETED` or `CANCELLED`.
+- `tracking_status`: `ACTIVE` (fresh), `STALE` (no recent update; show "last seen" with `updated_at`), or `OFF` / `ENDED` (no live position).
+- `location` is an object only while `tracking_status` is `ACTIVE` or `STALE` and a position exists. **Otherwise it is `null`** (trip not started, tracking off, completed or cancelled). The UI must handle `null`.
+- `latitude`, `longitude`, `accuracy_m` and `speed_kph` are **strings** (decimals); `accuracy_m` and `speed_kph` can be `null`. `updated_at` is an ISO timestamp.
+- The same response also carries the other trip fields (odometer readings, `pickup`, `version`, …) used elsewhere in this contract.
