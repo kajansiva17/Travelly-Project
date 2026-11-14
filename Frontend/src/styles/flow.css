@@ -754,3 +754,17 @@ html body .flow-page .travel-service-label .flow-pager { margin-left: auto; }
 html body .flow-stepper .ui-step { min-width: 0; }
 html body .flow-stepper .ui-step-button { min-width: 0; }
 html body .flow-stepper .ui-step + .ui-step::before { flex: 1 1 14px; }
+
+/* ---- Step 1 "Choose your service": one screen, no scroll. The 3 x 2 grid shares the free height (cards capped, never huge); on phones it is one column and the page scrolls ---- */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card:has(.flow-service-grid) { display: flex; flex-direction: column; }
+html body .flow-card .flow-service-grid { flex: 1 1 auto; min-height: 0; align-content: center; grid-auto-rows: minmax(84px, 190px); }
+html body .flow-service-grid > .ui-tile { min-height: 0; height: 100%; }
+html body .flow-service-grid .ui-tile-text { overflow-wrap: anywhere; }
+html body .flow-service-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 0; padding: 4px 4px 0; font-size: 13px; color: var(--ui-text); }
+html body .flow-service-note:empty { display: none; }
+html body .flow-service-note .inline-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--ui-blue-deep); text-decoration: underline; cursor: pointer; }
+/* an unavailable card is muted, not clickable and never shows the selected look */
+html body .ui-tile.ui-tile-disabled { opacity: .62; cursor: not-allowed; filter: grayscale(.35); border-color: var(--ui-input-border); background: var(--ui-glass-soft); box-shadow: none; }
+html body .ui-tile.ui-tile-disabled:hover { transform: none; }
+@media (max-width: 560px) { html body .flow-card .flow-service-grid { align-content: start; grid-auto-rows: auto; } html body .flow-service-grid > .ui-tile { min-height: 84px; } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > :is(.flow-service-grid, .flow-service-note) { max-width: none !important; }

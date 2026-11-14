@@ -218,3 +218,7 @@ html body .auth-page .journey-services svg { width: clamp(28px, 4.2vh, 38px); he
 html body .auth-page .journey-steps b { width: clamp(28px, 4vh, 34px); height: clamp(28px, 4vh, 34px); }
 html body .google-sign-in > div:empty { display: none; }
 html body .google-sign-in > div:not(:empty) { min-height: var(--ag-field); }
+/* Every public (non-workspace) navbar on phones and tablets: the links stay behind the menu button until it is opened */
+@media (max-width: 1023px) {
+  html body header.site-header.app-navbar.app-navbar.app-navbar.app-navbar:not(.workspace-header) .navigation:not(.open) { display: none; }
+}
