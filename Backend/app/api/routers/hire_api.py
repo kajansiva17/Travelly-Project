@@ -398,6 +398,8 @@ def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depend
     result = booking_summary(row)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
+    if result['trip']:
+        result['trip']['pickup'] = {'required': row.passenger_user_id != trip.driver_user_id}
     if row.booking_type == 'TICKET_HIRE':
         # The seats and Travellers of a ticket booking, for the Passenger who booked it and the Owner who runs it.
         from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
