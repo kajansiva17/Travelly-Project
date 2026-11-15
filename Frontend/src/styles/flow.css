@@ -559,6 +559,9 @@ html body .workspace-shell[data-workspace] .workspace-content table :is(thead, t
 /* ---------- Driver pages (Phase 6d) ---------- */
 html body .flow-page .flow-wizard-form form + form, html body .flow-page .flow-wizard-form form + div { margin-top: 0; }
 /* Booking details tabs: sections laid out in compact flowing rows */
+/* Booking pane: the div has BOTH flow-wizard-form AND booking-pane classes.
+   It must scroll internally so the footer (.flow-actions) is never overlapped. */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form.booking-pane { overflow-y: auto; padding-right: 2px; }
 html body .booking-pane:empty::before { content: 'Nothing to do here right now.'; color: var(--ui-muted); font-size: 14px; }
 html body .booking-pane .rate-preview, html body .booking-pane details.rate-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: rgb(255 255 255 / .55); border: 1px solid rgb(255 255 255 / .9); border-radius: 14px; }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .booking-pane .rate-preview > h2 { display: block; flex: 1 1 100%; margin: 0; font-size: 16px; }
