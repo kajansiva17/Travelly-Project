@@ -91,6 +91,7 @@ import AdminSocialPosts from './features/admin/AdminSocialPosts'
 import OwnerReport from './features/reports/OwnerReport'
 import AdminReport from './features/reports/AdminReport'
 import './styles/reports.css'
+import './styles/mobile.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()

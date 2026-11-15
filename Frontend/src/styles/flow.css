@@ -1035,3 +1035,10 @@ html body .flow-page .app-grid{display:grid;grid-template-columns:repeat(3,minma
 html body .flow-card .single-application{padding:0 !important;margin:0 !important;background:none !important;border:0 !important;box-shadow:none !important}
 html body .flow-card .single-application .single-application-replace{display:inline-flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.85rem;font-weight:600;width:auto}
 html body .flow-card .single-application .single-application-replace input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0;flex:none}
+
+/* The place-search button sits inside the field everywhere, not only in the wizard form */
+html body .place-input { position: relative; display: block; }
+html body .place-input > input { padding-right: 44px; }
+html body .place-find { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--ui-input-border); border-radius: 50%; background: #fff; color: var(--ui-blue); cursor: pointer; }
+html body .place-find:disabled { opacity: .45; cursor: not-allowed; }
+html body .place-find:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
