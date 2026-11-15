@@ -121,6 +121,7 @@ scheduled_trips_table = Table('scheduled_trips', Base.metadata,
     Column('final_operating_owner_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_scheduled_trips_final_operating_owner_user_id', ondelete='RESTRICT', onupdate='RESTRICT', deferrable=False), nullable=True),
     Column('committed_at', DateTime(timezone=True), nullable=True),
     Column('cancellation_reason', Text, nullable=True),
+    Column('archived_at', DateTime(timezone=True), nullable=True),
     CheckConstraint('estimated_arrival_at>departure_at', name='ck_scheduled_trips_01'),
     CheckConstraint('booking_cutoff_at<=departure_at', name='ck_scheduled_trips_02'),
     CheckConstraint('decision_deadline IS NULL OR decision_deadline<=departure_at', name='ck_scheduled_trips_03'),
@@ -182,6 +183,8 @@ bookings_table = Table('bookings', Base.metadata,
     Column('total_amount', Numeric(12,2), nullable=True),
     Column('currency', CHAR(3), nullable=False),
     Column('payment_status_snapshot', String(32), nullable=True),
+    Column('owner_hidden_at', DateTime(timezone=True), nullable=True),
+    Column('passenger_hidden_at', DateTime(timezone=True), nullable=True),
     Column('cancelled_by_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_bookings_cancelled_by_user_id', ondelete='RESTRICT', onupdate='RESTRICT', deferrable=False), nullable=True),
     Column('cancelled_at', DateTime(timezone=True), nullable=True),
     Column('cancellation_reason', Text, nullable=True),
@@ -419,3 +422,15 @@ class VehicleRecord(Base):
 
 class Notification(Base):
     __table__ = notifications_table
+
+
+favourite_vehicles_table = Table('favourite_vehicles', Base.metadata,
+    Column('id', UUID(as_uuid=True), nullable=False, server_default=text('gen_random_uuid()'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_favourite_vehicles_user_id', ondelete='CASCADE'), nullable=False),
+    Column('vehicle_id', UUID(as_uuid=True), ForeignKey('vehicles.id', name='fk_favourite_vehicles_vehicle_id', ondelete='CASCADE'), nullable=False),
+    Column('created_at', DateTime(timezone=True), nullable=False, server_default=text('now()')),
+    UniqueConstraint('user_id', 'vehicle_id', name='uq_favourite_vehicles_user_vehicle'),
+    Index('ix_favourite_vehicles_user', 'user_id', 'created_at'))
+
+class FavouriteVehicle(Base):
+    __table__ = favourite_vehicles_table

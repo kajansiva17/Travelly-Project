@@ -20,6 +20,7 @@ from app.api.routers.api import current, require_role, touch
 from app.api.routers.review_api import admin, locked_authority
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
+from app.services.route_times import with_times
 from app.models.hire_models import Route, RouteStop, ScheduledTrip
 from app.schemas.route_schemas import OwnerRouteIn, OwnerRouteStatus, OwnerRouteUpdate, RouteCreate, RoutePatch, StopsReplace
 
@@ -314,10 +315,11 @@ def owner_routes(user=Depends(current), db: Session = Depends(get_db)):
 
 
 @router.post('/owners/me/routes', status_code=201)
-def owner_create_route(body: OwnerRouteIn, user=Depends(current), db: Session = Depends(get_db)):
+def owner_create_route(body: OwnerRouteIn, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
     if any(s.id for s in body.stops):
         raise ApiError(422, 'VALIDATION_ERROR', 'New stops cannot carry an id.')
+    body = with_times(request.app.state.hire_routing, body)   # times come from the road route, not from the Owner
     validate_stops(body.stops)
     route = Route(route_code='R-' + uuid4().hex[:10].upper(), status='ACTIVE', created_by_owner_id=user.id,
                   approved_by=user.id, approved_at=datetime.now(timezone.utc),  # switched on by the Owner, not Admin-approved
@@ -331,18 +333,23 @@ def owner_create_route(body: OwnerRouteIn, user=Depends(current), db: Session = 
 
 
 @router.put('/owners/me/routes/{route_id}')
-def owner_update_route(route_id: UUID, body: OwnerRouteUpdate, user=Depends(current), db: Session = Depends(get_db)):
+def owner_update_route(route_id: UUID, body: OwnerRouteUpdate, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
-    validate_stops(body.stops)
     route = owned_route(db, route_id, user, body.expected_version)
     in_use = db.scalar(select(ScheduledTrip.id).where(ScheduledTrip.route_id == route.id, ScheduledTrip.status.in_(IN_USE)).limit(1))
     if in_use:
         current_stops = active_stops(db, route.id)
+        by_id = {str(s.id): s.scheduled_offset_minutes for s in current_stops}
+        body = body.model_copy(update={'stops': [s.model_copy(update={'scheduled_offset_minutes': by_id.get(str(s.id), 0)}) for s in body.stops]})   # times are not editable
+        validate_stops(body.stops)
         wanted = [(str(s.id) if s.id else None, s.stop_name, s.latitude, s.longitude, s.pickup_allowed, s.dropoff_allowed,
                    s.scheduled_offset_minutes, s.price_from_start) for s in body.stops]
         if wanted != stops_signature(current_stops, stop_fares(route)):
             raise ApiError(409, 'ROUTE_IN_USE', 'Stops and stop prices cannot change while a published departure uses this route. '
                                                 'Create a new route instead.')
+    if not in_use:
+        body = with_times(request.app.state.hire_routing, body)
+        validate_stops(body.stops)
     for name, value in owner_route_values(body).items():
         setattr(route, name, value)
     if not in_use:

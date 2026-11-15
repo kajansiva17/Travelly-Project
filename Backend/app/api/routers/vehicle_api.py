@@ -106,7 +106,8 @@ def details(db,request,user,row):
     applicable=row.verified_eligibility.get('conditional_documents',{})
     checklist=[{'type':t,'requirement':'Required'} for t in ('VEHICLE_REGISTRATION','INSURANCE','REVENUE_LICENCE')]
     checklist.append({'type':'OWNER_AUTHORISATION','requirement':'Required for your case' if declaration.get('registered_owner_case') in ('OTHER_PERSON','COMPANY') or row.verified_eligibility.get('authorisation_required') else 'Optional'})
-    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION','FITNESS'))
+    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION',))
+    checklist.append({'type':'FITNESS','requirement':'Optional — upload it only if you have one.'})
     checklist.append({'type':'ROUTE_PERMIT','requirement':'Optional — upload only if you have one. The system checks it; Admin does not review it.'})
     owner=db.get(User,row.owner_user_id)
     replacement=Document.__table__.alias('replacement')
@@ -135,6 +136,15 @@ def create_vehicle(body:VehicleCreate,request:Request,user=Depends(current),db:S
             'registration_number':body.registration_number,'public_reference':row.public_vehicle_reference},
             previous_status=None,new_status='DRAFT',previous_version=0,new_version=1,full_reason=None,previous_decision_evidence={},trace_id=request.state.trace_id)
     return summary(row)
+
+
+@router.get('/drivers/me/vehicles')
+def driver_vehicles(user=Depends(current),db:Session=Depends(get_db)):
+    """Vehicles this Driver is the preferred Driver of (for the Driver's Maintenance page; read-only)."""
+    require_role(db,user,'DRIVER')
+    rows=db.scalars(select(Vehicle).where(Vehicle.default_driver_user_id==user.id).order_by(Vehicle.created_at)).all()
+    return {'items':[{'id':str(r.id),'reference':r.public_vehicle_reference,'registration_number':str(r.registration_number),
+        'label':' '.join(str(x) for x in (r.make,r.model,r.registration_number) if x)} for r in rows]}
 
 
 @router.get('/owners/me/vehicles/{vehicle_id}')

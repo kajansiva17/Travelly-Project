@@ -100,6 +100,7 @@ export default function PassengerTicketBooking(){
   const toggle=s=>{if(s.bookable===false||!s.seat_id)return;setSelected(selected.includes(s.code)?selected.filter(x=>x!==s.code):[...selected,s.code])}
   // Each stop is optional on its own: no get-on stop = route start, no get-off stop = route end.
   const routeStops=departure?.stops||[]
+  const at=stop=>{const ms=Date.parse(departure?.departure_at)+(Number(stop?.scheduled_offset_minutes)||0)*60000;return Number.isFinite(ms)?' · '+t('about {value0}',{value0:new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Colombo'})}):''}   // arrival time at a stop: departure plus the time Travelly worked out from the road
   const onStop=routeStops.find(s=>s.id===stops.boarding)||routeStops[0]
   const offStop=routeStops.find(s=>s.id===stops.dropoff)||routeStops[routeStops.length-1]
   const stopsReady=!onStop||!offStop||onStop.stop_order<offStop.stop_order
@@ -176,9 +177,9 @@ export default function PassengerTicketBooking(){
         {routeStops.length>0&&!held&&<div className="tk-grid" style={{'--cols':1}}>
           <Field label="Where will you get on?" optional><select name="boarding" value={stops.boarding} onChange={e=>{const on=routeStops.find(s=>s.id===e.target.value),off=routeStops.find(s=>s.id===stops.dropoff)
               setStops({boarding:e.target.value,dropoff:on&&off&&off.stop_order<=on.stop_order?'':stops.dropoff})}}>
-            <option value="">{routeStops[0].stop_name} {t('(start)')}</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[0].stop_name} {t('(start)')}{at(routeStops[0])}</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}{at(s)}</option>)}</select></Field>
           <Field label="Where will you get off?" optional><select name="dropoff" value={stops.dropoff} onChange={e=>setStops({...stops,dropoff:e.target.value})}>
-            <option value="">{routeStops[routeStops.length-1].stop_name} {t('(end)')}</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[routeStops.length-1].stop_name} {t('(end)')}{at(routeStops[routeStops.length-1])}</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}{at(s)}</option>)}</select></Field>
         </div>}
         {!stopsReady&&<p className="tk-line is-warn" role="alert">{t('Choose a get-off stop after the stop where you get on.')}</p>}
         {fareBad&&<p className="tk-line is-warn" role="alert">{t('The Owner has no price for travel between these stops.')}</p>}

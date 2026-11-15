@@ -47,6 +47,7 @@ from app.api.routers.payment_api import router as payment_router
 from app.api.routers.refund_api import router as refund_router
 from app.api.routers.settlement_api import router as settlement_router
 from app.api.routers.vehicle_records_api import router as vehicle_records_router
+from app.api.routers.favourite_api import router as favourite_router
 from app.services.vehicle_media import VehiclePhotos
 from starlette.concurrency import run_in_threadpool
 
@@ -134,6 +135,8 @@ def create_app(settings=None, engine=None, store=None):
                 message = 'Enter a valid international mobile number with its country code.'
             fields.append({'field': '.'.join(str(x) for x in error['loc'] if x != 'body'),
                            'code': error['type'], 'message': message})
+        if request.url.path.startswith('/api/v1/search/'):   # where, never what: field names and error types only, so a developer can see the cause in the terminal
+            logging.getLogger('uvicorn.error').warning('validation failed on %s: %s', request.url.path, [(f['field'], f['code']) for f in fields])
         return error_response(request, ApiError(422, 'VALIDATION_ERROR', 'Request validation failed.', fields))
 
     @app.middleware('http')
@@ -157,7 +160,7 @@ def create_app(settings=None, engine=None, store=None):
                 query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles','/api/v1/routes','/api/v1/scheduled-trips')
                 if request.method == 'GET' and request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/admin/vehicles/')) and request.url.path.endswith('/calendar'):
                     query_route = True
-                if request.method == 'GET' and request.url.path == '/api/v1/bookings' and set(request.query_params) <= {'as'}:
+                if request.method == 'GET' and request.url.path == '/api/v1/bookings' and set(request.query_params) <= {'as', 'hidden'}:
                     query_route = True
                 if request.method == 'GET' and request.url.path == '/api/v1/admin/owner-settlements' and set(request.query_params) <= {'overdue'}:
                     query_route = True
@@ -250,6 +253,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(refund_router)
     app.include_router(settlement_router)
     app.include_router(vehicle_records_router)
+    app.include_router(favourite_router)
     from app.api.routers.calendar_api import router as calendar_router
     app.include_router(calendar_router)
     def contracted_openapi():

@@ -766,3 +766,258 @@ html body .ui-tile.ui-tile-disabled { opacity: .62; cursor: not-allowed; filter:
 html body .ui-tile.ui-tile-disabled:hover { transform: none; }
 @media (max-width: 560px) { html body .flow-card .flow-service-grid { align-content: start; grid-auto-rows: auto; } html body .flow-service-grid > .ui-tile { min-height: 84px; } }
 html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > :is(.flow-service-grid, .flow-service-note) { max-width: none !important; }
+
+/* Layout tidy (15 Nov 2026): list rows sit at the top with even gaps (a global card margin was spreading them out). */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows { align-content: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .vehicle-rows .trip-vehicle-card { margin: 0; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-card > .flow-wizard-form.create-row { flex: 0 0 auto; }
+
+/* Hire rate wizard, Area step: centre and distance side by side; route stops in three columns so adding a stop does not push the page into a scroll. */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-area { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 6px 12px; align-items: start; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-area > .rate-coverage-summary { grid-column: 1 / -1; margin: 0; font-size: 12px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-stops { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form .rate-stops { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Vehicle documents: a little more air between the checklist chips, the upload fields and the submitted list; fields share one baseline. */
+html body .doc-chips { margin: 2px 0 8px; gap: 6px 8px; }
+html body .flow-wizard-form > .rate-preview { padding-top: 0; margin-top: 0; }
+html body #evidence-form .rate-grid { align-items: end; gap: 8px 16px; }
+html body #evidence-form { margin-bottom: 8px; }
+html body #evidence-form .rate-field > label { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs { overflow: visible; align-content: flex-start; min-height: 0; height: auto; padding: 0; }
+
+/* Rate tabs wrap instead of scrolling sideways; the active tab has a small remove button; the help tip opens inside the card. */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs { flex-wrap: wrap; max-width: 100%; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .rate-tabs > button.rate-tab-remove { min-width: 32px; padding: 2px 8px; margin-left: -4px; color: var(--ui-red-text, #b3261e); }
+html body .rate-tabs .tabs-tip { order: -1; }
+html body .field-unit { font-weight: 600; color: var(--ui-text); font-size: 12px; }
+
+/* Field help tips: the label no longer clips its own tooltip (it was cut off by the label's ellipsis rule). */
+html body .flow-page .rate-field > label { overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.25; }
+
+/* Hire prices (one screen per hire type) */
+html body .hire-top { align-items: end; }
+html body .hire-pane { display: grid; gap: 10px; align-content: start; }
+html body .hire-fixed { display: grid; gap: 8px; }
+html body .hire-fixed-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px auto; gap: 8px 12px; align-items: end; }
+@media (max-width: 900px) { html body .hire-fixed-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+html body .hire-check { display: flex; align-items: center; min-height: 40px; }
+
+html body #evidence-form .rate-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; }
+html body #evidence-form .doc-note { margin: 6px 0; font-size: 12.5px; line-height: 1.35; font-weight: 400; color: var(--muted, #5b6470); }
+html body #evidence-form legend { font-size: 14px; }
+html body #evidence-form input, html body #evidence-form select { font-size: 13.5px; min-height: 34px; }
+html body #evidence-form .rate-field > label { font-size: 12.5px; }
+
+html body .submit-grid:has(> .submit-main:only-child) { grid-template-columns: minmax(0, 1fr); }
+html body .submit-grid .submit-main { padding: 14px 18px; gap: 10px; }
+html body .submit-grid .submit-main .pane-head { margin: 0; }
+html body .submit-grid .submit-main .doc-chips { margin: 0; }
+html body .submit-grid .submit-main .flow-note { margin: 0; font-size: 13px; }
+html body .submit-grid .submit-main .submit-prices-link { justify-self: start; font-size: 14px; font-weight: 600; color: var(--brand-red, #e11d2e); text-decoration: underline; }
+html body .submit-grid .submit-main > .rate-preview { margin: 0; padding: 0; min-height: 0; gap: 10px; display: grid; align-content: start; }
+html body .submit-grid .submit-main > .rate-preview > * { margin-top: 0; margin-bottom: 0; }
+
+html body .submit-grid { align-items: stretch; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+html body .submit-grid .submit-main, html body .submit-grid > .submit-next { align-content: start; }
+html body .submit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+html body .submit-item { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .62); border: 1px solid rgb(255 255 255 / .9); font-size: 14px; }
+html body .submit-item.is-danger { border-color: #f0b4b8; background: #fff3f3; }
+html body .submit-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: #e4e8ee; color: #4b5563; }
+html body .submit-item.is-success .submit-dot { background: #d9f3e3; color: #0b5d2a; }
+html body .submit-item.is-danger .submit-dot { background: #fbd5d8; color: #b4121f; }
+html body .submit-fix { min-height: 28px; padding: 2px 12px; border-radius: 999px; border: 1px solid #e11d2e; background: #fff; color: #e11d2e; font-weight: 600; font-size: 13px; text-decoration: none; cursor: pointer; }
+html body .next-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+html body .next-steps li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+html body .next-steps p { margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--ui-muted); }
+html body .next-steps strong { font-size: 14px; }
+html body .next-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #e11d2e; color: #fff; font-weight: 700; font-size: 13px; }
+html body .desc-grid { align-items: stretch; min-height: 240px; }
+html body .desc-card { display: grid; align-content: start; gap: 8px; padding: 14px 16px; }
+html body .desc-card .empty-state { min-height: 120px; justify-content: center; }
+html body .desc-card p { font-size: 15px; }
+html body .submit-list { width: 100%; justify-items: stretch; }
+html body .submit-item { width: 100%; box-sizing: border-box; }
+html body .submit-grid > .submit-next { padding: 14px 18px; border-radius: 16px; background: rgb(255 255 255 / .5); gap: 12px; }
+
+html body .flow-page .flow-wizard-form .vehicle-photo-card { grid-template-columns: 96px minmax(0, 1fr); }
+html body .flow-page .flow-wizard-form .vehicle-photo-card .vehicle-photo { width: 96px; height: 66px; }
+html body .flow-page .flow-wizard-form .vehicle-gallery { align-content: start; }
+
+html body .hire-area { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+html body .hire-how { padding: 14px 18px; border-radius: 16px; background: rgb(255 255 255 / .5); display: grid; gap: 12px; }
+@media (max-width: 900px) { html body .hire-area { grid-template-columns: minmax(0, 1fr); } }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form.hire-area { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; flex: 0 0 auto; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .hire-how { gap: 10px; padding: 12px 16px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .next-steps { gap: 8px; }
+
+html body .workspace-shell[data-workspace] .app-sidebar-menu { overflow-x: hidden; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar { --app-font: 13px; --app-row: 31px; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar-link, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar-link { line-height: 1.05; gap: 9px; padding: 0 10px; }
+html[lang="ta"] body .flow-page, html[lang="si"] body .flow-page { font-size: 13.5px; line-height: 1.25; }
+html[lang="ta"] body .flow-page .rate-field > label, html[lang="si"] body .flow-page .rate-field > label { font-size: 12.5px; line-height: 1.2; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .next-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+html[lang="ta"] body .flow-page .next-steps p, html[lang="si"] body .flow-page .next-steps p { font-size: 12px; line-height: 1.25; }
+html[lang="ta"] body .flow-page .submit-item, html[lang="si"] body .flow-page .submit-item { padding: 6px 10px; font-size: 13px; }
+html[lang="ta"] body .workspace-shell[data-workspace] .dash-page, html[lang="si"] body .workspace-shell[data-workspace] .dash-page { --d: clamp(9.5px, .9vh + 4.3px, 12.5px); line-height: 1.15; }
+html[lang="ta"] body .dash-page .dash-tile > header h3, html[lang="si"] body .dash-page .dash-tile > header h3 { font-size: 1.08em; }
+html[lang="ta"] body .dash-page .dash-hero h1, html[lang="si"] body .dash-page .dash-hero h1 { font-size: clamp(17px, 2.9vh, 28px); }
+
+/* Messages float over the card so they never push the page taller (no scroll when a save fails). */
+html body .flow-page .flow-card { position: relative; }
+html body .flow-page .flow-card .notice, html body .flow-page .flow-card .field-error { position: absolute; top: 6px; left: 10px; right: 10px; z-index: 30; margin: 0; padding: 7px 14px; font-size: 13px; line-height: 1.3; border-radius: 12px; box-shadow: 0 6px 18px rgb(20 30 60 / .22); max-height: 64px; overflow: auto; }
+html body .flow-page .flow-card .notice.success { animation: notice-fade 6s ease forwards; }
+@keyframes notice-fade { 0%, 80% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+html body .flow-page .flow-card .notice.error, html body .flow-page .flow-card .field-error { background: #fff1f1; border: 1px solid #f0a8ad; color: #a3111d; }
+html body .flow-page .flow-card .notice.success { background: #e9f8ee; border: 1px solid #8fd3a8; color: #0b5d2a; }
+html body .flow-page .flow-card .notice.error::after { content: ""; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar { --app-font: 12.5px; --app-row: 27px; --app-icon: 16px; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar-menu, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar-menu { gap: 0; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar-bottom, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar-bottom { gap: 0; padding-top: 4px; }
+html[lang="ta"] body .workspace-shell[data-workspace] .app-sidebar-link, html[lang="si"] body .workspace-shell[data-workspace] .app-sidebar-link { padding: 0 9px; gap: 8px; border-radius: 11px; }
+html[lang="ta"] body .flow-page .flow-wizard-form .rate-field > label, html[lang="si"] body .flow-page .flow-wizard-form .rate-field > label { font-size: 12px; line-height: 1.15; }
+html[lang="ta"] body .flow-page input, html[lang="ta"] body .flow-page select, html[lang="si"] body .flow-page input, html[lang="si"] body .flow-page select { font-size: 13px; }
+html body .flow-page .flow-card .notice, html body .flow-page .flow-card .field-error { box-sizing: border-box; width: auto; max-width: calc(100% - 20px); overflow-x: hidden; }
+html body .flow-page .flow-card { overflow-x: hidden; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-card { position: relative; overflow-x: hidden; }
+html body .flow-page .flow-card .notice, html body .flow-page .flow-card .field-error { width: auto !important; max-width: none !important; left: 10px !important; right: 10px !important; }
+html body .flow-page .flow-actions { overflow: hidden; flex-wrap: nowrap; min-width: 0; max-width: 100%; }
+html body .flow-page .flow-actions .ui-button { min-width: 0; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+html body .flow-page .flow-actions .footer-slot { min-width: 0; flex: 0 1 auto; overflow: hidden; }
+html[lang="ta"] body .flow-page .flow-actions .ui-button, html[lang="si"] body .flow-page .flow-actions .ui-button { font-size: 13px; padding: 4px 14px; min-height: 36px; }
+html body .workspace-shell[data-workspace] { overflow-x: hidden; }
+
+/* Hire prices: area on top, the 4-step help below in one row (fits Tamil/Sinhala too). */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .flow-wizard-form.hire-area { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .next-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .next-steps li { grid-template-columns: 26px minmax(0, 1fr); gap: 8px; }
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .hire-area .next-n { width: 24px; height: 24px; font-size: 12px; }
+html body .flow-page .hire-area .next-steps p { font-size: 12px; line-height: 1.25; }
+html body .flow-page .hire-area .hire-how { padding: 10px 14px; gap: 8px; }
+/* Tab bars never scroll sideways: tighter tabs in Tamil/Sinhala. */
+html[lang="ta"] body .ui-tab, html[lang="si"] body .ui-tab { font-size: 13px; padding: 4px 10px; min-height: 34px; gap: 5px; }
+html[lang="ta"] body .ui-tab > svg, html[lang="si"] body .ui-tab > svg { width: 16px; height: 16px; }
+html body .flow-tabs, html body .ui-tabs { overflow-x: hidden; }
+html body .flow-page .hire-area .hire-how { padding: 8px 14px; gap: 6px; }
+html[lang="ta"] body .flow-page .hire-top, html[lang="si"] body .flow-page .hire-top { margin-bottom: 0; }
+html[lang="ta"] body .flow-page .hire-area .rate-area, html[lang="si"] body .flow-page .hire-area .rate-area { padding-top: 6px; padding-bottom: 6px; }
+html[lang="ta"] body .flow-page .hire-area .hire-how, html[lang="si"] body .flow-page .hire-area .hire-how { padding: 6px 12px; gap: 4px; }
+
+/* Route form: one step line instead of a second stepper; "stops on the way" list under the end point. */
+html body .flow-page .tk-stepline { margin: 0 0 4px; font-size: 13px; color: var(--ui-muted); }
+html body .flow-page .tk-stepline strong { color: var(--ui-ink); }
+html body .flow-page .tk-mids { display: grid; gap: 6px; padding: 8px 12px; border-radius: 14px; background: rgb(255 255 255 / .5); }
+html body .flow-page .tk-mids ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+html body .flow-page .tk-mids li { display: flex; align-items: center; gap: 6px; }
+html body .flow-page .tk-mids li > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+html body .flow-page .tk-mids .ui-button { min-height: 28px; padding: 2px 10px; font-size: 12.5px; }
+html body .flow-page .tk-mids .tk-opt { font-weight: 400; color: var(--ui-muted); }
+html body .flow-page .tk-summary { font-weight: 700; color: var(--ui-ink); }
+html body .flow-page .tk-mids > .ui-button { justify-self: start; min-height: 30px; padding: 3px 14px; }
+html body .flow-page .tk-mids { gap: 4px; padding: 6px 12px; }
+html body .flow-page .tk-summary { margin: 0; }
+html body .flow-page .tk-preview { list-style: none; margin: auto 0 0; padding: 8px 12px; display: flex; align-items: center; gap: 0; border-radius: 14px; background: rgb(255 255 255 / .5); overflow: hidden; }
+html body .flow-page .tk-preview li { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 0 1 auto; font-size: 13px; font-weight: 700; color: var(--ui-ink); }
+html body .flow-page .tk-preview li + li::before { content: ""; width: 36px; height: 2px; margin: 0 8px; background: #e11d2e; opacity: .5; flex: none; }
+html body .flow-page .tk-dot { width: 10px; height: 10px; border-radius: 50%; background: #e11d2e; flex: none; }
+html body .flow-page .tk-preview li.is-end .tk-dot { width: 14px; height: 14px; box-shadow: 0 0 0 3px rgb(225 29 46 / .2); }
+html body .flow-page .tk-pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tk-pprice { font-weight: 500; color: var(--ui-muted); white-space: nowrap; }
+html body .flow-page .tk-pane > * { flex-shrink: 0; }
+html body .flow-page .tk-midchips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+html body .flow-page .tk-midchip { display: inline-flex; align-items: center; max-width: 220px; border-radius: 999px; background: #fff; border: 1px solid rgb(18 21 82 / .15); overflow: hidden; }
+html body .flow-page .tk-midname { border: 0; background: none; padding: 4px 4px 4px 12px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ui-ink); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html body .flow-page .tk-midx { border: 0; background: none; padding: 2px 10px 2px 6px; font-size: 16px; line-height: 1; color: #b4121f; cursor: pointer; }
+html body .flow-page .tk-midchips .tk-addmid { min-height: 30px; padding: 3px 14px; font-size: 13px; }
+html body .flow-page .tk-subbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+html body .flow-page .tk-subbar .tk-line { flex: 1; margin: 0; }
+html body .flow-page .tk-subbar .ui-button { min-height: 30px; padding: 3px 12px; font-size: 13px; }
+
+/* Finished departures: message line and footer buttons */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .tk-finished{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:var(--surface-soft,#f1f7f1);margin:0 0 6px;font-size:13px;line-height:1.3}
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .tk-foot-btns{display:inline-flex;gap:8px}
+html[lang="ta"] .tk-finished,html[lang="si"] .tk-finished{font-size:12px}
+
+/* Record icons: red icon on a light tile (was red on red, so only a red square showed) */
+body .workspace-record-icon{background:linear-gradient(#fff,#e7efef);border:1px solid #fff;color:var(--ui-red,#e10b17);box-shadow:0 3px 10px rgb(45 71 76 / .18)}
+
+/* Bookings page cards */
+html :is(body .workspace-shell[data-workspace], body.flow-standalone) .flow-page .bk-list{display:flex;flex-direction:column;gap:8px}
+.bk-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:linear-gradient(#ffffffd9,#ffffffa6);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12);text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s}
+.bk-card:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgb(45 71 76 / .2)}
+.bk-card.is-action{border-left:4px solid #e0a100}
+.bk-card.is-done{opacity:.78}
+.bk-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:linear-gradient(#fff,#e7efef);color:var(--ui-red,#e10b17);box-shadow:0 2px 8px rgb(45 71 76 / .16)}
+.bk-main{min-width:0;display:flex;flex-direction:column;gap:3px}
+.bk-main>strong{font-size:15px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-when,.bk-facts{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--ui-text)}
+.bk-when svg,.bk-facts svg{margin-right:4px;vertical-align:-2px}
+.bk-facts em{font-style:normal;font-weight:600;padding:1px 8px;border-radius:999px;background:#e9f0f8;font-size:11.5px}
+.bk-ref{opacity:.7;font-size:11px}
+.bk-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.bk-open{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--ui-red,#e10b17)}
+html[lang="ta"] .bk-main>strong,html[lang="si"] .bk-main>strong{font-size:14px}
+html[lang="ta"] .bk-when,html[lang="ta"] .bk-facts,html[lang="si"] .bk-when,html[lang="si"] .bk-facts{font-size:11.5px}
+
+/* Ticket booking view */
+.tb-view{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.tb-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(#ffffffd9,#ffffffa6);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12)}
+.tb-route{display:block;font-size:19px;line-height:1.25}
+.tb-when{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:13px}
+.tb-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tb-facts>div{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:#ffffffb3;border:1px solid #ffffffcc}
+.tb-facts span{font-size:12px;opacity:.75}.tb-facts strong{font-size:16px}
+.tb-people{padding:10px 14px;border-radius:12px;background:#ffffffb3;border:1px solid #ffffffcc}
+.tb-people h3{margin:0 0 6px;font-size:14px}
+.tb-people ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:150px;overflow:auto}
+.tb-people li{display:flex;align-items:center;gap:10px;font-size:14px}.tb-people li>span:first-of-type{flex:1;min-width:0}
+.tb-state{font-size:12px;opacity:.75}.tb-empty{margin:0;font-size:13px;opacity:.75}
+.bk-card{position:relative}
+.bk-link{position:absolute;inset:0;border-radius:14px;z-index:1}
+.bk-card>:not(.bk-link){position:relative}
+.bk-side{z-index:2}
+.bk-remove{padding:3px 10px;min-height:0;font-size:12px}
+.bk-card:focus-within{outline:2px solid var(--ui-red,#e10b17)}
+.nt-card{text-decoration:none}
+.nt-card .nt-main>strong{white-space:normal}
+.nt-body{font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Owner quote form: step by step like Hire prices, no scroll */
+.flow-card:has(.booking-pane:not([hidden]) .quote-wizard)>.flow-actions:not(:has(.wizard-nav)){display:none}
+.quote-wizard{display:flex;flex-direction:column;gap:6px;min-height:0}
+.quote-wizard .rate-prefilled{padding:4px 10px;margin:0;border-radius:10px}
+.quote-wizard .rate-prefilled h2{display:none}
+.quote-wizard .rate-prefilled p{margin:0;font-size:12.5px;line-height:1.35}
+.quote-wizard .rate-prefilled p:last-child{display:none}
+.quote-wizard .tk-stepline{margin:0;font-size:13px}
+.quote-wizard .rate-tabs{display:none}
+.quote-wizard>*{flex-shrink:0}
+html body .flow-page .quote-wizard .rate-tabs{display:none !important}
+html body .flow-page .quote-wizard fieldset{margin:0 !important;padding:6px 10px !important}
+html body .flow-page .quote-wizard .wizard-pane{gap:4px !important}
+.rate-locked-note{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:5px 10px;border-radius:8px;background:#eaf5ee;font-size:12.5px;line-height:1.3}
+.rate-locked-route{padding:8px 12px;border-radius:10px;background:#ffffffb3;border:1px solid #ffffffcc}
+.rate-locked-route p{margin:2px 0 0;font-size:14px}
+
+.quote-time{margin:0 0 4px;font-size:13px}.quote-time p{margin:0}
+.quote-time-edit{display:flex;align-items:flex-end;gap:10px;flex-wrap:nowrap}.quote-time-edit label{margin:0}.quote-time-edit input{padding:4px 8px}
+.quote-newtime{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:6px 10px;border-radius:8px;background:#fff4e0;font-size:13px;line-height:1.3}
+html body .flow-page .quote-wizard.is-proposing .rate-prefilled{display:none !important}
+
+.quick-quote{display:grid;gap:8px;align-content:start}
+.qq-ask{display:flex;align-items:center;gap:6px;margin:0;font-size:14px;flex-wrap:wrap}
+.qq-time{display:flex;align-items:flex-end;gap:10px}.qq-time label{margin:0}.qq-time input{padding:4px 8px}
+html body .flow-page .qq-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:8px 14px !important;align-items:end}
+.qq-actions{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #ffffff99;margin-top:4px}
+.decision-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;padding:10px 14px;border-radius:12px;background:#fff8e8;border:1px solid #f2dfb3}
+.decision-bar p{margin:0;font-weight:600}.decision-btns{display:flex;gap:8px}
+
+.fav-heart{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid #ffffffcc;background:#ffffffd9;color:#6b7390;cursor:pointer;box-shadow:0 2px 8px #1215521f;padding:0}
+.fav-heart.is-on{color:#e0121b}.fav-heart.is-on svg{fill:#e0121b}
+.flow-vehicle-photo>.fav-heart{position:absolute;top:8px;right:8px;z-index:2}
+.fav-list{display:grid;gap:8px}.fav-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:14px;align-items:center;padding:8px 12px}
+.fav-photo{display:grid;place-items:center;height:72px;border-radius:12px;overflow:hidden;background:#ffffff80}.fav-photo img{width:100%;height:100%;object-fit:cover}
+.fav-info h3{margin:0;font-size:16px}.fav-info p{margin:2px 0 4px;font-size:13px}.fav-actions{display:flex;gap:8px}
+.fav-banner{display:flex;align-items:center;gap:8px;margin:0 0 6px;padding:6px 12px;border-radius:10px;background:#fff1f1;font-size:13px}

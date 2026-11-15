@@ -44,12 +44,12 @@ def current_documents(db, *, uid=None, vid=None, at=None):
 def vehicle_evidence(db, vehicle, at=None):
     policy = vehicle.verified_eligibility
     applicability = policy.get('conditional_documents', {})
-    if not {'EMISSION', 'FITNESS'} <= set(applicability) <= {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
+    if 'EMISSION' not in applicability or not set(applicability) <= {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'Vehicle evidence applicability has not been verified.')
     if type(policy.get('authorisation_required')) is not bool or not policy.get('category'):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'The registered-owner case and vehicle category must be reviewed.')
     # A route permit is optional for every vehicle (project-owner decision), even on vehicles reviewed before that rule.
-    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed and t != 'ROUTE_PERMIT'}
+    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed and t not in ('ROUTE_PERMIT', 'FITNESS')}
     if policy['authorisation_required']: required.add('OWNER_AUTHORISATION')
     docs = current_documents(db, vid=vehicle.id, at=at)
     if not required <= set(docs):
@@ -173,7 +173,9 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     end = max(end, itinerary.requested_end())
     if not agreed_rule and rule.effective_until and (end - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until:
         raise ApiError(409, 'QUOTE_REQUIRED', 'The saved rate does not cover the complete reserved interval. Request an Owner quote.')
-    return {'calculation': {**result, 'service_scope': scope, 'extra_policies': extra_policies(rule)}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
+    hours_note = {'planned_service_hours': [str(h) for h in measurement['usage'].service_hours], 'package_hours': str(rule.included_hours_per_day),
+                                                                                'package_km': str(rule.included_km_per_day), 'package_days': len(measurement['usage'].service_hours)} if rule.method == 'DAY_HIRE' else {}
+    return {'calculation': {**result, 'service_scope': scope, 'extra_policies': extra_policies(rule), **hours_note}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
             'measurement': {'source': measurement['source'], 'usage': measurement['usage'].model_dump(mode='json')},
             'reserved_end_at': end.isoformat()}
 
@@ -210,7 +212,8 @@ def booking_summary(row):
             'large_luggage_count': row.large_luggage_count, 'small_luggage_count': row.small_luggage_count,
             'itinerary': row.itinerary_snapshot, 'price': row.price_snapshot, 'proposal': row.pending_change,
             'accepted_quote_digest': row.accepted_quote_digest, 'vehicle_committed': row.vehicle_committed,
-            'total_amount': str(row.total_amount) if row.total_amount is not None else None, 'currency': row.currency}
+            'total_amount': str(row.total_amount) if row.total_amount is not None else None, 'currency': row.currency,
+            'origin_text': row.origin_text, 'destination_text': row.destination_text}
 
 
 def trip_summary(trip):

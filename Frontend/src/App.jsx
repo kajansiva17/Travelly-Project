@@ -7,6 +7,7 @@ import { DriverPage, OwnerPage, PassengerPage } from './features/landing/Referen
 import AuthPage from './features/auth/AuthPage'
 import AccountPage from './pages/AccountPage'
 import PassengerDashboard from './features/passenger/PassengerDashboard'
+import FavouriteVehicles from './features/favourites/FavouriteVehicles'
 import {PassengerLongDistanceDetails,PassengerRequestReview,PassengerRequestStatus,PassengerRequirements,PassengerRideConfirmed,PassengerServiceSelection,PassengerTripDetails,PassengerVehicleMatching,PassengerVehicleReview} from './features/passenger/PassengerBookingFlow'
 import { CheckEmail, AuthLink, ForgotPassword, GoogleCompletion } from './features/auth/AuthFlows'
 import AdminApplications from './features/admin/AdminApplications'
@@ -21,7 +22,9 @@ import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import OwnerTicketDepartures,{OwnerReplacementRequests} from './features/owner/OwnerTicketDepartures'
 import OwnerDriving from './features/owner/OwnerDriving'
-import OwnerRoutes from './features/owner/OwnerRoutes'
+
+import VehicleServicePage from './features/owner/VehicleServicePage'
+import OwnerHire from './features/owner/OwnerHire'
 import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
 import OwnerFinanceOverview from './features/owner/OwnerFinanceOverview'
 import DriverTicketBoarding from './features/driver/DriverTicketBoarding'
@@ -183,7 +186,7 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 // Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
- OWNER:['ticket-departures','seat-inventory','earnings','reviews','support','reports'],
+ OWNER:['seat-inventory','earnings','reviews','support','reports'],
  DRIVER:['road-alerts','reels','feed','earnings','availability','support'],
  ADMIN:['services-routes','bookings','payments','social-reviews','road-alerts','reports']
 }
@@ -217,6 +220,7 @@ export default function App() {
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
+            <Route path="/passenger/favourites" element={<FavouriteVehicles/>}/>
             <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/payments" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
@@ -235,10 +239,15 @@ export default function App() {
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
-            <Route path="/owner/rates" element={<OwnerRates/>}/>
+            <Route path="/owner/rates" element={<OwnerHire/>}/>
+            <Route path="/owner/rates/advanced" element={<OwnerRates/>}/>
             <Route path="/owner/service-readiness" element={<OwnerServiceReadiness/>}/>
-            <Route path="/owner/ticket-departures" element={<OwnerTicketDepartures/>}/>
-            <Route path="/owner/routes" element={<OwnerRoutes/>}/>
+            <Route path="/owner/ticket" element={<OwnerTicketDepartures/>}/>
+            <Route path="/owner/ticket-departures" element={<Navigate to="/owner/ticket?tab=departures" replace/>}/>
+            <Route path="/owner/routes" element={<Navigate to="/owner/ticket?tab=routes" replace/>}/>
+            <Route path="/owner/maintenance" element={<VehicleServicePage kind="maintenance"/>}/>
+            <Route path="/owner/event-packages" element={<VehicleServicePage kind="event-packages"/>}/>
+            <Route path="/owner/rental" element={<VehicleServicePage kind="rental"/>}/>
             <Route path="/owner/vehicles" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicle-setup" element={<OwnerVehicleSetup/>}/>
             <Route path="/owner/vehicles/:vehicleId" element={<VehicleRoute/>}/>
@@ -260,6 +269,7 @@ export default function App() {
             <Route path="/driver/trips/:tripId/assigned" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/verify-passenger" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/live" element={<DriverTripPage/>}/>
+            <Route path="/driver/maintenance" element={<VehicleServicePage kind="maintenance" driver/>}/>
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
             <Route path="/driver/rentals" element={<Navigate to="/driver/assignments" replace/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>

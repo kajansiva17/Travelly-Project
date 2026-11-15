@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-from pydantic import AwareDatetime, Field, StrictBool, field_validator, model_validator
+from pydantic import AwareDatetime, Field, PrivateAttr, StrictBool, field_validator, model_validator
 from app.schemas.rate_schemas import RateModel, Amount, Place, RateConfiguration
 
 
@@ -17,13 +17,20 @@ class Itinerary(RateModel):
     direction: Literal['ONE_WAY', 'RETURN']
     method: Literal['DISTANCE', 'DAY_HIRE']
     stops: list[Stop] = Field(min_length=2, max_length=12)
-    service_hours: list[Amount] = Field(min_length=1, max_length=30)
+    service_hours: list[Amount] | None = Field(default=None, min_length=1, max_length=30)   # omitted = Travelly works the hours out from the route
+    trip_days: int | None = Field(default=None, ge=1, le=30, strict=True)   # only with service_hours omitted: how many pickup-anchored days the Passenger books
     flight_number: str | None = Field(default=None, max_length=24, pattern=r'^[A-Za-z0-9 -]+$')
     return_start_at: AwareDatetime | None = None
     event_package_id: UUID | None = None   # Event hire only: which of the vehicle's Owner packages is booked
+    _auto: bool = PrivateAttr(default=False)   # True only when the caller left service_hours out; never read from input or stored
 
     @model_validator(mode='after')
     def coherent(self):
+        if self.service_hours is None:
+            if any(s.overnight_rest for s in self.stops):
+                raise ValueError('Overnight rest requires a multi-day booking with service hours for each day.')
+            self.service_hours, self._auto = [Decimal('24')] * (self.trip_days or 1), True
+        if not self._auto: self.trip_days = None   # explicit hours already say how many days
         if any(not 0 < h <= 24 for h in self.service_hours):
             raise ValueError('Each booked service window needs more than zero and at most 24 hours.')
         if sum(s.overnight_rest for s in self.stops) > len(self.service_hours) - 1:
@@ -90,6 +97,8 @@ class ServiceCatalogueUpdate(Version):
 
 class QuoteBody(Version):
     rates: RateConfiguration
+    # The Owner cannot do the requested time and offers another. Only the Passenger's acceptance moves the booking.
+    proposed_start_at: AwareDatetime | None = None
 
 
 class Acceptance(Version):
@@ -187,9 +196,9 @@ class VehicleEligibility(Version):
     def complete_applicability(self):
         # Project-owner decision (9 Nov 2026): a route permit is never mandatory, so Admin is not asked about it.
         # It is always stored as "not required"; an older client that still sends it cannot make it required.
-        if not {'EMISSION', 'FITNESS'} <= set(self.conditional_documents):
-            raise ValueError('Admin must explicitly confirm whether the emission and fitness certificates are required.')
-        self.conditional_documents = {**self.conditional_documents, 'ROUTE_PERMIT': False}
+        if 'EMISSION' not in self.conditional_documents:
+            raise ValueError('Admin must explicitly confirm whether the emission certificate is required (the fitness certificate is optional).')
+        self.conditional_documents = {**self.conditional_documents, 'FITNESS': False, 'ROUTE_PERMIT': False}
         return self
 
 

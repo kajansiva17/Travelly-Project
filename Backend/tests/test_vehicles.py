@@ -259,7 +259,7 @@ def test_invalid_photo_content_and_missing_review_applicability_fail_closed(clie
         response=call(client,a,'owner','post',f"/vehicles/{row['id']}/photos",data={'category':'EXTERIOR','expected_version':str(row['version'])},files={'file':(name,content,mime)})
         assert response.status_code==422,response.text
     assert call(client,a,'owner','get','/owners/me/vehicles/'+row['id']).json()['photos']==[]
-    invalid=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/review",{'expected_version':row['version'],'category':'TEST_CAR','conditional_documents':{'EMISSION':False},'authorisation_required':False})
+    invalid=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/review",{'expected_version':row['version'],'category':'TEST_CAR','conditional_documents':{'FITNESS':False},'authorisation_required':False})
     assert invalid.status_code==422
 
 

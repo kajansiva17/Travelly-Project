@@ -20,9 +20,9 @@ export const tripRoute=booking=>{if(isRentalBooking(booking))return rentalLabel(
 export const pendingBooking=booking=>!['COMPLETED','CANCELLED','REJECTED'].includes(booking.status)
 // Contract 03W: every booking carries viewer_roles and GET /bookings takes ?as=passenger|owner|driver, so the server decides
 // which list a booking belongs to (My trips, Bookings for my vehicles, My driving).
-export async function loadBookings(userId,role){
+export async function loadBookings(userId,role,hidden=false){
  if(role==='ADMIN')throw new Error('Global Admin bookings are not available. Use My Trips for your personal journeys.')
- const result=await api('/bookings?as='+role.toLowerCase()),items=result.items||[]
+ const result=await api('/bookings?as='+role.toLowerCase()+(hidden?'&hidden=true':'')),items=result.items||[]
  if(role==='OWNER'||role==='PASSENGER')return items
  // The Driver list needs each booking's trip record (assignment and trip ids). Bound concurrency.
  const details=new Array(items.length);let next=0

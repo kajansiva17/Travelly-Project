@@ -1,12 +1,20 @@
 """Trusted planned route measurements. Provider failures never produce zero fares."""
+import logging
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from zoneinfo import ZoneInfo
 import httpx
 from app.core.errors import ApiError
 from app.schemas.rate_schemas import ExampleTrip
 
 ZONE = ZoneInfo('Asia/Colombo')
+log = logging.getLogger('travelly.routing')
+
+
+def why(exc):
+    """One log line for a failed provider call: status and the provider's own message (never the key)."""
+    response = getattr(exc, 'response', None)
+    return f'{type(exc).__name__} status={getattr(response, "status_code", None)} body={(getattr(response, "text", "") or str(exc))[:300]}'
 
 
 def night_distance(km, start, seconds):
@@ -26,6 +34,12 @@ def night_distance(km, start, seconds):
 class HireRouting:
     def __init__(self, settings, locations): self.settings, self.locations = settings, locations
 
+    def unavailable(self, exc):
+        """The ROUTING_UNAVAILABLE error. Outside production the provider's own answer is appended so a developer sees the real cause on screen."""
+        message = 'A trustworthy route price is unavailable. Please try again or request an Owner quote.'
+        if getattr(self.settings, 'environment', 'production') != 'production': message += ' [dev detail: ' + why(exc)[:260] + ']'
+        return ApiError(503, 'ROUTING_UNAVAILABLE', message)
+
     def road_km(self, stops):
         """Road distance of the whole stop chain in km, or None when it cannot be measured (the price step then reports the real problem).
         One directions call per distinct chain; the answer is kept in memory so a search does not spend the free routing quota again."""
@@ -41,11 +55,36 @@ class HireRouting:
             response.raise_for_status()
             km = Decimal(str(response.json()['features'][0]['properties']['summary']['distance'])) / 1000
             if not km.is_finite() or km < 0: return None
-        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError):
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
+            log.warning('road distance check failed: %s', why(exc))
             return None
         if len(cache) >= 300: cache.pop(next(iter(cache)))
         cache[key] = km
         return km
+
+    def estimate_hours(self, itinerary):
+        """Hours the whole trip is expected to take: driving time of the stop chain plus the planned waits, rounded up to 0.01 h.
+        Used when the Passenger does not state service hours (one-day trips). One cached directions call, so a search spends the free quota once."""
+        for stop in itinerary.stops: self.locations.verify(stop.place)
+        if not self.settings.routing_api_key:
+            raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Trip pricing needs the configured route service. Request a quote once route measurements are available.')
+        coordinates = [[float(s.place.longitude), float(s.place.latitude)] for s in itinerary.stops]
+        key = tuple((round(c[0], 5), round(c[1], 5)) for c in coordinates)
+        cache = self.__dict__.setdefault('_duration_cache', {})
+        if key not in cache:
+            try:
+                response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/driving-car/geojson',
+                    headers={'Authorization': self.settings.routing_api_key}, timeout=15, json={'coordinates': coordinates, 'instructions': False})
+                response.raise_for_status()
+                seconds = Decimal(str(response.json()['features'][0]['properties']['summary']['duration']))
+                if not seconds.is_finite() or seconds <= 0: raise ValueError()
+            except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
+                log.warning('route duration estimate failed: %s', why(exc))
+                raise self.unavailable(exc) from None
+            if len(cache) >= 300: cache.pop(next(iter(cache)))
+            cache[key] = seconds
+        hours = (cache[key] / Decimal('3600') + sum((s.wait_minutes for s in itinerary.stops), Decimal('0')) / Decimal('60')) / len(itinerary.service_hours)   # per booked day
+        return hours.quantize(Decimal('0.01'), rounding=ROUND_CEILING)
 
     def measure(self, itinerary, profile):
         for stop in itinerary.stops: self.locations.verify(stop.place)
@@ -63,12 +102,14 @@ class HireRouting:
             if not geometry or len(geometry) > 100000: raise ValueError()
             return self.from_segments(itinerary, segments, geometry)
         except ApiError: raise
-        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError):
-            raise ApiError(503, 'ROUTING_UNAVAILABLE', 'A trustworthy route price is unavailable. Please try again or request an Owner quote.') from None
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
+            log.warning('route measurement failed: %s', why(exc))
+            raise self.unavailable(exc) from None
 
     def from_segments(self, itinerary, segments, geometry):
         distance = night = waiting = Decimal('0')
         cursor = itinerary.start_at
+        auto = itinerary._auto   # hours not stated by the Passenger: the window is whatever this vehicle's own route measurement needs
         waiting_periods = []
         for i, stop in enumerate(itinerary.stops):
             minutes = stop.wait_minutes
@@ -98,6 +139,7 @@ class HireRouting:
                 while check < movement_end:
                     elapsed = Decimal(str((check - itinerary.start_at).total_seconds())) / Decimal('3600')
                     day = int(elapsed // 24)
+                    if auto: break
                     if day >= len(itinerary.service_hours): raise ValueError()
                     window_end = itinerary.start_at + timedelta(hours=24*day + float(itinerary.service_hours[day]))
                     if check >= window_end or (movement_end > window_end and itinerary.service_hours[day] < 24):
@@ -105,11 +147,18 @@ class HireRouting:
                     check = min(movement_end, window_end)
                 distance += km; night += night_distance(km, cursor, seconds)
                 cursor += timedelta(seconds=float(seconds))
-        if cursor > itinerary.requested_end():
+        hours = itinerary.service_hours
+        if auto:
+            days = len(itinerary.service_hours)
+            used = (Decimal(str((cursor - itinerary.start_at).total_seconds())) / Decimal('3600') / days).quantize(Decimal('0.01'), rounding=ROUND_CEILING)
+            if used > 24:
+                raise ApiError(422, 'TRIP_TOO_LONG_FOR_BOOKED_DAYS', 'This trip needs more time than the booked days allow. Add more days.')
+            hours = [max(used, Decimal('0.01'))] * days
+        elif cursor > itinerary.requested_end():
             raise ApiError(422, 'ITINERARY_TIME_CONFLICT', 'The trusted route and stops exceed the booked service windows. Allow enough time for the itinerary.')
         try:
             usage = ExampleTrip.model_validate({'distance_km': str(distance), 'night_km': str(night), 'waiting_minutes': str(waiting),
-                'service_hours': [str(h) for h in itinerary.service_hours], 'overnight_stays': sum(s.overnight_rest for s in itinerary.stops),
+                'service_hours': [str(h) for h in hours], 'overnight_stays': (len(hours) - 1) if auto else sum(s.overnight_rest for s in itinerary.stops),
                 'waiting_periods': waiting_periods if itinerary.method == 'DAY_HIRE' else []})
         except ValueError:
             raise ApiError(422, 'ITINERARY_TIME_CONFLICT', 'Planned waiting must fit the booked service windows. Review the stop times.') from None

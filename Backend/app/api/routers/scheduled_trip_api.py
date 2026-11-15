@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import and_, func, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from app.api.routers.api import current, require_role, touch
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
@@ -23,7 +23,7 @@ from app.models.hire_models import Booking, Route, RouteStop, ScheduledTrip, Tri
 from app.models.rate_models import ServiceType
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
-from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, DriverLookup, PublishRequest, SeatLayoutIn
+from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, DriverLookup, PublishRequest, RepeatBody, SeatLayoutIn
 from app.services.availability import no_vehicle_conflict
 
 router = APIRouter(prefix='/api/v1', tags=['Ticket departures'])
@@ -101,6 +101,7 @@ def trip_out(trip, route, vehicle, available=None, stops=None, owner_view=False)
         out.update({'version': trip.version, 'vehicle_id': str(trip.current_vehicle_id),
                     'committed_at': trip.committed_at.isoformat() if trip.committed_at else None,
                     'replacement_status': trip.replacement_status, 'cancellation_reason': trip.cancellation_reason,
+                    'archived_at': trip.archived_at.isoformat() if trip.archived_at else None,
                     'operator_driver_user_id': str(trip.operator_driver_user_id) if trip.operator_driver_user_id else None})
     return out
 
@@ -378,10 +379,64 @@ def publish_departure(trip_id: UUID, body: PublishRequest, user=Depends(current)
 
 # --------------------------------------------------------------------------- public reads (37-39)
 
+FINISHED = ('COMPLETED', 'CANCELLED')
+
+
+def is_over(trip):
+    """Finished, cancelled, or a published departure whose time passed without it running: nothing left to manage."""
+    return trip.status in FINISHED or (trip.status not in ('DRAFT', 'IN_PROGRESS') and trip.departure_at <= now())
+
+
+@router.post('/scheduled-trips/{trip_id}/archive')
+def archive_departure(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """Take a finished departure off the Owner's list. The record, its bookings and payments stay as history."""
+    require_role(db, user, 'OWNER')
+    trip = owned_trip(db, trip_id, user, lock=True)
+    if not is_over(trip) and trip.status != 'DRAFT':
+        raise ApiError(409, 'DEPARTURE_NOT_FINISHED', 'Only a finished, cancelled or draft departure can be moved to history.')
+    pending_replacement(db, trip)
+    if not trip.archived_at:
+        trip.archived_at = now()
+        touch(trip)
+        trip.updated_by = user.id
+        db.commit()
+    return {'id': str(trip.id), 'archived_at': trip.archived_at.isoformat()}
+
+
+@router.post('/scheduled-trips/{trip_id}/repeat', status_code=201)
+def repeat_departure(trip_id: UUID, body: RepeatBody, user=Depends(current), db: Session = Depends(get_db)):
+    """Next trip on the same route: a new draft with the same route, vehicle, Driver, price and rules at a new time.
+    A finished departure moves to history once its repeat exists; the old record is never changed otherwise."""
+    require_role(db, user, 'OWNER')
+    source = owned_trip(db, trip_id, user, lock=True)
+    if source.status == 'DRAFT':
+        raise ApiError(409, 'DEPARTURE_NOT_FINISHED', 'A draft can be edited directly. Repeat is for departures that already ran or were published.')
+    pending_replacement(db, source)
+    if body.departure_at.tzinfo is None:
+        raise invalid('Send the departure time with its time zone.')
+    values = trip_values(source)
+    shift = body.departure_at - source.departure_at
+    for name in ('departure_at', 'estimated_arrival_at', 'booking_cutoff_at', 'decision_deadline'):
+        if values.get(name) is not None:
+            values[name] = values[name] + shift
+    route, vehicle, driver_id = check_departure(db, user, values)
+    trip = ScheduledTrip(departure_reference='DEP-' + uuid4().hex[:16].upper(), owner_user_id=user.id,
+                         service_type_id=source.service_type_id, currency=source.currency, status='DRAFT',
+                         created_by=user.id, updated_by=user.id)
+    apply_values(trip, values, driver_id)
+    db.add(trip)
+    if is_over(source) and not source.archived_at:
+        source.archived_at = now()
+        touch(source)
+        source.updated_by = user.id
+    db.commit()
+    return trip_out(trip, route, vehicle, owner_view=True)
+
+
 @router.get('/scheduled-trips')
 def search_departures(request: Request, route_id: Optional[UUID] = None, origin: str = Query('', max_length=100),
                       destination: str = Query('', max_length=100), date: Optional[str] = Query(None, max_length=10),
-                      min_seats: int = Query(1, ge=1, le=100), mine: bool = False, driving: bool = False,
+                      min_seats: int = Query(1, ge=1, le=100), mine: bool = False, archived: bool = False, driving: bool = False,
                       limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0, le=10000),
                       db: Session = Depends(get_db)):
     query = select(ScheduledTrip, Route, Vehicle).join(Route, Route.id == ScheduledTrip.route_id).join(
@@ -392,7 +447,8 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
         from app.api.routers.fulfilment_api import escalate_missed_deadlines
         if escalate_missed_deadlines(db):  # D08: a passed decision deadline shows as DECISION_REQUIRED, nothing else
             db.commit()
-        query = query.where(ScheduledTrip.owner_user_id == user.id)
+        query = query.where(ScheduledTrip.owner_user_id == user.id,
+                            ScheduledTrip.archived_at.is_not(None) if archived else ScheduledTrip.archived_at.is_(None))
     elif driving:
         # The departures this Driver is assigned to drive, so they can board the Travellers waiting for them. Driving
         # (also an Owner driving their own vehicle) always needs the approved DRIVER role, so this stays Driver-only.
@@ -409,10 +465,8 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
             query = query.where(ScheduledTrip.owner_user_id.not_in(stopped))
     if route_id:
         query = query.where(ScheduledTrip.route_id == route_id)
-    for column, value in ((Route.origin_name, origin), (Route.destination_name, destination)):
-        if value.strip():
-            escaped = value.strip().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
-            query = query.where(column.ilike('%' + escaped + '%', escape='\\'))
+    if origin.strip() or destination.strip():
+        query = query.where(stop_match(origin.strip(), destination.strip()))
     if date:
         try:
             day = Date.fromisoformat(date)
@@ -428,6 +482,24 @@ def search_departures(request: Request, route_id: Optional[UUID] = None, origin:
             continue
         items.append(trip_out(trip, route, vehicle, available=free, owner_view=mine))
     return {'items': items, 'limit': limit, 'offset': offset}
+
+
+def stop_match(origin, destination):
+    """Owner decision 15 Nov 2026: a Passenger may board or leave at any stop of a route that allows it. The route's first and last
+    stops (its origin and destination) count too, so a plain start-to-end search finds the same departures as before."""
+    def like(value): return '%' + value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+    o, d = aliased(RouteStop), aliased(RouteStop)
+    ends = select(func.max(RouteStop.stop_order)).where(RouteStop.route_id == Route.id, RouteStop.is_active.is_(True)).scalar_subquery()
+    if origin and destination:
+        pair = select(1).where(o.route_id == Route.id, d.route_id == Route.id, o.is_active.is_(True), d.is_active.is_(True), o.pickup_allowed.is_(True),
+                               d.dropoff_allowed.is_(True), o.stop_order < d.stop_order, o.stop_name.ilike(like(origin), escape='\\'),
+                               d.stop_name.ilike(like(destination), escape='\\')).exists()
+        return or_(and_(Route.origin_name.ilike(like(origin), escape='\\'), Route.destination_name.ilike(like(destination), escape='\\')), pair)
+    if origin:
+        board = select(1).where(o.route_id == Route.id, o.is_active.is_(True), o.pickup_allowed.is_(True), o.stop_order < ends, o.stop_name.ilike(like(origin), escape='\\')).exists()
+        return or_(Route.origin_name.ilike(like(origin), escape='\\'), board)
+    leave = select(1).where(d.route_id == Route.id, d.is_active.is_(True), d.dropoff_allowed.is_(True), d.stop_order > 0, d.stop_name.ilike(like(destination), escape='\\')).exists()
+    return or_(Route.destination_name.ilike(like(destination), escape='\\'), leave)
 
 
 def readable_trip(db, request, trip_id):

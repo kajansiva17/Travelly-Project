@@ -4,6 +4,7 @@ import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import {Checkbox} from '../../components/ui'
 import {Field,RateErrors} from '../owner/OwnerRates'
+import {Notice} from '../ticketing/TicketParts'
 import {money} from '../passenger/TicketCancel'
 import {fieldErrorMap,fieldErrorText} from '../../services/fieldErrors.js'
 import {RENTAL_LIMITS,checkExtra,checkRates,newExtraId,readRates,toRatesBody} from './rentalModel'
@@ -44,7 +45,7 @@ export default function RentalRates({vehicle,Footer}){
   }
   const rate=(name,label,help)=><Field label={label} help={help}><input name={name} inputMode="decimal" value={state.rates[name]} onChange={setRate(name)}/></Field>
   return <RateErrors.Provider value={errors}><div className="ep-pane">
-    {message.text&&<p className={'tk-line'+(message.warn?' is-warn':'')} role={message.warn?'alert':'status'}>{message.text}</p>}
+    {message.text&&(message.warn?<div className="notice error" role="alert">{message.text}</div>:<Notice>{message.text}</Notice>)}
     {editing
       ?<div className="ep-editor"><div className="tk-grid" style={{'--cols':3}}>
           <Field label="Extra name"><input name="name" maxLength={RENTAL_LIMITS.extraName} value={editing.name} onChange={e=>setEditing(c=>({...c,name:e.target.value}))}/></Field>

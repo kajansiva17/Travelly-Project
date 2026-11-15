@@ -35,9 +35,18 @@ def test_old_client_cannot_make_route_permit_required(client,actors):
         assert db.get(Vehicle,UUID(row['id'])).verified_eligibility['conditional_documents']['ROUTE_PERMIT'] is False
 
 
-def test_emission_and_fitness_still_need_an_admin_answer(client,actors):
+def test_emission_still_needs_an_admin_answer(client,actors):
     a=actors;row=submitted(client,a)
-    assert decide(client,a,row,{'EMISSION':False}).status_code==422
+    assert decide(client,a,row,{'FITNESS':True}).status_code==422
+
+
+def test_fitness_certificate_is_optional_and_never_required(client,actors):
+    a=actors;row=submitted(client,a)
+    assert decide(client,a,row,{'EMISSION':False,'FITNESS':True}).status_code==200
+    with client.app.state.sessions() as db:
+        assert db.get(Vehicle,UUID(row['id'])).verified_eligibility['conditional_documents']['FITNESS'] is False
+    detail=call(client,a,'owner','get','/owners/me/vehicles/'+row['id']).json()
+    assert next(c for c in detail['checklist'] if c['type']=='FITNESS')['requirement'].startswith('Optional')
 
 
 def test_vehicle_reviewed_before_the_rule_does_not_need_a_permit(client,actors):

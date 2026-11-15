@@ -30,7 +30,7 @@ test('rental reminders are RECONFIRMATION notices with a rental stage, matched b
   assert.equal(isRentalReminder({notification_type:'RECONFIRMATION',action_payload:{stage:'OVERDUE'}}),false)
 })
 test('vehicle page tabs from the address', () => {
-  assert.equal(vehicleTabFromSearch('?tab=event-packages'),6);assert.equal(vehicleTabFromSearch('?tab=rental-rates'),7);assert.equal(vehicleTabFromSearch('?tab=documents'),1)
+  assert.equal(vehicleTabFromSearch('?tab=event-packages'),0);assert.equal(vehicleTabFromSearch('?tab=rental-rates'),0);assert.equal(vehicleTabFromSearch('?tab=documents'),1)
 })
 test('rental label comes from booking_type RENTAL, with the days', () => {
   assert.equal(isRentalBooking({booking_type:'RENTAL'}),true);assert.equal(isRentalBooking({booking_type:'PRIVATE_HIRE',itinerary:{rental:{days:2}}}),false)

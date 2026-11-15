@@ -130,3 +130,15 @@ def test_finishing_a_trip_moves_the_vehicle_odometer_forward(client, running):
     with client.app.state.sessions() as db:
         vehicle = db.get(Vehicle, UUID(str(c.vehicle_id)))
         assert str(vehicle.current_odometer_km) == '1300.5' and vehicle.odometer_updated_at is not None
+
+
+def test_a_driver_sees_only_the_vehicles_they_are_the_preferred_driver_of(client, fleet):
+    driver = person(client, 'DRIVER')
+    assert api(client, driver, 'get', '/drivers/me/vehicles').json()['items'] == []
+    with client.app.state.sessions() as db:
+        db.get(Vehicle, UUID(fleet['vehicle_id'])).default_driver_user_id = UUID(driver['id'])
+        db.commit()
+    items = api(client, driver, 'get', '/drivers/me/vehicles').json()['items']
+    assert [row['id'] for row in items] == [fleet['vehicle_id']]
+    assert api(client, driver, 'get', f"/vehicles/{fleet['vehicle_id']}/records").status_code == 200
+    assert api(client, person(client, 'OWNER'), 'get', '/drivers/me/vehicles').status_code == 403

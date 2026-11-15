@@ -2,6 +2,7 @@ import { t } from '../../../i18n/language.js'
 import { useEffect, useState } from 'react'
 import { Link } from '../../passenger/travelRouter'
 import { Icon } from '../../../components/components'
+import { FavouriteHeart } from '../../favourites/favourites.jsx'
 import VehiclePhoto from '../../../components/VehiclePhoto'
 import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'
 import { useWorkspace } from '../../../context/workspaceContext'
@@ -109,7 +110,7 @@ export function TripSummary({ title = 'Trip summary', image, rows = [], empty = 
 /* Vehicle card used for matching results and the selected vehicle. */
 export function FlowVehicleCard({ vehicle, title, specs = [], chips, action, selected = false }) {
   return <article className={`flow-vehicle ui-card${selected ? ' is-selected' : ''}`}>
-    <div className="flow-vehicle-photo">{vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
+    <div className="flow-vehicle-photo">{vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{vehicle?.id && <FavouriteHeart vehicleId={vehicle.id}/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
     <div className="flow-vehicle-info">
       <h3>{title}</h3>
       <ul>{specs.filter(Boolean).map(spec => <li key={spec.label}><Icon name={spec.icon || 'check'} size={17} aria-hidden="true"/><span>{spec.label}</span></li>)}</ul>
@@ -125,6 +126,9 @@ export function FlowEstimate({ title = 'Trip estimate (LKR)', price }) {
   return <section className="flow-estimate ui-card"><h2><Icon name="wallet" size={22} aria-hidden="true"/>{title}</h2>
     <dl>{(price.breakdown || []).map(row => <div key={row.code}><dt>{row.label}</dt><dd>{row.kind === 'CREDIT' ? '−' : ''}{row.amount}</dd></div>)}</dl>
     <p className="flow-estimate-total"><span>{t("Total estimate")}</span><strong>{t("LKR")} {price.total}</strong></p>
+    {price.planned_service_hours?.length >= 1 && price.package_hours && <p className="flow-note">{price.planned_service_hours.length === 1
+      ? t("Trip time is estimated from the route: about {value0} hours. This Owner's package covers {value1} hours and {value2} km.", { value0: price.planned_service_hours[0], value1: price.package_hours, value2: price.package_km })
+      : t("{value0} days. Trip time is estimated from the route: about {value1} hours a day. This Owner's package covers {value2} hours and {value3} km a day.", { value0: price.planned_service_hours.length, value1: price.planned_service_hours[0], value2: price.package_hours, value3: price.package_km })}{' '}{t('Hours or kilometres beyond the package are charged at the rates under Extra charges.')}</p>}
     <ExtraLines price={price}/>
     {(price.exclusions || []).map(text => <p key={text} className="flow-note">{text}</p>)}
   </section>
@@ -210,7 +214,7 @@ export function useMiddleCount() {
 export function usePhotoCount() {
   const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
   useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
-  return height < 700 ? 3 : height < 900 ? 6 : height < 1200 ? 9 : 12
+  return height < 700 ? 6 : height < 900 ? 9 : height < 1200 ? 12 : 15
 }
 
 /* How many uploaded-document rows fit one screen (2 per row). */

@@ -578,3 +578,55 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
                                                          'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     entry = (later['items'] + later['quote_on_request'])[0]
     assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True
+
+
+def test_owner_can_offer_another_time_and_the_booking_moves_only_when_the_passenger_accepts(client, hire_setup):
+    c = hire_setup; request = c.create()
+    asked = datetime.fromisoformat(request['start_at'])
+    offered = asked + timedelta(days=2)
+    cfg = {**deepcopy(c.config), 'expected_version': 1}
+    response = client.post(f"/api/v1/bookings/{request['id']}/quote", headers=bearer(c.owner),
+                           json={'expected_version': request['version'], 'rates': cfg, 'proposed_start_at': offered.isoformat()})
+    assert response.status_code == 200, response.text
+    quoted = response.json()
+    assert datetime.fromisoformat(quoted['proposal']['quote']['itinerary']['start_at']) == offered
+    assert datetime.fromisoformat(quoted['start_at']) == asked  # nothing moves before the Passenger agrees
+    accepted = accept(client, c, quoted)
+    assert datetime.fromisoformat(accepted['start_at']) == offered
+    assert datetime.fromisoformat(accepted['end_at']) > offered
+
+
+def test_a_proposed_time_in_the_past_is_refused(client, hire_setup):
+    c = hire_setup; request = c.create()
+    cfg = {**deepcopy(c.config), 'expected_version': 1}
+    response = client.post(f"/api/v1/bookings/{request['id']}/quote", headers=bearer(c.owner),
+                           json={'expected_version': request['version'], 'rates': cfg,
+                                 'proposed_start_at': (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()})
+    assert response.status_code == 422
+
+
+def test_old_finished_bookings_move_to_history_by_themselves(client, hire_setup):
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import text
+    c = hire_setup; b = c.create()
+    client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'test'})
+    h = bearer(c.passenger)
+    assert any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger', headers=h).json()['items'])
+    with client.app.state.sessions() as db:
+        db.execute(text("update bookings set created_at = :t, updated_at = :t where id = :i"), {'t': datetime.now(timezone.utc) - timedelta(days=31), 'i': b['id']}); db.commit()
+    assert not any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger', headers=h).json()['items'])
+    assert any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger&hidden=true', headers=h).json()['items'])
+
+
+def test_passenger_keeps_favourite_vehicles_and_removes_them(client, hire_setup):
+    c = hire_setup; h = bearer(c.passenger); vid = str(c.vehicle_id)
+    assert client.get('/api/v1/me/favourite-vehicles', headers=h).json()['items'] == []
+    assert client.put(f'/api/v1/me/favourite-vehicles/{vid}', headers=h, json={}).status_code == 200
+    assert client.put(f'/api/v1/me/favourite-vehicles/{vid}', headers=h, json={}).status_code == 200   # saving twice keeps one
+    listed = client.get('/api/v1/me/favourite-vehicles', headers=h).json()
+    assert [i['id'] for i in listed['items']] == [vid] and listed['items'][0]['available'] is True and listed['ids'] == [vid]
+    assert client.get('/api/v1/me/favourite-vehicles', headers=bearer(c.owner)).json()['items'] == []   # each person sees only their own
+    assert client.delete(f'/api/v1/me/favourite-vehicles/{vid}', headers=h).status_code == 200
+    assert client.get('/api/v1/me/favourite-vehicles', headers=h).json()['items'] == []
+    assert client.put(f'/api/v1/me/favourite-vehicles/{uuid4()}', headers=h, json={}).status_code == 404
+    assert client.get('/api/v1/me/favourite-vehicles').status_code == 401

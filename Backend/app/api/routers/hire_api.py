@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, and_, not_, func
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.models import User, UserRole
@@ -58,6 +58,17 @@ def service_for(db, sid, new_offer=True):
         raise ApiError(409, 'SERVICE_UNAVAILABLE', 'The private-hire service is unavailable.')
     if new_offer: require_supported_private_hire(service)
     return service
+
+
+def settle_hours(request, service, itinerary):
+    """Owner decision 15 Nov 2026: the Passenger does not state service hours. When they are left out, the planned hours are the route's driving
+    time plus planned waits. Each Owner's package hours then decide the price (package, or package plus hours beyond it)."""
+    if not itinerary._auto or private_hire_scope(service) == 'EVENT': return itinerary
+    hours = request.app.state.hire_routing.estimate_hours(itinerary)   # hours per booked day
+    if hours > 24:
+        code = 'TRIP_TOO_LONG_FOR_ONE_DAY' if len(itinerary.service_hours) == 1 else 'TRIP_TOO_LONG_FOR_BOOKED_DAYS'
+        raise ApiError(422, code, 'This trip needs more time than the booked days allow. Choose more days.')
+    return itinerary.model_copy(update={'service_hours': [hours] * len(itinerary.service_hours), 'trip_days': None})
 
 
 def validate_service_itinerary(service, itinerary, db=None, request=None):
@@ -149,11 +160,14 @@ def safe_vehicle(vehicle, owner):
 
 def same_hire_request(row, body, user):
     original_itinerary = row.price_snapshot.get('initial', {}).get('itinerary') or row.itinerary_snapshot.get('itinerary')
+    asked_itinerary = body.itinerary.model_dump(mode='json')
+    if body.itinerary._auto:   # hours left out: Travelly stored the worked-out hours, so compare everything else
+        original_itinerary, asked_itinerary = ({k: v for k, v in x.items() if k not in ('service_hours', 'trip_days')} for x in (original_itinerary, asked_itinerary))
     return (row.passenger_user_id == user.id and row.vehicle_id == body.vehicle_id
             and row.service_type_id == body.service_type_id
             and all(getattr(row, name) == getattr(body, name) for name in
                     ('passenger_count', 'large_luggage_count', 'small_luggage_count'))
-            and original_itinerary == body.itinerary.model_dump(mode='json'))
+            and original_itinerary == asked_itinerary)
 
 
 @router.get('/vehicles')
@@ -190,6 +204,7 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
+    body.itinerary = settle_hours(request, service, body.itinerary)
     validate_service_itinerary(service, body.itinerary, db, request)
     items, asks = [], []
     rows = db.scalars(select(Vehicle).where(Vehicle.is_published.is_(True)).order_by(Vehicle.id).limit(100)).all()
@@ -254,6 +269,7 @@ def selected_vehicle_quote(vehicle_id: UUID, body: SearchRequest, request: Reque
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
+    body.itinerary = settle_hours(request, service, body.itinerary)
     validate_service_itinerary(service, body.itinerary, db, request)
     vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.is_published.is_(True)))
     if not vehicle:
@@ -287,7 +303,7 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
                 raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'The request identifier belongs to a different request.')
             return booking_summary(existing)
         eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); commission_gate(request, db, vehicle); usable_capacity(vehicle, body)
-        service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary, db, request)
+        service = service_for(db, body.service_type_id); body.itinerary = settle_hours(request, service, body.itinerary); validate_service_itinerary(service, body.itinerary, db, request)
         snapshot = None
         for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
         try: snapshot = offer(request, db, vehicle, service, body.itinerary)
@@ -333,6 +349,18 @@ def bookings(request: Request, user=Depends(current), db: Session = Depends(get_
     conditions = {'PASSENGER': Booking.passenger_user_id == user.id, 'OWNER': Booking.owner_user_id == user.id,
                   'DRIVER': Booking.id.in_(driven) if driven else Booking.id.is_(None)}
     where = conditions[view] if view else or_(*conditions.values())
+    # A finished booking the person removed from their list stays in History (?hidden=true); it is never deleted.
+    hidden = (request.query_params.get('hidden') or '').lower() == 'true'
+    # Finished bookings also tidy themselves away from the main list after HISTORY_AFTER_DAYS; nothing is deleted.
+    stale = and_(Booking.status.in_(FINISHED_BOOKING), Booking.updated_at < datetime.now(timezone.utc) - timedelta(days=HISTORY_AFTER_DAYS))
+    if view == 'OWNER':
+        mark = Booking.owner_hidden_at
+    elif view == 'PASSENGER':
+        mark = Booking.passenger_hidden_at
+    else:
+        mark = None
+    if mark is not None:
+        where = where & (or_(mark.is_not(None), stale) if hidden else and_(mark.is_(None), not_(stale)))
     rows = db.scalars(select(Booking).where(where).order_by(Booking.created_at.desc()).limit(100)).all()
 
     def roles(r):
@@ -341,12 +369,44 @@ def bookings(request: Request, user=Depends(current), db: Session = Depends(get_
     return {'items': [{**booking_summary(r), 'viewer_roles': roles(r)} for r in rows]}
 
 
+FINISHED_BOOKING = ('COMPLETED', 'CANCELLED', 'REJECTED')
+HISTORY_AFTER_DAYS = 30
+
+
+@router.post('/bookings/{booking_id}/hide')
+def hide_booking(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """Take a finished booking off my own list. Nothing is deleted: payments and history stay as they are."""
+    row = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update())
+    if not row or user.id not in (row.owner_user_id, row.passenger_user_id):
+        raise missing()
+    if row.status not in FINISHED_BOOKING:
+        raise ApiError(409, 'BOOKING_NOT_FINISHED', 'Only a finished, cancelled or rejected booking can be moved to History.')
+    stamp = datetime.now(timezone.utc)
+    if row.owner_user_id == user.id and not row.owner_hidden_at:
+        row.owner_hidden_at = stamp
+    if row.passenger_user_id == user.id and not row.passenger_hidden_at:
+        row.passenger_hidden_at = stamp
+    db.commit()
+    return {'id': str(row.id), 'hidden': True}
+
+
 @router.get('/bookings/{booking_id}')
 def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     row = visible_booking(db, booking_id, user)
     result = booking_summary(row)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
+    if row.booking_type == 'TICKET_HIRE':
+        # The seats and Travellers of a ticket booking, for the Passenger who booked it and the Owner who runs it.
+        from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
+        result['scheduled_trip_id'] = str(row.current_scheduled_trip_id) if row.current_scheduled_trip_id else None
+        result['travellers'] = [] if user.id not in (row.owner_user_id, row.passenger_user_id) else [
+            {'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status, 'seat_code': seat.seat_code}
+            for t, _, seat in db.execute(select(BookingTraveller, ScheduledTripSeat, VehicleSeat)
+                                         .join(ScheduledTripSeat, ScheduledTripSeat.id == BookingTraveller.scheduled_trip_seat_id)
+                                         .join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
+                                         .where(BookingTraveller.booking_id == row.id)
+                                         .order_by(VehicleSeat.row_number, VehicleSeat.column_number)).all()]
     return result
 
 
@@ -360,7 +420,19 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
         manual_change = row.pending_change.get('kind') == 'CHANGE_REQUEST_UNPRICED' and row.status in ('CONFIRMED', 'IN_PROGRESS')
         if not manual_change and (row.status != 'REQUESTED' or row.accepted_quote_digest): raise ApiError(409, 'QUOTE_STATE_CONFLICT', 'An accepted booking uses change proposals, not a replacement quote.')
         if body.rates.service_type_id != row.service_type_id: raise ApiError(422, 'SERVICE_MISMATCH', 'Quote rates must use the requested service.')
-        itinerary = Itinerary.model_validate(row.pending_change['itinerary'] if manual_change else row.itinerary_snapshot['itinerary'])
+        raw_itinerary = dict(row.pending_change['itinerary'] if manual_change else row.itinerary_snapshot['itinerary'])
+        offered_time = None
+        if body.proposed_start_at is not None:
+            if manual_change: raise ApiError(409, 'QUOTE_TIME_FIXED', 'A change to an accepted booking has its own departure-time proposal.')
+            if body.proposed_start_at <= datetime.now(timezone.utc): raise ApiError(422, 'VALIDATION_ERROR', 'The proposed departure must be in the future.')
+            old_start = datetime.fromisoformat(raw_itinerary['start_at'])
+            if body.proposed_start_at != old_start:
+                shift = body.proposed_start_at - old_start
+                if raw_itinerary.get('return_start_at'):
+                    raw_itinerary['return_start_at'] = (datetime.fromisoformat(raw_itinerary['return_start_at']) + shift).isoformat()
+                raw_itinerary['start_at'] = body.proposed_start_at.isoformat()
+                offered_time = {'requested': old_start.isoformat(), 'proposed': body.proposed_start_at.isoformat()}
+        itinerary = Itinerary.model_validate(raw_itinerary)
         if manual_change and row.pending_change['reason'] == 'DEPARTURE_TIME_CHANGE' and (row.status != 'CONFIRMED' or itinerary.start_at <= datetime.now(timezone.utc)):
             raise ApiError(409, 'DEPARTURE_CHANGE_UNAVAILABLE', 'Only an unstarted confirmed booking can receive a future departure quote.')
         matching = matching_rules(body.rates.rules, itinerary)
@@ -382,7 +454,10 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
             notify(db, row, 'Changed-route quote is ready', 'Review old total, added charge and proposed total. Passenger acceptance and feasible Owner review are required.', assigned.driver_user_id if assigned else None)
         else:
             row.pending_change = {'kind': 'QUOTE', 'quote': snapshot}; row.quoted_amount = Decimal(snapshot['calculation']['total'])
-            notify(db, row, 'Your trip quote is ready', 'Review and accept the itinerary price before the Owner can commit.')
+            if offered_time:
+                notify(db, row, 'Your trip quote is ready, with a different time', 'The Owner cannot do the time you asked for and offers another departure. Review the new time and price before accepting.')
+            else:
+                notify(db, row, 'Your trip quote is ready', 'Review and accept the itinerary price before the Owner can commit.')
         audited(request, db, user, row, previous, 'Structured quote saved as reusable route rates')
     return booking_summary(row)
 
@@ -401,7 +476,8 @@ def accept_price(booking_id: UUID, body: Acceptance, request: Request, user=Depe
         if snapshot['rule']['method'] == 'FIXED_ROUTE' and not snapshot['rule'].get('departure'):
             raise ApiError(409, 'QUOTE_REVIEW_REQUIRED', 'This older fixed quote needs explicit departure applicability before acceptance.')
         previous = booking_summary(row)
-        no_conflict(db, row.vehicle_id, row.start_at, datetime.fromisoformat(snapshot['reserved_end_at']), exclude=row.id)
+        no_conflict(db, row.vehicle_id, quote_itinerary.start_at, datetime.fromisoformat(snapshot['reserved_end_at']), exclude=row.id)
+        row.start_at = quote_itinerary.start_at   # the quote may offer another time than the one first asked for; accepting it moves the booking
         row.price_snapshot = {'initial': copy.deepcopy(snapshot), 'current': copy.deepcopy(snapshot)}
         row.itinerary_snapshot = {'itinerary': snapshot['itinerary'], 'measurement': snapshot['measurement']}
         row.accepted_quote_digest = body.digest; row.total_amount = row.quoted_amount = Decimal(snapshot['calculation']['total'])

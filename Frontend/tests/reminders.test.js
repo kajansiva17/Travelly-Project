@@ -18,8 +18,8 @@ test('document expiry links by action_payload: the vehicle in vehicle_id, otherw
  assert.equal(reminderLink(note('DOCUMENT_EXPIRY',{document_id:'d2',document_type:'DRIVING_LICENCE',stage:'EXPIRING'}),'DRIVER'),'/account?workspace=driver&documents=driver#own-documents-heading')
  assert.equal(reminderLink(note('DOCUMENT_EXPIRY',{document_id:'d3',document_type:'NIC'}),'OWNER'),'/account?workspace=owner&documents=owner#own-documents-heading')
 })
-test('maintenance due links to that vehicle\'s Maintenance tab by action_payload.vehicle_id',()=>{
- assert.equal(reminderLink(note('MAINTENANCE_DUE',{vehicle_id:'v1',task:'OIL_CHANGE',stage:'OVERDUE',record_id:'r1'}),'OWNER'),'/owner/vehicles/v1?tab=maintenance')
+test('maintenance due links to the Maintenance page for that vehicle by action_payload.vehicle_id',()=>{
+ assert.equal(reminderLink(note('MAINTENANCE_DUE',{vehicle_id:'v1',task:'OIL_CHANGE',stage:'OVERDUE',record_id:'r1'}),'OWNER'),'/owner/maintenance?vehicle=v1')
 })
 test('a missing payload key falls back to the vehicle list; the registration number in the text is never used',()=>{
  assert.equal(reminderLink(note('MAINTENANCE_DUE',{}),'OWNER'),'/owner/vehicles')
@@ -29,7 +29,7 @@ test('a missing payload key falls back to the vehicle list; the registration num
  assert.equal(reminderLink(note('REFUND',{vehicle_id:'v1'}),'OWNER'),null)
 })
 test('a vehicle page opens the tab named in its address',()=>{
- assert.equal(vehicleTabFromSearch('?tab=maintenance'),5)
+ assert.equal(vehicleTabFromSearch('?tab=maintenance'),0)
  assert.equal(vehicleTabFromSearch('?tab=documents'),1)
  assert.equal(vehicleTabFromSearch('?tab=other'),0)
  assert.equal(vehicleTabFromSearch(''),0)
