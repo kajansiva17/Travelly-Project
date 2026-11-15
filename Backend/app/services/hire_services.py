@@ -78,14 +78,15 @@ def compatible_driver(db, driver, vehicle, service, at):
     if not approved(db, driver.id, 'DRIVER'):
         raise ApiError(409, 'DRIVER_NOT_ELIGIBLE', 'The Driver must have current approved Driver membership.')
     licence = current_documents(db, uid=driver.id, at=at).get('DRIVING_LICENCE')
-    category = vehicle.verified_eligibility.get('category')
-    accepted = service.settings.get('licence_compatibility', {}).get(category)
+    from app.services.hire_defaults import accepted_licences
+    accepted = accepted_licences(service.settings, vehicle)
     if not licence or licence.issuing_country != 'LK' or not licence.expiry_date or not accepted or not set(licence.verified_categories).intersection(accepted):
         raise ApiError(409, 'DRIVER_CATEGORY_MISMATCH', 'Verified current licence categories do not match this vehicle/service. Missing compatibility rules block assignment.')
 
 
 def route_profile(service, vehicle):
-    profile = service.settings.get('routing_profiles', {}).get(vehicle.verified_eligibility.get('category'))
+    from app.services.hire_defaults import routing_profile_for
+    profile = routing_profile_for(service.settings, vehicle)
     if profile not in ('driving-car', 'driving-hgv'):
         raise ApiError(409, 'ROUTING_PROFILE_REQUIRED', 'The reviewed vehicle/service routing profile is not configured.')
     return profile
@@ -112,10 +113,10 @@ def matches(rule, itinerary, geometry=None):
     if not covered(rule.pickup_area, places[0]): return False
     if rule.coverage.kind == 'ROUTE':
         return [(p.latitude, p.longitude) for p in places] == [(p.latitude, p.longitude) for p in rule.coverage.places]
+    # Area rules: only the pickup must be inside the coverage area.
+    # Destination and intermediate stops may be anywhere — the per-km rate covers the full distance.
     area = rule.coverage.area
-    if not all(covered(area, p) for p in places): return False
-    if geometry:
-        return all(area.west <= Decimal(str(p[0])) <= area.east and area.south <= Decimal(str(p[1])) <= area.north for p in geometry)
+    if not covered(area, places[0]): return False
     return True
 
 
