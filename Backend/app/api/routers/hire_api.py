@@ -575,6 +575,10 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
         eligible_vehicle(db, vehicle); compatible_driver(db, user, vehicle, service_for(db, row.service_type_id, False), datetime.now(timezone.utc))
         odometer_rules(request, trip, vehicle, 'START', body.start_odometer_km)
         no_conflict(db, vehicle.id, row.start_at, row.end_at, exclude=row.id, driver_id=user.id)
+        # Owner decision 16 Nov 2026: the trip starts only after the Driver has checked the Passenger (scanned QR or six-digit PIN).
+        # When the Driver booked the ride for themselves there is no one else to check.
+        if row.passenger_user_id != user.id and trip.pickup_verified_at is None:
+            raise ApiError(409, 'PICKUP_NOT_VERIFIED', 'Check the Passenger first: scan their pickup code or type the six digits, then start the trip.')
         previous = booking_summary(row); row.status = 'IN_PROGRESS'; trip.status = 'IN_PROGRESS'; trip.actual_start_at = datetime.now(timezone.utc); trip.start_odometer_km = body.start_odometer_km; touch(trip)
         notify(db, row, 'Trip started', 'The assigned Driver started this confirmed journey.', user.id)
         audited(request, db, user, row, previous, 'Assigned eligible Driver started the trip')
@@ -763,6 +767,9 @@ def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_
         row = db.get(Booking, trip.booking_id)
         if not row: raise missing()
         if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
+        data = trip_summary(trip)
+        data['pickup']['required'] = row.passenger_user_id != trip.driver_user_id   # a Driver riding alone has no one to check
+        return data
     return trip_summary(trip)
 
 

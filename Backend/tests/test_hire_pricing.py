@@ -13,7 +13,7 @@ from app.services.hire_services import vehicle_evidence
 from app.schemas.rate_schemas import ExampleTrip, RateRule
 from app.services.rate_calculation import calculate
 from app.services.hire_routing import night_distance
-from conftest import signed_in, bearer
+from conftest import signed_in, bearer, check_passenger
 from test_rates import rule, rate_owner
 
 
@@ -479,6 +479,7 @@ def test_started_trip_change_and_three_party_notifications(client,hire_setup,mon
     class Clock(datetime):
         @classmethod
         def now(cls,tz=None):return (start+timedelta(minutes=1)).astimezone(tz or timezone.utc)
+    check_passenger(client,c.passenger,dt,trip['id'],detail['trip']['version'])
     monkeypatch.setattr(module,'datetime',Clock)
     started=client.post(f"/api/v1/trips/{trip['id']}/start",headers=bearer(dt),json={'expected_version':detail['trip']['version'],'start_odometer_km':'1234.5','checklist_confirmed':True})
     assert started.status_code==200 and started.json()['status']=='IN_PROGRESS',started.text

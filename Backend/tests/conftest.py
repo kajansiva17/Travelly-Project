@@ -85,6 +85,15 @@ def bearer(tokens):
     return {'Authorization': 'Bearer ' + tokens['access_token']}
 
 
+def check_passenger(client, passenger_tokens, operator_tokens, trip_id, version):
+    """The Passenger opens the pickup code and the assigned operator types its six digits (a trip cannot start before this)."""
+    opened = client.get(f'/api/v1/trips/{trip_id}/pickup-code', headers=bearer(passenger_tokens))
+    assert opened.status_code == 200, opened.text
+    done = client.post(f'/api/v1/trips/{trip_id}/pickup-verifications', headers=bearer(operator_tokens),
+                       json={'expected_version': version, 'pin': opened.json()['pin']})
+    assert done.status_code == 200, done.text
+
+
 def captured_token(client, purpose='verify'):
     subject = 'Verify your Travelly email' if purpose == 'verify' else 'Reset your Travelly password'
     paths = sorted(client.app.state.settings.mail_capture_dir.glob('*.eml'), key=lambda p: p.stat().st_mtime_ns, reverse=True)

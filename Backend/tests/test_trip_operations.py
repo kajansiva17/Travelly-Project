@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 from app.models.hire_models import Booking, Notification, Trip
-from conftest import bearer, signed_in
+from conftest import bearer, signed_in, check_passenger
 from test_rates import rule, rate_owner
 from test_hire_pricing import hire_setup, committed
 
@@ -26,6 +26,7 @@ def running(client, hire_setup, monkeypatch):
     class Clock(datetime):
         @classmethod
         def now(cls, tz=None): return (start + timedelta(minutes=1)).astimezone(tz or timezone.utc)
+    check_passenger(client, c.passenger, c.owner, detail['trip']['id'], detail['trip']['version'])
     monkeypatch.setattr(module, 'datetime', Clock)
     result = client.post(f"/api/v1/trips/{detail['trip']['id']}/start", headers=bearer(c.owner),
                          json={'expected_version': detail['trip']['version'], 'start_odometer_km': '1234.5',
