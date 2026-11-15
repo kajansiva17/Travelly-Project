@@ -30,6 +30,8 @@ from app.services.vehicle_rules import public_photos
 from app.services import commission_overdue, vehicle_whereabouts
 from app.services.airports import active_airports, airports_of, min_distance_km, near_airport
 
+CONFIRMED_CANCEL_HOURS = 3   # owner rule: Passenger may cancel a confirmed private hire until 3 hours before it starts
+
 router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 
 
@@ -1111,17 +1113,26 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version)
         if user.id != row.passenger_user_id: require_role(db, user, 'OWNER')
-        if user.id not in (row.owner_user_id, row.passenger_user_id) or row.status not in ('REQUESTED', 'OWNER_ACTION_REQUIRED', 'AWAITING_DRIVER'):
+        # A Passenger may cancel a CONFIRMED private hire until CONFIRMED_CANCEL_HOURS before it starts (no fee: private hire is paid after the trip).
+        confirmed_by_passenger = (user.id == row.passenger_user_id and row.status == 'CONFIRMED' and row.booking_type == 'PRIVATE_HIRE')
+        if confirmed_by_passenger and row.start_at - datetime.now(timezone.utc) < timedelta(hours=CONFIRMED_CANCEL_HOURS):
+            raise ApiError(409, 'CANCELLATION_TOO_LATE', f'A confirmed trip can be cancelled until {CONFIRMED_CANCEL_HOURS} hours before it starts. Please contact the Owner.')
+        if user.id not in (row.owner_user_id, row.passenger_user_id) or (row.status not in ('REQUESTED', 'OWNER_ACTION_REQUIRED', 'AWAITING_DRIVER') and not confirmed_by_passenger):
             raise ApiError(409, 'CANCELLATION_REVIEW_REQUIRED', 'Confirmed/in-progress journeys require the approved cancellation/financial workflow; no silent release was made.')
         if row.booking_type != 'PRIVATE_HIRE' or row.assurance_type != 'STANDARD_HIRE' or row.payment_status_snapshot not in (None, 'PENDING', 'FAILED'):
             raise ApiError(409, 'CANCELLATION_REVIEW_REQUIRED', 'Protected or funded journeys require their cancellation/financial workflow; no automatic release was made.')
         previous = booking_summary(row); row.status = 'CANCELLED'; row.vehicle_committed = False
         row.cancelled_by_user_id = user.id; row.cancelled_at = datetime.now(timezone.utc); row.cancellation_reason = body.reason
+        driver_ids = set()
         for trip in db.scalars(select(Trip).where(Trip.booking_id == row.id).with_for_update()):
+            if trip.assignment_status == 'ACCEPTED' and trip.driver_user_id: driver_ids.add(trip.driver_user_id)
             trip.status = 'CANCELLED'
             if trip.assignment_status != 'REJECTED': trip.assignment_status = 'CANCELLED'
             touch(trip)
-        notify(db, row, 'Booking resolved', 'The pending booking was explicitly cancelled and its reservation released.')
+        if confirmed_by_passenger:
+            notify(db, row, 'Trip cancelled by the Passenger', 'The Passenger cancelled this confirmed trip before it started. Do not take the vehicle out for it.', next(iter(driver_ids), None))
+        else:
+            notify(db, row, 'Booking resolved', 'The pending booking was explicitly cancelled and its reservation released.')
         audited(request, db, user, row, previous, body.reason)
     return booking_summary(row)
 

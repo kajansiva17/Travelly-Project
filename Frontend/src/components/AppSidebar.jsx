@@ -24,6 +24,9 @@ export default function AppSidebar({ role, info, authorized, pathname, search, m
   const current = (detailHome && main.find(item => item.path === detailHome)) || (inMenu && travelActive ? main.find(item => item.travel) : activeMenuItem([...main, ...bottom], pathname, search))
   const link = item => {
     const active = item === current
+    if (item.action === 'ai') return <button key={item.label} type="button" className="app-sidebar-link" onClick={() => { setAiOpen(true); onClose?.() }}>
+      <Icon name={item.icon} size={20}/><span>{t(item.label)}</span>
+    </button>
     return <Link key={item.label} to={item.path} className={'app-sidebar-link' + (active ? ' is-active' : '')} aria-current={active ? 'page' : undefined}>
       <Icon name={item.icon} size={20}/><span>{t(item.label)}</span>
     </Link>

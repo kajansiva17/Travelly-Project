@@ -36,7 +36,7 @@ def version(row,body):
 def summary(row):
     return {'id':str(row.id),'reference':row.public_vehicle_reference,'label':' '.join(str(x) for x in (row.make,row.model,row.registration_number) if x),
         'registration_number':str(row.registration_number),'verification_status':row.verification_status,'availability_status':row.availability_status,
-        'published':row.is_published,'version':row.version,**facts(row),
+        'published':row.is_published,'removed':row.archived_at is not None,'version':row.version,**facts(row),
         'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
         'photos':[photo_summary(row.id,p) for p in row.media],
         'description_review':{k:v for k,v in row.verified_eligibility.get('description_review',{}).items() if k in ('status','approved_text','reason','reviewed_at')}}
@@ -45,7 +45,7 @@ def summary(row):
 def before(row):
     return {'version':row.version,'verification_status':row.verification_status,'state':{
         **facts(row),'registration_number':str(row.registration_number),'verification_status':row.verification_status,
-        'availability_status':row.availability_status,'published':row.is_published,'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
+        'availability_status':row.availability_status,'published':row.is_published,'removed':row.archived_at is not None,'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
         'approved_by':str(row.approved_by) if row.approved_by else None,'approved_at':row.approved_at.isoformat() if row.approved_at else None,
         'odometer_updated_at':row.odometer_updated_at.isoformat() if row.odometer_updated_at else None,
         'updated_by':str(row.updated_by) if row.updated_by else None,'updated_at':row.updated_at.isoformat() if row.updated_at else None,
@@ -230,12 +230,46 @@ def availability(vehicle_id:UUID,body:Availability,request:Request,user=Depends(
 
 
 def eligible_preference(db,vehicle,sid,reference):
-    service=db.get(ServiceType,sid)
-    if not service or not service.is_active or service.category!='PRIVATE_HIRE':raise ApiError(409,'SERVICE_UNAVAILABLE','Choose an active service for the suitability check.')
+    """A Driver is eligible when the licence fits the vehicle for the chosen service, or (no service chosen) for at least one active private-hire service."""
+    if sid:
+        services=[db.get(ServiceType,sid)]
+    else:
+        services=list(db.scalars(select(ServiceType).where(ServiceType.category=='PRIVATE_HIRE',ServiceType.is_active.is_(True)).order_by(ServiceType.code)))
+    services=[s for s in services if s and s.is_active and s.category=='PRIVATE_HIRE']
+    if not services:raise ApiError(409,'SERVICE_UNAVAILABLE','No active service is available for the suitability check.')
     driver=db.scalar(select(User).where(User.public_user_reference==reference))
     if not driver:raise ApiError(404,'DRIVER_NOT_FOUND','An eligible Driver for this vehicle/service was not found.')
-    compatible_driver(db,driver,vehicle,service,datetime.now(timezone.utc))
-    return driver
+    failure=None
+    for service in services:
+        try:
+            compatible_driver(db,driver,vehicle,service,datetime.now(timezone.utc));return driver
+        except ApiError as error:failure=error
+    raise failure
+
+
+@router.post('/vehicles/{vehicle_id}/remove')
+def remove_vehicle(vehicle_id:UUID,body:Version,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Owner removes a vehicle from the fleet list. Archive only: the record, bookings, payments and history stay (PRD).
+    A Draft goes at once; an approved vehicle only when no confirmed/upcoming booking, trip or scheduled trip needs it."""
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body)
+        if row.archived_at is not None:raise ApiError(409,'VEHICLE_ALREADY_REMOVED','This vehicle is already removed.')
+        if row.verification_status!='DRAFT':no_commitments(db,row.id)
+        old=before(row);row.archived_at=datetime.now(timezone.utc);row.is_published=False
+        if row.availability_status in ('ACTIVE',):row.availability_status='INACTIVE'
+        commit(db,request,user,row,old,purpose='VEHICLE_REMOVED')
+    return summary(row)
+
+
+@router.post('/vehicles/{vehicle_id}/restore')
+def restore_vehicle(vehicle_id:UUID,body:Version,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Brings a removed vehicle back to the fleet list. It stays unpublished and inactive until the Owner turns it on again."""
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body)
+        if row.archived_at is None:raise ApiError(409,'VEHICLE_NOT_REMOVED','This vehicle is not removed.')
+        old=before(row);row.archived_at=None
+        commit(db,request,user,row,old,purpose='VEHICLE_RESTORED')
+    return summary(row)
 
 
 @router.post('/drivers/eligible-lookup')

@@ -39,7 +39,7 @@ function Action({ to, children, className = '', onUnavailable, ...props }) {
   return <Link to={to} className={className} {...props}>{children}</Link>
 }
 
-function LandingHeader({ role }) {
+export function LandingHeader({ role, signedIn = false }) {
   const [open, setOpen] = useState(false)
   const headerRef = useRef(null)
   useNeedleEvents(headerRef)
@@ -57,10 +57,11 @@ function LandingHeader({ role }) {
     <Brand/>
     <button className="lr-menu" type="button" aria-expanded={open} aria-controls="landing-navigation" aria-label={t('Navigation menu')} onClick={() => setOpen(!open)}><LandingIcon name={open ? 'close' : 'menu'}/></button>
     <nav id="landing-navigation" className={`lr-nav ${open ? 'lr-nav-open' : ''}`} aria-label={t('Main navigation')}>
-      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active lr-glass-red' : ''}`}>{['steering','car'].includes(icon) ? <span className={`lr-role-icon lr-role-icon-${icon}`} style={{ '--lr-role-icon': `url(${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png)` }} aria-hidden="true"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
+      {[['/', 'home', 'Home'], ['/drive-with-us', 'steering', 'For Drivers'], ['/for-owners', 'car', 'For Owners']].map(([to, icon, label]) => <NavLink end to={to} key={to} onClick={() => setOpen(false)} className={({ isActive }) => `lr-nav-link ${isActive ? 'lr-active' : ''}`}>{['steering','car'].includes(icon) ? <span className={`lr-role-icon lr-role-icon-${icon}`} style={{ '--lr-role-icon': `url(${brandAssets}${icon === 'steering' ? 'drivers' : 'owners'}-icon.png)` }} aria-hidden="true"/> : <LandingIcon name={icon} size={20}/>}<span>{t(label)}</span></NavLink>)}
       <label className="lr-language"><LandingIcon name="globe" size={22}/><span className="lr-sr-only">{t('Language')}</span><select value={lang} onChange={event => setLanguage(event.target.value)} aria-label={t('Language')}>{languages.map(language => <option key={language.code} value={language.code}>{language.code === 'en' ? 'EN' : language.name}</option>)}</select></label>
-      <Link className="lr-pill lr-login lr-glass-neutral" to={journeyLink('/login', role.toUpperCase())}>{t('Log in')}</Link>
-      <Link className="lr-pill lr-red lr-signup" to={journeyLink('/register', role.toUpperCase())}>{t('Sign up')}</Link>
+      {signedIn ? <Link className="lr-pill lr-red lr-signup" to="/dashboard">{t('Dashboard')}</Link> : <>
+        <Link className="lr-pill lr-login lr-glass-neutral" to={journeyLink('/login', role.toUpperCase())}>{t('Log in')}</Link>
+        <Link className="lr-pill lr-red lr-signup" to={journeyLink('/register', role.toUpperCase())}>{t('Sign up')}</Link></>}
     </nav>
   </header>
 }
@@ -96,6 +97,15 @@ function JourneySearch({ unavailable }) {
 
 function Cards({ items, kind, unavailable }) {
   return <div className={`lr-cards lr-cards-${kind}`}>{items.map(([photo, icon, title, description, to]) => <Action key={title} to={to} onUnavailable={unavailable} className="lr-card lr-glass"><img className="lr-card-photo" {...artworkSources(cardArtwork[photo])} data-artwork={photo} sizes="(max-width: 760px) 90vw, (max-width: 1099px) 33vw, 440px" alt="" loading="lazy"/><div className="lr-card-body"><span className="lr-icon-well"><LandingIcon name={icon} size={31}/></span><div><h3>{t(title)}</h3>{description && <p>{t(description)}</p>}</div><LandingIcon name="chevron" size={24} className="lr-card-arrow"/></div></Action>)}</div>
+}
+
+/* Second section of the Driver and Owner pages: one large photo and a short list. Pointing at (or tabbing to) an item changes the photo, so the page does not repeat the same photo-card grid. */
+function Showcase({ items, unavailable }) {
+  const [active, setActive] = useState(0)
+  return <div className="lr-showcase lr-glass">
+    <div className="lr-showcase-photos" aria-hidden="true">{items.map(([photo], index) => <img key={photo} className={index === active ? 'lr-on' : ''} {...artworkSources(cardArtwork[photo])} sizes="(max-width: 760px) 90vw, 50vw" alt="" loading="lazy"/>)}</div>
+    <ul className="lr-showcase-list">{items.map(([photo, icon, title, description, to], index) => <li key={title}><Action to={to} onUnavailable={unavailable} className={`lr-showcase-item ${index === active ? 'lr-on' : ''}`} onMouseEnter={() => setActive(index)} onFocus={() => setActive(index)}><span className="lr-icon-well"><LandingIcon name={icon} size={28}/></span><span className="lr-showcase-text"><strong>{t(title)}</strong>{description && <small>{t(description)}</small>}</span><LandingIcon name="chevron" size={22} className="lr-card-arrow"/></Action></li>)}</ul>
+  </div>
 }
 
 function Steps({ data, role }) {
@@ -135,7 +145,7 @@ function LandingPage({ role }) {
       <section className="lr-hero"><div className="lr-hero-art" aria-hidden="true"><img className="lr-hero-scene" {...artworkSources(heroArtwork[role])} sizes="100vw" alt="" fetchPriority="high"/></div><div className="lr-hero-copy"><h1>{role === 'owner' && getLanguage() === 'en' ? ['Your fleet.', 'More possibilities.'].map((line, index) => <React.Fragment key={line}>{index > 0 && ' '}<span className="lr-title-line">{line}</span></React.Fragment>) : t(data.title)}</h1><p className="lr-description">{t(data.description)}</p><div className="lr-hero-actions"><Action to={role === 'home' ? '#search' : register} className="lr-pill lr-red lr-glass-red">{t(data.primary)}<LandingIcon name="arrow"/></Action><Link to={role === 'home' ? register : login} className="lr-pill lr-light lr-glass-neutral"><LandingIcon name="user"/>{t(data.secondary)}</Link></div>{role === 'home' ? <p className="lr-hero-helper">{t('Already have an account?')} <Link to={login}>{t('Sign in')}</Link></p> : <p className="lr-hero-helper">{t(data.helper)}</p>}</div>{role === 'home' && <JourneySearch unavailable={unavailable}/>}</section>
       <div className="lr-content">
         <section className="lr-first-section"><h2>{t(data.firstHeading)}</h2><Cards items={data.firstCards} kind="first" unavailable={unavailable}/></section>
-        <section className="lr-second-section"><h2>{t(data.secondHeading)}</h2><Cards items={data.secondCards} kind="second" unavailable={unavailable}/></section>
+        <section className="lr-second-section"><h2>{t(data.secondHeading)}</h2><Showcase items={data.secondCards} unavailable={unavailable}/></section>
         {role === 'owner' && <Features data={data} unavailable={unavailable}/>}
         <Steps data={data} role={role}/>
         {role !== 'owner' && <Features data={data} unavailable={unavailable}/>}

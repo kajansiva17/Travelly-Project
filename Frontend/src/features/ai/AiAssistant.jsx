@@ -67,6 +67,8 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   const [tab,setTab]=useState(initialTab),[search,setSearch]=useState(freshSearch),[help,setHelp]=useState({messages:[],topics:null})
   const [text,setText]=useState(''),[busy,setBusy]=useState(false),[listening,setListening]=useState(false),[micNote,setMicNote]=useState(''),[blocked,setBlocked]=useState(false),[cardProblem,setCardProblem]=useState('')
   const Recognition=recognitionConstructor()
+  // The assistant listens, answers and speaks in the language chosen here (starts as the site language), so Tamil can be spoken on an English site.
+  const [aiLang,setAiLang]=useState(getLanguage)
   useEffect(()=>{latest.current={search,help,tab}},[search,help,tab])
   useEffect(()=>{dialog.current?.showModal();return()=>{stopMic();globalThis.speechSynthesis?.cancel?.();try{dialog.current?.close()}catch{/* Already closed. */}}},[])
   useEffect(()=>{if(list.current)list.current.scrollTop=list.current.scrollHeight},[search.messages.length,help.messages.length,tab,busy])
@@ -74,13 +76,13 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   useEffect(()=>{
     if(tab!=='help'||help.topics!==null)return undefined
     let alive=true
-    helpTopics(getLanguage()).then(r=>{if(alive)setHelp(h=>({...h,topics:topicRows(r)}))}).catch(()=>{if(alive)setHelp(h=>({...h,topics:[]}))})
+    helpTopics(aiLang).then(r=>{if(alive)setHelp(h=>({...h,topics:topicRows(r)}))}).catch(()=>{if(alive)setHelp(h=>({...h,topics:[]}))})
     return()=>{alive=false}
-  },[tab,help.topics])
+  },[tab,help.topics,aiLang])
   const stopMic=()=>{const r=recognizer.current;recognizer.current=null;try{r&&r.abort&&r.abort()}catch{/* Already stopped. */}}
 
   const close=useCallback(()=>onClose&&onClose(),[onClose])
-  const say=question=>{if(question)speak(question,speechLang(getLanguage()))}   // text is always shown; speech only when the device has a voice for the language
+  const say=question=>{if(question)speak(question,speechLang(aiLang))}   // text is always shown; speech only when the device has a voice for the language
 
   async function sendSearch(message,{label,fromVoice=false}={}){
     const value=String(message||'').trim().slice(0,500);if(!value||busy)return
@@ -88,7 +90,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     setText('');setBusy(true);setCardProblem('')
     setSearch(s=>({...s,messages:[...s.messages,{role:'user',text:label||value}]}))
     try{
-      const r=await searchAssist({message:value,language:getLanguage(),filters:state.filters,asking:state.asking})
+      const r=await searchAssist({message:value,language:aiLang,filters:state.filters,asking:state.asking})
       setSearch(s=>({...s,filters:r.filters||{},asking:r.asking||null,summary:r.summary||[],ready:Boolean(r.ready),formPath:r.form_path||null,messages:[...s.messages,{role:'ai',text:r.question,notes:r.notes||[],options:r.options||[],ready:Boolean(r.ready),reply:r}]}))
       if(fromVoice)say(r.question)
     }catch(error){setSearch(s=>({...s,messages:[...s.messages,{role:'ai',text:aiErrorText(error),error:true}]}))}
@@ -99,7 +101,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     setText('');setBusy(true)
     setHelp(h=>({...h,messages:[...h.messages,{role:'user',text:value}]}))
     try{
-      const r=await askHelp({question:value,language:getLanguage()})
+      const r=await askHelp({question:value,language:aiLang})
       setHelp(h=>({...h,messages:[...h.messages,{role:'ai',help:r}]}))
     }catch(error){setHelp(h=>({...h,messages:[...h.messages,{role:'ai',text:aiErrorText(error),error:true}]}))}
     finally{setBusy(false)}
@@ -113,7 +115,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     globalThis.speechSynthesis?.cancel?.()
     setMicNote('')
     const recognition=new Recognition()
-    recognition.lang=speechLang(getLanguage());recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false
+    recognition.lang=speechLang(aiLang);recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false
     let got=false
     recognition.onresult=event=>{const said=event.results?.[0]?.[0]?.transcript||'';if(!said||got)return;got=true;recognizer.current=null;setListening(false);submit(said,{fromVoice:true})}
     recognition.onerror=event=>{
@@ -177,6 +179,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
       {(micNote||!Recognition)&&<p className="ai-hint" role="status">{micNote||t('Voice is not available on this device. You can type instead.')}</p>}
       <form className="ai-composer" onSubmit={e=>{e.preventDefault();submit(text)}}>
         <input type="text" name="ai-message" value={text} maxLength={500} placeholder={placeholder} aria-label={placeholder} onChange={e=>setText(e.target.value)}/>
+        <select className="ai-lang" value={aiLang} aria-label={t('Language')} title={t('Language')} onChange={e=>{stopMic();setListening(false);globalThis.speechSynthesis?.cancel?.();setAiLang(e.target.value);setHelp(h=>({...h,topics:null}))}}>{[['en','EN'],['ta','தமிழ்'],['si','සිං']].map(([code,name])=><option key={code} value={code}>{name}</option>)}</select>
         {!micHidden&&<button type="button" className={'ai-mic'+(listening?' is-live':'')} aria-label={listening?t('Stop listening'):t('Speak')} title={listening?t('Stop listening'):t('Speak')} onClick={mic} disabled={busy}><Icon name="mic" size={22}/></button>}
         <button type="submit" className="ui-button ui-button-primary" disabled={busy||!text.trim()}>{t('Send')}</button>
       </form>

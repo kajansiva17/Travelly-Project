@@ -249,6 +249,8 @@ def test_preferred_driver_minimal_lookup_and_preference_never_assigns_a_trip(cli
         assert db.scalar(select(func.count()).select_from(Trip))==0
         d=db.get(Document,lid);d.expiry_date=(datetime.now(timezone.utc)-timedelta(days=1)).date();db.commit()
     assert call(client,a,'owner','post','/drivers/eligible-lookup',body).status_code==409
+    anyservice=call(client,a,'owner','post','/drivers/eligible-lookup',{'vehicle_id':row['id'],'driver_reference':driver['public_user_reference']})
+    assert anyservice.status_code==409   # licence expired above: no active service fits
     cleared=call(client,a,'owner','patch',f"/vehicles/{row['id']}/preferred-driver",{'expected_version':selected.json()['version'],'driver_reference':None})
     assert cleared.status_code==200 and cleared.json()['preferred_driver_id'] is None
 
@@ -332,3 +334,18 @@ def test_multibyte_description_audit_stays_bounded_and_withdrawal_is_immediate(c
         with pytest.raises(ApiError):client.app.state.audit.append({'correlation_id':str(uuid4()),'outcome':'history_read','payload':'\u8eca'*30000})
         with pytest.raises(ApiError):client.app.state.audit.append({'correlation_id':str(uuid4()),'outcome':'intent','payload':'x'*64000})
     records,_,_=client.app.state.audit.records();assert len(records)==len(previous)
+
+
+def test_owner_removes_and_restores_a_vehicle_without_deleting_it(client,actors):
+    a=actors;row=draft(client,a);keep=draft(client,a)
+    removed=call(client,a,'owner','post',f"/vehicles/{row['id']}/remove",{'expected_version':row['version']})
+    assert removed.status_code==200,removed.text
+    assert removed.json()['removed'] and not removed.json()['published']
+    assert [v['id'] for v in call(client,a,'owner','get','/owners/me/vehicles').json()['items']]==[keep['id']]
+    gone=call(client,a,'owner','get','/owners/me/vehicles?removed=true').json()['items']
+    assert [v['id'] for v in gone]==[row['id']]
+    again=call(client,a,'owner','post',f"/vehicles/{row['id']}/remove",{'expected_version':removed.json()['version']})
+    assert again.status_code==409 and again.json()['code']=='VEHICLE_ALREADY_REMOVED'
+    back=call(client,a,'owner','post',f"/vehicles/{row['id']}/restore",{'expected_version':removed.json()['version']})
+    assert back.status_code==200 and not back.json()['removed']
+    assert len(call(client,a,'owner','get','/owners/me/vehicles').json()['items'])==2

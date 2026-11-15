@@ -1,7 +1,9 @@
 import { t } from '../../i18n/language.js'
 import {useEffect,useState} from 'react'
 import {useParams} from 'react-router-dom'
-import {Link} from '../passenger/travelRouter'
+import {Link,useNavigate} from '../passenger/travelRouter'
+import {FavouriteHeart} from '../favourites/favourites.jsx'
+import {startFavouriteHire} from '../passenger/PassengerBookingFlow'
 import {api} from '../../services/api'
 import {Header,Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
@@ -21,6 +23,13 @@ function Grid({items,empty}){
     {post.post_type==='REEL'&&<small>{t('{value0} views',{value0:viewsOf(post)})}</small>}</Link>)}</div>
     <div className="flow-actions">{paged.pages>1?paged.pager:<span/>}<span/></div></>
 }
+function Cars({items,mine}){
+  const navigate=useNavigate()
+  if(!items.length)return <EmptyState icon="car" title={t('No vehicles to hire yet.')}>{''}</EmptyState>
+  const hire=v=>{startFavouriteHire({id:v.id,label:v.name});navigate('/travel/book/service',{state:{resume:true}})}
+  return <div className="sp-cars">{items.map(v=><article key={v.id} className="sp-car ui-card"><Icon name="car" size={24}/><div><strong>{v.name}</strong><small>{[v.year,v.colour,t('{value0} seats',{value0:v.seats})].filter(Boolean).join(' · ')}</small></div>
+    {!mine&&<><FavouriteHeart vehicleId={v.id}/><button type="button" className="ui-button ui-button-primary" onClick={()=>hire(v)}>{t('Hire this vehicle')}</button></>}</article>)}</div>
+}
 export default function SocialProfile(){
   const {reference}=useParams(),[data,setData]=useState(null),[error,setError]=useState(''),[tab,setTab]=useState('posts'),[saved,setSaved]=useState(null),[busy,setBusy]=useState(false)
   useEffect(()=>{let alive=true;setData(null);setError('');setTab('posts');setSaved(null)
@@ -32,7 +41,8 @@ export default function SocialProfile(){
       setData(d=>({...d,followed_by_me:on,followers:Math.max(0,Number(d.followers||0)+(on?1:-1))}))}
     catch(e){setError(fieldErrorText(e))}finally{setBusy(false)}
   }
-  const tabs=data?.is_me?[['posts','Posts'],['saved','Saved']].map(([code,name])=>({label:t(name),icon:code==='saved'?'star':'video',active:tab===code,onClick:()=>setTab(code)})):undefined
+  const cars=data?.vehicles||[],names=[['posts','Posts','video'],...(cars.length?[['vehicles','Vehicles','car']]:[]),...(data?.is_me?[['saved','Saved','star']]:[])]
+  const tabs=names.length>1?names.map(([code,name,icon])=>({label:t(name),icon,active:tab===code,onClick:()=>setTab(code)})):undefined
   return <><Header/><FlowShell heading={t('Travel Reels')} icon="video" title={data?.name||t('Profile')} tabs={tabs}>
     {error&&<p className="tk-line is-warn" role="alert">{error}</p>}
     {!data&&!error?<p role="status">{t('Loading…')}</p>:data&&<div className="tk-pane">
@@ -40,7 +50,7 @@ export default function SocialProfile(){
         {data.profile_image_url?<img className="sp-avatar" src={src(data.profile_image_url)} alt=""/>:<span className="sp-avatar"><Icon name="user" size={26}/></span>}
         <Chip tone="muted">{t('{value0} posts',{value0:data.post_count??(data.posts||[]).length})}</Chip><Chip tone="muted">{t('{value0} followers',{value0:data.followers??0})}</Chip><Chip tone="muted">{t('{value0} following',{value0:data.following??0})}</Chip>
         {!data.is_me&&<button type="button" className={'ui-button '+(data.followed_by_me?'ui-button-secondary':'ui-button-primary')} aria-pressed={Boolean(data.followed_by_me)} disabled={busy} onClick={follow}>{data.followed_by_me?t('Following'):t('Follow')}</button>}</div>
-      {tab==='saved'?(saved?<Grid items={saved} empty={t('You have not saved anything yet.')}/>:!error&&<p role="status">{t('Loading…')}</p>):<Grid items={data.posts||[]} empty={t('No posts yet.')}/>}
+      {tab==='vehicles'?<Cars items={cars} mine={data.is_me}/>:tab==='saved'?(saved?<Grid items={saved} empty={t('You have not saved anything yet.')}/>:!error&&<p role="status">{t('Loading…')}</p>):<Grid items={data.posts||[]} empty={t('No posts yet.')}/>}
     </div>}
   </FlowShell></>
 }

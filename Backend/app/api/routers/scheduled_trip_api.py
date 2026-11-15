@@ -273,6 +273,9 @@ def owner_drivers(user=Depends(current), db: Session = Depends(get_db)):
                                 .where(ScheduledTrip.owner_user_id == user.id,
                                        ScheduledTrip.operator_driver_user_id.is_not(None))):
         sources.setdefault(driver_id, 'Drove one of your departures')
+    from app.models.hire_models import OwnerDriver
+    for driver_id in db.scalars(select(OwnerDriver.driver_user_id).where(OwnerDriver.owner_user_id == user.id, OwnerDriver.status == 'ACTIVE')):
+        sources.setdefault(driver_id, 'In your My drivers list')
     if has_role(db, user.id, 'DRIVER'):
         sources[user.id] = 'You'
     if not sources:

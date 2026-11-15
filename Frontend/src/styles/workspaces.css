@@ -8,9 +8,6 @@
 .workspace-profile-name{max-width:180px}
 .workspace-profile-name strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 .workspace-profile-name small{display:block;font-size:10px;color:var(--ui-text);margin-top:3px}
-.dashboard-profile-dropdown{position:absolute;right:0;top:calc(100% + 16px);min-width:220px;padding:8px;background:var(--ui-glass-strong);border:1px solid #5789bd;border-radius:14px;box-shadow:0 20px 40px #0008}
-.dashboard-profile-dropdown a,.dashboard-profile-dropdown button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;text-decoration:none;text-align:left;border-radius:8px;font-size:13px}
-.dashboard-profile-dropdown a:hover{background:var(--ui-glass-strong)}
 .workspace-content{min-width:0}
 .workspace-content>.notice{margin:16px}
 .workspace-menu-toggle{display:none}
@@ -51,12 +48,6 @@ body .workspace-record div>span{display:block;font-size:10px;color:var(--ui-text
 body .workspace-card .workspace-warning,.workspace-warning{color:#ffcfb5;background:rgb(var(--primary-red-rgb) / 24.70588%);padding:10px 12px;border-left:3px solid #e6a369;border-radius:5px;font-size:11px}
 .workspace-loading{display:flex;align-items:center;gap:10px;padding:20px 0}
 .workspace-resource-error h3{font-size:16px;margin-bottom:10px}
-.booking-pipeline{margin:0}
-.booking-pipeline figcaption{font-size:10px;color:var(--ui-text);line-height:1.5;margin-bottom:16px}
-.pipeline-row{display:grid;grid-template-columns:95px 1fr 20px;gap:10px;align-items:center;font-size:10px;margin:12px 0;color:var(--ui-text)}
-.pipeline-track{height:7px;background:var(--ui-red-gradient);border-radius:20px;overflow:hidden}
-.pipeline-track>span{display:block;height:100%;background:var(--ui-red-gradient);border-radius:20px}
-.booking-pipeline>p{font-size:9px!important;margin-top:16px}
 @media(max-width:1099px),(max-height:759px){
  body .workspace-menu-toggle{display:inline-flex}
 }

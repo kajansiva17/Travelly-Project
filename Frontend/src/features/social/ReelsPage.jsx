@@ -1,7 +1,9 @@
 import { t } from '../../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {useParams} from 'react-router-dom'
-import {Link} from '../passenger/travelRouter'
+import {Link,useNavigate} from '../passenger/travelRouter'
+import {FavouriteHeart} from '../favourites/favourites.jsx'
+import {startFavouriteHire} from '../passenger/PassengerBookingFlow'
 import {api} from '../../services/api'
 import {Header,Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
@@ -34,16 +36,19 @@ function Media({post,muted,onSound,onPlaying}){
 }
 
 function Overlay({post,onTag}){
+  const navigate=useNavigate(),car=post.linked_vehicle,profile=`/social/users/${encodeURIComponent(post.author?.reference||'')}`
+  const hire=()=>{startFavouriteHire({id:car.id,label:car.name});navigate('/travel/book/service',{state:{resume:true}})}
   return <div className="rl-overlay">
     {post.post_type==='REVIEW'&&<p className="rl-stars" role="img" aria-label={t('{value0} out of 5 stars',{value0:ratingOf(post)})}>{stars(ratingOf(post))}</p>}
-    <div className="rl-author"><Link to={`/social/users/${encodeURIComponent(post.author?.reference||'')}`}>{post.author?.name}</Link>{post.location_name&&<span><Icon name="pin" size={13}/>{post.location_name}</span>}</div>
+    <div className="rl-author"><Link className="rl-person" to={profile} title={t('Open profile')}>{post.author?.profile_image_url?<img src={src(post.author.profile_image_url)} alt=""/>:<span className="rl-face"><Icon name="user" size={16}/></span>}<b>{post.author?.name}</b></Link>{post.location_name&&<span><Icon name="pin" size={13}/>{post.location_name}</span>}</div>
+    {car&&<div className="rl-vehicle"><Link to={profile} className="rl-car"><Icon name="car" size={16}/>{car.name}</Link>{!post.is_mine&&car.hireable&&<><FavouriteHeart vehicleId={car.id} className="rl-heart"/><button type="button" className="rl-hire" onClick={hire}>{t('Hire this vehicle')}</button></>}</div>}
     {post.caption&&<p className="rl-caption">{post.caption}</p>}
     {(post.hashtags||[]).length>0&&<div className="rl-tags">{post.hashtags.map(tag=><button type="button" key={tag} onClick={()=>onTag(tag)}>#{tag}</button>)}</div>}
     {post.post_type==='REEL'&&<p className="rl-views">{t('{value0} views',{value0:viewsOf(post)})}</p>}
   </div>
 }
 
-function Rail({post,busy,onLike,onSave,onComments,onShare,onFollow,onMenu}){
+function Rail({post,busy,full,onFull,onLike,onSave,onComments,onShare,onFollow,onMenu}){
   const btn=(icon,label,count,on,active)=><button type="button" className={'rl-btn'+(active?' is-on':'')} aria-pressed={active===undefined?undefined:active} aria-label={label} title={label} disabled={busy} onClick={on}><Icon name={icon} size={26}/>{count!=null&&<span>{count}</span>}</button>
   return <div className="rl-rail" role="group" aria-label={t('Reel actions')}>
     {btn('heart',t('Like'),post.like_count,onLike,post.liked_by_me)}
@@ -51,6 +56,7 @@ function Rail({post,busy,onLike,onSave,onComments,onShare,onFollow,onMenu}){
     {btn('bookmark',t('Save'),null,onSave,post.saved_by_me)}
     {btn('share',t('Share'),post.share_count,onShare)}
     {!post.is_mine&&post.author?.reference&&<button type="button" className={'rl-btn rl-follow'+(post.following_author?' is-on':'')} aria-pressed={Boolean(post.following_author)} disabled={busy} onClick={onFollow}><Icon name="user" size={24}/><span>{post.following_author?t('Following'):t('Follow')}</span></button>}
+    {btn(full?'shrink':'expand',full?t('Exit full screen'):t('Full screen'),null,onFull)}
     {btn('more',t('More'),null,onMenu)}
   </div>
 }
@@ -60,6 +66,9 @@ export default function ReelsPage(){
   const [panel,setPanel]=useState(null),[muted,setMuted]=useState(true),[busy,setBusy]=useState(false),[note,setNote]=useState({text:'',warn:false})
   const feed=useFeed({tab,hashtag,enabled:!postId})
   const [single,setSingle]=useState({post:null,error:'',loaded:false})
+  const stage=useRef(null),[full,setFull]=useState(false)
+  useEffect(()=>{const sync=()=>setFull(document.fullscreenElement===stage.current);document.addEventListener('fullscreenchange',sync);return()=>document.removeEventListener('fullscreenchange',sync)},[])
+  const toggleFull=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else stage.current?.requestFullscreen?.()}catch{/* full screen can be refused */}}
   const viewed=useRef(new Set()),lastMove=useRef(0),touchY=useRef(null)
   useEffect(()=>{
     if(!postId)return undefined
@@ -86,6 +95,7 @@ export default function ReelsPage(){
       if(['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||panel)return
       if(e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();go(1)}
       else if(e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();go(-1)}
+      else if(e.key==='f'||e.key==='F'){toggleFull()}
     }
     window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)
   },[go,panel])
@@ -124,7 +134,7 @@ export default function ReelsPage(){
       <Media post={post} muted={muted} onSound={()=>setMuted(m=>!m)} onPlaying={countView}/>
       <Overlay post={post} onTag={setHashtag}/>
     </div>
-    <Rail post={post} busy={busy} onLike={like} onSave={save} onComments={()=>setPanel('comments')} onShare={share} onFollow={follow} onMenu={()=>setPanel('menu')}/>
+    <Rail post={post} busy={busy} full={full} onFull={toggleFull} onLike={like} onSave={save} onComments={()=>setPanel('comments')} onShare={share} onFollow={follow} onMenu={()=>setPanel('menu')}/>
     {panel==='comments'&&<CommentsPanel post={post} onClose={()=>setPanel(null)} onCount={n=>typeof n==='number'&&n!==post.comment_count&&patch({id:post.id,comment_count:n})}/>}
     {panel==='menu'&&<MenuPanel post={post} onClose={()=>setPanel(null)} onChoose={setPanel}/>}
     {panel==='report'&&<ReportPanel post={post} onClose={()=>setPanel(null)}/>}
@@ -135,7 +145,7 @@ export default function ReelsPage(){
   </div>
   return <><Header/><main className="rl-page" id="main">
     {tabs}
-    <div className="rl-stage" onWheel={e=>{if(panel||Math.abs(e.deltaY)<20)return;go(e.deltaY>0?1:-1)}}
+    <div className="rl-stage" ref={stage} onWheel={e=>{if(panel||Math.abs(e.deltaY)<20)return;go(e.deltaY>0?1:-1)}}
       onTouchStart={e=>{touchY.current=e.touches[0].clientY}} onTouchEnd={e=>{if(touchY.current==null||panel)return;const dy=touchY.current-e.changedTouches[0].clientY;touchY.current=null;if(Math.abs(dy)>50)go(dy>0?1:-1)}}>
       {body}
       {note.text&&<p className={'rl-note'+(note.warn?' is-warn':'')} role="status">{note.text}</p>}

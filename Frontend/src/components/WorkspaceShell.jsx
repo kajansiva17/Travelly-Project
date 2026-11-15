@@ -66,7 +66,7 @@ export default function WorkspaceShell({role:fixedRole}){
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>
-      <NavbarReels to={role==='ADMIN'?undefined:travelPath(role,'/reels')}/>
+      <NavbarReels to={travelPath(role,'/reels')}/>
       <NavbarBell to={notificationPath} label={t(notificationLabel)}/>
       <NavbarProfile user={access.user} roleLabel={t(info.label)} profileTo={accountPath(role)}/>
      </>:<Link to="/">{t('Travel & booking')}</Link>}

@@ -1021,3 +1021,17 @@ html body .flow-page .qq-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !imp
 .fav-photo{display:grid;place-items:center;height:72px;border-radius:12px;overflow:hidden;background:#ffffff80}.fav-photo img{width:100%;height:100%;object-fit:cover}
 .fav-info h3{margin:0;font-size:16px}.fav-info p{margin:2px 0 4px;font-size:13px}.fav-actions{display:flex;gap:8px}
 .fav-banner{display:flex;align-items:center;gap:8px;margin:0 0 6px;padding:6px 12px;border-radius:10px;background:#fff1f1;font-size:13px}
+
+.app-wizard{display:grid;gap:6px;align-content:start}
+.app-wizard fieldset{border:0;margin:0;padding:0;display:grid;gap:6px;min-width:0}
+.app-wizard .wizard-pane{display:grid;gap:6px;align-content:start}
+.app-evidence{display:grid;gap:6px;padding:8px 12px;border-radius:12px;background:#ffffff80}
+.app-hint{margin:0;font-size:13px;line-height:1.35}
+html body .flow-page .app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 12px}
+.app-review{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;margin:0}.app-review>div{padding:8px 12px;border-radius:12px;background:#ffffff80}.app-review dt{font-size:12px;opacity:.75}.app-review dd{margin:2px 0 0;font-weight:600;word-break:break-word}
+.flow-card .notice{margin:0;padding:6px 10px;border-radius:10px;font-size:13px}
+.app-reject{padding:6px 10px;border-radius:10px;background:#fff1f1}
+
+html body .flow-card .single-application{padding:0 !important;margin:0 !important;background:none !important;border:0 !important;box-shadow:none !important}
+html body .flow-card .single-application .single-application-replace{display:inline-flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.85rem;font-weight:600;width:auto}
+html body .flow-card .single-application .single-application-replace input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0;flex:none}

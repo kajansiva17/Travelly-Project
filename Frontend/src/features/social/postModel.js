@@ -47,6 +47,7 @@ export function buildPostForm(v){
   const caption=String(v.caption||'').trim();if(caption)form.append('caption',caption)
   const tags=parseTags(v.hashtags);if(tags.length)form.append('hashtags',JSON.stringify(tags))
   const place=String(v.location_name||'').trim();if(place)form.append('location_name',place)
+  if(v.post_type!=='REVIEW'&&v.linked_vehicle_id)form.append('linked_vehicle_id',v.linked_vehicle_id)
   if(v.post_type==='REVIEW'){form.append('linked_vehicle_id',v.linked_vehicle_id);form.append('rating',String(v.rating))}
   return form
 }

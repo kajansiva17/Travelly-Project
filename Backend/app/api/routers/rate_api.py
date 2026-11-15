@@ -78,9 +78,10 @@ def own_vehicles(request: Request, user=Depends(current), db: Session = Depends(
     require_role(db, user, 'OWNER')
     from app.api.routers.vehicle_api import summary
     from sqlalchemy import func
-    params=query_values(request,{'page','page_size'});params.setdefault('page_size','100')
+    params=query_values(request,{'page','page_size','removed'});params.setdefault('page_size','100')
+    removed=params.pop('removed','false')=='true'
     page,size=pagination(params)
-    q=select(Vehicle).where(Vehicle.owner_user_id==user.id)
+    q=select(Vehicle).where(Vehicle.owner_user_id==user.id,Vehicle.archived_at.isnot(None) if removed else Vehicle.archived_at.is_(None))
     total=db.scalar(select(func.count()).select_from(q.subquery()))
     rows=db.scalars(q.order_by(Vehicle.created_at,Vehicle.id).offset((page-1)*size).limit(size)).all()
     return page_result([summary(r) for r in rows],page,size,total)

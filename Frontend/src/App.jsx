@@ -22,6 +22,7 @@ import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import OwnerTicketDepartures,{OwnerReplacementRequests} from './features/owner/OwnerTicketDepartures'
 import OwnerDriving from './features/owner/OwnerDriving'
+import MyDrivers from './features/owner/MyDrivers'
 
 import VehicleServicePage from './features/owner/VehicleServicePage'
 import OwnerHire from './features/owner/OwnerHire'
@@ -36,6 +37,7 @@ import AdminDocuments from './features/admin/AdminDocuments'
 import AdminRoadAlerts from './features/admin/AdminRoadAlerts'
 import AdminPayments from './features/admin/AdminPayments'
 import DriverTripPage from './features/driver/DriverTripPage'
+import MyOwners from './features/driver/MyOwners'
 import WorkspaceShell from './components/WorkspaceShell'
 import { hasSession, sessionEndReason } from './services/api'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
@@ -202,8 +204,10 @@ export default function App() {
           <Route path="/" element={<PassengerPage />} />
           <Route path="/for-owners" element={<PublicRoleEntry role="OWNER"><OwnerPage/></PublicRoleEntry>} />
           <Route path="/drive-with-us" element={<PublicRoleEntry role="DRIVER"><DriverPage/></PublicRoleEntry>} />
-          <Route path="/owner/onboarding" element={<RoleOnboarding key="owner" role="OWNER"/>}/>
-          <Route path="/driver/onboarding" element={<RoleOnboarding key="driver" role="DRIVER"/>}/>
+          <Route element={<WorkspaceShell role="PASSENGER"/>}>
+            <Route path="/owner/onboarding" element={<RoleOnboarding key="owner" role="OWNER"/>}/>
+            <Route path="/driver/onboarding" element={<RoleOnboarding key="driver" role="DRIVER"/>}/>
+          </Route>
           <Route path="/register" element={<AuthPage signup />} />
           <Route path="/login" element={<AuthPage />} />
           {import.meta.env.DEV&&<Route path="/__ui-kit" element={<Suspense fallback={null}><UiKitPreview/></Suspense>}/>}
@@ -236,6 +240,7 @@ export default function App() {
           <Route element={<WorkspaceShell role="OWNER"/>}>
             {travelRoutes('/owner')}
             <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
+            <Route path="/owner/drivers" element={<MyDrivers/>}/>
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
@@ -263,6 +268,7 @@ export default function App() {
           </Route>
           <Route element={<WorkspaceShell role="DRIVER"/>}>
             {travelRoutes('/driver')}
+            <Route path="/driver/owners" element={<MyOwners/>}/>
             <Route path="/driver/dashboard" element={<DriverDashboard/>}/>
             <Route path="/driver/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/driver/operate-trip" element={<WorkspaceBookings kind="operate"/>}/>
@@ -277,11 +283,7 @@ export default function App() {
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="ADMIN"/>}>
-            <Route path="/admin/personal/hire" element={<HireSearchPage/>}/>
-            <Route path="/admin/personal/owners/:ownerReference" element={<HireSearchPage/>}/>
-            <Route path="/admin/personal/bookings" element={<WorkspaceBookings personal/>}/>
-            <Route path="/admin/personal/bookings/:bookingId" element={<BookingPage/>}/>
-            <Route path="/admin/personal/vehicles/:vehicleId" element={<PublicVehicle/>}/>
+            {travelRoutes('/admin')}
             <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
             <Route path="/admin/applications" element={<AdminApplicationRoute/>}/>
             <Route path="/admin/applications/:roleId" element={<AdminApplicationRoute/>}/>

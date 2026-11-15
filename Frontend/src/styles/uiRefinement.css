@@ -13,7 +13,6 @@
 
 /* Preserve clearance above the Owner page's existing overlapping steps panel. */
 @media (min-width: 761px) {
-  .public-page .owner-hero h1 { font-size: clamp(32px, 3.3vw, 48px); margin-bottom: 10px; }
 }
 
 /* One set of reading-sized auth rules supersedes the old embedded-input and

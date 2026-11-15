@@ -92,3 +92,7 @@ html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; m
   html body .workspace-shell[data-workspace] .app-sidebar { display: none; }
   html body .workspace-shell[data-workspace] .workspace-content { grid-column: 1; }
 }
+
+/* The landing navbar on the inner pages (rental, tickets, hire...): same pill, kept in the page flow instead of floating over a hero photo. */
+html body .lr-page.lr-bare { min-height: 0 !important; background: none !important; padding: 0; margin: 0; display: block; overflow: visible; }
+html body .lr-page.lr-bare > header.lr-header.site-header.app-navbar.app-navbar.app-navbar.app-navbar { position: relative; top: auto; left: auto; transform: none; margin: var(--frame-top) auto 0; }

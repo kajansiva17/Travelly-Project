@@ -1,5 +1,7 @@
 import { t } from '../../i18n/language.js'
+import { useState } from 'react'
 import { Link } from '../passenger/travelRouter'
+import TicketCancel, { CancelledTicket } from '../passenger/TicketCancel'
 import { Header, Icon } from '../../components/components'
 import { Chip } from '../../components/ui'
 import { FlowShell } from './flow/FlowParts'
@@ -10,7 +12,12 @@ import { codeLabel } from '../../i18n/codeLabels.js'
    who travels in which seat, and the payment, with one clear way back to the list. */
 const TONE = { CONFIRMED: 'success', COMPLETED: 'success', REQUESTED: 'warning' }
 
-export default function TicketBookingView({ booking, owner, passenger, backTo, backLabel }) {
+export default function TicketBookingView({ booking, owner, passenger, backTo, backLabel, reload }) {
+  const [cancelOpen, setCancelOpen] = useState(false), [result, setResult] = useState(null)
+  // The Passenger can cancel a confirmed (paid) ticket until the departure starts; the refund follows the 72 h / 24 h rule.
+  const canCancel = Boolean(passenger && !owner && booking.status === 'CONFIRMED' && new Date(booking.start_at).getTime() > Date.now())
+  const forCancel = { ...booking, booking_reference: booking.booking_reference || booking.reference }
+  const done = async res => { setResult(res); setCancelOpen(false); if (reload) await reload() }
   const route = booking.origin_text && booking.destination_text ? `${booking.origin_text} → ${booking.destination_text}` : booking.reference
   const people = booking.travellers || []
   return <><Header/><FlowShell heading={t('Ticket booking')} title={booking.reference} icon="ticket"
@@ -32,8 +39,11 @@ export default function TicketBookingView({ booking, owner, passenger, backTo, b
           : <p className="tb-empty">{t('No travellers to show.')}</p>}
       </div>
     </div>
+    {booking.status === 'CANCELLED' && passenger && <CancelledTicket booking={forCancel} result={result}/>}
+    {cancelOpen && canCancel && <TicketCancel booking={forCancel} departureAt={booking.start_at} refresh={async () => { if (reload) await reload() }} onDone={done} onClose={() => setCancelOpen(false)}/>}
     <div className="flow-actions">
       <Link className="ui-button ui-button-secondary" to={backTo}>{backLabel}</Link>
+      {canCancel && !cancelOpen && <button type="button" className="ui-button ui-button-secondary" onClick={() => setCancelOpen(true)}>{t('Cancel ticket')}</button>}
       {owner && booking.scheduled_trip_id ? <Link className="ui-button ui-button-primary" to="/owner/ticket?tab=departures">{t('Open departures')}</Link> : <span/>}
     </div>
   </FlowShell></>

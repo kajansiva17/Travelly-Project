@@ -630,3 +630,81 @@ def test_passenger_keeps_favourite_vehicles_and_removes_them(client, hire_setup)
     assert client.get('/api/v1/me/favourite-vehicles', headers=h).json()['items'] == []
     assert client.put(f'/api/v1/me/favourite-vehicles/{uuid4()}', headers=h, json={}).status_code == 404
     assert client.get('/api/v1/me/favourite-vehicles').status_code == 401
+
+
+def test_passenger_cancels_confirmed_hire_until_three_hours_before_start_and_everyone_is_told(client, hire_setup):
+    c = hire_setup
+    b = committed(client, c)
+    assert b['status'] == 'CONFIRMED'
+    with client.app.state.sessions() as db:                      # too late: starts in 2 hours
+        row = db.get(Booking, UUID(b['id']))
+        keep = (row.start_at, row.end_at)
+        row.start_at = datetime.now(timezone.utc) + timedelta(hours=2); row.end_at = row.start_at + timedelta(hours=3); db.commit()
+    late = client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'late'})
+    assert late.status_code == 409 and late.json()['code'] == 'CANCELLATION_TOO_LATE'
+    with client.app.state.sessions() as db:                      # back to the original (far) time
+        row = db.get(Booking, UUID(b['id'])); row.start_at, row.end_at = keep; db.commit()
+    done = client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'Plans changed'})
+    assert done.status_code == 200, done.text
+    assert done.json()['status'] == 'CANCELLED' and not done.json()['vehicle_committed']
+    assert any('Passenger cancelled' in n['body'] for n in client.get('/api/v1/notifications', headers=bearer(c.owner)).json()['items'])
+
+
+def test_my_drivers_needs_a_request_or_invitation_that_the_other_side_accepts(client, hire_setup):
+    c = hire_setup
+    driver, dt = external_driver(client, c)
+    oh, dh = bearer(c.owner), bearer(dt)
+    first = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()
+    assert first['items'] == [] and first['my_reference'].startswith('USR-')
+    assert client.post('/api/v1/owners/me/saved-drivers', headers=oh, json={'driver_reference': 'USR-0000000000000000'}).status_code == 404
+    # Driver asks the Owner by the Owner's reference; the Owner accepts
+    assert client.post('/api/v1/drivers/me/owner-links', headers=dh, json={'owner_reference': 'USR-0000000000000000'}).status_code == 404
+    asked = client.post('/api/v1/drivers/me/owner-links', headers=dh, json={'owner_reference': first['my_reference']})
+    assert asked.status_code == 201 and asked.json()['status'] == 'DRIVER_REQUESTED', asked.text
+    waiting = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items']
+    assert len(waiting) == 1 and waiting[0]['status'] == 'DRIVER_REQUESTED'
+    assert any('asked to join' in n['title'] for n in client.get('/api/v1/notifications', headers=oh).json()['items'])
+    # the Driver cannot accept their own request
+    assert client.post(f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}/accept", headers=dh, json={}).status_code in (403, 404)   # the Driver cannot accept their own request
+    ok = client.post(f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}/accept", headers=oh, json={})
+    assert ok.status_code == 200 and ok.json()['status'] == 'ACTIVE'
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items'][0]['status'] == 'ACTIVE'
+    mine = client.get('/api/v1/drivers/me/owner-links', headers=dh).json()['items']
+    assert len(mine) == 1 and mine[0]['status'] == 'ACTIVE'
+    # the Owner removes the link; it can be re-made by an invitation the Driver accepts
+    assert client.request('DELETE', f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}", headers=oh, json={}).status_code == 200
+    invited = client.post('/api/v1/owners/me/saved-drivers', headers=oh, json={'driver_reference': driver['public_user_reference'], 'nickname': 'Kumar'})
+    assert invited.status_code == 201 and invited.json()['status'] == 'OWNER_INVITED'
+    link = client.get('/api/v1/drivers/me/owner-links', headers=dh).json()['items'][0]
+    assert link['status'] == 'OWNER_INVITED'
+    assert client.post(f"/api/v1/drivers/me/owner-links/{link['id']}/decline", headers=dh, json={}).json()['status'] == 'DECLINED'
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items'] == []     # declined links are not listed
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=bearer(c.passenger)).status_code in (403, 404)
+
+
+def test_driver_finds_an_owner_by_name_or_full_plate_unless_the_owner_hides(client, hire_setup):
+    c = hire_setup
+    driver, dt = external_driver(client, c)
+    oh, dh = bearer(c.owner), bearer(dt)
+    mine = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()
+    assert mine['findable'] is True
+    me = client.get('/api/v1/users/me', headers=oh).json()
+    first = me['full_name'][:4]
+    assert client.get('/api/v1/drivers/me/owner-search?q=ab', headers=dh).status_code == 422          # too short
+    named = client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=dh)
+    assert named.status_code == 200, named.text
+    by_name = named.json()['items']
+    assert any(i['reference'] == mine['my_reference'] for i in by_name)
+    assert all(set(i) == {'reference', 'name', 'vehicles', 'link_status', 'link_id'} for i in by_name)   # no phone, email or plate
+    by_ref = client.get(f"/api/v1/drivers/me/owner-search?q={mine['my_reference']}", headers=dh).json()['items']
+    assert [i['reference'] for i in by_ref] == [mine['my_reference']]
+    with client.app.state.sessions() as db:
+        plate = str(db.get(Vehicle, c.vehicle_id).registration_number)
+    exact = client.get(f'/api/v1/drivers/me/owner-search?q={plate}', headers=dh).json()['items']
+    assert any(i['reference'] == mine['my_reference'] for i in exact)
+    assert not any(plate in str(i) for i in exact)                                                    # the plate itself is never shown
+    # the Owner hides from search: name no longer finds them, the reference still does
+    assert client.put('/api/v1/owners/me/findable', headers=oh, json={'findable': False}).json() == {'findable': False}
+    assert not any(i['reference'] == mine['my_reference'] for i in client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=dh).json()['items'])
+    assert len(client.get(f"/api/v1/drivers/me/owner-search?q={mine['my_reference']}", headers=dh).json()['items']) == 1
+    assert client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=bearer(c.passenger)).status_code in (403, 404)   # only a Driver searches

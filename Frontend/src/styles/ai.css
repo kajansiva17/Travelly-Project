@@ -111,3 +111,4 @@ html body .rb-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 html body .rb-confirm { display: grid; gap: 8px; }
 html body .rb-bill { width: 100%; }
 html body .rb-bill tfoot th, html body .rb-bill tfoot td { padding: 6px 8px; text-align: right; }
+html body .ai-lang { flex: none; min-height: 44px; padding: 0 10px; border-radius: 999px; border: 1px solid rgb(18 21 82 / .12); background: #fff; font: inherit; cursor: pointer; }

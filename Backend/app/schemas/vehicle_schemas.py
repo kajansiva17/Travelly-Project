@@ -101,7 +101,7 @@ class RegistrationCorrection(VehicleCreate):
 
 class DriverLookup(RateModel):
     vehicle_id: UUID
-    service_type_id: UUID
+    service_type_id: UUID | None = None
     driver_reference: str = Field(pattern=r'^USR-[0-9A-F]{16}$')
 
 
@@ -110,8 +110,7 @@ class PreferredDriver(Version):
     service_type_id: UUID | None = None
     @model_validator(mode='after')
     def service(self):
-        if self.driver_reference and not self.service_type_id: raise ValueError('Select the service for the eligibility check.')
-        return self
+        return self   # service_type_id is optional: without it the Driver may match any active private-hire service
 
 
 class PhotoDecision(Version):

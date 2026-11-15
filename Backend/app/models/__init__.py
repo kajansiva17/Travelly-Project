@@ -40,6 +40,8 @@ class User(Base):
     # Owner decision 14 Nov 2026: which optional notification types the person has turned off ({'muted': [...]}).
     notification_preferences: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     # Owner decisions 14 Nov 2026: two-step verification (secret stored encrypted, backup codes as hashes) and account closure.
+    # Owner decision 15 Nov 2026: an Owner can switch off being found by name or number plate in a Driver's search (the Travelly reference still works).
+    findable_by_drivers: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
     totp_secret: Mapped[str | None] = mapped_column(Text)
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     totp_backup_codes: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))

@@ -35,8 +35,6 @@
 .private-upload:focus-visible, .document-checklist select:focus-visible { outline: 3px solid #98613c; outline-offset: 3px; }
 @media (max-width: 480px) { .document-checklist { padding: 14px; } .private-upload .button { width: 100%; white-space: normal; } }
 @media (max-width: 767px) { .review-preview { padding: 20px; } }
-.application-status-notice {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-block:16px;}
-.application-status-notice p {margin:6px 0 0;overflow-wrap:anywhere;}
 .review-document {scroll-margin-top:100px;}
 .approval-blocked:empty {display:none;}
 .approval-blocked {font-size:14px;line-height:1.6;}

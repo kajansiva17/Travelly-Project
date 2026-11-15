@@ -434,3 +434,20 @@ favourite_vehicles_table = Table('favourite_vehicles', Base.metadata,
 
 class FavouriteVehicle(Base):
     __table__ = favourite_vehicles_table
+
+
+# Owner decision 15 Nov 2026: "My drivers" is the Owner's own saved list of Drivers (a bookmark, like favourite vehicles).
+# It is not an Owner-Driver relationship and gives the Driver nothing: every assignment still needs the licence check and the Driver's acceptance.
+owner_drivers_table = Table('owner_drivers', Base.metadata,
+    Column('id', UUID(as_uuid=True), nullable=False, server_default=text('gen_random_uuid()'), primary_key=True),
+    Column('owner_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_owner_drivers_owner_user_id', ondelete='CASCADE'), nullable=False),
+    Column('driver_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_owner_drivers_driver_user_id', ondelete='CASCADE'), nullable=False),
+    Column('nickname', String(60), nullable=True),
+    Column('status', String(20), nullable=False, server_default=text("'ACTIVE'")),            # ACTIVE | DRIVER_REQUESTED | OWNER_INVITED | DECLINED
+    Column('initiated_by', String(6), nullable=False, server_default=text("'OWNER'")),         # OWNER | DRIVER
+    Column('created_at', DateTime(timezone=True), nullable=False, server_default=text('now()')),
+    UniqueConstraint('owner_user_id', 'driver_user_id', name='uq_owner_drivers_owner_driver'),
+    Index('ix_owner_drivers_owner', 'owner_user_id', 'created_at'))
+
+class OwnerDriver(Base):
+    __table__ = owner_drivers_table

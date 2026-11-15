@@ -10,7 +10,7 @@ test('workspace eligibility requires current account and both approved role repr
  assert.deepEqual(eligibleWorkspaces(null,roles),[])
 })
 test('role menus retain every required destination and bottom account controls',()=>{
- const expected={PASSENGER:11,OWNER:13,DRIVER:12,ADMIN:13}
+ const expected={PASSENGER:11,OWNER:14,DRIVER:13,ADMIN:14}
  for(const [role,length] of Object.entries(expected)){const menu=workspaceMenu(role);assert.equal(menu.length,length);assert.equal(new Set(menu.map(m=>m.label)).size,length);assert.deepEqual(new Set(menu.filter(m=>m.bottom).map(m=>m.label)),new Set(['Profile','Settings']));assert.ok(menu.every(m=>m.path.startsWith('/')))}
 })
 test('workspace query is an allowlisted UI selection and preserves existing URL parts',()=>{
@@ -48,8 +48,8 @@ test('login goes to the highest approved role, or the landing page role (role wo
 })
 test('Owner sidebar follows the contract order; My driving only for an approved Owner who is also a Driver',()=>{
  const labels=menu=>menu.filter(i=>!i.bottom).map(i=>i.label)
- assert.deepEqual(labels(workspaceMenu('OWNER')),['Overview','My vehicles','Hire prices','Ticket','Rental','Maintenance','Bookings for my vehicles','Replacement requests','Settlements','Reports','Travel & booking'])
- assert.deepEqual(labels(workspaceMenu('OWNER',{driving:true})),['Overview','My vehicles','Hire prices','Ticket','Rental','Maintenance','Bookings for my vehicles','Replacement requests','Settlements','Reports','Travel & booking','My driving'])
+ assert.deepEqual(labels(workspaceMenu('OWNER')),['Overview','My vehicles','Hire prices','Ticket','Rental','Maintenance','Bookings for my vehicles','Replacement requests','My drivers','Settlements','Reports','Travel & booking'])
+ assert.deepEqual(labels(workspaceMenu('OWNER',{driving:true})),['Overview','My vehicles','Hire prices','Ticket','Rental','Maintenance','Bookings for my vehicles','Replacement requests','My drivers','Settlements','Reports','Travel & booking','My driving'])
  assert.deepEqual(workspaceMenu('OWNER',{driving:true}).filter(i=>i.bottom).map(i=>i.label),['Settings','Profile'])
  assert.equal(canDriveAsOwner({approved_roles:['PASSENGER','OWNER','DRIVER']}),true)
  assert.equal(canDriveAsOwner({approved_roles:['PASSENGER','OWNER']}),false)
@@ -67,10 +67,12 @@ test('Passenger pages run inside the Owner and Driver workspaces under /travel w
  assert.equal(travelPath('OWNER','/login'),'/login')
  assert.equal(travelPath('OWNER','/owner/vehicles'),'/owner/vehicles')
  assert.equal(travelPath('OWNER','/bookingsx'),'/bookingsx')
- for(const role of ['PASSENGER','ADMIN',undefined])assert.equal(travelPath(role,'/bookings'),'/bookings')
+ for(const role of ['PASSENGER',undefined])assert.equal(travelPath(role,'/bookings'),'/bookings')
+ assert.equal(travelPath('ADMIN','/bookings/b1'),'/admin/travel/bookings/b1')
+ assert.equal(travelPath('ADMIN','/travel/book/service'),'/admin/travel/book/service')
  assert.equal(isPersonalPath('OWNER','/owner/travel/bookings/b1'),true)
  assert.equal(isPersonalPath('OWNER','/owner/bookings/b1'),false)
- assert.equal(isPersonalPath('ADMIN','/admin/personal/hire'),true)
+ assert.equal(isPersonalPath('ADMIN','/admin/travel/hire'),true)
 })
 test('only one sidebar entry is current, including entries that share a path',()=>{
  const driver=workspaceMenu('DRIVER'),current=activeMenuItem(driver,'/driver/trip-history','')
