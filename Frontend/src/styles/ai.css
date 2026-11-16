@@ -6,7 +6,7 @@ html body .ai-panel { display: flex; flex-direction: column; gap: 8px; box-sizin
 html body .ai-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 html body .ai-head h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 20px; font-style: italic; font-weight: 800; color: #3b2a99; }
 html body .ai-head svg { color: #7c4dff; }
-html body .ai-x { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: rgb(255 255 255 / .85); color: inherit; cursor: pointer; }
+html body .ai-x { display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: rgb(255 255 255 / .85); color: inherit; cursor: pointer; position: relative; z-index: 10; touch-action: manipulation; }
 html body .ai-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 999px; background: rgb(18 21 82 / .07); }
 html body .ai-tabs button { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; font: inherit; font-weight: 700; color: inherit; cursor: pointer; }
 html body .ai-tabs button.is-active { background: #fff; box-shadow: 0 2px 8px rgb(18 40 90 / .15); color: #3b2a99; }
@@ -41,6 +41,8 @@ html body .ai-composer input { flex: 1 1 auto; min-width: 0; min-height: 44px; p
 html body .ai-mic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: #fff; color: inherit; cursor: pointer; }
 html body .ai-mic.is-live { background: var(--ui-red, var(--brand-red)); color: #fff; }
 @media (max-width: 560px) { html body .ai-rows { grid-template-columns: minmax(0, 1fr); } html body .ai-panel { width: calc(100vw - 16px); height: calc(100dvh - 16px); border-radius: 18px; padding: 10px; } }
+/* Mobile: when soft keyboard is open, dvh shrinks. Keep panel within visible area so backdrop tap area stays reachable. */
+@media (max-width: 767px) { html body .ai-dialog[open] { align-items: flex-start; padding-top: env(safe-area-inset-top, 8px); } html body .ai-panel { max-height: calc(100dvh - 16px); } }
 @media (prefers-reduced-motion: reduce) { html body .ai-dots i { animation: none; opacity: .7; } }
 
 /* The dashboard card: both buttons are live now (they were a disabled placeholder). Full names show when the card is wide enough. */

@@ -159,9 +159,12 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   const lastAi=[...search.messages].reverse().find(m=>m.role==='ai'),convo=tab==='search'?search.messages:help.messages
   const placeholder=tab==='search'?t('Where do you want to go?'):t('Ask how to do something in Travelly')
   const micHidden=!Recognition||blocked
-  return <dialog ref={dialog} className="ai-dialog" aria-label={t('Travelly AI')} onClose={close} onClick={e=>{if(e.target===dialog.current)dialog.current.close()}}>
+  // iOS Safari: click events don't bubble on non-interactive elements, so backdrop tap won't close the dialog.
+  // onTouchEnd handles tap-outside-panel on mobile; click handles desktop.
+  const handleBackdrop=e=>{if(e.target===dialog.current)dialog.current.close()}
+  return <dialog ref={dialog} className="ai-dialog" aria-label={t('Travelly AI')} onClose={close} onClick={handleBackdrop} onTouchEnd={handleBackdrop}>
     <div className="ai-panel">
-      <header className="ai-head"><h2><Icon name="spark" size={20}/>{t('Travelly AI')}</h2><button type="button" className="ai-x" aria-label={t('Close')} onClick={()=>dialog.current.close()}><Icon name="close" size={20}/></button></header>
+      <header className="ai-head"><h2><Icon name="spark" size={20}/>{t('Travelly AI')}</h2><button type="button" className="ai-x" aria-label={t('Close')} onClick={()=>dialog.current.close()} onTouchEnd={e=>{e.stopPropagation();dialog.current.close()}}><Icon name="close" size={20}/></button></header>
       <div className="ai-tabs" role="tablist" aria-label={t('Travelly AI')}>{[['search','Find a ride'],['help','Help']].map(([id,name])=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?'is-active':''} onClick={()=>setTab(id)}>{t(name)}</button>)}</div>
       <div className="ai-messages" ref={list} role="log" aria-live="polite">
         {tab==='help'&&help.topics&&help.topics.length>0&&<section className="ai-topics" aria-label={t('What can I ask?')}><strong>{t('What can I ask?')}</strong><div className="ai-chips">{help.topics.map(topic=><Chip key={topic.id} tone="info" onClick={()=>sendHelp(topic.title)}>{topic.title}</Chip>)}</div></section>}
