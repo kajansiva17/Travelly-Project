@@ -1,5 +1,5 @@
 import { t } from '../../i18n/language.js'
-import {useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
 import {api} from '../../services/api'
 import {ErrorNotice} from '../../components/components'
 import Chip from '../../components/ui/Chip'
@@ -15,15 +15,22 @@ const money=(currency,amount)=>`${currency||'LKR'} ${amount}`
 
 // One cash confirmation. Each side sends only its own flag. A second step ("Yes, confirm") stops accidental taps.
 export function CashConfirm({summary,side,onDone}){
-  const [ask,setAsk]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(null),retry=useRef(null)
+  const [ask,setAsk]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(null)
   async function send(){
     setBusy(true);setMessage(null)
-    const body={amount:summary.amount_due,currency:summary.currency||'LKR',collection_stage:'END',collector_user_id:summary.collector_user_id,passenger_confirmation:side==='passenger',collector_confirmation:side==='collector'}
-    const key=retry.current||newKey();retry.current=null
-    try{await api(`/bookings/${summary.booking_id}/cash-receipts`,{method:'POST',body:JSON.stringify({...body,idempotency_key:key})});setAsk(false);await onDone()}
+    const body={booking_id:summary.booking_id,confirmed_by:side==='passenger'?'passenger':'driver'}
+    try{
+      try{await api('/payments/cash-receipt',{method:'POST',body:JSON.stringify(body)})}
+      catch(error){
+        if(error.status!==404)throw error
+        const legacy={amount:summary.amount_due,currency:summary.currency||'LKR',collection_stage:'END',collector_user_id:summary.collector_user_id,passenger_confirmation:side==='passenger',collector_confirmation:side==='collector',idempotency_key:newKey()}
+        await api(`/bookings/${summary.booking_id}/cash-receipts`,{method:'POST',body:JSON.stringify(legacy)})
+      }
+      setAsk(false);await onDone()
+    }
     catch(error){
       const code=error.code
-      if(error instanceof TypeError||code==='API_TIMEOUT'){retry.current=key;setMessage(t('We could not reach Travelly. Please try again.'));return}
+      if(error instanceof TypeError||code==='API_TIMEOUT'){setMessage(t('We could not reach Travelly. Please try again.'));return}
       setAsk(false)
       if(code==='CASH_NOT_ACCEPTED')setMessage(t('The Owner does not accept cash for this vehicle. Please pay online.'))
       else if(code==='PAYMENT_NOT_DUE')setMessage(t('Payment opens when the trip is completed.'))
@@ -46,7 +53,7 @@ export function CashConfirm({summary,side,onDone}){
       ?<div className="tk-hold"><p className="tk-line"><strong>{question}</strong> {t('Only confirm if this is true.')}</p>
         <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Please wait…'):t('Yes, confirm')}</button>
           <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setAsk(false)}>{t('Not yet')}</button></div></div>
-      :<div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>setAsk(true)}>{side==='collector'?t('Confirm cash received {value0}',{value0:money_}):t('I paid in cash')}</button></div>}
+      :<div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>setAsk(true)}>{side==='collector'?t('Cash received'):t('I have paid cash')}</button></div>}
   </div>
 }
 
@@ -81,12 +88,12 @@ export default function HirePayment({bookingId,passengerUserId,userId,returned,a
 
   // payment due
   if(!isPassenger){
-    return <div className="tk-pane">{head}<p className="tk-line">{isCollector?(summary.cash_accepted?t('The Passenger can pay online or in cash. For cash, confirm here once you have received it.'):t('The Passenger pays online. Nothing is needed from you.')):t('The Passenger pays after the trip.')}</p><ErrorNotice error={error}/>
+    return <div className="tk-pane">{head}<p className="tk-line">{isCollector&&summary.cash_accepted?t('Waiting for cash payment…'):isCollector?t('The Passenger pays online. Nothing is needed from you.'):t('The Passenger pays after the trip.')}</p><ErrorNotice error={error}/>
       {isCollector&&summary.cash_accepted&&<CashConfirm summary={summary} side="collector" onDone={reload}/>}</div>
   }
   // hand the summary to the shared Pay flow as a booking-shaped object
   const asBooking={id:summary.booking_id,status:summary.booking_status,currency:summary.currency,total_amount:summary.amount_due,payment_status:summary.payment_status,latest_payment:summary.latest_payment,payment_provider:summary.payment_provider,payment_method:summary.payment_method,payer_details_required:summary.payer_details_required}
-  return <div className="tk-pane">{head}
+  return <div className="tk-pane"><p className="tk-line"><strong>{t('Trip completed. Total: LKR {value0}',{value0:summary.amount_due})}</strong></p>{head}
     {summary.cash_accepted&&<div className="tk-bar" role="group" aria-label={t('How do you want to pay?')}><strong className="tk-line">{t('How do you want to pay?')}</strong>
       <Chip tone="info" selected={mode==='online'} onClick={()=>setMode('online')}>{t('Pay online')}</Chip>
       <Chip tone="info" selected={mode==='cash'} onClick={()=>setMode('cash')}>{t('Pay in cash')}</Chip></div>}

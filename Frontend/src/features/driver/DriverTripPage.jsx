@@ -226,7 +226,7 @@ export default function DriverTripPage(){
         <div><dt>{t('Odometer')}</dt><dd>{trip.start_odometer_km} → {trip.end_odometer_km} {t('km')}</dd></div>
         <div><dt>{t('Distance')}</dt><dd>{trip.calculated_distance_km} {t('km')}</dd></div>
       </dl>
-      {trip.status==='COMPLETED'&&trip.booking_id&&<HirePayment asCollector bookingId={trip.booking_id}/>}
+      {trip.status==='COMPLETED'&&trip.booking_id&&<><p>{t('Waiting for cash payment…')}</p><HirePayment asCollector bookingId={trip.booking_id}/></>}
       <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link>{trip.status==='COMPLETED'&&<Button variant="secondary" onClick={()=>setShowProof(true)}>{t('See proof')}</Button>}</div>
     </div>}
 

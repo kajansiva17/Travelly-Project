@@ -72,7 +72,10 @@ export default function AuthPage({ signup = false }) {
     try {
       const [user, roles] = await Promise.all([api('/users/me',{cache:'no-store'}), api('/users/me/roles',{cache:'no-store'})])
       // A landing card for tickets or rentals sends a signed-out visitor here first; they return to that booking page.
-      const destination = returnTarget(location.state) || loginDestination(user, roles.items || [], journey)
+      let stored=null
+      try{stored=sessionStorage.getItem('returnTo');sessionStorage.removeItem('returnTo')}catch{/* Browser storage can be unavailable. */}
+      const safeStored=stored?.startsWith('/')&&!stored.startsWith('//')?stored:null
+      const destination = safeStored || returnTarget(location.state) || loginDestination(user, roles.items || [], journey)
       setResolvedDestination(destination)
       return destination
     } catch(error) {

@@ -2,7 +2,6 @@ import { t } from '../../i18n/language.js'
 import {useEffect,useRef,useState} from 'react'
 import {Link,useNavigate} from '../passenger/travelRouter'
 import {api,hasSession,publicRequest} from '../../services/api'
-import {Header} from '../../components/components'
 import {FlowShell,FlowBanner,FlowVehicleCard,Pager,useFitCount} from '../booking/flow/FlowParts'
 import {Button,Chip} from '../../components/ui'
 import {Field,Compact,RateErrors} from '../owner/OwnerRates'
@@ -66,11 +65,11 @@ export function PassengerRental(){
   const pages=Math.max(1,Math.ceil((items||[]).length/fit)),shown=(items||[]).slice(Math.min(page,pages-1)*fit,(Math.min(page,pages-1)+1)*fit)
   const estimate=created?.price?.estimate
 
-  return <><Header/><FlowShell heading={t('Travel & Booking')} title={t(steps[step])} info={step===0?t('Choose a specific matching vehicle before package price and rental rules can be shown.'):undefined} icon="key" steps={steps.map(s=>t(s))} current={step} onStepSelect={i=>{if(i<step&&step<3&&!busy)setStep(i)}}>
+  return <FlowShell heading={t('Travel & Booking')} title={t(steps[step])} info={step===0?t('Choose a specific matching vehicle before package price and rental rules can be shown.'):undefined} icon="key" steps={steps.map(s=>t(s))} current={step} onStepSelect={i=>{if(i<step&&step<3&&!busy)setStep(i)}}>
     <Compact.Provider value={true}><RateErrors.Provider value={errors}>
       {error&&<NotAvailableNotice error={error} action={<button type="button" className="ui-button ui-button-secondary" onClick={()=>{setError(null);setStep(0)}}>{t('Search again')}</button>}/>}
       {step===0&&<form className="tk-pane" onSubmit={search}>
-        <div className="tk-grid" style={{'--cols':3}}>
+        <div className="tk-grid">
           <Field label="Pickup date"><input name="date" type="date" required value={when.date} onChange={set('date')}/></Field>
           <Field label="Pickup time"><input name="time" type="time" required value={when.time} onChange={set('time')}/></Field>
           <Field label="Rental days" help="From 1 to 30 days."><input name="days" type="number" min="1" max={RENTAL_LIMITS.maxDaysTop} step="1" required value={when.days} onChange={set('days')}/></Field></div>
@@ -89,7 +88,7 @@ export function PassengerRental(){
       {step===2&&vehicle&&<div className="tk-pane">
         <dl className="flow-review"><div><dt>{t('Vehicle')}</dt><dd>{vehicleName(vehicle)}</dd></div><div><dt>{t('Pickup date')}</dt><dd>{when.date} {when.time}</dd></div><div><dt>{t('Rental days')}</dt><dd>{days}</dd></div>
           {chosen.length>0&&<div><dt>{t('Extras')}</dt><dd>{chosen.map(x=>x.name).join(', ')}</dd></div>}<div><dt>{t('Estimate')}</dt><dd>{money('LKR',previewTotal(vehicle.rental,chosen))}</dd></div></dl>
-        <div className="tk-grid" style={{'--cols':2}}><Field label="Driving licence number" help="The Owner checks your licence when you collect the vehicle."><input name="licence_number" maxLength={RENTAL_LIMITS.licenceMax} value={licence} onChange={e=>{setLicence(e.target.value);setErrors({})}}/></Field></div>
+        <div className="tk-grid"><Field label="Driving licence number" help="The Owner checks your licence when you collect the vehicle."><input name="licence_number" maxLength={RENTAL_LIMITS.licenceMax} value={licence} onChange={e=>{setLicence(e.target.value);setErrors({})}}/></Field></div>
         <p className="tk-line">{t('The final price is worked out when the vehicle is returned, from the odometer readings and these rates.')}</p>
         <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setStep(1)}>{t('Back')}</button><Button arrow disabled={busy||!validLicence(licence)} onClick={request}>{busy?t('Sending…'):t('Request this rental')}</Button></div></div>}
       {step===3&&created&&<div className="tk-pane">
@@ -98,5 +97,5 @@ export function PassengerRental(){
           {estimate&&<><div><dt>{t('Extras')}</dt><dd>{money('LKR',estimate.extras_price)}</dd></div><div><dt>{t('Estimate')}</dt><dd>{money('LKR',estimate.base_price)}</dd></div></>}</dl>
         <div className="flow-actions"><Link className="ui-button ui-button-secondary" to="/bookings">{t('My trips')}</Link><Link className="ui-button ui-button-primary" to={`/bookings/${created.id}`}>{t('Open this rental')}</Link></div></div>}
     </RateErrors.Provider></Compact.Provider>
-  </FlowShell></>
+  </FlowShell>
 }

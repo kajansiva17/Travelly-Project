@@ -37,6 +37,9 @@ import AdminDocuments from './features/admin/AdminDocuments'
 import AdminRoadAlerts from './features/admin/AdminRoadAlerts'
 import AdminPayments from './features/admin/AdminPayments'
 import DriverTripPage from './features/driver/DriverTripPage'
+import RoadAlerts from './features/driver/RoadAlerts'
+import Availability from './features/driver/Availability'
+import PassengerPayments from './features/passenger/PassengerPayments'
 import MyOwners from './features/driver/MyOwners'
 import WorkspaceShell from './components/WorkspaceShell'
 import { hasSession, sessionEndReason } from './services/api'
@@ -117,7 +120,7 @@ function LegacyApplicationBoundary({children}){
 // EXPIRED, or a signed-out person opened a private link: after signing in they return to that page. It never applies
 // after a deliberate logout, and only when the page belongs to the workspace they signed in to, so signing in as
 // someone else (or as another role) never lands on the previous person's page.
-const RETURN_KEY='travelly-return-to'
+const RETURN_KEY='returnTo'
 const RETURN_PREFIXES=['/owner/','/driver/','/admin/','/travel/','/bookings','/trips/','/account','/passenger/']
 const returnable=pathname=>RETURN_PREFIXES.some(prefix=>pathname.startsWith(prefix))&&!pathname.endsWith('/onboarding')
 const workspaceOf=path=>{const [url]=path.split('#'),[base,query]=url.split('?'),role=['owner','driver','admin'].find(r=>base.startsWith('/'+r+'/'))
@@ -137,6 +140,7 @@ function ReturnToRequestedPage(){
     if(was.current&&!signedIn)writeReturn(sessionEndReason()==='expired'?last.current:null)
     was.current=signedIn
     if(signedIn&&returnable(pathname))last.current=here
+    else if(!signedIn&&returnable(pathname)&&sessionEndReason()!=='logout')writeReturn(here)
   },[signedIn,here])
   // After signing in, wait for the landing page, then go back only within the same workspace.
   useEffect(()=>{
@@ -190,7 +194,7 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
  OWNER:['seat-inventory','earnings','reviews','support','reports'],
- DRIVER:['road-alerts','reels','feed','earnings','availability','support'],
+ DRIVER:['reels','feed','earnings','support'],
  ADMIN:['services-routes','bookings','payments','social-reviews','road-alerts','reports']
 }
 export default function App() {
@@ -227,7 +231,7 @@ export default function App() {
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/passenger/favourites" element={<FavouriteVehicles/>}/>
             <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
-            <Route path="/passenger/payments" element={<WorkspacePlaceholder/>}/>
+            <Route path="/passenger/payments" element={<PassengerPayments/>}/>
             <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/settings" element={<WorkspaceSettings/>}/>
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
@@ -280,6 +284,8 @@ export default function App() {
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
             <Route path="/driver/rentals" element={<Navigate to="/driver/assignments" replace/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
+            <Route path="/driver/availability" element={<Availability/>}/>
+            <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
