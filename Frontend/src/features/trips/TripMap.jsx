@@ -17,7 +17,7 @@ export default function TripMap({data,position,alerts,selectedId,onSelect,follow
   const [tilesFailed,setTilesFailed]=useState(false)
   useEffect(()=>{
     const instance=L.map(holder.current,{zoomControl:true,attributionControl:true,zoomSnap:0.5}).setView([7.8731,80.7718],7)
-    const tiles=L.tileLayer(TILES,{maxZoom:19,attribution:ATTRIBUTION}).addTo(instance)
+    const tiles=L.tileLayer(TILES,{maxZoom:19,attribution:ATTRIBUTION,referrerPolicy:'strict-origin-when-cross-origin'}).addTo(instance)
     tiles.on('tileload',()=>{loaded.current+=1;setTilesFailed(false)})
     tiles.on('tileerror',()=>{errors.current+=1;if(!loaded.current&&errors.current>=2)setTilesFailed(true)})
     layers.current={route:L.layerGroup().addTo(instance),alerts:L.layerGroup().addTo(instance),vehicle:L.layerGroup().addTo(instance)}
