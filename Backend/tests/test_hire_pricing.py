@@ -152,6 +152,10 @@ def hire_setup(client, rate_owner, monkeypatch):
         vehicle.vehicle_type_code='CAR';vehicle.manufacture_year=2020;vehicle.colour='White';vehicle.power_type='ICE';vehicle.engine_fuel_type='PETROL';vehicle.make = 'Test'; vehicle.model = 'Vehicle'; vehicle.seat_capacity = 4; vehicle.large_luggage_capacity = 2; vehicle.small_luggage_capacity = 2
         vehicle.media = [{'id':str(uuid4()),'category':'EXTERIOR','status':'APPROVED','privacy_confirmed':True,'genuine_vehicle_confirmed':True,'variants':{'480':{'width':480,'height':320,'sha256':'0'*64}}}]
         vehicle.verification_status = 'APPROVED'; vehicle.approved_by = owner_id; vehicle.approved_at = func.now(); vehicle.availability_status = 'ACTIVE'
+        vehicle.accepts_hire_bookings = True; vehicle.base_location_label = 'A'
+        vehicle.base_latitude = Decimal(places['A']['latitude']); vehicle.base_longitude = Decimal(places['A']['longitude'])
+        vehicle.pickup_distance_km = Decimal('500'); vehicle.current_latitude = vehicle.base_latitude; vehicle.current_longitude = vehicle.base_longitude
+        vehicle.current_location_source = 'MANUAL'; vehicle.current_location_observed_at = datetime.now(timezone.utc)
         vehicle.verified_eligibility = {'owner_declaration':{'registered_owner_case':'SELF'},'category': 'CAR', 'authorisation_required': False, 'conditional_documents': {'EMISSION': False, 'FITNESS': False, 'ROUTE_PERMIT': False}}
         db.add(UserRole(user_id=owner_id, role_code='DRIVER', approval_status='APPROVED', approved_by=owner_id, approved_at=func.now()))
         for t in ('VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE', 'DRIVING_LICENCE'):
@@ -176,6 +180,7 @@ def hire_setup(client, rate_owner, monkeypatch):
             'service_hours': [str(h) for h in itinerary.service_hours], 'overnight_stays': 0})
         return {'usage': usage, 'source': 'trusted-test-provider', 'geometry': [[float(s.place.longitude),float(s.place.latitude)] for s in itinerary.stops], 'end_at': itinerary.requested_end()}
     monkeypatch.setattr(client.app.state.hire_routing, 'measure', measure)
+    monkeypatch.setattr(client.app.state.hire_routing, 'travel_seconds', lambda *args: 300)
     passenger = {'full_name': 'Journey Passenger', 'email': uuid4().hex+'@example.com', 'phone_e164': '+9477'+str(uuid4().int%10000000).zfill(7), 'password': 'TravellyStrong1!', 'accept_terms': True}
     p, pt = signed_in(client, passenger)
     def itinerary(names=('A','B'), hours='3', wait='0'):
@@ -255,17 +260,17 @@ def committed(client, ctx):
     return result.json()
 
 
-def test_vehicle_list_shows_each_owner_price_before_the_passenger_selects(client, hire_setup):
+def test_vehicle_list_hides_price_until_the_passenger_selects(client, hire_setup):
     c = hire_setup
     body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(), 'passenger_count': 2,
             'large_luggage_count': 1, 'small_luggage_count': 1}
     found = client.post('/api/v1/search/vehicles', json=body)
     assert found.status_code == 200, found.text
     items = found.json()['items']
-    assert items and all(item['price']['total'] for item in items)
+    assert items and all(item['price'] is None for item in items)
     quoted = client.post(f"/api/v1/search/vehicles/{items[0]['id']}/quote", json=body)
     assert quoted.status_code == 200, quoted.text
-    assert quoted.json()['price']['total'] == items[0]['price']['total']  # the listed price is the Owner's own rate
+    assert quoted.json()['price']['total'] == '1500.00'
 
 
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):

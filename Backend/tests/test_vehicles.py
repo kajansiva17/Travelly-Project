@@ -101,6 +101,36 @@ def test_draft_authorization_unique_registration_and_private_feedback_projection
     assert call(client,a,'owner','patch','/vehicles/'+row['id'],{'expected_version':1,'vehicle_type_code':'AIRCRAFT'}).status_code==422
 
 
+def test_owner_controls_hire_location_without_exposing_coordinates_or_refreshing_it_on_other_edits(client, actors):
+    row = draft(client, actors)
+    base = client.app.state.rate_locations.signed('Jaffna yard', '9.6615', '80.0255')
+    configured = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}/hire-location", {
+        'expected_version': row['version'], 'base_location': base,
+        'pickup_distance_km': '50', 'accepts_hire_bookings': True,
+    })
+    assert configured.status_code == 200, configured.text
+    row = configured.json()
+    assert row['hire_location']['base_label'] == 'Jaffna yard'
+    assert row['hire_location']['pickup_distance_km'] == '50.00'
+    assert not ({'base_latitude', 'base_longitude', 'current_latitude', 'current_longitude'} & set(row['hire_location']))
+    denied = call(client, actors, 'other', 'patch', f"/vehicles/{row['id']}/hire-location", {
+        'expected_version': row['version'], 'base_location': base,
+        'pickup_distance_km': '10', 'accepts_hire_bookings': False,
+    })
+    assert denied.status_code == 404
+    current = client.app.state.rate_locations.signed('Colombo', '6.9271', '79.8612')
+    confirmed = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}/location", {
+        'expected_version': row['version'], 'location': current, 'accuracy_m': '12.5',
+    })
+    assert confirmed.status_code == 200, confirmed.text
+    row = confirmed.json(); observed = row['hire_location']['current_observed_at']
+    edited = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}", {
+        'expected_version': row['version'], 'description': 'Location timestamp must stay independent.',
+    })
+    assert edited.status_code == 200, edited.text
+    assert edited.json()['hire_location']['current_observed_at'] == observed
+
+
 @pytest.mark.parametrize('kind',['CAR','VAN','BUS','THREE_WHEELER'])
 def test_initial_vehicle_types_require_factual_capacity_and_submission_evidence(client,actors,kind):
     row=draft(client,actors,kind=kind)

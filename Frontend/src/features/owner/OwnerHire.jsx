@@ -6,7 +6,7 @@ import { api, hasSession } from '../../services/api'
 import { ErrorNotice, Header } from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import { Checkbox } from '../../components/ui'
-import { Field, AmountField, AreaEditor, PlaceSearch, Compact, CashSwitch } from './OwnerRates'
+import { Field, AmountField, PlaceSearch, Compact, CashSwitch } from './OwnerRates'
 import EventPackages from './EventPackages'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { validateRateRules } from './rateValidation'
@@ -29,31 +29,26 @@ const emptyTerms = () => ({ waiting: false, free_wait_minutes: '', waiting_hour_
 const emptyKm = () => ({ on: false, base_charge: '', included_km: '', extraKm: false, extra_km_rate: '' })
 const emptyPackage = () => ({ on: false, day_charge: '', included_hours_per_day: '', included_km_per_day: '', extraKm: false, extra_km_rate: '', extraHours: false, extra_hour_rate: '' })
 
-const isMine = r => r.direction === 'ONE_WAY' && ((r.method === 'DISTANCE' && r.coverage.kind === 'AREA') || (r.method === 'DAY_HIRE' && r.coverage.kind === 'AREA') || (r.method === 'FIXED_ROUTE' && r.coverage.kind === 'ROUTE' && r.coverage.places.length === 2))
+const isMine = r => r.direction === 'ONE_WAY' && ((['DISTANCE', 'DAY_HIRE'].includes(r.method) && ['ANY', 'AREA'].includes(r.coverage.kind)) || (r.method === 'FIXED_ROUTE' && r.coverage.kind === 'ROUTE' && r.coverage.places.length === 2))
 const charged = (r, key) => (r.extra_policy?.[key] ?? 'CHARGED') === 'CHARGED'
 
 function hydrate(rules) {
   const mine = rules.filter(isMine), others = rules.filter(r => !isMine(r))
   const km = mine.find(r => r.method === 'DISTANCE'), pkg = mine.find(r => r.method === 'DAY_HIRE')
   const base = km || pkg || mine.find(r => r.method === 'FIXED_ROUTE')
-  const state = { others, area: (km || pkg)?.pickup_area || null, terms: emptyTerms(), km: emptyKm(), pkg: emptyPackage(), fixed: [], from: today() }
+  const state = { others, terms: emptyTerms(), km: emptyKm(), pkg: emptyPackage(), fixed: [], from: today() }
   if (base) {
     state.terms = { waiting: charged(base, 'WAITING') && Number(base.waiting_hour_rate) > 0, free_wait_minutes: num(base.free_wait_minutes), waiting_hour_rate: num(base.waiting_hour_rate), tolls: base.tolls, parking: base.parking, returnSeparate: base.return_to_base === 'SEPARATE_FIXED', returnCharge: num(base.return_to_base_charge), returnNotes: base.return_to_base_notes || '' }
   }
-  if (km) state.km = { id: km.id, on: true, base_charge: num(km.base_charge), included_km: num(km.included_km), extraKm: (km.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(km.extra_km_rate) }
-  if (pkg) state.pkg = { id: pkg.id, on: true, day_charge: num(pkg.day_charge), included_hours_per_day: num(pkg.included_hours_per_day), included_km_per_day: num(pkg.included_km_per_day), extraKm: (pkg.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(pkg.extra_km_rate), extraHours: (pkg.extra_policy?.EXTRA_HOURS ?? 'CHARGED') === 'CHARGED', extra_hour_rate: num(pkg.extra_hour_rate) }
+  if (km) state.km = { id: km.id, on: true, coverage: km.coverage, pickup_area: km.pickup_area, base_charge: num(km.base_charge), included_km: num(km.included_km), extraKm: (km.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(km.extra_km_rate) }
+  if (pkg) state.pkg = { id: pkg.id, on: true, coverage: pkg.coverage, pickup_area: pkg.pickup_area, day_charge: num(pkg.day_charge), included_hours_per_day: num(pkg.included_hours_per_day), included_km_per_day: num(pkg.included_km_per_day), extraKm: (pkg.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(pkg.extra_km_rate), extraHours: (pkg.extra_policy?.EXTRA_HOURS ?? 'CHARGED') === 'CHARGED', extra_hour_rate: num(pkg.extra_hour_rate) }
   state.fixed = mine.filter(r => r.method === 'FIXED_ROUTE').map(r => ({ id: r.id, from: r.coverage.places[0], to: r.coverage.places[1], fixed_fare: num(r.fixed_fare), kept: r }))
   if (base) state.from = base.effective_from
   return state
 }
 
-function box(place, km = 5) {
-  const lat = Number(place.latitude), lon = Number(place.longitude), dy = km / 111.32, dx = dy / Math.cos(lat * Math.PI / 180)
-  return { label: `${String(place.label).split(',')[0].slice(0, 80)} · ${km} km`, south: String(lat - dy), north: String(lat + dy), west: String(lon - dx), east: String(lon + dx) }
-}
-
 function build(state) {
-  const { terms, area } = state
+  const { terms } = state
   const common = (id, label, method, coverage, pickup, extraPolicy) => ({
     id: id || crypto.randomUUID(), label: label.slice(0, 120), method, direction: 'ONE_WAY', effective_from: state.from, effective_until: null,
     coverage, pickup_area: pickup, free_wait_minutes: terms.waiting ? terms.free_wait_minutes : zero, waiting_hour_rate: terms.waiting ? terms.waiting_hour_rate : zero,
@@ -63,19 +58,19 @@ function build(state) {
     extra_policy: { WAITING: terms.waiting ? 'CHARGED' : 'NOT_OFFERED', ...extraPolicy },
   })
   const out = [...state.others]
-  const where = String(area?.label || '').split(' · ')[0]
+  const where = 'General'
   if (state.km.on) {
     const k = state.km
-    out.push(withExtraPolicy({ ...common(state.km.id, `Per km · ${where}`, 'DISTANCE', { kind: 'AREA', area }, area, { EXTRA_KM: k.extraKm ? 'CHARGED' : 'NOT_OFFERED' }), departure: null,
+    out.push(withExtraPolicy({ ...common(state.km.id, `Per km · ${where}`, 'DISTANCE', k.coverage || { kind: 'ANY', places: null, area: null }, k.pickup_area || null, { EXTRA_KM: k.extraKm ? 'CHARGED' : 'NOT_OFFERED' }), departure: null,
       base_charge: k.base_charge, included_km: k.included_km, extra_km_rate: k.extraKm ? k.extra_km_rate : zero, night_km_rate: zero }))
   }
   if (state.pkg.on) {
     const p = state.pkg
-    out.push(withExtraPolicy({ ...common(state.pkg.id, `Package · ${where}`, 'DAY_HIRE', { kind: 'AREA', area }, area, { EXTRA_KM: p.extraKm ? 'CHARGED' : 'NOT_OFFERED', EXTRA_HOURS: p.extraHours ? 'CHARGED' : 'NOT_OFFERED', OVERNIGHT: 'NOT_OFFERED' }), departure: null,
+    out.push(withExtraPolicy({ ...common(state.pkg.id, `Package · ${where}`, 'DAY_HIRE', p.coverage || { kind: 'ANY', places: null, area: null }, p.pickup_area || null, { EXTRA_KM: p.extraKm ? 'CHARGED' : 'NOT_OFFERED', EXTRA_HOURS: p.extraHours ? 'CHARGED' : 'NOT_OFFERED', OVERNIGHT: 'NOT_OFFERED' }), departure: null,
       day_charge: p.day_charge, included_km_per_day: p.included_km_per_day, included_hours_per_day: p.included_hours_per_day, extra_km_rate: p.extraKm ? p.extra_km_rate : zero, extra_hour_rate: p.extraHours ? p.extra_hour_rate : zero, night_km_rate: zero, overnight_driver_cost: zero }))
   }
   for (const f of state.fixed) {
-    out.push(withExtraPolicy({ ...common(f.id, `${String(f.from.label).split(',')[0]} → ${String(f.to.label).split(',')[0]}`, 'FIXED_ROUTE', { kind: 'ROUTE', places: [f.from, f.to] }, box(f.from), {}), departure: { kind: 'ANY_TIME' }, fixed_fare: f.fixed_fare }))
+    out.push(withExtraPolicy({ ...common(f.id, `${String(f.from.label).split(',')[0]} → ${String(f.to.label).split(',')[0]}`, 'FIXED_ROUTE', { kind: 'ROUTE', places: [f.from, f.to] }, null, {}), departure: { kind: 'ANY_TIME' }, fixed_fare: f.fixed_fare }))
   }
   return out
 }
@@ -84,7 +79,6 @@ function problems(state, scope) {
   const list = []
   if (!state.km.on && !state.pkg.on && !state.fixed.length) list.push('Turn on at least one price first: Per km, Day package or Fixed routes.')
   const need = (ok, text) => { if (!ok) list.push(text) }
-  if (state.km.on || state.pkg.on) need(state.area, 'Set the area you operate in first (Area tab).')
   if (state.terms.waiting) { need(decimal(state.terms.free_wait_minutes), 'Enter the free waiting minutes (0 if none).'); need(decimal(state.terms.waiting_hour_rate), 'Enter the extra waiting rate per hour.') }
   if (state.terms.returnSeparate) need(decimal(state.terms.returnCharge), 'Enter the return-to-base charge.')
   const k = state.km
@@ -130,8 +124,8 @@ export default function OwnerHire() {
   if (!hasSession()) return <Navigate to="/login" replace/>
   if (user && !user.approved_roles.includes('OWNER')) return <Navigate to="/" replace/>
   const isEvent = scope === 'EVENT', ready = saved && (isEvent || state)
-  const tabNames = isEvent ? ['Packages', 'Extras and terms'] : ['Area', 'Per km', 'Day package', 'Fixed routes', 'Extras and terms']
-  const tabs = ready ? (isEvent ? [['Packages', 'calendar'], ['Extras and terms', 'settings']] : [['Area', 'map'], ['Per km', 'chart'], ['Day package', 'calendar'], ['Fixed routes', 'route'], ['Extras and terms', 'settings']]).map(([label, icon], i) => ({ label: t(label), icon, active: tab === i, onClick: () => setTab(i) })) : undefined
+  const tabNames = isEvent ? ['Packages', 'Extras and terms'] : ['Per km', 'Day package', 'Fixed routes', 'Extras and terms']
+  const tabs = ready ? (isEvent ? [['Packages', 'calendar'], ['Extras and terms', 'settings']] : [['Per km', 'chart'], ['Day package', 'calendar'], ['Fixed routes', 'route'], ['Extras and terms', 'settings']]).map(([label, icon], i) => ({ label: t(label), icon, active: tab === i, onClick: () => setTab(i) })) : undefined
   const fixedList = state?.fixed || []
   return <><Header/><FlowShell heading={t('Hire prices')} icon="wallet" title={t(TYPES.find(x => x[0] === scope)[1]) + ' · ' + t(tabNames[tab])}
     info={t('Set prices for one hire type at a time. A fixed route price is used first, then your package, then per km. If nothing matches, the Passenger asks you for a price.')} tabs={tabs}>
@@ -148,12 +142,7 @@ export default function OwnerHire() {
       {vehicle && !isEvent && !service && services.length > 0 && <p role="status">{t('This hire type is not set up yet. An Admin must activate it first.')}</p>}
       {vehicle && !isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
 
-      {ready && !isEvent && tab === 0 && <div className="hire-pane flow-wizard-form hire-area">
-        <AreaEditor key={`${vehicle}-${scope}`} label="Area you operate in" value={state.area} onChange={area => setState(s => ({ ...s, area }))}/>
-        <section className="submit-next hire-how"><div className="pane-head"><strong>{t('How a Passenger gets a price')}</strong></div><ol className="next-steps">{[['Fixed route','If the trip matches a fixed route you priced, that price is used.'],['Day package','Otherwise your package for set hours and km, if you offer one.'],['Per km','Otherwise your base charge plus the per km rate.'],['Ask the Owner','If nothing matches, the Passenger asks you for a price.']].map(([a, b], n) => <li key={a}><span className="next-n">{n + 1}</span><div><strong>{t(a)}</strong><p>{t(b)}</p></div></li>)}</ol></section>
-      </div>}
-
-      {ready && !isEvent && tab === 1 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 0 && <div className="hire-pane flow-wizard-form">
         <Checkbox checked={state.km.on} onChange={e => set('km', { on: e.target.checked })}>{t('I price this hire type per km')}</Checkbox>
         {state.km.on && <div className="rate-grid">
           <AmountField name="base_charge" label="Starting price" help="Charged for every trip; it covers the included km." value={state.km.base_charge} onChange={v => set('km', { base_charge: v })}/>
@@ -163,7 +152,7 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && !isEvent && tab === 2 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 1 && <div className="hire-pane flow-wizard-form">
         <Checkbox checked={state.pkg.on} onChange={e => set('pkg', { on: e.target.checked })}>{t('I offer a fixed package (price for set hours and km)')}</Checkbox>
         {state.pkg.on && <div className="rate-grid">
           <AmountField name="day_charge" label="Package price" help="One price for the hours and km below." value={state.pkg.day_charge} onChange={v => set('pkg', { day_charge: v })}/>
@@ -176,7 +165,7 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && !isEvent && tab === 3 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 2 && <div className="hire-pane flow-wizard-form">
         <p className="flow-note">{t('A fixed price from one place to another. It is used before your package or per km rates.')}</p>
         <div className="hire-fixed">{fixedList.map((f, i) => <div className="hire-fixed-row" key={f.id}>
           <PlaceSearch label="From" value={f.from} onChange={place => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, from: place } : x) }))}/>
@@ -187,7 +176,7 @@ export default function OwnerHire() {
         <button type="button" className="ui-button ui-button-secondary" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '' }] }))}>{t('Add a fixed route')}</button>
       </div>}
 
-      {ready && !isEvent && tab === 4 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 3 && <div className="hire-pane flow-wizard-form">
         <div className="rate-grid">
           <div className="hire-check"><Checkbox checked={state.terms.waiting} onChange={e => set('terms', { waiting: e.target.checked })}>{t('Charge for waiting time')}</Checkbox></div>
           <Field label="Tolls"><select value={state.terms.tolls} onChange={e => set('terms', { tolls: e.target.value })}><option value="INCLUDED">{t('Included in my prices')}</option><option value="SEPARATE_AT_COST">{t('Passenger pays the actual cost')}</option></select></Field>
@@ -199,7 +188,7 @@ export default function OwnerHire() {
         </div>
       </div>}
 
-      {ready && ((isEvent && tab === 1) || (!isEvent && tab === 4)) && <CashSwitch vehicle={vehicle} service={service.id} saved={saved} onSaved={setSaved}/>}
+      {ready && ((isEvent && tab === 1) || (!isEvent && tab === 3)) && <CashSwitch vehicle={vehicle} service={service.id} saved={saved} onSaved={setSaved}/>}
 
       {ready && !isEvent && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={save}>{busy ? t('Saving…') : t('Save prices')}</button></div>}
       {isEvent && vehicle && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/></div>}

@@ -62,6 +62,31 @@ class HireRouting:
         cache[key] = km
         return km
 
+    def travel_seconds(self, origin, destination, profile='driving-car'):
+        """Road travel time between two trusted coordinates, or None when reachability cannot be established."""
+        if not self.settings.routing_api_key:
+            return None
+        coordinates = [[float(origin[1]), float(origin[0])], [float(destination[1]), float(destination[0])]]
+        key = (profile, *(round(value, 5) for point in coordinates for value in point))
+        cache = self.__dict__.setdefault('_travel_seconds_cache', {})
+        if key in cache:
+            return cache[key]
+        try:
+            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/' + profile + '/geojson',
+                headers={'Authorization': self.settings.routing_api_key}, timeout=15,
+                json={'coordinates': coordinates, 'instructions': False})
+            response.raise_for_status()
+            seconds = Decimal(str(response.json()['features'][0]['properties']['summary']['duration']))
+            if not seconds.is_finite() or seconds < 0:
+                return None
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
+            log.warning('pickup reachability check failed: %s', why(exc))
+            return None
+        if len(cache) >= 500:
+            cache.pop(next(iter(cache)))
+        cache[key] = seconds
+        return seconds
+
     def estimate_hours(self, itinerary):
         """Hours the whole trip is expected to take: driving time of the stop chain plus the planned waits, rounded up to 0.01 h.
         Used when the Passenger does not state service hours (one-day trips). One cached directions call, so a search spends the free quota once."""

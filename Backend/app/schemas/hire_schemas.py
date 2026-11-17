@@ -74,6 +74,22 @@ class Version(RateModel):
     expected_version: int = Field(strict=True, ge=1)
 
 
+class PositioningConfirmation(Version):
+    vehicle_expected_version: int = Field(strict=True, ge=1)
+    kind: Literal['CURRENT', 'PLANNED']
+    location: Place
+    available_at: AwareDatetime | None = None
+    accuracy_m: Decimal | None = Field(default=None, ge=0, le=Decimal('99999999.99'))
+
+    @model_validator(mode='after')
+    def timing(self):
+        if self.kind == 'PLANNED' and self.available_at is None:
+            raise ValueError('Planned positioning needs the time the vehicle will be there.')
+        if self.kind == 'CURRENT' and self.available_at is not None:
+            raise ValueError('A current-location confirmation uses the confirmation time.')
+        return self
+
+
 class Publication(Version):
     published: bool = Field(default=True, strict=True)
 

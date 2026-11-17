@@ -36,6 +36,8 @@ def area_centre(rules, pickup):
     best = None
     for rule in rules:
         area = rule.pickup_area
+        if area is None:
+            continue
         centre = ((float(area.south) + float(area.north)) / 2, (float(area.west) + float(area.east)) / 2)
         km = distance_km(float(pickup.latitude), float(pickup.longitude), *centre)
         if best is None or km < best[0]: best = (km, centre)

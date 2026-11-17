@@ -5,7 +5,7 @@ import re
 from typing import Annotated
 from typing import Literal
 from pydantic import Field, StrictBool, model_validator, field_validator, BeforeValidator
-from app.schemas.rate_schemas import RateModel, Amount
+from app.schemas.rate_schemas import RateModel, Amount, Place
 from app.schemas.hire_schemas import Version, VehicleEligibility
 
 
@@ -73,6 +73,23 @@ class VehiclePatch(VehicleFacts):
 
 class Availability(Version):
     availability_status: Literal['ACTIVE', 'INACTIVE']
+
+
+class HireLocationSettings(Version):
+    base_location: Place | None = None
+    pickup_distance_km: Amount
+    accepts_hire_bookings: StrictBool
+
+    @model_validator(mode='after')
+    def pickup_distance(self):
+        if not Decimal('0') < self.pickup_distance_km:
+            raise ValueError('Pickup distance must be above 0 km.')
+        return self
+
+
+class VehicleLocationUpdate(Version):
+    location: Place
+    accuracy_m: Decimal | None = Field(default=None, ge=0, le=Decimal('99999999.99'))
 
 
 class VehicleDecision(RateModel):

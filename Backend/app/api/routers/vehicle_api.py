@@ -22,7 +22,7 @@ from app.services.private_documents import document_summary
 from app.schemas.hire_schemas import Version
 from app.services.hire_services import eligible_vehicle, vehicle_evidence, compatible_driver, approved
 from app.schemas.vehicle_schemas import (VehicleCreate,VehiclePatch,VehicleFacts,VehicleDecision,RegistrationCorrection,
-    Availability,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision)
+    Availability,HireLocationSettings,VehicleLocationUpdate,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision)
 from app.services.review_audit import canonical
 from app.services.vehicle_rules import FACTS,MATERIAL,facts,require_complete,has_exterior,commitments,no_commitments,photo_summary,public_photos,validate_public_facts
 
@@ -38,6 +38,12 @@ def summary(row):
         'registration_number':str(row.registration_number),'verification_status':row.verification_status,'availability_status':row.availability_status,
         'published':row.is_published,'removed':row.archived_at is not None,'version':row.version,**facts(row),
         'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
+        'hire_location':{'base_label':row.base_location_label,'base_configured':row.base_latitude is not None,
+            'pickup_distance_km':str(row.pickup_distance_km) if row.pickup_distance_km is not None else None,
+            'accepts_bookings':bool(row.accepts_hire_bookings),
+            'current_source':row.current_location_source,
+            'current_observed_at':row.current_location_observed_at.isoformat() if row.current_location_observed_at else None,
+            'current_accuracy_m':str(row.current_location_accuracy_m) if row.current_location_accuracy_m is not None else None},
         'photos':[photo_summary(row.id,p) for p in row.media],
         'description_review':{k:v for k,v in row.verified_eligibility.get('description_review',{}).items() if k in ('status','approved_text','reason','reviewed_at')}}
 
@@ -48,6 +54,16 @@ def before(row):
         'availability_status':row.availability_status,'published':row.is_published,'removed':row.archived_at is not None,'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
         'approved_by':str(row.approved_by) if row.approved_by else None,'approved_at':row.approved_at.isoformat() if row.approved_at else None,
         'odometer_updated_at':row.odometer_updated_at.isoformat() if row.odometer_updated_at else None,
+        'hire_location':{'base_location_label':row.base_location_label,
+            'base_latitude':str(row.base_latitude) if row.base_latitude is not None else None,
+            'base_longitude':str(row.base_longitude) if row.base_longitude is not None else None,
+            'pickup_distance_km':str(row.pickup_distance_km) if row.pickup_distance_km is not None else None,
+            'accepts_hire_bookings':row.accepts_hire_bookings,
+            'current_latitude':str(row.current_latitude) if row.current_latitude is not None else None,
+            'current_longitude':str(row.current_longitude) if row.current_longitude is not None else None,
+            'current_location_source':row.current_location_source,
+            'current_location_observed_at':row.current_location_observed_at.isoformat() if row.current_location_observed_at else None,
+            'current_location_accuracy_m':str(row.current_location_accuracy_m) if row.current_location_accuracy_m is not None else None},
         'updated_by':str(row.updated_by) if row.updated_by else None,'updated_at':row.updated_at.isoformat() if row.updated_at else None,
         'media':copy.deepcopy(row.media),'eligibility':copy.deepcopy(row.verified_eligibility)}}
 
@@ -226,6 +242,53 @@ def availability(vehicle_id:UUID,body:Availability,request:Request,user=Depends(
         if body.availability_status=='ACTIVE':vehicle_evidence(db,row)
         old=before(row);row.availability_status=body.availability_status;row.is_published=False
         commit(db,request,user,row,old,purpose='VEHICLE_AVAILABILITY')
+    return summary(row)
+
+
+@router.patch('/vehicles/{vehicle_id}/hire-location')
+def hire_location_settings(vehicle_id:UUID,body:HireLocationSettings,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Owner-controlled base, pickup radius and new-booking switch. This never refreshes current-location freshness."""
+    if body.base_location:request.app.state.rate_locations.verify(body.base_location)
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body);old=before(row)
+        if body.base_location:
+            row.base_location_label=body.base_location.label
+            row.base_latitude=body.base_location.latitude;row.base_longitude=body.base_location.longitude
+        elif row.base_latitude is None:
+            raise ApiError(422,'BASE_LOCATION_REQUIRED','Select the vehicle base location before accepting bookings.')
+        row.pickup_distance_km=body.pickup_distance_km
+        row.accepts_hire_bookings=body.accepts_hire_bookings
+        commit(db,request,user,row,old,purpose='VEHICLE_HIRE_LOCATION_SETTINGS')
+    return summary(row)
+
+
+def location_vehicle(db,request,user,vehicle_id,body):
+    """Owner, or an accepted operating Driver, may explicitly confirm this vehicle's position."""
+    from app.models.hire_models import Trip
+    row=db.get(Vehicle,vehicle_id)
+    if not row:raise ApiError(404,'VEHICLE_NOT_FOUND','Vehicle not found.')
+    if row.owner_user_id==user.id:
+        require_role(db,user,'OWNER')
+    else:
+        require_role(db,user,'DRIVER')
+        active=db.scalar(select(Trip.id).where(Trip.vehicle_id==vehicle_id,Trip.driver_user_id==user.id,
+            Trip.assignment_status=='ACCEPTED',Trip.status.in_(('READY','IN_PROGRESS','BREAKDOWN','ASSISTANCE_REQUIRED'))).limit(1))
+        if not active:raise ApiError(404,'VEHICLE_NOT_FOUND','Vehicle not found.')
+    locked_authority(db,request,user,user.id,require_admin=False)
+    row=db.scalar(select(Vehicle).where(Vehicle.id==vehicle_id).with_for_update().execution_options(populate_existing=True))
+    version(row,body)
+    return row
+
+
+@router.patch('/vehicles/{vehicle_id}/location')
+def confirm_vehicle_location(vehicle_id:UUID,body:VehicleLocationUpdate,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    request.app.state.rate_locations.verify(body.location)
+    with request.app.state.audit.coordinated():
+        row=location_vehicle(db,request,user,vehicle_id,body);old=before(row)
+        row.current_latitude=body.location.latitude;row.current_longitude=body.location.longitude
+        row.current_location_source='MANUAL';row.current_location_observed_at=datetime.now(timezone.utc)
+        row.current_location_accuracy_m=body.accuracy_m
+        commit(db,request,user,row,old,purpose='VEHICLE_LOCATION_CONFIRMATION')
     return summary(row)
 
 

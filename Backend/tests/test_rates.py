@@ -58,6 +58,14 @@ def test_conflicting_coverage_rejected_but_distinct_effective_periods_allowed():
     with pytest.raises(ValidationError): RateConfiguration.model_validate({**config, 'currency': 'USD'})
 
 
+def test_general_rate_has_no_hidden_pickup_area_and_conflicts_with_duplicate_general_rate():
+    general = {**rule(), 'pickup_area': None, 'coverage': {'kind': 'ANY', 'places': None, 'area': None}}
+    assert RateRule.model_validate(general).coverage.kind == 'ANY'
+    config = {'service_type_id': str(uuid4()), 'expected_version': 0, 'enabled': True,
+              'currency': 'LKR', 'rules': [general, {**general, 'id': str(uuid4())}]}
+    with pytest.raises(ValidationError): RateConfiguration.model_validate(config)
+
+
 @pytest.fixture
 def rate_owner(client, passenger):
     person, tokens = signed_in(client, passenger)

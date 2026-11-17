@@ -110,9 +110,10 @@ def matches(rule, itinerary, geometry=None):
     if rule.method == 'FIXED_ROUTE' and not departure_applies(rule.departure, itinerary.start_at.astimezone(ZONE)): return False
     if rule.effective_until and (itinerary.requested_end() - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until: return False
     places = [s.place for s in itinerary.stops]
-    if not covered(rule.pickup_area, places[0]): return False
     if rule.coverage.kind == 'ROUTE':
         return [(p.latitude, p.longitude) for p in places] == [(p.latitude, p.longitude) for p in rule.coverage.places]
+    if rule.coverage.kind == 'ANY':
+        return True
     # Area rules: only the pickup must be inside the coverage area.
     # Destination and intermediate stops may be anywhere — the per-km rate covers the full distance.
     area = rule.coverage.area
@@ -160,8 +161,8 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     if len(candidates) != 1:
         raise ApiError(409, 'QUOTE_REQUIRED', 'Saved rates do not uniquely cover this complete itinerary. Request an Owner quote.')
     rule = candidates[0]
-    if agreed_rule and (not covered(rule.pickup_area, itinerary.stops[0].place)):
-        raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed pickup coverage.')
+    if agreed_rule and not matches(rule, itinerary, measurement['geometry']):
+        raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
     try: result = calculate(rule, measurement['usage'])
     except ValueError as exc: raise ApiError(422, 'PRICING_UNAVAILABLE', str(exc)) from None
     if not agreed_rule: refuse_unoffered_extras(rule, result)
