@@ -16,6 +16,10 @@ export const welcomeBack = result => (result?.account_reactivated === true ? { c
 export const RETURN_PAGES = ['/travel/book/tickets', '/travel/book/rental', '/travel/book/review', '/owner/vehicles']
 export const returnTarget = state => (RETURN_PAGES.includes(state?.returnTo) ? state.returnTo : null)
 
+// A stored return target is browser-controlled input. Keep only same-app absolute paths; protocol-relative and
+// backslash forms can be interpreted as another host by browsers and must never be navigation targets.
+export const safeReturnPath = value => typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\') && !/[\u0000-\u001f\u007f]/.test(value) ? value : null
+
 // Friendly text (English key for t()) for the errors of the second step; null means "show the server message".
 export function twoFactorMessage(error) {
   if (error?.code === 'TWO_FACTOR_CODE_WRONG') return 'That code is not correct, or it was already used. Check the code in your app, or use a backup code.'

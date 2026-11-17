@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isTwoFactor, cleanCode, twoFactorBody, codeMinutes, returnTarget, twoFactorMessage, challengeExpired, enableBody, confirmBody, closeBody, blockerLines, canClose, BLOCKERS, welcomeBack } from '../src/features/auth/loginFlow.js'
+import { isTwoFactor, cleanCode, twoFactorBody, codeMinutes, returnTarget, safeReturnPath, twoFactorMessage, challengeExpired, enableBody, confirmBody, closeBody, blockerLines, canClose, BLOCKERS, welcomeBack } from '../src/features/auth/loginFlow.js'
 
 test('login answers two_factor_required with a challenge instead of tokens (email and Google alike)', () => {
   assert.equal(isTwoFactor({ status: 'two_factor_required', challenge: 'abc', expires_in: 300 }), true)
@@ -29,6 +29,15 @@ test('the return page of a landing card is kept (only the documented pages)', ()
   assert.equal(returnTarget({ returnTo: '/travel/book/review' }), '/travel/book/review')   // a guest asks for sign-in only when sending the request
   assert.equal(returnTarget({ returnTo: 'https://evil.example' }), null)
   assert.equal(returnTarget(undefined), null)
+})
+test('stored return paths stay inside this app', () => {
+  assert.equal(safeReturnPath('/driver/trips/123?tab=payment#cash'), '/driver/trips/123?tab=payment#cash')
+  assert.equal(safeReturnPath('/travel/book/review'), '/travel/book/review')
+  assert.equal(safeReturnPath('https://evil.example/path'), null)
+  assert.equal(safeReturnPath('//evil.example/path'), null)
+  assert.equal(safeReturnPath('/\\evil.example/path'), null)
+  assert.equal(safeReturnPath('/driver/trips/123\nnext'), null)
+  assert.equal(safeReturnPath(null), null)
 })
 test('request bodies: enable sends the code; password only when the account has one; code only when asked for', () => {
   assert.deepEqual(enableBody('123 456'), { code: '123456' })

@@ -43,6 +43,7 @@ import PassengerPayments from './features/passenger/PassengerPayments'
 import MyOwners from './features/driver/MyOwners'
 import WorkspaceShell from './components/WorkspaceShell'
 import { hasSession, sessionEndReason } from './services/api'
+import {safeReturnPath} from './features/auth/loginFlow'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
 import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
@@ -125,7 +126,7 @@ const RETURN_PREFIXES=['/owner/','/driver/','/admin/','/travel/','/bookings','/t
 const returnable=pathname=>RETURN_PREFIXES.some(prefix=>pathname.startsWith(prefix))&&!pathname.endsWith('/onboarding')
 const workspaceOf=path=>{const [url]=path.split('#'),[base,query]=url.split('?'),role=['owner','driver','admin'].find(r=>base.startsWith('/'+r+'/'))
  return role?role.toUpperCase():base==='/account'?(new URLSearchParams(query).get('workspace')||'passenger').toUpperCase():'PASSENGER'}
-const readReturn=()=>{try{return sessionStorage.getItem(RETURN_KEY)}catch{return null}}
+const readReturn=()=>{try{const stored=sessionStorage.getItem(RETURN_KEY),safe=safeReturnPath(stored);if(stored&&!safe)sessionStorage.removeItem(RETURN_KEY);return safe}catch{return null}}
 const writeReturn=value=>{try{if(value)sessionStorage.setItem(RETURN_KEY,value);else sessionStorage.removeItem(RETURN_KEY)}catch{/* Without browser storage the person simply lands on their dashboard. */}}
 ;(function rememberRequestedPage(){
   if(hasSession())return writeReturn(null)
