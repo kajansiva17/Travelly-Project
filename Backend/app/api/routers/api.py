@@ -8,6 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
+from app.core.config import get_settings
 from app.core.errors import ApiError, unauthorized
 from app.models import User, UserRole
 from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, RoleRequest, UserResponse, RoleResponse, RolesResponse, TokenResponse
@@ -19,16 +20,11 @@ router = APIRouter(prefix='/api/v1')
 logger = logging.getLogger('travelly.audit')
 
 
-def session_meta(request):
-    """What the sessions list shows: a device label from the browser and a coarse address (last part hidden)."""
-    agent = (request.headers.get('user-agent') or '')[:300]
-    low = agent.lower()
-    system = next((n for k, n in (('windows', 'Windows'), ('android', 'Android'), ('iphone', 'iPhone'), ('ipad', 'iPad'), ('mac os', 'Mac'), ('linux', 'Linux')) if k in low), None)
-    browser = next((n for k, n in (('edg/', 'Edge'), ('opr/', 'Opera'), ('chrome/', 'Chrome'), ('firefox/', 'Firefox'), ('safari/', 'Safari')) if k in low), None)
-    host = request.client.host if request.client else ''
-    parts = host.split('.')
-    hint = '.'.join(parts[:2]) + '.x.x' if len(parts) == 4 else (host.split(':')[0] + ':x' if ':' in host else '')
-    return {'device': ' on '.join(x for x in (browser, system) if x) or 'Unknown device', 'ip_hint': hint}
+def session_meta(request: Request) -> dict:
+    """Collect lightweight session metadata (IP, user-agent) for the session store."""
+    forwarded = request.headers.get('x-forwarded-for', '')
+    ip = forwarded.split(',')[0].strip() if forwarded else (request.client.host if request.client else '')
+    return {'ip': ip, 'ua': request.headers.get('user-agent', '')[:256]}
 
 
 def touch(row):
@@ -84,9 +80,12 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     encoded = hasher.hash(body.password)
     for _ in range(3):
         try:
+            need_verify = get_settings().require_email_verification
             user = User(public_user_reference='USR-' + secrets.token_hex(8).upper(), password_hash=encoded,
                         full_name=body.full_name, email=body.email, phone_e164=body.phone_e164,
-                        preferred_language=body.preferred_language, email_login_required=True,
+                        preferred_language=body.preferred_language, email_login_required=need_verify,
+                        email_verified_at=None if need_verify else datetime.now(timezone.utc),
+                        account_status='PENDING_VERIFICATION' if need_verify else 'ACTIVE',
                         terms_accepted_at=datetime.now(timezone.utc))
             db.add(user)
             db.flush()
@@ -121,7 +120,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     if user and user.locked_until and user.locked_until > now:
         store.limited((user.locked_until - now).total_seconds())
     valid = verify_password(body.password, user.password_hash if user else DUMMY_HASH)
-    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION', 'DEACTIVATED'):
+    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION'):
         count = store.failure(body.identifier)
         if user:
             user.failed_login_count = count
@@ -136,14 +135,6 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         store.clear_failures(body.identifier)
         from app.api.routers.auth_extension import verification_result
         return verification_result(request, user, journey=body.journey, sign_in=True)
-    if user.totp_enabled_at:                    # second step: the authenticator code (owner decision 14 Nov 2026)
-        from app.api.routers.account_security_api import challenge_for
-        user.failed_login_count, user.locked_until = 0, None
-        touch(user); db.commit()
-        store.clear_failures(body.identifier)
-        return challenge_for(request, user, body.remember_me)
-    from app.api.routers.account_security_api import reactivate   # signing in again brings a deactivated account back and cancels a delete request
-    welcome = reactivate(user)
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, now
     if hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hasher.hash(body.password)
@@ -151,10 +142,10 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     db.commit()
     store.clear_failures(body.identifier)
     tokens, sid, expires = issue_tokens(user.id, settings, auth_version=user.auth_version, remember=body.remember_me)
-    store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
+    store.create(sid, user.id, tokens['refresh_token'], expires)
     session_cookie.keep(request, tokens, body.remember_me)
     logger.info('login user=%s session=%s trace=%s', user.id, sid, request.state.trace_id)
-    return {**tokens, **welcome}
+    return tokens
 
 
 @router.post('/auth/refresh', response_model=TokenResponse, tags=['Auth'])

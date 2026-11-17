@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { api } from '../../services/api'
 import { t } from '../../i18n/language.js'
 import { Icon } from '../../components/components'
+import InfoTip from '../../components/ui/InfoTip'
 import qrcode from 'qrcode-generator'
 
 /**
@@ -18,7 +19,7 @@ function QRImage({ token }) {
     qr.make()
     ref.current.innerHTML = qr.createSvgTag(4, 0)
     const svg = ref.current.querySelector('svg')
-    if (svg) { svg.setAttribute('width','160'); svg.setAttribute('height','160') }
+    if (svg) { svg.setAttribute('width','100%'); svg.setAttribute('height','100%') }
   }, [token])
   return <div ref={ref} className="pickup-qr" aria-label={t('QR code')}/>
 }
@@ -52,12 +53,12 @@ export default function PickupCodePanel({ tripId }) {
     )
   }
 
+  // Compact: QR on the left, PIN and actions on the right, the explanation in a tooltip (fits the Trip tab, no scroll).
   return (
     <section className="rate-preview pickup-code-section">
-      <h2>{t('Your pickup code')}</h2>
-      <p>{t('The Driver will ask for this code before starting the trip. Show the six digits or the QR code.')}</p>
+      <h2>{t('Your pickup code')}<InfoTip>{t('The Driver will ask for this code before starting the trip. Show the six digits or the QR code.')}</InfoTip></h2>
       {!shown && (
-        <button className="button" disabled={loading} onClick={load}>
+        <button className="ui-button ui-button-primary" disabled={loading} onClick={load}>
           {loading ? t('Loading…') : t('Show pickup code')}
         </button>
       )}
@@ -65,13 +66,15 @@ export default function PickupCodePanel({ tripId }) {
       {shown && data && (
         <div className="pickup-code-display">
           <QRImage token={data.qr_token}/>
-          <p className="pickup-pin" aria-label={t('Six digit PIN')}>{data.pin}</p>
-          {data.attempts_left < 5 && (
-            <p className="field-error" role="status">
-              {t('{value0} attempt(s) remaining.', { value0: data.attempts_left })}
-            </p>
-          )}
-          <button className="button outline" onClick={load}>{t('Refresh code')}</button>
+          <div className="pickup-code-side">
+            <p className="pickup-pin" aria-label={t('Six digit PIN')}>{data.pin}</p>
+            {data.attempts_left < 5 && (
+              <p className="field-error" role="status">
+                {t('{value0} attempt(s) remaining.', { value0: data.attempts_left })}
+              </p>
+            )}
+            <button className="ui-button ui-button-secondary" onClick={load}>{t('Refresh code')}</button>
+          </div>
         </div>
       )}
     </section>

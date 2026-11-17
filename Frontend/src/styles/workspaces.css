@@ -4,7 +4,8 @@
 .workspace-profile{position:relative}
 .workspace-profile summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:44px}
 .workspace-profile summary::-webkit-details-marker{display:none}
-.dashboard-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--ui-red-gradient);border:1px solid #d5dcff77;color:var(--ui-ink);flex:none}
+.dashboard-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--ui-red-gradient);border:2px solid #fff;color:var(--ui-ink);flex:none;overflow:hidden;box-shadow:0 2px 8px rgb(40 80 120/.2)}
+.dashboard-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .workspace-profile-name{max-width:180px}
 .workspace-profile-name strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 .workspace-profile-name small{display:block;font-size:10px;color:var(--ui-text);margin-top:3px}

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AiAssistant from '../features/ai/AiAssistant'
 import { ErrorNotice, Icon } from './components'
-import { activeMenuItem, canDriveAsOwner, travelHome, workspaceMenu } from '../routes/workspaceRoutes'
+import { activeMenuItem, canDriveAsOwner, travelHome, travelPath as travelRoute, workspaceMenu } from '../routes/workspaceRoutes'
 import { useWorkspace } from '../context/workspaceContext'
 
 /* Single white-glass sidebar for all four roles (skin: styles/app-sidebar.css).
@@ -17,6 +17,9 @@ export default function AppSidebar({ role, info, authorized, pathname, search, m
   // Owner: Travel & booking is a normal menu entry (contract 03W order). Other roles keep it in the pinned bottom block.
   const inMenu = menu.some(item => item.travel)
   const main = menu.filter(item => !item.bottom && (inMenu || item.path !== travelPath))
+  // Phone/tablet drawer only: Owner, Driver and Admin get Travel Reels here because the small navbar has no room for it.
+  // The desktop sidebar is unchanged (Reels is in the navbar), so it still fits the screen without scrolling.
+  if (mobile && role !== 'PASSENGER') main.push({ label: 'Travel Reels', path: travelRoute(role, '/reels'), icon: 'video' })
   const bottom = menu.filter(item => item.bottom)
   const travelActive = pathname.startsWith(info.prefix + '/personal/') || pathname.startsWith(info.prefix + '/travel') || (role === 'PASSENGER' && (pathname.startsWith('/travel/') || pathname === '/hire' || pathname.startsWith('/vehicles/')))
   // A booking opened from a list or a notification (/bookings/:id) keeps its own list highlighted, so the person knows where they are.

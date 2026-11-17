@@ -75,7 +75,7 @@ html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; m
 /* Tablets and phones (≤1023px): landing nav collapses to hamburger menu */
 @media (max-width: 1023px) {
   html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav:not(.lr-nav-open) { display: none; }
-  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-menu { margin-left: auto; }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-menu { display: grid; place-items: center; padding: 8px; margin-left: auto; }  /* the landing CSS shows this button only up to 760px */
   html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + 8px);
     margin: 0; padding: 14px; box-sizing: border-box; border-radius: 23px; background: #edf5fff5; border: 1px solid #fff;
@@ -88,8 +88,9 @@ html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; m
   html body .workspace-shell[data-workspace] .workspace-content .dash-page { height: auto; }
   html body .workspace-shell[data-workspace] .workspace-content .dash-page .dash-grid { grid-template-rows: none; }
 }
-/* Tablets and phones (≤1023px): sidebar hidden, full-width content, drawer used instead */
-@media (max-width: 1023px) {
+/* Phones (≤767px): sidebar hidden, full-width content, the menu button opens the drawer. From 768px the sidebar is
+   shown and the menu button is hidden (workspace CSS), so this breakpoint must stay at 767px. */
+@media (max-width: 767px) {
   html body .workspace-shell[data-workspace] .workspace-layout { grid-template-columns: minmax(0, 1fr); }
   html body .workspace-shell[data-workspace] .app-sidebar { display: none; }
   html body .workspace-shell[data-workspace] .workspace-content { grid-column: 1; }

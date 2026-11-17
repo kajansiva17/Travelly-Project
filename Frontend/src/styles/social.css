@@ -9,8 +9,12 @@ html body .rl-frame { position: relative; height: 100%; aspect-ratio: 9 / 16; ma
 html body .rl-media { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #0b1220; cursor: pointer; }
 html body .rl-media video, html body .rl-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 html body .rl-media.rl-text { background: linear-gradient(160deg, #1f2430, var(--brand-red)); cursor: default; }
-html body .rl-sound { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgb(0 0 0 / .5); color: #fff; }
-html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 64px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .88), rgb(0 0 0 / .55) 55%, transparent); text-shadow: 0 1px 3px rgb(0 0 0 / .6); display: grid; gap: 4px; pointer-events: none; }
+html body .rl-media-toggle { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; color: #fff; cursor: pointer; }
+html body .rl-play-state { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: rgb(0 0 0 / .55); opacity: 0; transform: scale(.88); transition: opacity .16s ease, transform .16s ease; pointer-events: none; }
+html body .rl-media-toggle:hover .rl-play-state, html body .rl-media-toggle:focus-visible .rl-play-state, html body .rl-play-state.is-paused { opacity: 1; transform: scale(1); }
+html body .rl-media-toggle:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
+html body .rl-sound { position: absolute; top: 10px; right: 10px; z-index: 3; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / .55); color: #fff; cursor: pointer; }
+html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 64px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .88), rgb(0 0 0 / .55) 55%, transparent); text-shadow: 0 1px 3px rgb(0 0 0 / .6); display: grid; gap: 4px; pointer-events: none; }
 html body .rl-overlay a, html body .rl-overlay button { pointer-events: auto; }
 html body .rl-author { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 html body .rl-author a { color: #fff; font-weight: 800; text-decoration: none; }
@@ -28,9 +32,11 @@ html body .rl-btn:disabled { opacity: .6; cursor: default; }
 html body .rl-preload { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 html body .rl-note { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: rgb(255 255 255 / .95); color: var(--ui-ink); font-weight: 600; font-size: 13px; z-index: 6; }
 html body .rl-note.is-warn { background: #fff2d9; }
-html body .rl-nav { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+html body .rl-nav { flex: none; align-self: center; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
 html body .rl-x { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .9); color: var(--ui-ink); cursor: pointer; }
 html body .rl-x:disabled { opacity: .4; cursor: default; }
+html body .rl-x.is-prev svg { transform: rotate(-90deg); }
+html body .rl-x.is-next svg { transform: rotate(90deg); }
 html body .rl-panel { flex: none; width: 340px; max-width: 100%; display: flex; flex-direction: column; min-height: 0; border-radius: 18px; background: var(--ui-glass-strong, #fff); color: var(--ui-ink); overflow: hidden; }
 html body .rl-panel > header { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--ui-glass-border); }
 html body .rl-panel h3 { margin: 0; font-size: 16px; }

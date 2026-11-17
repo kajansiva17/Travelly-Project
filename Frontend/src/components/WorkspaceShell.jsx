@@ -62,7 +62,7 @@ export default function WorkspaceShell({role:fixedRole}){
  const notificationPath=role==='ADMIN'?'/admin/manual-fulfilment':role==='OWNER'?'/owner/bookings':role==='DRIVER'?'/driver/assignments':'/bookings'
  const notificationLabel=role==='ADMIN'?'View support notifications':role==='OWNER'?'View customer bookings':role==='DRIVER'?'View assigned trips':'View my trips'
  return <WorkspaceContext.Provider value={value}>
-  <div className="workspace-shell" data-workspace={role.toLowerCase()} style={{'--workspace-nav-count':workspaceMenu(role).length+(role==='OWNER'?0:2)}} ref={shell}>
+  <div className="workspace-shell" data-workspace={role.toLowerCase()} style={{'--workspace-nav-count':workspaceMenu(role).length+(role==='OWNER'?0:2)+(role==='PASSENGER'?0:1)}} ref={shell}>
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>

@@ -62,6 +62,8 @@ export function Icon({ name, size = 22, ...props }) {
     more: <><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></>,
     volume: <><path d="M4 9v6h4l5 4V5L8 9Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></>,
     mute: <><path d="M4 9v6h4l5 4V5L8 9Z"/><path d="m17 9 5 6m0-6-5 6"/></>,
+    play: <path d="m8 5 11 7-11 7Z"/>,
+    pause: <><path d="M9 5v14M15 5v14"/></>,
     plus: <path d="M12 5v14M5 12h14"/>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>

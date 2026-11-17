@@ -2202,6 +2202,10 @@ const rows = [
   ["No payments yet.", "இன்னும் கட்டணங்கள் இல்லை.", "තවම ගෙවීම් නොමැත."],
   ["Booking reference", "முன்பதிவுக் குறிப்பு", "වෙන්කිරීමේ යොමුව"],
   ["The public reference for the booking linked to this payment.", "இந்தக் கட்டணத்துடன் இணைக்கப்பட்ட முன்பதிவின் பொது குறிப்பு.", "මෙම ගෙවීමට සම්බන්ධ වෙන්කිරීමේ පොදු යොමුව."],
+  ["Play reel", "ரீலை இயக்கவும்", "රීලය වාදනය කරන්න"],
+  ["Pause reel", "ரீலை இடைநிறுத்தவும்", "රීලය විරාම කරන්න"],
+  ["Turn sound on", "ஒலியை இயக்கவும்", "ශබ්දය ක්‍රියාත්මක කරන්න"],
+  ["Mute reel", "ரீலின் ஒலியை நிறுத்தவும்", "රීලයේ ශබ්දය නිහඬ කරන්න"],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

@@ -28,38 +28,34 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspa
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name small { font-size: 12px; font-weight: 500; color: var(--ui-muted); }
 
 
-/* Phones: keep only the avatar and icons so the bar never overflows (all roles). */
-@media (max-width: 767px) {
+/* Tablets (768-1023px): sidebar is in the drawer, so drop the text labels and keep icons; the bar fits beside the menu button. */
+@media (max-width: 1023px) {
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name,
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > span { display: none; }
-  /* Workspace header: hamburger absolute-left, logo centred, navigation absolute-right so logo always sits dead-centre */
-  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .header-inner { position: relative; }
-  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .workspace-menu-toggle { position: absolute; left: 0; }
-  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { margin: 0 auto; }
-  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation { position: absolute; right: 0; margin-left: 0; }
-  /* Auth header: same treatment – menu toggle absolute-left so logo stays centred */
-  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .header-inner { position: relative; }
-  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .menu-toggle { position: absolute; left: 0; }
-  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { margin: 0 auto; }
-  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation.open { position: absolute; right: 0; top: calc(100% + 8px); flex-direction: column; background: #fff; border-radius: 16px; padding: 12px; box-shadow: 0 8px 24px rgb(18 40 90/.15); z-index: 20; margin-left: 0; }
 }
 
-/* Small phones: drop Travel Reels (not available yet) and compact the logo and
-   language so menu, logo, language, bell and avatar all fit without clipping. */
+/* Phones: [menu] [logo] [language, bell, avatar] in one row INSIDE the pill. Everything stays in normal flex flow
+   (no absolute positioning: responsive.css gives .navigation top:100%, which pushed it under the pill).
+   mobile.css fixes the language box (84px), bell (32px), avatar (38px), padding (10px) and gaps (6px); the logo takes
+   the room that is left, so it is as big as the phone allows: 100vw - 278px = insets 32 + padding 20 + menu 44
+   + language 84 + bell 32 + avatar 38 + gaps 24 + 4px spare. Its auto margins centre it between the menu and the icons. */
+@media (max-width: 767px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(84px, calc(100vw - 278px), 150px); }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .header-inner > .brand.travelly-brand { margin: 0 auto; }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation { position: static; flex: 0 0 auto; margin-left: 0; }
+  /* Login / register: menu button on the right edge, never on top of the logo. */
+  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .menu-toggle { margin-left: auto; }
+}
+
+/* Small phones: no Travel Reels icon in the bar (it is in the menu drawer). */
 @media (max-width: 480px) {
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 96px; }   /* frame.css sets the logo width from this variable, so the bar fits a 360px phone */
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 96px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation { gap: 6px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language { gap: 2px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 64px; font-size: 12px; }
 }
 
-/* 360px phones: a little tighter so the bar (menu, logo, language, bell, avatar) never makes the page scroll sideways. */
+/* 360-400px phones: menu button 40px and language box 72px ("English" still reads in full at 12px), so the logo keeps
+   a good size: 100vw - 262px (menu 40 + language 72 instead of 44 + 84). */
 @media (max-width: 400px) {
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 80px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .header-inner { gap: 8px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 52px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 80px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { min-width: 34px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(84px, calc(100vw - 262px), 150px); }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .workspace-menu-toggle { min-width: 40px; width: 40px; min-height: 40px; }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation .language.language select { width: 72px !important; font-size: 12px; }
 }

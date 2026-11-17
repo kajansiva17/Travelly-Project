@@ -20,17 +20,25 @@ import {CommentsPanel,EditPanel,MenuPanel,RemovePanel,ReportPanel} from './ReelP
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n)
 
 function Media({post,muted,onSound,onPlaying}){
-  const video=useRef(null)
+  const video=useRef(null),manualPause=useRef(false)
+  const [paused,setPaused]=useState(false)
   useEffect(()=>{const v=video.current;if(v){v.muted=muted}},[muted,post.id])
   useEffect(()=>{
     const v=video.current;if(!v)return undefined
-    const sync=()=>{if(document.hidden)v.pause();else v.play?.().catch(()=>{})}
+    manualPause.current=false;setPaused(false)
+    const sync=()=>{if(document.hidden)v.pause();else if(!manualPause.current)v.play?.().catch(()=>{})}
     document.addEventListener('visibilitychange',sync);v.play?.().catch(()=>{})
     return()=>document.removeEventListener('visibilitychange',sync)
   },[post.id])
-  if(post.post_type==='REEL')return <button type="button" className="rl-media" onClick={onSound} aria-label={muted?t('Tap for sound'):t('Sound on')}>
-    <video ref={video} key={post.id} src={src(post.media_url)} poster={src(post.thumbnail_url)||undefined} autoPlay muted loop playsInline preload="auto" onPlaying={onPlaying}/>
-    <span className="rl-sound" aria-hidden="true"><Icon name={muted?'mute':'volume'} size={20}/></span></button>
+  const toggle=()=>{const v=video.current;if(!v)return;if(v.paused){manualPause.current=false;v.play?.().catch(()=>{})}else{manualPause.current=true;v.pause()}}
+  if(post.post_type==='REEL')return <div className="rl-media">
+    <video ref={video} key={post.id} src={src(post.media_url)} poster={src(post.thumbnail_url)||undefined} autoPlay muted loop playsInline preload="auto"
+      onPlaying={()=>{setPaused(false);onPlaying()}} onPause={()=>{if(!document.hidden)setPaused(true)}}/>
+    <button type="button" className="rl-media-toggle" onClick={toggle} aria-label={paused?t('Play reel'):t('Pause reel')} aria-pressed={paused}>
+      <span className={'rl-play-state'+(paused?' is-paused':'')}><Icon name={paused?'play':'pause'} size={38}/></span>
+    </button>
+    <button type="button" className="rl-sound" onClick={onSound} aria-label={muted?t('Turn sound on'):t('Mute reel')} title={muted?t('Turn sound on'):t('Mute reel')}><Icon name={muted?'mute':'volume'} size={20}/></button>
+  </div>
   if(post.media_url)return <div className="rl-media"><img src={src(post.media_url)} alt={post.caption||t('Photo')}/></div>
   return <div className="rl-media rl-text"/>
 }
@@ -135,6 +143,7 @@ export default function ReelsPage(){
       <Overlay post={post} onTag={setHashtag}/>
     </div>
     <Rail post={post} busy={busy} full={full} onFull={toggleFull} onLike={like} onSave={save} onComments={()=>setPanel('comments')} onShare={share} onFollow={follow} onMenu={()=>setPanel('menu')}/>
+    {items.length>1&&<div className="rl-nav"><button type="button" className="rl-x is-prev" aria-label={t('Previous reel')} disabled={index<=0} onClick={()=>go(-1)}><Icon name="chevron" size={22}/></button><button type="button" className="rl-x is-next" aria-label={t('Next reel')} disabled={index>=items.length-1&&!feed.hasMore} onClick={()=>go(1)}><Icon name="chevron" size={22}/></button></div>}
     {panel==='comments'&&<CommentsPanel post={post} onClose={()=>setPanel(null)} onCount={n=>typeof n==='number'&&n!==post.comment_count&&patch({id:post.id,comment_count:n})}/>}
     {panel==='menu'&&<MenuPanel post={post} onClose={()=>setPanel(null)} onChoose={setPanel}/>}
     {panel==='report'&&<ReportPanel post={post} onClose={()=>setPanel(null)}/>}
@@ -149,7 +158,6 @@ export default function ReelsPage(){
       onTouchStart={e=>{touchY.current=e.touches[0].clientY}} onTouchEnd={e=>{if(touchY.current==null||panel)return;const dy=touchY.current-e.changedTouches[0].clientY;touchY.current=null;if(Math.abs(dy)>50)go(dy>0?1:-1)}}>
       {body}
       {note.text&&<p className={'rl-note'+(note.warn?' is-warn':'')} role="status">{note.text}</p>}
-      {post&&items.length>1&&<div className="rl-nav"><button type="button" className="rl-x" aria-label={t('Previous reel')} disabled={index<=0} onClick={()=>go(-1)}><Icon name="chevron" size={22} style={{transform:'rotate(-90deg)'}}/></button><button type="button" className="rl-x" aria-label={t('Next reel')} disabled={index>=items.length-1&&!feed.hasMore} onClick={()=>go(1)}><Icon name="chevron" size={22} style={{transform:'rotate(90deg)'}}/></button></div>}
     </div>
   </main></>
 }

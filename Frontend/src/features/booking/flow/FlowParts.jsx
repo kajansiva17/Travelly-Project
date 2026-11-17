@@ -123,14 +123,17 @@ export function FlowVehicleCard({ vehicle, title, specs = [], chips, action, sel
 /* Estimate / quote block: breakdown rows, total and exclusions from the API price. */
 export function FlowEstimate({ title = 'Trip estimate (LKR)', price }) {
   if (!price) return null
+  // Long notes (package hours, tolls, parking) sit in one tooltip beside the total so the card fits one screen.
+  const notes = [
+    price.planned_service_hours?.length >= 1 && price.package_hours && (price.planned_service_hours.length === 1
+      ? t("Trip time is estimated from the route: about {value0} hours. This Owner's package covers {value1} hours and {value2} km.", { value0: price.planned_service_hours[0], value1: price.package_hours, value2: price.package_km })
+      : t("{value0} days. Trip time is estimated from the route: about {value1} hours a day. This Owner's package covers {value2} hours and {value3} km a day.", { value0: price.planned_service_hours.length, value1: price.planned_service_hours[0], value2: price.package_hours, value3: price.package_km })) + ' ' + t('Hours or kilometres beyond the package are charged at the rates under Extra charges.'),
+    ...(price.exclusions || []),
+  ].filter(Boolean)
   return <section className="flow-estimate ui-card"><h2><Icon name="wallet" size={22} aria-hidden="true"/>{title}</h2>
     <dl>{(price.breakdown || []).map(row => <div key={row.code}><dt>{row.label}</dt><dd>{row.kind === 'CREDIT' ? '−' : ''}{row.amount}</dd></div>)}</dl>
-    <p className="flow-estimate-total"><span>{t("Total estimate")}</span><strong>{t("LKR")} {price.total}</strong></p>
-    {price.planned_service_hours?.length >= 1 && price.package_hours && <p className="flow-note">{price.planned_service_hours.length === 1
-      ? t("Trip time is estimated from the route: about {value0} hours. This Owner's package covers {value1} hours and {value2} km.", { value0: price.planned_service_hours[0], value1: price.package_hours, value2: price.package_km })
-      : t("{value0} days. Trip time is estimated from the route: about {value1} hours a day. This Owner's package covers {value2} hours and {value3} km a day.", { value0: price.planned_service_hours.length, value1: price.planned_service_hours[0], value2: price.package_hours, value3: price.package_km })}{' '}{t('Hours or kilometres beyond the package are charged at the rates under Extra charges.')}</p>}
+    <p className="flow-estimate-total"><span>{t("Total estimate")}{notes.length > 0 && <InfoTip>{notes.map(text => <span key={text} className="flow-tip-line">{text}</span>)}</InfoTip>}</span><strong>{t("LKR")} {price.total}</strong></p>
     <ExtraLines price={price}/>
-    {(price.exclusions || []).map(text => <p key={text} className="flow-note">{text}</p>)}
   </section>
 }
 
