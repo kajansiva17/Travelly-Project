@@ -2206,6 +2206,10 @@ const rows = [
   ["Pause reel", "ரீலை இடைநிறுத்தவும்", "රීලය විරාම කරන්න"],
   ["Turn sound on", "ஒலியை இயக்கவும்", "ශබ්දය ක්‍රියාත්මක කරන්න"],
   ["Mute reel", "ரீலின் ஒலியை நிறுத்தவும்", "රීලයේ ශබ්දය නිහඬ කරන්න"],
+  ["Accept cash payments","பணப் பட்டுவாடாக்களை ஏற்கவும்","මුදල් ගෙවීම් භාර ගන්න"],
+  ["The Passenger can pay you in cash at the end of the trip. You and the Passenger both confirm in the app.","பயணத்தின் முடிவில் பயணி உங்களுக்குப் பணமாகச் செலுத்தலாம். நீங்களும் பயணியும் செயலியில் உறுதிப்படுத்துவீர்கள்.","ගමන අවසානයේදී මගියාට ඔබට මුදලින් ගෙවිය හැක. ඔබත් මගියාත් යෙදුම තුළ තහවුරු කරති."],
+  ["Save this service and its prices first.","முதலில் இந்தச் சேவையையும் அதன் விலைகளையும் சேமிக்கவும்.","මුලින් මෙම සේවාව සහ එහි ගාස්තු සුරකින්න."],
+  ["Cash payment setting saved.","பணப் பட்டுவாடாக்க அமைப்பு சேமிக்கப்பட்டது.","මුදල් ගෙවීමේ සැකසුම සුරකින ලදී."],
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

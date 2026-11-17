@@ -6,7 +6,7 @@ import { api, hasSession } from '../../services/api'
 import { ErrorNotice, Header } from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import { Checkbox } from '../../components/ui'
-import { Field, AmountField, AreaEditor, PlaceSearch, Compact } from './OwnerRates'
+import { Field, AmountField, AreaEditor, PlaceSearch, Compact, CashSwitch } from './OwnerRates'
 import EventPackages from './EventPackages'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { validateRateRules } from './rateValidation'
@@ -108,9 +108,9 @@ export default function OwnerHire() {
   const service = services.find(s => s.pricing_scope === scope)
   useEffect(() => {
     setSaved(null); setState(null); setNotice(''); setError(null)
-    if (!vehicle || !service || scope === 'EVENT') return
+    if (!vehicle || !service) return
     let live = true
-    api(`/vehicles/${vehicle}/services`).then(r => { if (!live) return; const row = (r.items || []).find(x => x.service_type_id === service.id) || { version: 0, rules: [] }; setSaved(row); setState(hydrate(row.rules || [])) }).catch(e => { if (live) setError(e) })
+    api(`/vehicles/${vehicle}/services`).then(r => { if (!live) return; const row = (r.items || []).find(x => x.service_type_id === service.id) || { service_type_id: service.id, version: 0, rules: [], event_packages: [], cash_accepted: false }; setSaved(row); setState(scope === 'EVENT' ? null : hydrate(row.rules || [])) }).catch(e => { if (live) setError(e) })
     return () => { live = false }
   }, [vehicle, service?.id, scope])
   const set = (key, patch) => setState(s => ({ ...s, [key]: { ...s[key], ...patch } }))
@@ -129,11 +129,12 @@ export default function OwnerHire() {
   }
   if (!hasSession()) return <Navigate to="/login" replace/>
   if (user && !user.approved_roles.includes('OWNER')) return <Navigate to="/" replace/>
-  const isEvent = scope === 'EVENT', ready = state && saved
-  const tabs = ready ? [['Area', 'map'], ['Per km', 'chart'], ['Day package', 'calendar'], ['Fixed routes', 'route'], ['Extras and terms', 'settings']].map(([label, icon], i) => ({ label: t(label), icon, active: tab === i, onClick: () => setTab(i) })) : undefined
+  const isEvent = scope === 'EVENT', ready = saved && (isEvent || state)
+  const tabNames = isEvent ? ['Packages', 'Extras and terms'] : ['Area', 'Per km', 'Day package', 'Fixed routes', 'Extras and terms']
+  const tabs = ready ? (isEvent ? [['Packages', 'calendar'], ['Extras and terms', 'settings']] : [['Area', 'map'], ['Per km', 'chart'], ['Day package', 'calendar'], ['Fixed routes', 'route'], ['Extras and terms', 'settings']]).map(([label, icon], i) => ({ label: t(label), icon, active: tab === i, onClick: () => setTab(i) })) : undefined
   const fixedList = state?.fixed || []
-  return <><Header/><FlowShell heading={t('Hire prices')} icon="wallet" title={t(TYPES.find(x => x[0] === scope)[1]) + ' · ' + t(['Area', 'Per km', 'Day package', 'Fixed routes', 'Extras and terms'][isEvent ? 0 : tab])}
-    info={t('Set prices for one hire type at a time. A fixed route price is used first, then your package, then per km. If nothing matches, the Passenger asks you for a price.')} tabs={isEvent ? undefined : tabs}>
+  return <><Header/><FlowShell heading={t('Hire prices')} icon="wallet" title={t(TYPES.find(x => x[0] === scope)[1]) + ' · ' + t(tabNames[tab])}
+    info={t('Set prices for one hire type at a time. A fixed route price is used first, then your package, then per km. If nothing matches, the Passenger asks you for a price.')} tabs={tabs}>
     <Compact.Provider value={true}>
       <ErrorNotice error={error}/>{fieldErrors(error).length > 0 && <ul className="field-error" role="alert">{fieldErrors(error).map((f, i) => <li key={i}>{f.message}</li>)}</ul>}
       {notice && <p className="notice success" role="status">{notice}</p>}
@@ -142,16 +143,17 @@ export default function OwnerHire() {
         <div className="rate-field"><label>{t('Hire type')}</label><div className="status-chips">{TYPES.map(([code, name]) => <Chip key={code} selected={scope === code} onClick={() => { setScope(code); setTab(0) }}>{t(name)}</Chip>)}</div></div>
       </div>
       {!vehicle && <p className="flow-note">{vehicles.length ? t('Choose a vehicle to set its prices.') : <>{t('You have no vehicles yet.')} <Link to="/owner/vehicles">{t('Add a vehicle first')}</Link></>}</p>}
-      {vehicle && isEvent && <><EventPackages key={vehicle} vehicle={{ id: vehicle }} Footer={Footer}/></>}
+      {vehicle && isEvent && ready && tab === 0 && <EventPackages key={`${vehicle}-${saved.version}`} vehicle={{ id: vehicle }} Footer={Footer} onServiceLoaded={setSaved}/>}
+      {vehicle && isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
       {vehicle && !isEvent && !service && services.length > 0 && <p role="status">{t('This hire type is not set up yet. An Admin must activate it first.')}</p>}
       {vehicle && !isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
 
-      {ready && tab === 0 && <div className="hire-pane flow-wizard-form hire-area">
+      {ready && !isEvent && tab === 0 && <div className="hire-pane flow-wizard-form hire-area">
         <AreaEditor key={`${vehicle}-${scope}`} label="Area you operate in" value={state.area} onChange={area => setState(s => ({ ...s, area }))}/>
         <section className="submit-next hire-how"><div className="pane-head"><strong>{t('How a Passenger gets a price')}</strong></div><ol className="next-steps">{[['Fixed route','If the trip matches a fixed route you priced, that price is used.'],['Day package','Otherwise your package for set hours and km, if you offer one.'],['Per km','Otherwise your base charge plus the per km rate.'],['Ask the Owner','If nothing matches, the Passenger asks you for a price.']].map(([a, b], n) => <li key={a}><span className="next-n">{n + 1}</span><div><strong>{t(a)}</strong><p>{t(b)}</p></div></li>)}</ol></section>
       </div>}
 
-      {ready && tab === 1 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 1 && <div className="hire-pane flow-wizard-form">
         <Checkbox checked={state.km.on} onChange={e => set('km', { on: e.target.checked })}>{t('I price this hire type per km')}</Checkbox>
         {state.km.on && <div className="rate-grid">
           <AmountField name="base_charge" label="Starting price" help="Charged for every trip; it covers the included km." value={state.km.base_charge} onChange={v => set('km', { base_charge: v })}/>
@@ -161,7 +163,7 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && tab === 2 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 2 && <div className="hire-pane flow-wizard-form">
         <Checkbox checked={state.pkg.on} onChange={e => set('pkg', { on: e.target.checked })}>{t('I offer a fixed package (price for set hours and km)')}</Checkbox>
         {state.pkg.on && <div className="rate-grid">
           <AmountField name="day_charge" label="Package price" help="One price for the hours and km below." value={state.pkg.day_charge} onChange={v => set('pkg', { day_charge: v })}/>
@@ -174,7 +176,7 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && tab === 3 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 3 && <div className="hire-pane flow-wizard-form">
         <p className="flow-note">{t('A fixed price from one place to another. It is used before your package or per km rates.')}</p>
         <div className="hire-fixed">{fixedList.map((f, i) => <div className="hire-fixed-row" key={f.id}>
           <PlaceSearch label="From" value={f.from} onChange={place => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, from: place } : x) }))}/>
@@ -185,7 +187,7 @@ export default function OwnerHire() {
         <button type="button" className="ui-button ui-button-secondary" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '' }] }))}>{t('Add a fixed route')}</button>
       </div>}
 
-      {ready && tab === 4 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && tab === 4 && <div className="hire-pane flow-wizard-form">
         <div className="rate-grid">
           <div className="hire-check"><Checkbox checked={state.terms.waiting} onChange={e => set('terms', { waiting: e.target.checked })}>{t('Charge for waiting time')}</Checkbox></div>
           <Field label="Tolls"><select value={state.terms.tolls} onChange={e => set('terms', { tolls: e.target.value })}><option value="INCLUDED">{t('Included in my prices')}</option><option value="SEPARATE_AT_COST">{t('Passenger pays the actual cost')}</option></select></Field>
@@ -196,6 +198,8 @@ export default function OwnerHire() {
           <Field label="Note for the Passenger" optional help="The Passenger reads this before booking, for example: Return to Jaffna is included in the fare."><input maxLength={500} value={state.terms.returnNotes} onChange={e => set('terms', { returnNotes: e.target.value })}/></Field>
         </div>
       </div>}
+
+      {ready && ((isEvent && tab === 1) || (!isEvent && tab === 4)) && <CashSwitch vehicle={vehicle} service={service.id} saved={saved} onSaved={setSaved}/>}
 
       {ready && !isEvent && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={save}>{busy ? t('Saving…') : t('Save prices')}</button></div>}
       {isEvent && vehicle && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/></div>}

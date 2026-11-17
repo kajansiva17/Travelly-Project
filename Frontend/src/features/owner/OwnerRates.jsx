@@ -142,7 +142,7 @@ async function nextStep() { if (wizard.step <= 5) { const { errors, valid } = ch
   </RateErrors.Provider>
 }
 // One switch: accept cash at the end of the trip for this vehicle service (Payments contract 03P, D4).
-function CashSwitch({vehicle,service,saved,onSaved}){
+export function CashSwitch({vehicle,service,saved,onSaved}){
   const [state,setState]=useState('idle'),[message,setMessage]=useState('')
   const ready=saved&&saved.version>0,on=Boolean(saved?.cash_accepted)
   async function change(next){
@@ -153,15 +153,16 @@ function CashSwitch({vehicle,service,saved,onSaved}){
     }catch(error){
       setState('error');const code=error.code
       if(code==='VERSION_CONFLICT'){setMessage(t('These rates changed in another window. They were reloaded, so try the switch again.'));api(`/vehicles/${vehicle}/services`).then(r=>{const row=(r.items||[]).find(x=>x.service_type_id===service);if(row)onSaved(row)}).catch(()=>{})}
-      else if(code==='VEHICLE_SERVICE_NOT_FOUND')setMessage(t('Save the rates for this service first, then turn cash on.'))
+      else if(code==='VEHICLE_SERVICE_NOT_FOUND')setMessage(t('Save this service and its prices first.'))
       else if(code==='VEHICLE_NOT_FOUND'||error.status===404)setMessage(t('We could not find this vehicle. Go back and choose it again.'))
       else if(code==='CASH_NOT_ALLOWED')setMessage(t('Cash is not available for ticket services. They are paid online only.'))
       else setMessage(error.message||t('The change could not be saved. Please try again.'))
     }
   }
-  return <div className="tk-cash-row"><label className="ui-switch"><input type="checkbox" role="switch" checked={on} disabled={!ready||state==='saving'} onChange={e=>change(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Accept cash at the end of the trip')}</span></label>
-    <span className="tk-cash-status" role="status" aria-live="polite">{state==='saving'?t('Saving…'):state==='saved'?t('Saved'):!ready?t('Save the rates first, then you can turn this on.'):''}{state==='error'&&<span className="is-error">{message}</span>}</span>
-    <InfoTip>{t('Passengers can then choose to pay you in cash after the trip. The Driver and the Passenger both confirm, and Travelly commission is still due.')}</InfoTip></div>
+  return <div className="tk-cash-row"><label className="ui-switch"><input type="checkbox" role="switch" checked={on} disabled={!ready||state==='saving'} onChange={e=>change(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Accept cash payments')}</span></label>
+    <InfoTip>{t('The Passenger can pay you in cash at the end of the trip. You and the Passenger both confirm in the app.')}</InfoTip>
+    <span className="tk-cash-status" role={state==='error'?'alert':'status'} aria-live="polite">{state==='saving'?t('Saving…'):!ready?t('Save this service and its prices first.'):state==='error'?<span className="is-error">{message}</span>:''}</span>
+    {state==='saved'&&<p className="notice success" role="status">{t('Cash payment setting saved.')}</p>}</div>
 }
 // Event hire has packages, not route rates (03EV): its status comes from GET /owners/me/service-readiness and the packages are set in the vehicle's Event packages tab.
 function EventStatus({ vehicle, readiness }) {
