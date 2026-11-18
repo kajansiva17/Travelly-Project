@@ -202,6 +202,16 @@ def accept(client, ctx, booking):
     return result.json()
 
 
+def quote_changed_route(client, ctx, booking, names=('A', 'Stop', 'B'), expected=200):
+    changed = {**deepcopy(ctx.rule), 'id': str(uuid4()),
+               'coverage': {'kind': 'ROUTE', 'places': [ctx.places[name] for name in names]}}
+    config = {**ctx.config, 'expected_version': 1, 'rules': [ctx.rule, changed]}
+    result = client.post(f"/api/v1/bookings/{booking['id']}/quote", headers=bearer(ctx.owner),
+                         json={'expected_version': booking['version'], 'rates': config})
+    assert result.status_code == expected, result.text
+    return result if expected != 200 else result.json()
+
+
 @pytest.mark.parametrize('workspace', ['owner', 'driver'])
 def test_personal_hire_is_passenger_booking_with_same_account(client, hire_setup, workspace):
     c = hire_setup
@@ -270,7 +280,7 @@ def test_vehicle_list_hides_price_until_the_passenger_selects(client, hire_setup
     assert items and all(item['price'] is None for item in items)
     quoted = client.post(f"/api/v1/search/vehicles/{items[0]['id']}/quote", json=body)
     assert quoted.status_code == 200, quoted.text
-    assert quoted.json()['price']['total'] == '1500.00'
+    assert quoted.json()['price']['total'] == '2050.00'
 
 
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):
@@ -306,10 +316,16 @@ def test_change_passenger_acceptance_totals_and_notifications(client, hire_setup
     response = client.post(f"/api/v1/bookings/{booked['id']}/changes", headers=bearer(c.owner), json={'expected_version': booked['version'], 'reason': 'ADDED_STOP', 'itinerary': c.itinerary(('A','Stop','B'), hours='4')})
     assert response.status_code == 200, response.text
     proposal = response.json(); assert proposal['price']['current']['calculation']['total'] == '2050.00'
+    assert proposal['proposal']['kind'] == 'CHANGE_REQUEST_UNPRICED'
+    proposal = quote_changed_route(client, c, proposal)
     assert proposal['proposal']['old_total'] == '2050.00' and proposal['proposal']['new_total'] == '2800.00'
     result = client.post(f"/api/v1/bookings/{booked['id']}/changes/accept", headers=bearer(c.passenger), json={'expected_version': proposal['version'], 'digest': proposal['proposal']['digest']})
     assert result.status_code == 200, result.text
-    changed = result.json(); assert changed['proposal'] == {} and Decimal(changed['total_amount']) == Decimal('2800.00')
+    pending = result.json(); assert pending['proposal']['passenger_accepted'] and Decimal(pending['total_amount']) == Decimal('2050.00')
+    reviewed = client.post(f"/api/v1/bookings/{booked['id']}/changes/review", headers=bearer(c.owner),
+                           json={'expected_version': pending['version'], 'digest': pending['proposal']['digest']})
+    assert reviewed.status_code == 200, reviewed.text
+    changed = reviewed.json(); assert changed['proposal'] == {} and Decimal(changed['total_amount']) == Decimal('2800.00')
     assert changed['price']['initial'] == original
     with client.app.state.sessions() as db:
         key = db.get(Booking, UUID(booked['id'])).idempotency_key
@@ -328,12 +344,11 @@ def test_conflicting_change_stays_manual_without_mutating_agreement(client, hire
         db.add(VehicleRecord(vehicle_id=c.vehicle_id, recorded_by_user_id=row.owner_user_id, record_type='AVAILABILITY_BLOCK', recorded_at=func.now(), start_at=row.end_at, end_at=row.end_at+timedelta(hours=2)))
         db.commit()
     response = client.post(f"/api/v1/bookings/{booked['id']}/changes", headers=bearer(c.owner), json={'expected_version': booked['version'], 'reason': 'ADDED_STOP', 'itinerary': c.itinerary(('A','Stop','B'), hours='4')}).json()
-    result = client.post(f"/api/v1/bookings/{booked['id']}/changes/accept", headers=bearer(c.passenger), json={'expected_version': response['version'], 'digest': response['proposal']['digest']})
-    assert result.status_code == 200, result.text
-    row = result.json(); assert row['proposal']['manual_review_required'] and row['proposal']['passenger_accepted']
+    refused = quote_changed_route(client, c, response, expected=409)
+    assert refused.json()['code'] == 'VEHICLE_SCHEDULE_CONFLICT'
+    row = client.get(f"/api/v1/bookings/{booked['id']}", headers=bearer(c.owner)).json()
+    assert row['proposal']['kind'] == 'CHANGE_REQUEST_UNPRICED'
     assert Decimal(row['total_amount']) == Decimal('2050')
-    review = client.post(f"/api/v1/bookings/{booked['id']}/changes/review", headers=bearer(c.owner), json={'expected_version': row['version'], 'digest': row['proposal']['digest']})
-    assert review.status_code == 409
 
 
 def test_missing_or_suspended_category_blocks_operation(client, hire_setup):
@@ -491,8 +506,10 @@ def test_started_trip_change_and_three_party_notifications(client,hire_setup,mon
     b=started.json()
     proposed=client.post(f"/api/v1/bookings/{b['id']}/changes",headers=bearer(dt),json={'expected_version':b['version'],'reason':'ADDED_STOP','itinerary':c.itinerary(('A','Stop','B'),hours='4')})
     assert proposed.status_code==200,proposed.text
-    b=proposed.json();changed=client.post(f"/api/v1/bookings/{b['id']}/changes/accept",headers=bearer(c.passenger),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
-    assert changed.status_code==200 and changed.json()['proposal']=={},changed.text
+    b=quote_changed_route(client,c,proposed.json());changed=client.post(f"/api/v1/bookings/{b['id']}/changes/accept",headers=bearer(c.passenger),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
+    assert changed.status_code==200 and changed.json()['proposal']['passenger_accepted'],changed.text
+    b=changed.json();reviewed=client.post(f"/api/v1/bookings/{b['id']}/changes/review",headers=bearer(c.owner),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
+    assert reviewed.status_code==200 and reviewed.json()['proposal']=={},reviewed.text
     for tokens in (c.owner,c.passenger,dt):
         assert any(n['title']=='Trip change confirmed' for n in client.get('/api/v1/notifications',headers=bearer(tokens)).json()['items'])
 
@@ -563,7 +580,10 @@ def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(c
                                       'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     plain = search('0')
     assert len(plain['items']) == 1 and plain['quote_on_request'] == []
-    policies = {p['code']: p for p in plain['items'][0]['price']['extra_policies']}
+    selected = client.post(f"/api/v1/search/vehicles/{plain['items'][0]['id']}/quote", json={
+        'service_type_id': str(c.service_id), 'itinerary': c.itinerary(wait='0'), 'passenger_count': 2,
+        'large_luggage_count': 1, 'small_luggage_count': 1}).json()
+    policies = {p['code']: p for p in selected['price']['extra_policies']}
     assert policies['WAITING']['mode'] == 'NOT_OFFERED' and policies['EXTRA_KM']['mode'] == 'CHARGED' and policies['EXTRA_KM']['km_rate'] == '50'
     waiting = search('30')
     assert waiting['items'] == [] and len(waiting['quote_on_request']) == 1
@@ -574,7 +594,7 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
     ask = lambda names: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()['items'][0]
     first = ask(('A', 'B'))
-    assert first['location_source'] == 'SERVICE_AREA' and first['distance_km'] > 50 and first['near'] is False   # centre of the Owner's pickup area
+    assert first['location_source'] == 'BASE_LOCATION' and first['distance_km'] == 0.0 and first['near'] is True
     row = committed(client, c)                                        # booked A -> B; the vehicle finishes at B
     with client.app.state.sessions() as db:
         trip = db.scalar(select(Trip).where(Trip.booking_id == UUID(row['id'])))
@@ -583,7 +603,7 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
     later = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': {**c.itinerary(('B', 'A')), 'start_at': (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()},
                                                          'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     entry = (later['items'] + later['quote_on_request'])[0]
-    assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True
+    assert entry['location_source'] == 'BASE_LOCATION' and entry['distance_km'] > 50 and entry['near'] is False
 
 
 def test_owner_can_offer_another_time_and_the_booking_moves_only_when_the_passenger_accepts(client, hire_setup):

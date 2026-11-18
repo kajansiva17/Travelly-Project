@@ -70,7 +70,9 @@ def test_verification_session_keeps_existing_role_state(client, passenger, statu
     registration=client.post('/api/v1/auth/register',json={**passenger,'journey':'OWNER'}).json()
     with client.app.state.sessions() as db:
         user=db.get(User,UUID(registration['id']))
-        db.add(UserRole(user_id=user.id,role_code='OWNER',approval_status=status,approved_by=user.id if status=='APPROVED' else None,approved_at=datetime.now(timezone.utc) if status=='APPROVED' else None))
+        decided=datetime.now(timezone.utc)
+        db.add(UserRole(user_id=user.id,role_code='OWNER',approval_status=status,requested_at=decided,
+                        approved_by=user.id if status=='APPROVED' else None,approved_at=decided if status=='APPROVED' else None))
         db.commit()
     result=client.post('/api/v1/auth/email/verify',json={'token':captured_token(client)}).json()
     roles=client.get('/api/v1/users/me/roles',headers=bearer(result)).json()['items']
@@ -297,7 +299,7 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
             connection.execute(text("INSERT INTO users (public_user_reference, full_name, email, password_hash) VALUES (:ref, 'New Passenger', 'new@example.com', :password)"), {'ref': 'USR-' + uuid4().hex[:16].upper(), 'password': encoded})
             assert connection.scalar(text("SELECT email_login_required FROM users WHERE email = 'new@example.com'")) is True
             tables = set(connection.scalars(text('SELECT tablename FROM pg_tables WHERE schemaname = :schema'), {'schema': schema}))
-            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'road_alerts', 'social_posts', 'social_interactions', 'alembic_version'}
+            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'road_alerts', 'social_posts', 'social_interactions', 'favourite_vehicles', 'owner_drivers', 'alembic_version'}
     finally:
         engine.dispose()
         with control.begin() as connection:

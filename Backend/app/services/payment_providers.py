@@ -123,14 +123,14 @@ class PayHereProvider:
     BANKS = {'HELAPAY', 'VISHWA', 'BANK'}
 
     @staticmethod
-    def config():
-        settings = get_settings()
+    def config(settings=None):
+        settings = settings or get_settings()
         return settings.payhere_merchant_id.strip(), settings.payhere_merchant_secret.strip(), settings.payhere_mode, \
             settings.public_api_url.rstrip('/'), settings.frontend_url.rstrip('/')
 
     @classmethod
-    def available(cls):
-        merchant, secret, _, public, _ = cls.config()
+    def available(cls, settings=None):
+        merchant, secret, _, public, _ = cls.config(settings)
         return bool(merchant and secret and public.startswith('https://'))
 
     def payer_required(self, user):
@@ -180,10 +180,10 @@ SANDBOX = SandboxProvider()
 PAYHERE = PayHereProvider()
 
 
-def providers():
+def providers(settings=None):
     """Providers that can take money right now. PayHere appears only when its credentials and public URL are set."""
     found = {'SANDBOX': SANDBOX}
-    if PayHereProvider.available():
+    if PayHereProvider.available(settings):
         found['PAYHERE'] = PAYHERE
     return found
 

@@ -114,4 +114,4 @@ def assess(db, routing, vehicle, itinerary, reserved_end, profile, *, now=None, 
         if reserved_end + PREPARATION_TIME + timedelta(seconds=float(after)) > next_at:
             return result('UNREACHABLE', 'NEXT_COMMITMENT_UNREACHABLE', 'This hire would prevent the vehicle reaching its next commitment.')
     return result('AVAILABLE', 'REACHABLE', 'Vehicle location and travel time are feasible.', immediate=immediate,
-                  origin_source=source, distance_km=str(straight.quantize(Decimal('.1'))), ready_at=ready_at.isoformat())
+                  origin_source=source, distance_km=float(straight.quantize(Decimal('.1'))), ready_at=ready_at.isoformat())

@@ -542,7 +542,7 @@ def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depend
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
     if result['trip']:
-        result['trip']['pickup'] = {'required': row.passenger_user_id != trip.driver_user_id}
+        result['trip']['pickup'] = {**result['trip']['pickup'], 'required': row.passenger_user_id != trip.driver_user_id}
     if row.booking_type == 'TICKET_HIRE':
         # The seats and Travellers of a ticket booking, for the Passenger who booked it and the Owner who runs it.
         from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
@@ -569,6 +569,8 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
         raise ApiError(409, 'QUOTE_STATE_CONFLICT', 'An accepted booking uses change proposals, not a replacement quote.')
     if body.rates.service_type_id != preview.service_type_id:
         raise ApiError(422, 'SERVICE_MISMATCH', 'Quote rates must use the requested service.')
+    if not body.rates.enabled:
+        raise ApiError(422, 'QUOTE_REUSE_REQUIRED', 'A structured quote must save enabled reusable rules for future matching requests.')
     preview_raw = dict(preview.pending_change['itinerary'] if preview_manual else preview.itinerary_snapshot['itinerary'])
     if body.proposed_start_at is not None:
         if preview_manual: raise ApiError(409, 'QUOTE_TIME_FIXED', 'A change to an accepted booking has its own departure-time proposal.')
@@ -1218,7 +1220,7 @@ def prepare_change(row, body, request, db, vehicle):
                 'old_total': initial['calculation']['total'], 'old_departure': old.start_at.isoformat(),
                 'new_departure': body.itinerary.start_at.isoformat(), 'manual_review_required': True,
                 'message': 'The Owner proposed a departure change. A new disclosed reusable quote, Passenger acceptance and feasible manual confirmation are required; the current departure and price stay agreed.'}
-    if rule.method == 'FIXED_ROUTE' and [(s.place.latitude, s.place.longitude) for s in old.stops] != [(s.place.latitude, s.place.longitude) for s in body.itinerary.stops]:
+    if rule.coverage.kind == 'ROUTE' and [(s.place.latitude, s.place.longitude) for s in old.stops] != [(s.place.latitude, s.place.longitude) for s in body.itinerary.stops]:
         return {'kind': 'CHANGE_REQUEST_UNPRICED', 'reason': body.reason, 'itinerary': body.itinerary.model_dump(mode='json'),
                 'old_total': initial['calculation']['total'], 'manual_review_required': True,
                 'message': 'The fixed fare covers the agreed exact route. The Owner must quote reusable rules for this changed route before any added/new total can be accepted.'}

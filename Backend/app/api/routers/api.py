@@ -8,7 +8,6 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
-from app.core.config import get_settings
 from app.core.errors import ApiError, unauthorized
 from app.models import User, UserRole
 from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, RoleRequest, UserResponse, RoleResponse, RolesResponse, TokenResponse
@@ -21,10 +20,20 @@ logger = logging.getLogger('travelly.audit')
 
 
 def session_meta(request: Request) -> dict:
-    """Collect lightweight session metadata (IP, user-agent) for the session store."""
+    """What the sessions list shows: a device label and a coarse address."""
+    agent = (request.headers.get('user-agent') or '')[:300]
+    low = agent.lower()
+    system = next((name for key, name in (
+        ('windows', 'Windows'), ('android', 'Android'), ('iphone', 'iPhone'),
+        ('ipad', 'iPad'), ('mac os', 'Mac'), ('linux', 'Linux')) if key in low), None)
+    browser = next((name for key, name in (
+        ('edg/', 'Edge'), ('opr/', 'Opera'), ('chrome/', 'Chrome'),
+        ('firefox/', 'Firefox'), ('safari/', 'Safari')) if key in low), None)
     forwarded = request.headers.get('x-forwarded-for', '')
-    ip = forwarded.split(',')[0].strip() if forwarded else (request.client.host if request.client else '')
-    return {'ip': ip, 'ua': request.headers.get('user-agent', '')[:256]}
+    host = forwarded.split(',')[0].strip() if forwarded else (request.client.host if request.client else '')
+    parts = host.split('.')
+    hint = '.'.join(parts[:2]) + '.x.x' if len(parts) == 4 else (host.split(':')[0] + ':x' if ':' in host else '')
+    return {'device': ' on '.join(value for value in (browser, system) if value) or 'Unknown device', 'ip_hint': hint}
 
 
 def touch(row):
@@ -80,7 +89,7 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     encoded = hasher.hash(body.password)
     for _ in range(3):
         try:
-            need_verify = get_settings().require_email_verification
+            need_verify = request.app.state.settings.require_email_verification
             user = User(public_user_reference='USR-' + secrets.token_hex(8).upper(), password_hash=encoded,
                         full_name=body.full_name, email=body.email, phone_e164=body.phone_e164,
                         preferred_language=body.preferred_language, email_login_required=need_verify,
@@ -120,7 +129,7 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     if user and user.locked_until and user.locked_until > now:
         store.limited((user.locked_until - now).total_seconds())
     valid = verify_password(body.password, user.password_hash if user else DUMMY_HASH)
-    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION'):
+    if not valid or not user or user.account_status not in ('ACTIVE', 'PENDING_VERIFICATION', 'DEACTIVATED'):
         count = store.failure(body.identifier)
         if user:
             user.failed_login_count = count
@@ -135,6 +144,15 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         store.clear_failures(body.identifier)
         from app.api.routers.auth_extension import verification_result
         return verification_result(request, user, journey=body.journey, sign_in=True)
+    if user.totp_enabled_at:
+        from app.api.routers.account_security_api import challenge_for
+        user.failed_login_count, user.locked_until = 0, None
+        touch(user)
+        db.commit()
+        store.clear_failures(body.identifier)
+        return challenge_for(request, user, body.remember_me)
+    from app.api.routers.account_security_api import reactivate
+    welcome = reactivate(user)
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, now
     if hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hasher.hash(body.password)
@@ -142,10 +160,10 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
     db.commit()
     store.clear_failures(body.identifier)
     tokens, sid, expires = issue_tokens(user.id, settings, auth_version=user.auth_version, remember=body.remember_me)
-    store.create(sid, user.id, tokens['refresh_token'], expires)
+    store.create(sid, user.id, tokens['refresh_token'], expires, session_meta(request))
     session_cookie.keep(request, tokens, body.remember_me)
     logger.info('login user=%s session=%s trace=%s', user.id, sid, request.state.trace_id)
-    return tokens
+    return {**tokens, **welcome}
 
 
 @router.post('/auth/refresh', response_model=TokenResponse, tags=['Auth'])

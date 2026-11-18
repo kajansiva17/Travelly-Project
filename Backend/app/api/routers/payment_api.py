@@ -525,21 +525,21 @@ def update_payment_options(vehicle_id: UUID, service_type_id: UUID, body: Paymen
 
 # --------------------------------------------------------------------------- Admin payment settings (service_types.settings)
 
-def settings_out(row):
+def settings_out(row, settings=None):
     return {'id': str(row.id), 'code': row.code, 'name': row.name, 'category': row.category, 'is_active': row.is_active,
-            'version': row.version, **payment_settings(row), 'supports_multi_day_commission': long_distance(row), 'available_providers': sorted(providers())}
+            'version': row.version, **payment_settings(row), 'supports_multi_day_commission': long_distance(row), 'available_providers': sorted(providers(settings))}
 
 
 @router.get('/admin/payment-settings')
-def list_payment_settings(user=Depends(admin), db: Session = Depends(get_db)):
+def list_payment_settings(request: Request, user=Depends(admin), db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).order_by(ServiceType.display_order, ServiceType.code).limit(100)).all()
-    return {'items': [settings_out(r) for r in rows]}
+    return {'items': [settings_out(r, request.app.state.settings) for r in rows]}
 
 
 @router.patch('/admin/service-types/{service_id}/payment-settings')
 def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Request, user=Depends(admin),
                             db: Session = Depends(get_db)):
-    if body.payment_provider not in providers():
+    if body.payment_provider not in providers(request.app.state.settings):
         raise ApiError(422, 'PAYMENT_PROVIDER_UNAVAILABLE', f'{body.payment_provider} is not connected yet. Add its credentials first, or use SANDBOX.',
                        [{'field': 'payment_provider', 'message': 'Not connected yet.'}])
     multi = body.multi_day_commission_percent
@@ -575,4 +575,4 @@ def update_payment_settings(service_id: UUID, body: PaymentSettings, request: Re
                                        previous_status=None, new_status=None, previous_version=before, new_version=row.version,
                                        full_reason=None, previous_decision_evidence={'settings': old},
                                        trace_id=request.state.trace_id)
-    return settings_out(row)
+    return settings_out(row, request.app.state.settings)
