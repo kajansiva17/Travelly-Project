@@ -179,7 +179,7 @@ function buildSeats({left,right,rows,back,front,sellFront,off}){
 const signature=seats=>(seats||[]).filter(s=>s.bookable).map(s=>`${s.deck||1}-${s.row}-${s.column}-${s.code}`).sort().join('|')
 
 export default function OwnerTicketDepartures(){
-  const [vehicles,setVehicles]=useState([]),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
+  const [vehicles,setVehicles]=useState([]),[vehiclesLoaded,setVehiclesLoaded]=useState(false),[routes,setRoutes]=useState([]),[items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [layoutVehicle,setLayoutVehicle]=useState(''),[saved,setSaved]=useState(null),[loaded,setLoaded]=useState(null)
   const [preset,setPreset]=useState('van'),[left,setLeft]=useState(2),[right,setRight]=useState(1),[rowCount,setRowCount]=useState(3),[back,setBack]=useState(4),[front,setFront]=useState(1),[sellFront,setSellFront]=useState(true),[off,setOff]=useState(new Set())
   const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[retiming,setRetiming]=useState(null),[managing,setManaging]=useState(null),[newStart,setNewStart]=useState(''),[repeatMode,setRepeatMode]=useState(false),[history,setHistory]=useState(false),[draftSeats,setDraftSeats]=useState({}),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
@@ -187,7 +187,7 @@ export default function OwnerTicketDepartures(){
   const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
   const loadDepartures=(h=history)=>api('/scheduled-trips?mine=true&limit=100'+(h?'&archived=true':'')).then(x=>setItems(x.items||[])).catch(setError)
   useEffect(()=>{
-    api('/owners/me/vehicles').then(x=>setVehicles((x.items||[]).filter(v=>v.verification_status==='APPROVED'))).catch(setError)
+    api('/owners/me/vehicles').then(x=>setVehicles((x.items||[]).filter(v=>v.verification_status==='APPROVED'))).catch(setError).finally(()=>setVehiclesLoaded(true))
     api('/owners/me/routes').then(x=>setRoutes((x.items||[]).filter(r=>r.status==='ACTIVE'))).catch(setError)
     // The Owner may drive only when they hold an approved Driver role (the same check the Account page uses).
     Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,roles])=>setMe({id:user.id,driver:(user.approved_roles||[]).includes('DRIVER')&&(roles.items||[]).some(r=>r.role_code==='DRIVER'&&r.approval_status==='APPROVED')})).catch(()=>{})
@@ -357,7 +357,7 @@ export default function OwnerTicketDepartures(){
           {Object.entries(PRESETS).map(([k,p])=><Chip key={k} tone="info" selected={!loaded&&preset===k} onClick={()=>pick(k)}>{t(p.label)}</Chip>)}</div>
         {saved&&<p className="tk-line">{loaded?t('Showing the saved layout: version {value0}, {value1} bookable seats. Saving replaces it with a new version.',{value0:saved.layout_version,value1:signature(saved.seats).split('|').filter(Boolean).length}):t('Starting a new layout. Saving replaces version {value0} with a new version.',{value0:saved.layout_version})}</p>}
         {layoutVehicle&&!saved&&<p className="tk-line">{t('This vehicle has no saved seat layout yet. Choose a vehicle type to start.')}</p>}
-        {vehicles.length===0&&<Empty>{t('You have no approved vehicles yet.')}</Empty>}
+        {vehiclesLoaded&&!error&&vehicles.length===0&&<Empty>{t('You have no approved vehicles yet.')}</Empty>}
       </div>
       <div className="tk-split" hidden={lw.step!==1}>
         <div className="tk-side">

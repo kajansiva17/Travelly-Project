@@ -136,7 +136,7 @@ export default function OwnerHire() {
         <Field label="Vehicle"><select value={vehicle} onChange={e => setVehicle(e.target.value)}><option value="">{t('Choose your vehicle')}</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}</select></Field>
         <div className="rate-field"><label>{t('Hire type')}</label><div className="status-chips">{TYPES.map(([code, name]) => <Chip key={code} selected={scope === code} onClick={() => { setScope(code); setTab(0) }}>{t(name)}</Chip>)}</div></div>
       </div>
-      {!vehicle && <p className="flow-note">{vehicles.length ? t('Choose a vehicle to set its prices.') : <>{t('You have no vehicles yet.')} <Link to="/owner/vehicles">{t('Add a vehicle first')}</Link></>}</p>}
+      {!vehicle && !error && <p className="flow-note">{vehicles.length ? t('Choose a vehicle to set its prices.') : <>{t('You have no vehicles yet.')} <Link to="/owner/vehicles">{t('Add a vehicle first')}</Link></>}</p>}
       {vehicle && isEvent && ready && tab === 0 && <EventPackages key={`${vehicle}-${saved.version}`} vehicle={{ id: vehicle }} Footer={Footer} onServiceLoaded={setSaved}/>}
       {vehicle && isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
       {vehicle && !isEvent && !service && services.length > 0 && <p role="status">{t('This hire type is not set up yet. An Admin must activate it first.')}</p>}
