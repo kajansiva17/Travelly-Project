@@ -93,3 +93,25 @@ def test_only_optional_notifications_can_be_turned_off_and_they_stop_showing(cli
     assert {n['notification_type'] for n in client.get('/api/v1/notifications', headers=bearer(tokens)).json()['items']} == {'PAYMENT'}
     client.put('/api/v1/users/me/notification-preferences', headers=bearer(tokens), json={'muted': []})
     assert len(client.get('/api/v1/notifications', headers=bearer(tokens)).json()['items']) == 2
+
+
+def test_notification_badge_counts_visible_unread_and_read_all_is_recipient_scoped(client):
+    _, mine, tokens = register(client)
+    _, theirs, _ = register(client)
+    with client.app.state.sessions() as db:
+        for recipient, title in ((mine, 'first'), (mine, 'second'), (theirs, 'other person')):
+            uid = UUID(recipient['id'])
+            db.add(Notification(recipient_user_id=uid, notification_type='PAYMENT', channel='IN_APP', title=title,
+                                body='x', action_required=False, action_payload={}, status='QUEUED',
+                                created_by=uid, updated_by=uid))
+        db.commit()
+    path = '/api/v1/notifications/unread-count'
+    assert client.get(path, headers=bearer(tokens)).json() == {'unread_count': 2}
+    read = client.post('/api/v1/notifications/read-all', headers=bearer(tokens), json={})
+    assert read.status_code == 200 and read.json() == {'unread_count': 0, 'marked_read': 2}
+    assert client.get(path, headers=bearer(tokens)).json() == {'unread_count': 0}
+    listed = client.get('/api/v1/notifications', headers=bearer(tokens)).json()['items']
+    assert len(listed) == 2 and all(item['read_at'] for item in listed)
+    with client.app.state.sessions() as db:
+        other = db.scalar(select(Notification).where(Notification.recipient_user_id == UUID(theirs['id'])))
+        assert other.read_at is None

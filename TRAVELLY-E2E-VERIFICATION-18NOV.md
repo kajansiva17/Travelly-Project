@@ -121,3 +121,32 @@ Use an isolated, already approved local Owner account; do not use or modify a re
 5. Address the existing frontend chunk-size warning separately if page-load performance is a release criterion.
 
 The required `docs/00-READ-FIRST/Travelly_NBP_Codex_Context.md` path does not exist in this checkout, so it could not be updated. This report is the task delivery record; no replacement context file was invented.
+
+## Owner vehicle Details layout follow-up
+
+- Replaced the repeated expandable hire-location block beneath the vehicle-facts pages with four persistent Details substeps: Vehicle details 1, Vehicle details 2, Location & bookings, and Current vehicle location.
+- Split base location, pickup distance, booking acceptance and save from current-position confirmation and freshness status. Each control now appears once; APIs, validation, save behavior and timestamps are unchanged.
+- Desktop navigation keeps the shared footer visible. Mobile retains normal responsive document scrolling.
+- Added Tamil and Sinhala copy for the new substeps and the location controls that previously fell back to English.
+- Verification: frontend unit/i18n **184/184 passed**; production build passed with the existing large-chunk advisory; isolated Playwright layout verification **2/2 passed** across all four substeps in English, Tamil and Sinhala at **1280×585**, including no page/card scrolling, no footer overlap, one instance per control and unsaved-value preservation across substeps.
+- The Windows Computer Use runtime still fails during initialization with `failed to write kernel assets ... os error 3`; visual verification was therefore completed through the repository's installed Playwright browser with captured local/mocked APIs, not through the authenticated live Owner account.
+
+## Private-hire search reliability follow-up
+
+- Passenger matching now renders loading, API failure with Retry, successful empty, available and Owner-confirmation results as distinct states. A failed search cannot fall through to “No matching vehicle”.
+- The configured HeiGIT endpoint and credential were valid. Direct provider checks returned Colombo–Kandy and Colombo–Jaffna routes, but repeated independent TLS connections also reproduced transient `ConnectTimeout` failures. Hire routing now reuses one app-lifetime client and retries one transient transport/429/502/503/504 failure within the frontend request budget. Provider 4xx/unroutable responses remain final.
+- The CMB default was an airport-centre point that the provider could not road-snap within its unchanged 350 m limit. It was replaced with the provider-verified Bandaranaike International Airport Terminal road-access point. The airport code/name and 3 km airport-identity radius are unchanged; the new point is about 0.85 km from the former point.
+- Evening routes could produce a repeating fractional night-distance value outside the ten-decimal API contract and be mislabeled `ITINERARY_TIME_CONFLICT`. Provider measurements are now rounded only to the existing maximum ten decimal places before validation.
+- Read-only exact diagnosis for registration `100200300`: approved, active, published, bookings ON, all four service configurations ready. At the diagnosed immediate request time, a published scheduled departure occupied the vehicle from `2026-11-18T11:30:00Z` through `2026-11-18T19:20:00Z`; this specifically excluded its Event package and the other overlapping searches. No commitment or Owner choice was changed.
+- Fixed-app verification against the real local database and configured provider: future Local, Airport and Long-distance searches each returned HTTP 200 with this vehicle in `items`; the overlapping Event search returned HTTP 200 without it; an immediate Local search returned one separate `VEHICLE_LOCATION_STALE` Owner-confirmation entry and no available entry.
+- Regression results: focused backend **28/28 passed**, added provider-error/night-distance checks **2/2 passed**, frontend unit/i18n **184/184 passed**, and production build passed with the existing large-chunk advisory. The focused Passenger Playwright test reported its assertion **passed**, but its temporary Vite child did not terminate, so the hung runner was manually stopped and the command itself ended nonzero.
+- Runtime blocker: the documented port-8000 worker continued serving stale code after its reload parent was stopped. The clean restart attempt created worker/listener PID `24544`, but Windows now reports listener PIDs `25120` and `24544` in `netstat` while `tasklist`, CIM and `taskkill` report no such processes; neither listener can be addressed or stopped through the available process APIs. The fixed app was therefore verified in-process against real local dependencies, but the actual port-8000/browser path still requires both orphan listener handles to be cleared (normally by ending the owning host session or restarting Windows) and the documented backend command started once.
+- The obsolete isolated Owner credential returned `INVALID_CREDENTIALS`; it was not reset. Authenticated Owner-browser readiness remains blocked until a new isolated account is registered, email-verified through capture mail, submitted for Owner approval and approved through the supported Admin flow, or the actual Owner signs in normally. A new isolated Owner cannot be attached to the existing vehicle merely for verification.
+
+## Localhost runtime recovery
+
+- The reported page-load failure was caused by the local development processes being stopped: neither Vite port `5173` nor the documented API port `8000` was listening at diagnosis time.
+- Restarted the local Redis dependency, frontend and documented backend runtime without changing application data or source behavior.
+- Verified `http://localhost:5173/` returns HTTP 200 with the React root and `http://localhost:5173/api/v1/service-types` returns HTTP 200 through the Vite API proxy.
+- Final listeners: frontend `127.0.0.1:5173`, backend `127.0.0.1:8000`, Redis `127.0.0.1:6379`.
+- A redundant review-writer launch could not acquire the already-owned Windows named pipe, and a redundant backend launch encountered the already-bound port. The active frontend/API path remained healthy; no database reset or application-code workaround was applied.

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select, or_, and_, not_, func
+from sqlalchemy import select, or_, and_, not_, func, update
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.models import User, UserRole
@@ -195,7 +195,7 @@ def quote_candidate(request, db, vehicle, service, itinerary):
     """A vehicle that offers this service and is free, but has no applicable saved journey price.
     Location feasibility is evaluated independently by the caller; no rate details are exposed."""
     row, rules = saved_rules(db, vehicle.id, service.id)
-    if not rules: return None
+    if not row: return None
     eligible_vehicle(db, vehicle, public=True, at=itinerary.start_at); commission_gate(request, db, vehicle)
     for start, end in itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end)
     return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None, 'quote_required': True}
@@ -228,7 +228,8 @@ def booking_pickup_feasibility(request, db, row, vehicle, service=None, itinerar
 
 def confirmation_entry(vehicle, owner, feasibility, *, quote_required=True, packages=None):
     return {**safe_vehicle(vehicle, owner), 'price': None, 'quote_required': quote_required,
-            'owner_confirmation_required': True, 'availability_label': 'Owner confirmation required',
+            'owner_confirmation_required': True, 'availability_status': 'CONFIRMATION_REQUIRED',
+            'availability_label': 'Owner confirmation required',
             'feasibility_code': feasibility['code'], 'packages': packages or [],
             'distance_km': feasibility.get('distance_km'), 'location_source': feasibility.get('origin_source')}
 
@@ -272,20 +273,23 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
                 available = [p for p in found if not p['confirmation_required']]
                 if available:
                     items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None,
-                                  'reserved_end_at': available[0]['reserved_end_at'], 'packages': found})
+                                  'reserved_end_at': available[0]['reserved_end_at'], 'packages': found,
+                                  'availability_status': 'AVAILABLE', 'availability_label': 'Available'})
                 else:
                     asks.append(confirmation_entry(vehicle, db.get(User, vehicle.owner_user_id),
-                        {'code': 'OWNER_CONFIRMATION_REQUIRED'}, packages=found))
+                        {'code': 'OWNER_CONFIRMATION_REQUIRED'}, quote_required=False, packages=found))
                 continue
             snapshot = offer(request, db, vehicle, service, body.itinerary)
             feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, datetime.fromisoformat(snapshot['reserved_end_at']))
             if feasibility['status'] == 'UNREACHABLE':
                 continue
             if feasibility['status'] == 'CONFIRMATION_REQUIRED':
-                asks.append(confirmation_entry(vehicle, db.get(User, vehicle.owner_user_id), feasibility));continue
+                asks.append(confirmation_entry(vehicle, db.get(User, vehicle.owner_user_id), feasibility,
+                                               quote_required=False));continue
             # Search reveals feasibility, not a fare. Selection calculates the fresh quote.
             items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
                           'price': None, 'reserved_end_at': snapshot['reserved_end_at'], 'location_available': True,
+                          'availability_status': 'AVAILABLE', 'availability_label': 'Available',
                           'distance_km': feasibility.get('distance_km'), 'location_source': feasibility.get('origin_source')})
         except ApiError as exc:
             if exc.code in QUOTEABLE and private_hire_scope(service) != 'EVENT':
@@ -296,10 +300,11 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
                         if feasibility['status'] == 'UNREACHABLE': continue
                         if feasibility['status'] == 'CONFIRMATION_REQUIRED':
                             ask.update({'owner_confirmation_required': True, 'availability_label': 'Owner confirmation required',
-                                        'feasibility_code': feasibility['code']})
+                                        'availability_status': 'CONFIRMATION_REQUIRED', 'feasibility_code': feasibility['code']})
                         else:
                             ask.update({'distance_km': feasibility.get('distance_km'),
-                                        'location_source': feasibility.get('origin_source')})
+                                        'location_source': feasibility.get('origin_source'),
+                                        'availability_status': 'AVAILABLE', 'availability_label': 'Available'})
                         asks.append(ask); continue
                 except ApiError as inner:
                     if inner.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
@@ -337,17 +342,33 @@ def selected_vehicle_quote(vehicle_id: UUID, body: SearchRequest, request: Reque
     if not vehicle:
         raise ApiError(404, 'VEHICLE_NOT_FOUND', 'The selected published vehicle is unavailable.')
     usable_capacity(vehicle, body)
-    snapshot = offer(request, db, vehicle, service, body.itinerary)
-    feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, datetime.fromisoformat(snapshot['reserved_end_at']))
+    snapshot = None
+    try:
+        snapshot = offer(request, db, vehicle, service, body.itinerary)
+    except ApiError as exc:
+        if exc.code not in QUOTEABLE:
+            raise
+        # The enabled service remains discoverable; the supported Owner quote
+        # workflow handles missing or currently uncomputable automatic pricing.
+        if not quote_candidate(request, db, vehicle, service, body.itinerary):
+            raise ApiError(409, 'SERVICE_UNAVAILABLE', 'This vehicle does not offer the selected hire service.')
+    reserved_end = datetime.fromisoformat(snapshot['reserved_end_at']) if snapshot else body.itinerary.requested_end()
+    feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, reserved_end)
     if feasibility['status'] == 'UNREACHABLE':
         raise ApiError(409, feasibility['code'], feasibility['message'])
-    if feasibility['status'] == 'CONFIRMATION_REQUIRED':
-        return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None,
-                'owner_confirmation_required': True, 'availability_label': 'Owner confirmation required',
-                'feasibility_code': feasibility['code'], 'message': feasibility['message']}
-    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': snapshot['calculation'],
-            'reserved_end_at': snapshot['reserved_end_at'], 'quote_digest': snapshot['digest'],
-            'rate_version': snapshot['rate_version'], 'message': 'This is a fresh quote. The accepted booking preserves this selected rate-rule version and calculation snapshot.'}
+    confirmation = feasibility['status'] == 'CONFIRMATION_REQUIRED'
+    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
+            'price': snapshot['calculation'] if snapshot else None,
+            'quote_required': snapshot is None, 'owner_confirmation_required': confirmation,
+            'availability_status': 'CONFIRMATION_REQUIRED' if confirmation else 'AVAILABLE',
+            'availability_label': 'Owner confirmation required' if confirmation else 'Available',
+            'feasibility_code': feasibility['code'],
+            'reserved_end_at': snapshot['reserved_end_at'] if snapshot else reserved_end.isoformat(),
+            'quote_digest': snapshot['digest'] if snapshot else None,
+            'rate_version': snapshot['rate_version'] if snapshot else None,
+            'message': feasibility['message'] if confirmation else
+                ('Request an Owner quote; no automatic price is available for this journey.' if snapshot is None else
+                 'This is a fresh quote. The accepted booking preserves this selected rate-rule version and calculation snapshot.')}
 
 
 @router.post('/bookings/private-hires', status_code=201)
@@ -432,6 +453,9 @@ def confirm_booking_location(booking_id: UUID, body: PositioningConfirmation, re
         raise ApiError(409, 'VERSION_CONFLICT', 'Vehicle changed. Reload before retrying.')
     request.app.state.rate_locations.verify(body.location)
     itinerary = Itinerary.model_validate(row.itinerary_snapshot['itinerary'])
+    if itinerary.start_at > datetime.now(timezone.utc) + location_matching.IMMEDIATE_WINDOW and body.kind != 'PLANNED':
+        raise ApiError(422, 'FUTURE_POSITION_REQUIRED',
+                       'Confirm the vehicle position planned for the requested future date and time.')
     service = service_for(db, row.service_type_id, new_offer=False)
     snapshot = None
     try: snapshot = offer(request, db, vehicle, service, itinerary)
@@ -667,7 +691,9 @@ def accept_price(booking_id: UUID, body: Acceptance, request: Request, user=Depe
         no_conflict(db, row.vehicle_id, quote_itinerary.start_at, datetime.fromisoformat(snapshot['reserved_end_at']), exclude=row.id)
         row.start_at = quote_itinerary.start_at   # the quote may offer another time than the one first asked for; accepting it moves the booking
         row.price_snapshot = {'initial': copy.deepcopy(snapshot), 'current': copy.deepcopy(snapshot)}
-        row.itinerary_snapshot = {'itinerary': snapshot['itinerary'], 'measurement': snapshot['measurement']}
+        positioning = row.itinerary_snapshot.get('positioning_confirmation')
+        row.itinerary_snapshot = {'itinerary': snapshot['itinerary'], 'measurement': snapshot['measurement'],
+                                  **({'positioning_confirmation': positioning} if positioning else {})}
         row.accepted_quote_digest = body.digest; row.total_amount = row.quoted_amount = Decimal(snapshot['calculation']['total'])
         row.end_at = datetime.fromisoformat(snapshot['reserved_end_at']); row.accepted_at = datetime.now(timezone.utc); row.pending_change = {}
         notify(db, row, 'Trip price accepted', 'The Passenger accepted this price. The Owner must still confirm operational availability.')
@@ -1401,12 +1427,35 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
 
 @router.get('/notifications')
 def own_notifications(user=Depends(current), db: Session = Depends(get_db)):
+    query = notification_query(user)
+    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
+    return {'items': [notification_out(r) for r in rows]}
+
+
+def notification_query(user):
+    """The recipient-visible notification set shared by the list, badge and read action."""
     from app.api.routers.account_settings_api import muted_types
     query = select(Notification).where(Notification.recipient_user_id == user.id)
     if muted_types(user):                       # types the person turned off in Settings (only optional ones can be)
         query = query.where(Notification.notification_type.notin_(muted_types(user)))
-    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
-    return {'items': [notification_out(r) for r in rows]}
+    return query
+
+
+@router.get('/notifications/unread-count')
+def unread_notification_count(user=Depends(current), db: Session = Depends(get_db)):
+    visible = notification_query(user).where(Notification.read_at.is_(None)).subquery()
+    return {'unread_count': db.scalar(select(func.count()).select_from(visible)) or 0}
+
+
+@router.post('/notifications/read-all')
+def read_all_notifications(user=Depends(current), db: Session = Depends(get_db)):
+    from app.api.routers.account_settings_api import muted_types
+    conditions = [Notification.recipient_user_id == user.id, Notification.read_at.is_(None)]
+    if muted_types(user):
+        conditions.append(Notification.notification_type.notin_(muted_types(user)))
+    marked = db.execute(update(Notification).where(*conditions).values(read_at=datetime.now(timezone.utc)))
+    db.commit()
+    return {'unread_count': 0, 'marked_read': marked.rowcount or 0}
 
 
 def notification_out(r):

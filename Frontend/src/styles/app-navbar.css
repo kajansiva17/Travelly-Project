@@ -20,7 +20,8 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display:
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > svg { box-sizing: content-box; padding: 5px; border-radius: 9px; background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-red-text); }
 
 /* Notifications and account. */
-html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { position: relative; display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell-badge { position: absolute; top: 1px; right: 0; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 2px solid #fff; border-radius: 999px; background: var(--ui-red-text); color: #fff; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 6px rgb(122 19 30 / .28); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; color: var(--ui-ink); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .dashboard-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; background: #dceafa; color: var(--ui-ink); box-shadow: 0 2px 8px rgb(40 80 120 / .2); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name { display: grid; line-height: 1.2; text-align: left; }
@@ -34,13 +35,11 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspa
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > span { display: none; }
 }
 
-/* Phones: [menu] [logo] [language, bell, avatar] in one row INSIDE the pill. Everything stays in normal flex flow
-   (no absolute positioning: responsive.css gives .navigation top:100%, which pushed it under the pill).
-   mobile.css fixes the language box (84px), bell (32px), avatar (38px), padding (10px) and gaps (6px); the logo takes
-   the room that is left, so it is as big as the phone allows: 100vw - 278px = insets 32 + padding 20 + menu 44
-   + language 84 + bell 32 + avatar 38 + gaps 24 + 4px spare. Its auto margins centre it between the menu and the icons. */
+/* Phones: keep the controls inside the pill while reserving a readable brand.
+   Compact control gaps before reducing the logo. */
 @media (max-width: 767px) {
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(84px, calc(100vw - 278px), 150px); }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-pad-x: 8px; --nav-gap: 4px; --nav-logo-w: clamp(100px, calc(100vw - 226px), 150px); }
+  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(130px, calc(100vw - 92px), 150px); }
   html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .header-inner > .brand.travelly-brand { margin: 0 auto; }
   html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation { position: static; flex: 0 0 auto; margin-left: 0; }
   /* Login / register: menu button on the right edge, never on top of the logo. */
@@ -52,10 +51,8 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspa
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
 }
 
-/* 360-400px phones: menu button 40px and language box 72px ("English" still reads in full at 12px), so the logo keeps
-   a good size: 100vw - 262px (menu 40 + language 72 instead of 44 + 84). */
+/* Small phones retain the usable 44px menu target. */
 @media (max-width: 400px) {
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(84px, calc(100vw - 262px), 150px); }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .workspace-menu-toggle { min-width: 40px; width: 40px; min-height: 40px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation .language.language select { width: 72px !important; font-size: 12px; }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(100px, calc(100vw - 226px), 150px); }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation .language.language select { width: 68px !important; font-size: 12px; }
 }

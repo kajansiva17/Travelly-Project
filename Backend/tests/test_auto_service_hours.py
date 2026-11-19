@@ -52,6 +52,19 @@ def test_more_than_a_day_asks_for_a_multi_day_trip(client, hire_setup, monkeypat
     assert r.status_code == 422 and r.json()['code'] == 'TRIP_TOO_LONG_FOR_ONE_DAY'
 
 
+def test_search_route_provider_failure_is_an_error_not_a_successful_empty_result(client, hire_setup, monkeypatch):
+    c = hire_setup
+    from app.core.errors import ApiError
+    def unavailable(_itinerary):
+        raise ApiError(503, 'ROUTING_UNAVAILABLE', 'Route service unavailable.')
+    monkeypatch.setattr(client.app.state.hire_routing, 'estimate_hours', unavailable)
+    body = {'service_type_id': str(c.service_id), 'itinerary': hours_left_out(c), 'passenger_count': 2,
+            'large_luggage_count': 0, 'small_luggage_count': 0}
+    response = client.post('/api/v1/search/vehicles', json=body)
+    assert response.status_code == 503
+    assert response.json()['code'] == 'ROUTING_UNAVAILABLE'
+
+
 def test_booking_without_hours_stores_the_worked_out_hours_and_a_retry_returns_the_same_booking(client, hire_setup, monkeypatch):
     c = hire_setup; with_day_rule(client, c)
     monkeypatch.setattr(client.app.state.hire_routing, 'estimate_hours', lambda itinerary: Decimal('9.25'))
@@ -78,6 +91,18 @@ def test_route_measurement_without_stated_hours_uses_the_vehicles_own_duration()
     segments = [{'distance': 200000, 'steps': [{'distance': 200000, 'duration': 4.5 * 3600}]}]
     usage = HireRouting.from_segments(object(), itin, segments, [[80, 7]])['usage']
     assert usage.service_hours == [Decimal('5')] and usage.distance_km == Decimal('200')
+
+
+def test_fractional_night_distance_is_bounded_instead_of_rejected_as_a_time_conflict():
+    start = datetime(2027, 1, 10, 16, 7, tzinfo=timezone.utc)  # 21:37 in Sri Lanka; route crosses 22:00
+    place = {'label': 'X', 'latitude': '7.0', 'longitude': '80.0', 'token': 'x' * 40}
+    itin = Itinerary.model_validate({'start_at': start.isoformat(), 'direction': 'ONE_WAY', 'method': 'DISTANCE',
+        'service_hours': ['2'], 'stops': [{'place': place, 'wait_minutes': '0', 'overnight_rest': False},
+                                         {'place': place, 'wait_minutes': '0', 'overnight_rest': False}]})
+    segments = [{'distance': 100000, 'steps': [{'distance': 100000, 'duration': 2 * 3600}]}]
+    usage = HireRouting.from_segments(object(), itin, segments, [[80, 7]])['usage']
+    assert usage.distance_km == Decimal('100.0000000000')
+    assert usage.night_km == Decimal('80.8333333333')
 
 
 def test_multi_day_without_hours_spreads_the_trip_over_the_booked_days_and_charges_each_package(client, hire_setup, monkeypatch):

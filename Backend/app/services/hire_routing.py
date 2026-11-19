@@ -1,7 +1,8 @@
 """Trusted planned route measurements. Provider failures never produce zero fares."""
 import logging
+import time
 from datetime import timedelta
-from decimal import Decimal, ROUND_CEILING
+from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
 from zoneinfo import ZoneInfo
 import httpx
 from app.core.errors import ApiError
@@ -9,12 +10,39 @@ from app.schemas.rate_schemas import ExampleTrip
 
 ZONE = ZoneInfo('Asia/Colombo')
 log = logging.getLogger('travelly.routing')
+ROUTE_ATTEMPTS = 2
+ROUTE_TIMEOUT = httpx.Timeout(8.0, connect=5.0)
+TRANSIENT_STATUS = {429, 502, 503, 504}
+MEASUREMENT_QUANTUM = Decimal('.0000000001')
 
 
 def why(exc):
     """One log line for a failed provider call: status and the provider's own message (never the key)."""
     response = getattr(exc, 'response', None)
     return f'{type(exc).__name__} status={getattr(response, "status_code", None)} body={(getattr(response, "text", "") or str(exc))[:300]}'
+
+
+def route_post(settings, path, payload, post=None):
+    """Retry one transient provider/transport failure within the Passenger's 20-second request budget.
+
+    Provider 4xx answers (including an unroutable point) are final and are never hidden by retrying or widening
+    the provider's road-snap limit.
+    """
+    url = settings.routing_base_url.rstrip('/') + path
+    post = post or httpx.post
+    for attempt in range(ROUTE_ATTEMPTS):
+        try:
+            response = post(url, headers={'Authorization': settings.routing_api_key},
+                            timeout=ROUTE_TIMEOUT, json=payload)
+            if response.status_code not in TRANSIENT_STATUS or attempt + 1 == ROUTE_ATTEMPTS:
+                response.raise_for_status()
+                return response
+            log.warning('transient route provider response; retrying once: status=%s', response.status_code)
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+            if attempt + 1 == ROUTE_ATTEMPTS:
+                raise
+            log.warning('transient route provider failure; retrying once: %s', why(exc))
+        time.sleep(.15)
 
 
 def night_distance(km, start, seconds):
@@ -32,7 +60,15 @@ def night_distance(km, start, seconds):
 
 
 class HireRouting:
-    def __init__(self, settings, locations): self.settings, self.locations = settings, locations
+    def __init__(self, settings, locations):
+        self.settings, self.locations = settings, locations
+        # Searches can make several related route calls. Reusing TLS connections avoids a new provider connection
+        # for every vehicle while keeping the credential server-side.
+        self.client = httpx.Client()
+
+    def close(self): self.client.close()
+
+    def post(self, path, payload): return route_post(self.settings, path, payload, self.client.post)
 
     def unavailable(self, exc):
         """The ROUTING_UNAVAILABLE error. Outside production the provider's own answer is appended so a developer sees the real cause on screen."""
@@ -50,9 +86,8 @@ class HireRouting:
         cache = self.__dict__.setdefault('_road_km_cache', {})
         if key in cache: return cache[key]
         try:
-            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/driving-car/geojson',
-                headers={'Authorization': self.settings.routing_api_key}, timeout=15, json={'coordinates': coordinates, 'instructions': False})
-            response.raise_for_status()
+            response = self.post('/openrouteservice/v2/directions/driving-car/geojson',
+                                 {'coordinates': coordinates, 'instructions': False})
             km = Decimal(str(response.json()['features'][0]['properties']['summary']['distance'])) / 1000
             if not km.is_finite() or km < 0: return None
         except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
@@ -72,10 +107,8 @@ class HireRouting:
         if key in cache:
             return cache[key]
         try:
-            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/' + profile + '/geojson',
-                headers={'Authorization': self.settings.routing_api_key}, timeout=15,
-                json={'coordinates': coordinates, 'instructions': False})
-            response.raise_for_status()
+            response = self.post('/openrouteservice/v2/directions/' + profile + '/geojson',
+                                 {'coordinates': coordinates, 'instructions': False})
             seconds = Decimal(str(response.json()['features'][0]['properties']['summary']['duration']))
             if not seconds.is_finite() or seconds < 0:
                 return None
@@ -98,9 +131,8 @@ class HireRouting:
         cache = self.__dict__.setdefault('_duration_cache', {})
         if key not in cache:
             try:
-                response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/driving-car/geojson',
-                    headers={'Authorization': self.settings.routing_api_key}, timeout=15, json={'coordinates': coordinates, 'instructions': False})
-                response.raise_for_status()
+                response = self.post('/openrouteservice/v2/directions/driving-car/geojson',
+                                     {'coordinates': coordinates, 'instructions': False})
                 seconds = Decimal(str(response.json()['features'][0]['properties']['summary']['duration']))
                 if not seconds.is_finite() or seconds <= 0: raise ValueError()
             except (httpx.HTTPError, ValueError, TypeError, KeyError, IndexError, ArithmeticError) as exc:
@@ -116,10 +148,9 @@ class HireRouting:
         if not self.settings.routing_api_key:
             raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Trip pricing needs the configured route service. Request a quote once route measurements are available.')
         try:
-            response = httpx.post(self.settings.routing_base_url.rstrip('/') + '/openrouteservice/v2/directions/' + profile + '/geojson',
-                headers={'Authorization': self.settings.routing_api_key}, timeout=15,
-                json={'coordinates': [[float(s.place.longitude), float(s.place.latitude)] for s in itinerary.stops], 'instructions': True})
-            response.raise_for_status()
+            response = self.post('/openrouteservice/v2/directions/' + profile + '/geojson',
+                                 {'coordinates': [[float(s.place.longitude), float(s.place.latitude)] for s in itinerary.stops],
+                                  'instructions': True})
             route = response.json()['features'][0]
             segments = route['properties']['segments']
             if len(segments) != len(itinerary.stops) - 1: raise ValueError()
@@ -182,7 +213,12 @@ class HireRouting:
         elif cursor > itinerary.requested_end():
             raise ApiError(422, 'ITINERARY_TIME_CONFLICT', 'The trusted route and stops exceed the booked service windows. Allow enough time for the itinerary.')
         try:
-            usage = ExampleTrip.model_validate({'distance_km': str(distance), 'night_km': str(night), 'waiting_minutes': str(waiting),
+            # A partial night segment can produce a repeating Decimal. Keep the contracted maximum ten decimal
+            # places instead of misreporting valid evening routes as itinerary-time conflicts.
+            usage = ExampleTrip.model_validate({
+                'distance_km': format(distance.quantize(MEASUREMENT_QUANTUM, rounding=ROUND_HALF_UP), 'f'),
+                'night_km': format(night.quantize(MEASUREMENT_QUANTUM, rounding=ROUND_HALF_UP), 'f'),
+                'waiting_minutes': str(waiting),
                 'service_hours': [str(h) for h in hours], 'overnight_stays': (len(hours) - 1) if auto else sum(s.overnight_rest for s in itinerary.stops),
                 'waiting_periods': waiting_periods if itinerary.method == 'DAY_HIRE' else []})
         except ValueError:

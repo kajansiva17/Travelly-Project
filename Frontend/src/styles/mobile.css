@@ -2,8 +2,6 @@
    single-row buttons. A phone cannot fit that, so here every page grows with its content and the page itself scrolls down. Nothing is
    hidden or cut off, and nothing scrolls sideways. Imported last. */
 @media (max-width: 767px) {
-  html, body { overflow-x: hidden; }
-
   /* 1. Pages grow with their content */
   html body .workspace-shell[data-workspace] .workspace-content :is(.flow-page, .dash-page),
   html body.flow-standalone .flow-page, html body .flow-page { height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; }
@@ -78,14 +76,14 @@
   html body .dash-page :is(.dash-vehicles, .dash-fleet) { grid-template-columns: minmax(0, 1fr) !important; }
 
   /* 8. Navbar pill: keep the language name readable */
-  :root { --nav-pad-x: 10px; --nav-gap: 6px; }
+  :root { --nav-pad-x: 8px; --nav-gap: 4px; }
   html body .app-navbar :is(.language, .language select) { max-width: none; min-width: 0; }
   html body .app-navbar .language { flex: none; }
   html body .app-navbar .language > :not(select) { display: none; }
-  html body .app-navbar .language select { width: 84px !important; max-width: none !important; flex: none; text-overflow: clip; padding-inline: 6px 2px; }
-  html body .app-navbar .navigation { gap: 6px; min-width: 0; }
-  html body .app-navbar :is(.app-nav-bell, .admin-notifications) { width: 32px; }
-  html body .app-navbar .app-nav-profile { width: 38px; }
+  html body .app-navbar .language select { width: 68px !important; max-width: none !important; flex: none; text-overflow: clip; padding-inline: 4px 1px; }
+  html body .app-navbar .navigation { gap: 2px; min-width: 0; }
+  html body .app-navbar :is(.app-nav-bell, .admin-notifications) { width: 40px; min-width: 40px; }
+  html body .app-navbar .app-nav-profile { width: 34px; }
 
   /* 9. Menu drawer */
   html body .workspace-drawer .workspace-icon-button { color: var(--ui-ink); background: #fff; border: 1px solid var(--ui-glass-border); }
@@ -100,4 +98,60 @@
   html body .rl-btn.is-on { background: var(--ui-red, var(--brand-red)) !important; color: #fff !important; }
   html body .rl-overlay { padding-right: 64px; }
   html body .rl-top { gap: 6px; padding: 6px; }
+
+  /* Landing navigation is loaded before the shared frame styles. Keep this
+     phone-only override last so an open panel becomes part of the header,
+     rather than covering the Home / Driver / Owner hero copy. */
+  html body header.lr-header.site-header.app-navbar.app-navbar.app-navbar.app-navbar.lr-header-menu-open {
+    height: auto !important;
+    min-height: var(--nav-h);
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-bottom: 12px;
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open {
+    position: static !important;
+    display: grid !important;
+    flex: 1 0 100%;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / .92);
+    border-radius: 18px;
+    background: rgb(240 247 255 / .96);
+    box-shadow: 0 12px 28px rgb(18 40 90 / .22), inset 0 1px 0 rgb(255 255 255 / .88);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    backdrop-filter: blur(18px) saturate(1.15);
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open .lr-nav-link {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open .lr-language {
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 40px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid rgb(18 40 90 / .12);
+    border-radius: 12px;
+    background: rgb(255 255 255 / .68);
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open :is(.lr-login, .lr-signup) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
 }

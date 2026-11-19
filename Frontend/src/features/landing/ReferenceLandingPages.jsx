@@ -53,7 +53,7 @@ export function LandingHeader({ role, signedIn = false }) {
     observer.observe(header)
     return () => observer.disconnect()
   }, [])
-  return <header ref={headerRef} className="lr-header site-header app-navbar">
+  return <header ref={headerRef} className={`lr-header site-header app-navbar ${open ? 'lr-header-menu-open' : ''}`}>
     <Brand/>
     <button className="lr-menu" type="button" aria-expanded={open} aria-controls="landing-navigation" aria-label={t('Navigation menu')} onClick={() => setOpen(!open)}><LandingIcon name={open ? 'close' : 'menu'}/></button>
     <nav id="landing-navigation" className={`lr-nav ${open ? 'lr-nav-open' : ''}`} aria-label={t('Main navigation')}>

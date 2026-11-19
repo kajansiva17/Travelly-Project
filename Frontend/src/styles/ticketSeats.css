@@ -1,5 +1,6 @@
 .seat-map{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0;min-width:0}
 .seat-stage{position:relative;flex:1 1 0;min-height:140px;min-width:0;overflow:hidden}
+.seat-canvas{position:relative;width:100%;height:100%;min-width:0;min-height:140px}
 .seat-scaler{position:absolute;left:50%;top:50%;display:flex;gap:24px;align-items:flex-start;justify-content:center;transform-origin:center center}
 .seat-deck-title{font-weight:600;font-size:14px;line-height:22px;margin:0}
 .vehicle-shell{position:relative}
@@ -33,3 +34,13 @@
 .seat-legend .swatch.not-sold{background:#6f7684;border-color:#2b3039}
 .seat-legend .swatch.crew{background:#eceef1}
 .seat-legend .swatch svg{width:14px;height:14px}
+
+/* Phones retain full-size seats. Wide vehicle layouts scroll only inside this
+   canvas; the document itself never gains horizontal overflow. */
+@media (max-width:767px){
+  .seat-map{height:auto;min-width:0}
+  .seat-stage{flex:none;height:auto;min-height:0;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch}
+  .seat-canvas{width:var(--seat-mobile-canvas-width);height:var(--seat-mobile-canvas-height);min-width:var(--seat-mobile-canvas-width);min-height:var(--seat-mobile-canvas-height)}
+  .seat-scaler{left:0;top:0;visibility:visible!important;transform:scale(1.1)!important;transform-origin:top left}
+  .seat-legend{justify-content:flex-start;padding-inline:4px}
+}

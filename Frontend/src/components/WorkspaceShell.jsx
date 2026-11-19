@@ -9,12 +9,14 @@ import {WorkspaceContext} from '../context/workspaceContext'
 import {accountPath,eligibleWorkspaces,travelPath,requestedWorkspace,workspaceMenu,workspaceRoles} from '../routes/workspaceRoutes'
 import {journeyLink} from '../features/auth/onboardingJourney'
 import {StateCard} from '../features/booking/flow/FlowParts'
+import {NOTIFICATION_POLL_MS} from '../features/notifications/unread.js'
 
 export default function WorkspaceShell({role:fixedRole}){
  const location=useLocation(),navigate=useNavigate(),signedIn=useSession()
  const role=fixedRole||requestedWorkspace(location.search)
  const [access,setAccess]=useState({loading:true,user:null,roles:[],error:null})
  const [busy,setBusy]=useState(false),[logoutError,setLogoutError]=useState(null)
+ const [unreadCount,setUnreadCount]=useState(0)
  const stamp=useRef(0),dialog=useRef(null),trigger=useRef(null),header=useRef(null),shell=useRef(null)
  const refreshAccess=useCallback(async({quiet=false}={})=>{
   const id=++stamp.current
@@ -49,12 +51,26 @@ export default function WorkspaceShell({role:fixedRole}){
  const allowed=eligibleWorkspaces(access.user,access.roles)
  const authorized=allowed.includes(role)
  const info=workspaceRoles[role]
+ useEffect(()=>{
+  if(!signedIn||!authorized||!access.user){setUnreadCount(0);return}
+  let active=true
+  const refresh=()=>api('/notifications/unread-count').then(result=>{if(active)setUnreadCount(Number(result.unread_count)||0)}).catch(()=>{})
+  const visible=()=>{if(document.visibilityState==='visible')refresh()}
+  refresh()
+  const timer=window.setInterval(refresh,NOTIFICATION_POLL_MS)
+  window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',visible)
+  return()=>{active=false;window.clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',visible)}
+ },[signedIn,authorized,access.user?.id])
  async function signOut(){
   if(busy)return
   setBusy(true);setLogoutError(null)
   try{await logout();navigate('/login',{replace:true})}catch(error){setLogoutError(error)}finally{setBusy(false)}
  }
  function openSidebar(){dialog.current?.showModal()}
+ function openNotifications(){
+  setUnreadCount(0)
+  api('/notifications/read-all',{method:'POST',body:'{}'}).catch(()=>api('/notifications/unread-count').then(result=>setUnreadCount(Number(result.unread_count)||0)).catch(()=>{}))
+ }
  if(!signedIn)return <Navigate to={journeyLink('/login',role)} replace/>
  const sidebar=mobile=><AppSidebar role={role} info={info} authorized={authorized} pathname={location.pathname} search={location.search} mobile={mobile} busy={busy} onSignOut={signOut} logoutError={logoutError} onClose={()=>dialog.current?.close()}/>
  const updateProfile=user=>setAccess(current=>({...current,user}))
@@ -67,7 +83,7 @@ export default function WorkspaceShell({role:fixedRole}){
     <Header dashboard workspaceHeader>
      {authorized? <>
       <NavbarReels to={travelPath(role,'/reels')}/>
-      <NavbarBell to={notificationPath} label={t(notificationLabel)}/>
+      <NavbarBell to={notificationPath} label={t(notificationLabel)} unreadCount={unreadCount} onOpen={openNotifications}/>
       <NavbarProfile user={access.user} roleLabel={t(info.label)} profileTo={accountPath(role)}/>
      </>:<Link to="/">{t('Travel & booking')}</Link>}
     </Header>

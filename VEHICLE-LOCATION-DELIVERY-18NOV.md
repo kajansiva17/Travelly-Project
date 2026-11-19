@@ -47,3 +47,41 @@ Branch: `feature/pending-screens`
 - Backend hire matching, routing, pricing applicability and booking lifecycle checks.
 - Owner vehicle/hire interfaces and Passenger matching/request interfaces.
 - English/Tamil/Sinhala messages and focused backend/frontend tests.
+
+## Follow-up: show vehicles first, verify, then book
+
+- Future discovery now uses the saved base only as a provisional pickup-radius anchor. A preceding trip endpoint is used for repositioning feasibility, not as the permanent radius centre.
+- Immediate discovery uses a fresh current position when available; stale current/base anchors can produce only `CONFIRMATION_REQUIRED`. A known fresh position outside the saved vehicle radius remains ineligible.
+- Search returns explicit `AVAILABLE` and `CONFIRMATION_REQUIRED` states without fares. Enabled services with missing or temporarily uncomputable prices remain eligible for the protected Owner-quote path.
+- Selecting a vehicle calculates any applicable saved Owner price even when location confirmation remains pending. Exact fixed-route pricing keeps precedence and no longer depends on road-distance routing.
+- Future requests require a planned-position confirmation for the requested time. Price acceptance preserves that confirmation, and final Owner/Driver commitment still reruns eligibility, conflicts, radius and adjacent-travel feasibility.
+- The implementation is coordinate/settings based across Sri Lanka. The Achchuveli/Colombo dates and coordinates are present only in regression tests; no example registration, vehicle ID, town, date or fare is hardcoded in production matching.
+
+### Follow-up validation
+
+- Location matching: 9 passed.
+- Focused hire discovery/pricing/idempotency/confirmation tests: passed individually, including fixed-route precedence and routing-failure discovery.
+- Ticket hold regression: 1 passed. Rental search regression: 1 passed.
+- Frontend extra-policy/search grouping and Rental model tests: 14 passed. Fixed-rate validation tests: 8 passed.
+- Frontend production build: passed.
+- Browser state test could not launch Chrome in this environment (`os_crypt_win` failure); no authenticated browser persistence claim is made.
+- The required `docs/00-READ-FIRST/Travelly_NBP_Codex_Context.md` remains absent from this checkout, so it could not be updated.
+
+## Follow-up: unread notification bell badge
+
+- The navbar bell now shows the recipient's visible unread notification count, capped visually at `99+` while retaining the full count in its accessible label.
+- A lightweight count endpoint reuses the same recipient and notification-preference filters as the existing notification list. No new table or notification-generation rule was added.
+- Workspace shells refresh the count on load, every 15 seconds, when the window regains focus, and when the page becomes visible. Opening the bell marks the recipient's visible notifications as read and clears the badge without changing the existing notification destination or list.
+- Focused backend unread-count/read-all and existing notification-preference/list tests passed. Focused frontend notification/i18n tests passed (16 tests), and the production build passed with the existing large-chunk advisory.
+- The existing road-alert notification integration selection was blocked before its assertion by its older future-hire fixture expecting an immediately quotable booking instead of the now-required planned-position confirmation. Notification-specific tests were unaffected and passed.
+
+## Follow-up: Owner hire Trip / Price UI and pagination
+
+- Owner booking pricing now distinguishes an applicable pending quote, an agreed price, location confirmation, a genuinely unpriced request and an explicit unpriced revision. An applicable saved fixed-route/package/per-km/Event price no longer opens duplicate Owner price inputs.
+- Pending quotes show Passenger-acceptance status without auto-accepting. Genuine initial quotes and `CHANGE_REQUEST_UNPRICED` revisions keep the existing quote workflows and eligibility checks.
+- Owner Trip location confirmation and Price breakdown/terms use retained-state substeps. Long terms are split into Price terms and Other terms; footer actions remain separate.
+- The Price substeps now use the full card width without creating a second off-screen flex column. The breakdown uses a readable charges/extras layout, terms use separate cards, and short desktop viewports retain useful spacing and readable type without horizontal or card scrollbars.
+- The remaining live agreed-price gap was traced to the shared `.booking-pane .rate-preview > h2` rule: its `flex: 1 1 100%` row-width behavior became vertical growth inside the column-oriented `.booking-price-snapshot`. A higher-specificity Price-snapshot rule now resets only that heading to `flex: none`; no offsets, clipping or pricing logic changed. The pre-fix live gap was about 280 px; the exact 1280 × 585 fixture measures 12 px after the fix.
+- Focused state/i18n tests passed (9). Focused mocked Playwright checks passed for saved price, location confirmation, genuine initial quote, revised quote and change acceptance; English/Tamil/Sinhala were checked at 1280 × 585 with no document, card or sidebar scrollbar, no horizontal overflow or off-screen content, and no footer overlap. The frontend production build passed with the existing large-chunk advisory.
+- Final live authenticated Chrome verification observed booking `BKG-B959E3AB626A3B90F036` in its Requested + accepted fixed-route state after Vite hot reload. The breakdown and long-terms panels flowed from the top and their Next/Back footer no longer overlapped content. Exact 1280 × 585 assertions remain mocked Playwright because the authenticated window was not resized to that viewport.
+- `docs/00-READ-FIRST/Travelly_NBP_Codex_Context.md` remains absent, so it could not be updated without inventing the missing authoritative context.

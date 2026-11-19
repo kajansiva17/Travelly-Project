@@ -93,12 +93,29 @@ def test_stale_immediate_location_requires_owner_confirmation():
     assert result['code'] == 'VEHICLE_LOCATION_STALE'
 
 
-def test_future_request_uses_base_not_todays_distant_position():
+def test_future_request_uses_base_as_provisional_anchor_not_todays_distant_position():
     now = datetime.now(timezone.utc)
     trip = itinerary(now + timedelta(days=2), place('Jaffna', 9.6615, 80.0255))
     result = assess(vehicle(now), trip, now)
-    assert result['status'] == 'AVAILABLE'
+    assert result['status'] == 'CONFIRMATION_REQUIRED'
+    assert result['code'] == 'FUTURE_POSITION_UNCONFIRMED'
     assert result['origin_source'] == 'BASE_LOCATION'
+
+
+def test_old_distant_departure_endpoint_does_not_replace_future_base_pickup_radius():
+    now = datetime(2026, 11, 18, 12, tzinfo=timezone.utc)
+    trip = itinerary(datetime(2026, 11, 30, 2, 30, tzinfo=timezone.utc),
+                     place('Achchuveli', 9.6615, 80.0255))
+    departure = SimpleNamespace(estimated_arrival_at=datetime(2026, 11, 18, 19, 20, tzinfo=timezone.utc), route_id=uuid4())
+    route = SimpleNamespace(destination_latitude=Decimal('6.9271'), destination_longitude=Decimal('79.8612'))
+    db = Scheduled([None, None, departure, None])
+    db.get = lambda *_args: route
+    result = location_matching.assess(db, Routing(300), vehicle(now), trip,
+        trip.requested_end(), 'driving-car', now=now)
+    assert result['status'] == 'CONFIRMATION_REQUIRED'
+    assert result['code'] == 'FUTURE_POSITION_UNCONFIRMED'
+    assert result['origin_source'] == 'PRECEDING_COMMITMENT'
+    assert result['distance_km'] == 0.0
 
 
 def test_unknown_routing_requires_confirmation_and_cannot_be_available():
@@ -120,6 +137,9 @@ def test_preparation_time_is_added_to_pickup_travel_time():
 def test_future_booking_checks_repositioning_from_before_and_to_after_commitments():
     now = datetime.now(timezone.utc)
     trip = itinerary(now + timedelta(days=2), place('Colombo', 6.9271, 79.8612))
+    candidate = vehicle(now)
+    candidate.base_latitude = Decimal('6.9271')
+    candidate.base_longitude = Decimal('79.8612')
     prior = SimpleNamespace(end_at=trip.start_at - timedelta(hours=1), itinerary_snapshot={
         'itinerary': {'stops': [{'place': place('Prior start', 7.0, 80.0)}, {'place': place('Prior end', 6.9271, 79.8612)}]},
     })
@@ -127,7 +147,7 @@ def test_future_booking_checks_repositioning_from_before_and_to_after_commitment
         'itinerary': {'stops': [{'place': place('Next pickup', 7.2906, 80.6337)}, {'place': place('Next end', 7.3, 80.7)}]},
     })
     db = Scheduled([prior, following, None, None])
-    result = location_matching.assess(db, Routing([300, 3600]), vehicle(now), trip,
+    result = location_matching.assess(db, Routing([300, 3600]), candidate, trip,
         trip.requested_end(), 'driving-car', now=now)
     assert result['status'] == 'UNREACHABLE'
     assert result['code'] == 'NEXT_COMMITMENT_UNREACHABLE'

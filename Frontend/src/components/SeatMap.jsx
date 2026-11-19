@@ -111,6 +111,7 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
   const scale=box.w&&box.h?Math.min(box.w/totalW,box.h/totalH,MAX_SCALE):0
   return <div className="seat-map" role="group" aria-label={label||t('Seat layout')}>
     <div className="seat-stage" ref={stage}>
+      <div className="seat-canvas" style={{'--seat-canvas-width':`${totalW}px`,'--seat-canvas-height':`${totalH}px`,'--seat-mobile-canvas-width':`${totalW*1.1}px`,'--seat-mobile-canvas-height':`${totalH*1.1}px`}}>
       <div className="seat-scaler" style={{width:totalW,height:totalH,transform:`translate(-50%,-50%) scale(${scale||0.01})`,visibility:scale?'visible':'hidden'}}>
         {sized.map(({deck,own,rows,columns,W,H})=>{
           const firstPassengerRow=rows.find(r=>r>0)
@@ -141,6 +142,7 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
             </div>
           </div>
         })}
+      </div>
       </div>
     </div>
     <ul className="seat-legend" aria-label={t('Seat colours')}>

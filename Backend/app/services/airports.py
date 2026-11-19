@@ -12,7 +12,9 @@ AIRPORT_RADIUS_KM = 3.0
 MAX_AIRPORTS = 50
 DEFAULT_MIN_DISTANCE_KM = 100
 DEFAULT_AIRPORTS = [
-    {'code': 'CMB', 'name': 'Bandaranaike International Airport, Katunayake', 'latitude': '7.180800', 'longitude': '79.884100', 'is_active': True},
+    # The terminal point is the verified public road-access pickup/drop-off returned by the configured provider.
+    # The former airport-centre point (7.180800, 79.884100) was inside the airfield and could not be road-snapped.
+    {'code': 'CMB', 'name': 'Bandaranaike International Airport, Katunayake', 'latitude': '7.173397', 'longitude': '79.887110', 'is_active': True},
     {'code': 'RML', 'name': 'Ratmalana Airport, Colombo', 'latitude': '6.821900', 'longitude': '79.886200', 'is_active': True},
     {'code': 'HRI', 'name': 'Mattala Rajapaksa International Airport, Mattala', 'latitude': '6.284400', 'longitude': '81.124100', 'is_active': True},
     {'code': 'JAF', 'name': 'Jaffna International Airport, Palaly', 'latitude': '9.792300', 'longitude': '80.070000', 'is_active': True},

@@ -111,6 +111,50 @@ def test_request_idempotency_binds_service_and_capacity_as_well_as_itinerary(cli
         assert collision.status_code == 409 and collision.json()['code'] == 'IDEMPOTENCY_CONFLICT'
 
 
+def test_future_request_keeps_price_and_position_verification_separate_through_commit(client, hire_setup):
+    c = hire_setup
+    booking = c.create()
+    assert booking['proposal']['kind'] == 'LOCATION_CONFIRMATION_REQUIRED'
+    with client.app.state.sessions() as db:
+        vehicle_version = db.get(Vehicle, c.vehicle_id).version
+    start = datetime.fromisoformat(booking['start_at'])
+    current = client.post(f"/api/v1/bookings/{booking['id']}/location-confirmation", headers=bearer(c.owner), json={
+        'expected_version': booking['version'], 'vehicle_expected_version': vehicle_version,
+        'kind': 'CURRENT', 'location': c.places['A'],
+    })
+    assert current.status_code == 422 and current.json()['code'] == 'FUTURE_POSITION_REQUIRED'
+    confirmed = client.post(f"/api/v1/bookings/{booking['id']}/location-confirmation", headers=bearer(c.owner), json={
+        'expected_version': booking['version'], 'vehicle_expected_version': vehicle_version,
+        'kind': 'PLANNED', 'location': c.places['A'],
+        'available_at': (start - timedelta(hours=1)).isoformat(),
+    })
+    assert confirmed.status_code == 200, confirmed.text
+    booking = confirmed.json()
+    assert booking['proposal']['kind'] == 'QUOTE'
+    booking = accept(client, c, booking)
+    with client.app.state.sessions() as db:
+        saved = db.get(Booking, UUID(booking['id']))
+        assert saved.itinerary_snapshot['positioning_confirmation']['latitude'] == c.places['A']['latitude']
+    committed_booking = client.post(f"/api/v1/bookings/{booking['id']}/self-drive", headers=bearer(c.owner),
+                                    json={'expected_version': booking['version']})
+    assert committed_booking.status_code == 200, committed_booking.text
+    assert committed_booking.json()['vehicle_committed'] is True
+
+
+def test_routing_price_failure_keeps_enabled_vehicle_discoverable_for_quote(client, hire_setup, monkeypatch):
+    from app.core.errors import ApiError
+    c = hire_setup
+    monkeypatch.setattr(client.app.state.hire_routing, 'measure',
+                        lambda *_args: (_ for _ in ()).throw(ApiError(503, 'ROUTING_UNAVAILABLE', 'Retry routing.')))
+    body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(), 'passenger_count': 2,
+            'large_luggage_count': 1, 'small_luggage_count': 1}
+    found = client.post('/api/v1/search/vehicles', json=body)
+    assert found.status_code == 200, found.text
+    entries = found.json()['quote_on_request']
+    assert len(entries) == 1 and entries[0]['quote_required'] is True
+    assert entries[0]['availability_status'] == 'CONFIRMATION_REQUIRED'
+
+
 def day_rule():
     data = rule()
     for name in ('base_charge', 'included_km'): data.pop(name)
@@ -276,11 +320,16 @@ def test_vehicle_list_hides_price_until_the_passenger_selects(client, hire_setup
             'large_luggage_count': 1, 'small_luggage_count': 1}
     found = client.post('/api/v1/search/vehicles', json=body)
     assert found.status_code == 200, found.text
-    items = found.json()['items']
-    assert items and all(item['price'] is None for item in items)
-    quoted = client.post(f"/api/v1/search/vehicles/{items[0]['id']}/quote", json=body)
+    data = found.json()
+    entries = data['items'] + data['quote_on_request']
+    assert entries and all(item['price'] is None for item in entries)
+    assert entries[0]['availability_status'] == 'CONFIRMATION_REQUIRED'
+    assert entries[0]['quote_required'] is False
+    quoted = client.post(f"/api/v1/search/vehicles/{entries[0]['id']}/quote", json=body)
     assert quoted.status_code == 200, quoted.text
     assert quoted.json()['price']['total'] == '2050.00'
+    assert quoted.json()['owner_confirmation_required'] is True
+    assert quoted.json()['quote_required'] is False
 
 
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):
@@ -552,7 +601,9 @@ def test_search_lists_free_vehicles_without_a_saved_price_as_ask_the_owner(clien
     assert data['items'] == [] and len(data['quote_on_request']) == 1 and data['quote_on_request'][0]['quote_required'] is True
     assert data['quote_on_request'][0]['price'] is None and 'rules' not in data['quote_on_request'][0]
     priced = client.post('/api/v1/search/vehicles', json={**body, 'itinerary': c.itinerary(('A', 'B'))}).json()
-    assert len(priced['items']) == 1 and priced['quote_on_request'] == []
+    assert priced['items'] == [] and len(priced['quote_on_request']) == 1
+    assert priced['quote_on_request'][0]['quote_required'] is False
+    assert priced['quote_on_request'][0]['availability_status'] == 'CONFIRMATION_REQUIRED'
 
 
 def test_a_passenger_waits_for_at_most_three_owner_prices_and_unanswered_ones_lapse(client, hire_setup):
@@ -579,8 +630,9 @@ def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(c
     search = lambda wait: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'B'), wait=wait),
                                       'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     plain = search('0')
-    assert len(plain['items']) == 1 and plain['quote_on_request'] == []
-    selected = client.post(f"/api/v1/search/vehicles/{plain['items'][0]['id']}/quote", json={
+    plain_entries = plain['items'] + plain['quote_on_request']
+    assert len(plain_entries) == 1 and plain_entries[0]['quote_required'] is False
+    selected = client.post(f"/api/v1/search/vehicles/{plain_entries[0]['id']}/quote", json={
         'service_type_id': str(c.service_id), 'itinerary': c.itinerary(wait='0'), 'passenger_count': 2,
         'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     policies = {p['code']: p for p in selected['price']['extra_policies']}

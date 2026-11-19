@@ -10,7 +10,7 @@ from app.models import User, UserRole
 from app.models.review_models import Document, Vehicle
 from app.models.rate_models import VehicleService, ServiceType
 from app.models.hire_models import Booking, Trip, VehicleRecord, ScheduledTrip, Notification
-from app.schemas.rate_schemas import RateRule, covered, departure_applies, extra_mode, EXTRA_METHODS
+from app.schemas.rate_schemas import RateRule, ExampleTrip, covered, departure_applies, extra_mode, EXTRA_METHODS
 from app.services.pricing_scope import require_supported_private_hire
 from app.services.rate_calculation import calculate
 from app.core.errors import ApiError
@@ -156,8 +156,26 @@ def extra_policies(rule):
 
 def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     scope = require_supported_private_hire(service)
-    measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
-    candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
+    initial = list(rules) if agreed_rule else matching_rules(rules, itinerary)
+    exact_fixed = len(initial) == 1 and initial[0].method == 'FIXED_ROUTE'
+    if exact_fixed:
+        rule = initial[0]
+        if agreed_rule and not matches(rule, itinerary):
+            raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
+        for stop in itinerary.stops:
+            request.app.state.rate_locations.verify(stop.place)
+        usage = ExampleTrip.model_validate({
+            'distance_km': '0', 'night_km': '0',
+            'waiting_minutes': str(sum((stop.wait_minutes for stop in itinerary.stops if not stop.overnight_rest), Decimal('0'))),
+            'service_hours': [str(value) for value in itinerary.service_hours],
+            'overnight_stays': sum(stop.overnight_rest for stop in itinerary.stops),
+        })
+        measurement = {'source': 'SAVED_FIXED_ROUTE', 'usage': usage,
+                       'geometry': [[float(stop.place.longitude), float(stop.place.latitude)] for stop in itinerary.stops]}
+        candidates = initial
+    else:
+        measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
+        candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
     if len(candidates) != 1:
         raise ApiError(409, 'QUOTE_REQUIRED', 'Saved rates do not uniquely cover this complete itinerary. Request an Owner quote.')
     rule = candidates[0]

@@ -29,7 +29,9 @@ def search_body(c, names, service_id=None):
 def test_the_default_list_has_the_main_airports_and_a_place_next_to_one_counts():
     codes = {a['code'] for a in DEFAULT_AIRPORTS}
     assert {'CMB', 'RML', 'HRI', 'JAF'} <= codes
-    place = type('P', (), {'latitude': Decimal('7.20'), 'longitude': Decimal('79.88')})   # about 2 km from Katunayake
+    cmb = next(a for a in DEFAULT_AIRPORTS if a['code'] == 'CMB')
+    assert (cmb['latitude'], cmb['longitude']) == ('7.173397', '79.887110')  # provider-verified terminal road access
+    place = type('P', (), {'latitude': Decimal('7.19'), 'longitude': Decimal('79.887')})  # about 2 km from the terminal
     far = type('P', (), {'latitude': Decimal('6.93'), 'longitude': Decimal('79.86')})     # Colombo Fort
     assert near_airport(DEFAULT_AIRPORTS, place) and not near_airport(DEFAULT_AIRPORTS, far)
     assert abs(km_between(7.1808, 79.8841, 7.1808, 79.8841)) < 0.001

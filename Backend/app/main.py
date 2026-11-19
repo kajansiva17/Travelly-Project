@@ -89,6 +89,7 @@ def create_app(settings=None, engine=None, store=None):
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+            app.state.hire_routing.close()
 
     app = FastAPI(title='Travelly API', version='1.0.0', lifespan=lifespan, swagger_ui_parameters={'persistAuthorization': False})
     app.state.settings = settings

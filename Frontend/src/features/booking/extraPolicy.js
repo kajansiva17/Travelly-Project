@@ -67,7 +67,7 @@ export function distanceValue(entry) {
 export function searchEntries(result) {
   const priced = orderNearFirst(result?.items).map(entry => ({ ...entry, quote_required: false }))
   const requested = result?.quote_on_request || []
-  const confirmations = orderNearFirst(requested.filter(entry => entry.owner_confirmation_required)).map(entry => ({ ...entry, quote_required: true }))
+  const confirmations = orderNearFirst(requested.filter(entry => entry.owner_confirmation_required)).map(entry => ({ ...entry, quote_required: Boolean(entry.quote_required) }))
   const asked = orderNearFirst(requested.filter(entry => !entry.owner_confirmation_required)).map(entry => ({ ...entry, quote_required: true }))
   return [...priced, ...confirmations, ...asked]
 }

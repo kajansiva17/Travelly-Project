@@ -3,13 +3,22 @@ import { test, expect } from '@playwright/test'
 const uid='12222222-2222-4222-8222-222222222222', vid='22222222-2222-4222-8222-222222222222', sid='32222222-2222-4222-8222-222222222222', bid='42222222-2222-4222-8222-222222222222'
 const A={label:'Colombo',latitude:'6.93',longitude:'79.86',token:'a'.repeat(43)}, B={label:'Kandy',latitude:'7.29',longitude:'80.63',token:'b'.repeat(43)}
 const rate={id:'52222222-2222-4222-8222-222222222222',label:'Colombo to Kandy',method:'DISTANCE',direction:'ONE_WAY',effective_from:'2026-10-27',pickup_area:{label:'Colombo operating area',south:'6',north:'8',west:'79',east:'82'},coverage:{kind:'ROUTE',places:[A,B]},base_charge:'1000',included_km:'10',extra_km_rate:'50',night_km_rate:'10',free_wait_minutes:'20',waiting_hour_rate:'300',return_to_base:'INCLUDED',return_to_base_notes:'Return included in the quoted rate.',tolls:'SEPARATE_AT_COST',parking:'INCLUDED',other_charges:[],change_limits:{added_km:'20',added_hours:'2',added_wait_minutes:'30',added_amount:'2000'}}
-const price={method:'DISTANCE',currency:'LKR',total:'2050.00',exclusions:['Tolls: payable separately at actual cost; not part of this total.'],breakdown:[{code:'BASE',label:'Base charge including stated km',quantity:'1',rate:'1000',amount:'1000',kind:'CHARGE'},{code:'EXTRA_KM',label:'Distance beyond included km',quantity:'20',rate:'50',amount:'1000',kind:'CHARGE'},{code:'NIGHT_KM',label:'All planned night km',quantity:'5',rate:'10',amount:'50',kind:'CHARGE'}]}
+const price={method:'DISTANCE',currency:'LKR',total:'2050.00',exclusions:['Tolls: payable separately at actual cost; not part of this total.'],extra_policies:[{code:'WAITING',mode:'NOT_OFFERED'}],breakdown:[{code:'BASE',label:'Base charge including stated km',quantity:'1',rate:'1000',amount:'1000',kind:'CHARGE'},{code:'EXTRA_KM',label:'Distance beyond included km',quantity:'20',rate:'50',amount:'1000',kind:'CHARGE'},{code:'NIGHT_KM',label:'All planned night km',quantity:'5',rate:'10',amount:'50',kind:'CHARGE'}]}
 const itinerary={start_at:'2027-01-10T02:30:00Z',direction:'ONE_WAY',method:'DISTANCE',service_hours:['3'],stops:[{place:A,wait_minutes:'0',overnight_rest:false},{place:B,wait_minutes:'0',overnight_rest:false}]}
 
-async function setup(page,{passenger=false,admin=false,change=false,departure=false}={}) {
+async function setup(page,{passenger=false,admin=false,change=false,departure=false,applicableQuote=false,agreedPrice=false,fixedAgreedPrice=false,locationPending=false}={}) {
   const mutations=[]
   let config={service_type_id:sid,version:2,enabled:true,currency:'LKR',rules:[structuredClone(rate)]}
   let booking={id:bid,reference:'BKG-TEST-JOURNEY',owner_user_id:uid,passenger_user_id:passenger?uid:'62222222-2222-4222-8222-222222222222',vehicle_id:vid,service_type_id:sid,status:change?'IN_PROGRESS':'REQUESTED',version:1,start_at:itinerary.start_at,end_at:'2027-01-10T05:30:00Z',itinerary:{itinerary},price:change?{initial:{calculation:price,rule:rate,itinerary},current:{calculation:price,rule:rate,itinerary}}:{},proposal:change?{kind:'CHANGE',old_total:'2050.00',added_charge:'750.00',new_total:'2800.00',manual_review_required:false,passenger_accepted:false,digest:'d'.repeat(64)}:{},vehicle_committed:change,accepted_quote_digest:change?'a'.repeat(64):null,trip:null}
+  if(applicableQuote)booking.proposal={kind:'QUOTE',quote:{calculation:price,rule:rate,itinerary,digest:'q'.repeat(64)}}
+  if(agreedPrice){booking.price={initial:{calculation:price,rule:rate,itinerary},current:{calculation:price,rule:rate,itinerary}};booking.accepted_quote_digest='a'.repeat(64)}
+  if(fixedAgreedPrice){
+    const fixed={...structuredClone(rate),method:'FIXED_ROUTE',fixed_fare:'6000',departure:{kind:'ANY_TIME'}}
+    for(const field of ['base_charge','included_km','extra_km_rate','night_km_rate'])delete fixed[field]
+    const calculation={...price,method:'FIXED_ROUTE',total:'6000.00',breakdown:[{code:'FIXED',label:'Covered fixed-route fare',quantity:'1',rate:'6000',amount:'6000',kind:'CHARGE'},{code:'WAITING',label:'Waiting beyond the free booking allowance (hours)',quantity:'0',rate:'0',amount:'0',kind:'CHARGE'}]}
+    booking.price={initial:{calculation,rule:fixed,itinerary},current:{calculation,rule:fixed,itinerary}};booking.accepted_quote_digest='a'.repeat(64);config.rules=[fixed]
+  }
+  if(locationPending)booking.proposal={kind:'LOCATION_CONFIRMATION_REQUIRED',message:'Current vehicle positioning must be confirmed.'}
   if(departure){
     const fixed={...structuredClone(rate),method:'FIXED_ROUTE',fixed_fare:'2050',departure:{kind:'ANY_TIME'}}
     for(const field of ['base_charge','included_km','extra_km_rate','night_km_rate'])delete fixed[field]
@@ -26,13 +35,14 @@ async function setup(page,{passenger=false,admin=false,change=false,departure=fa
     else if(path.endsWith('/users/me/roles'))result={items:(passenger?['PASSENGER']:admin?['PASSENGER','OWNER','DRIVER','ADMIN']:['PASSENGER','OWNER','DRIVER']).map(role_code=>({role_code,approval_status:'APPROVED'}))}
     else if(path==='/api/v1/notifications')result={items:[]}
     else if(path.endsWith('/owners/me/vehicles'))result={items:[{id:vid,label:'Test Van AB-1234',verification_status:'APPROVED',published:true}],has_next:false}
+    else if(path.endsWith(`/owners/me/vehicles/${vid}`))result={id:vid,version:4,label:'Test Van',verification_status:'APPROVED',published:true}
     else if(path==='/api/v1/bookings')result={items:[booking,{...booking,id:'management-only',reference:'BKG-MANAGEMENT-ONLY',passenger_user_id:'someone-else'}]}
     else if(path==='/api/v1/service-types')result={items:[{id:sid,name:'Long-distance private hire',code:'LONG_DISTANCE'}]}
     else if(path==='/api/v1/locations')result={items:[url.searchParams.get('q').includes('Kandy')?B:A]}
     else if(path.endsWith('/services/preview'))result={...price,example_only:true,message:'Owner-entered example only. This is not a booking price or availability promise.'}
     else if(path.endsWith('/services')&&method==='GET')result={items:[config]}
     else if(path.endsWith('/services')&&method==='PUT'){const body=req.postDataJSON();config={...body,version:config.version+1,message:'Reusable rates saved. Future matching requests calculate a fresh price; accepted booking prices stay preserved.'};result=config}
-    else if(path===`/api/v1/bookings/${bid}/quote`){booking={...booking,version:2,proposal:{kind:'QUOTE',quote:{calculation:price,digest:'q'.repeat(64)}}};result=booking}
+    else if(path===`/api/v1/bookings/${bid}/quote`){booking={...booking,version:2,proposal:{kind:'QUOTE',quote:{calculation:price,rule:rate,itinerary,digest:'q'.repeat(64)}}};result=booking}
     else if(path===`/api/v1/bookings/${bid}/price-acceptance`){booking={...booking,status:'AWAITING_DRIVER',version:booking.version+1,accepted_quote_digest:booking.proposal.quote.digest,proposal:{}};result=booking}
     else if(path===`/api/v1/bookings/${bid}/changes/accept`){booking={...booking,version:2,proposal:{...booking.proposal,passenger_accepted:true,manual_review_required:true,manual_review_reason:'This interval conflicts with a committed vehicle booking.'}};result=booking}
     else if(path===`/api/v1/bookings/${bid}/changes`){const body=req.postDataJSON();booking={...booking,version:2,proposal:{kind:'CHANGE_REQUEST_UNPRICED',reason:body.reason,old_total:'2050.00',itinerary:body.itinerary,old_departure:itinerary.start_at,new_departure:body.itinerary.start_at,message:'A new disclosed quote and Passenger acceptance are required.'}};result=booking}
@@ -230,13 +240,17 @@ test('fixed-fare departure applicability is explicit, responsive and saved in th
 
 test('Owner departure proposal enables date entry and preserves the existing agreement',async({page})=>{
   const writes=await setup(page,{change:true,departure:true});await navigate(page,'/bookings/'+bid)
+  await page.getByRole('button',{name:'Changes',exact:true}).click()
   await page.getByRole('button',{name:'Propose a trip change'}).click()
   await page.getByLabel('Reason for change (Required)',{exact:true}).selectOption('DEPARTURE_TIME_CHANGE')
-  await expect(page.getByLabel('Pickup date and time (Required)',{exact:true})).toBeEnabled()
-  await page.getByLabel('Pickup date and time (Required)',{exact:true}).fill('2027-01-10T10:00')
+  await expect(page.getByLabel(/Pickup date and time/)).toBeEnabled()
+  await page.getByLabel(/Pickup date and time/).fill('2027-01-10T10:00')
+  await page.getByRole('button',{name:'Next',exact:true}).click()
   await page.getByRole('button',{name:'Calculate and propose change'}).click()
   await expect(page.getByText('Added charge and new total are not yet known',{exact:false})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Save reusable rates and send quote'})).toBeVisible()
+  await page.getByRole('button',{name:'Price',exact:true}).click()
+  await expect(page.getByRole('form',{name:'Reusable vehicle rate form'})).toBeVisible()
+  await expect(page.getByText('Answer with reusable route rates',{exact:false})).toBeVisible()
   expect(writes.find(x=>x.path.endsWith('/changes')).body.reason).toBe('DEPARTURE_TIME_CHANGE')
   await expect(page.getByText('LKR 2050.00',{exact:true})).toBeVisible()
 })
@@ -270,14 +284,123 @@ test('shared Owner rate form preserves explicit values, conditional sections and
 
 test('Owner quote uses the same prefilled reusable rate form and structured payload',async({page})=>{
   const writes=await setup(page);await navigate(page,'/bookings/'+bid)
-  await expect(page.getByRole('heading',{name:'Passenger itinerary',exact:true})).toBeVisible();await expect(page.getByLabel('Route pickup (Required)',{exact:true})).toHaveValue('Colombo');await expect(page.getByLabel('Route destination (Required)',{exact:true})).toHaveValue('Kandy')
-  await page.getByRole('button',{name:'Save reusable rates and send quote',exact:true}).click();await expect(page.getByRole('heading',{name:'Trip quote for your itinerary'})).toBeVisible()
+  await page.getByRole('button',{name:'Accept and set price',exact:true}).click()
+  await expect(page.getByLabel(/Starting price/)).toHaveValue('1000');await expect(page.getByLabel(/Included distance/)).toHaveValue('10')
+  await page.getByRole('button',{name:'Send quote',exact:true}).click();await expect(page.getByRole('heading',{name:'Trip quote for your itinerary'})).toBeVisible()
   const payload=writes.find(r=>r.path.endsWith('/quote')).body;expect(payload.rates.rules[0].coverage.kind).toBe('ROUTE');expect(payload.rates.rules[0]).not.toHaveProperty('total');expect(payload.rates.expected_version).toBe(2)
+})
+
+async function expectBookingViewportFits(page){
+  const fit=await page.evaluate(()=>{
+    const card=document.querySelector('.flow-card'),sidebar=document.querySelector('.app-sidebar'),footer=document.querySelector('.flow-card > .flow-actions')
+    const visible=[...document.querySelectorAll('.booking-substep-pane')].find(x=>!x.hidden)
+    const overlap=visible&&footer?visible.getBoundingClientRect().bottom>footer.getBoundingClientRect().top+1:false
+    const horizontalOverflow=[...document.querySelectorAll('.flow-card,.flow-card *')].filter(element=>{const style=getComputedStyle(element);return !element.classList.contains('ui-sr-only')&&element.getClientRects().length&&style.display!=='none'&&style.display!=='inline'&&element.scrollWidth>element.clientWidth+1}).map(element=>({name:element.className||element.tagName,text:element.textContent?.slice(0,40),display:getComputedStyle(element).display,scrollWidth:element.scrollWidth,clientWidth:element.clientWidth,overflowX:getComputedStyle(element).overflowX}))
+    const pane=document.querySelector('.booking-price-pane'),paneRect=pane?.getBoundingClientRect()
+    const wideElements=[...document.querySelectorAll('.booking-price-pane *')].filter(element=>{const rect=element.getBoundingClientRect();return element.getClientRects().length&&paneRect&&(rect.right>paneRect.right+1||rect.left<paneRect.left-1)}).map(element=>{const rect=element.getBoundingClientRect();return{name:element.className||element.tagName,left:Math.round(rect.left-paneRect.left),right:Math.round(rect.right-paneRect.left),width:Math.round(rect.width),position:getComputedStyle(element).position}})
+    const cardStyle=card?getComputedStyle(card):null
+    const cardScrollbars=!!card&&(((cardStyle.overflowY==='auto'||cardStyle.overflowY==='scroll')&&card.scrollHeight>card.clientHeight+1)||((cardStyle.overflowX==='auto'||cardStyle.overflowX==='scroll')&&card.scrollWidth>card.clientWidth+1))
+    return {document:document.documentElement.scrollHeight<=innerHeight+1,documentWidth:document.documentElement.scrollWidth<=innerWidth+1,cardScrollbars,cardWidth:!card||card.scrollWidth<=card.clientWidth+1,sidebar:!sidebar||sidebar.scrollHeight<=sidebar.clientHeight+1,overlap,horizontalOverflow,wideElements}
+  })
+  expect(fit).toEqual({document:true,documentWidth:true,cardScrollbars:false,cardWidth:true,sidebar:true,overlap:false,horizontalOverflow:[],wideElements:[]})
+}
+
+async function expectAgreedPriceLayout(page){
+  const layout=await page.evaluate(()=>{
+    const snapshot=document.querySelector('.booking-price-snapshot'),heading=snapshot.querySelector(':scope > h2'),tabs=snapshot.querySelector(':scope > .booking-substeps > .ui-tabs'),pane=snapshot.querySelector('.booking-substep-pane:not([hidden])'),actions=snapshot.querySelector('.booking-substep-actions'),table=snapshot.querySelector('.trip-price > table'),extras=snapshot.querySelector('.trip-price-extras'),label=table.querySelector('tbody th'),amount=table.querySelector('tbody td')
+    const h=heading.getBoundingClientRect(),t=tabs.getBoundingClientRect(),p=pane.getBoundingClientRect(),a=actions.getBoundingClientRect(),tb=table.getBoundingClientRect(),x=extras.getBoundingClientRect()
+    return {headingToTabs:Math.round(t.top-h.bottom),tabsToContent:Math.round(p.top-t.bottom),contentBeforeActions:p.bottom<=a.top+1,extrasBesideTable:tb.right<=x.left+1,labelAlign:getComputedStyle(label).textAlign,amountAlign:getComputedStyle(amount).textAlign}
+  })
+  expect(layout.headingToTabs).toBeGreaterThanOrEqual(12)
+  expect(layout.headingToTabs).toBeLessThanOrEqual(20)
+  expect(layout.tabsToContent).toBeGreaterThanOrEqual(12)
+  expect(layout.tabsToContent).toBeLessThanOrEqual(20)
+  expect(layout).toMatchObject({contentBeforeActions:true,extrasBesideTable:true,labelAlign:'left',amountAlign:'right'})
+}
+
+test('Owner agreed-price breakdown is top-aligned with a separate non-overlapping footer at 1280x585',async({page})=>{
+  await page.setViewportSize({width:1280,height:585})
+  await setup(page,{agreedPrice:true});await navigate(page,'/bookings/'+bid)
+  for(const language of ['en','ta','si']){
+    await page.locator('.language select').selectOption(language)
+    await page.locator('.flow-top .ui-tabs > *').nth(1).click()
+    await expect(page.locator('.booking-price-snapshot > h2')).toBeVisible()
+    await expectAgreedPriceLayout(page)
+    await expectBookingViewportFits(page)
+  }
+})
+
+test('Requested accepted fixed-route price does not let the heading flex into blank space',async({page})=>{
+  await page.setViewportSize({width:1280,height:585})
+  await setup(page,{fixedAgreedPrice:true});await navigate(page,'/bookings/'+bid)
+  for(const language of ['en','ta','si']){
+    await page.locator('.language select').selectOption(language)
+    await page.locator('.flow-top .ui-tabs > *').nth(1).click()
+    await expect(page.getByText('LKR 6000.00',{exact:true})).toBeVisible()
+    const headingFlex=await page.locator('.booking-price-snapshot > h2').evaluate(element=>getComputedStyle(element).flex)
+    expect(headingFlex).toBe('0 0 auto')
+    await expectAgreedPriceLayout(page)
+    await expectBookingViewportFits(page)
+  }
+})
+
+test('Owner agreed-price substeps remain horizontally contained and reachable on mobile',async({page})=>{
+  await page.setViewportSize({width:390,height:844})
+  await setup(page,{agreedPrice:true});await navigate(page,'/bookings/'+bid)
+  await page.locator('.flow-top .ui-tabs > *').nth(1).click()
+  const next=page.locator('.booking-price-snapshot .booking-substep-actions .ui-button-primary')
+  await next.scrollIntoViewIfNeeded();await expect(next).toBeVisible()
+  expect(await page.evaluate(()=>{const table=document.querySelector('.booking-price-snapshot .trip-price > table').getBoundingClientRect(),extras=document.querySelector('.booking-price-snapshot .trip-price-extras').getBoundingClientRect();return{documentWidth:document.documentElement.scrollWidth<=innerWidth+1,extrasBelowTable:extras.top>=table.bottom-1}})).toEqual({documentWidth:true,extrasBelowTable:true})
+})
+
+test('Owner sees an applicable saved price without duplicate quote controls at 1280x585 in all languages',async({page})=>{
+  await page.setViewportSize({width:1280,height:585})
+  await setup(page,{applicableQuote:true});await navigate(page,'/bookings/'+bid)
+  for(const language of ['en','ta','si']){
+    await page.locator('.language select').selectOption(language)
+    await page.locator('.flow-top .ui-tabs > *').nth(1).click()
+    await expect(page.getByText('LKR 2050.00',{exact:true})).toBeVisible()
+    await expect(page.locator('.booking-price-status')).toBeVisible()
+    await expect(page.locator('.quick-quote,.quote-wizard')).toHaveCount(0)
+    await expect(page.getByLabel(/Base charge|Starting price|Included distance/i)).toHaveCount(0)
+    const verticalAlignment=await page.evaluate(()=>{const tabs=document.querySelector('.booking-price-snapshot > .booking-substeps > .ui-tabs'),previous=tabs.parentElement.previousElementSibling,table=document.querySelector('.booking-price-snapshot .trip-price');const v=previous.getBoundingClientRect(),t=tabs.getBoundingClientRect(),p=table.getBoundingClientRect();return{contentGap:Math.round(t.top-v.bottom),tabsBeforeTable:t.bottom<=p.top+1}})
+    expect(verticalAlignment.contentGap).toBeLessThanOrEqual(8)
+    expect(verticalAlignment.tabsBeforeTable).toBe(true)
+    expect(await page.evaluate(()=>{const table=document.querySelector('.booking-price-snapshot .trip-price'),pane=document.querySelector('.booking-price-snapshot .booking-substeps');return table.getBoundingClientRect().width/pane.getBoundingClientRect().width})).toBeGreaterThan(.9)
+    await expectBookingViewportFits(page)
+    await page.locator('.booking-price-snapshot .ui-tab').nth(1).click()
+    await expect(page.locator('.booking-terms-pane:not([hidden])')).toBeVisible()
+    await expectBookingViewportFits(page)
+    await page.locator('.booking-substep-actions .ui-button-primary').click()
+    await expectBookingViewportFits(page)
+    await page.locator('.booking-substep-actions .ui-button-secondary').click()
+    await page.locator('.booking-substep-actions .ui-button-secondary').click()
+    await expect(page.getByText('LKR 2050.00',{exact:true})).toBeVisible()
+  }
+})
+
+test('Owner location confirmation is separate from pricing and retains substep values',async({page})=>{
+  await page.setViewportSize({width:1280,height:585})
+  await setup(page,{locationPending:true});await navigate(page,'/bookings/'+bid)
+  await expectBookingViewportFits(page)
+  await page.locator('.booking-substep-actions .ui-button-primary').click()
+  await page.getByLabel('Positioning type (Required)',{exact:true}).selectOption('PLANNED')
+  await page.getByRole('searchbox',{name:/Where the vehicle will be/}).fill('Colombo')
+  await page.getByRole('button',{name:'Find location',exact:true}).click();await page.getByRole('button',{name:'Colombo',exact:true}).click()
+  await expectBookingViewportFits(page)
+  await page.locator('.booking-substep-actions .ui-button-secondary').click();await page.locator('.booking-substep-actions .ui-button-primary').click()
+  await expect(page.getByLabel('Positioning type (Required)',{exact:true})).toHaveValue('PLANNED')
+  await expect(page.getByRole('searchbox',{name:/Where the vehicle will be/})).toHaveValue('Colombo')
+  await page.locator('.flow-top .ui-tabs > *').nth(1).click()
+  await expect(page.locator('.booking-price-status')).toContainText('Location confirmation does not require entering the price again.')
+  await expect(page.getByRole('button',{name:'Save reusable rates and send quote',exact:true})).toHaveCount(0)
+  await expectBookingViewportFits(page)
 })
 
 test('changed trip shows old/add/new and preserves agreement when operational checks need review',async({page})=>{
   const writes=await setup(page,{passenger:true,change:true});await navigate(page,'/bookings/'+bid)
-  await expect(page.getByText('LKR 2050.00',{exact:true}).first()).toBeVisible();await expect(page.getByText('LKR 750.00',{exact:true})).toBeVisible();await expect(page.getByText('LKR 2800.00',{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Changes',exact:true}).click()
+  await expect(page.locator('.change-totals').getByText('LKR 2050.00',{exact:true})).toBeVisible();await expect(page.getByText('LKR 750.00',{exact:true})).toBeVisible();await expect(page.getByText('LKR 2800.00',{exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Accept proposed change and charge'}).click();await expect(page.getByText('This interval conflicts with a committed vehicle booking.')).toBeVisible();await expect(page.getByText('The agreed itinerary and price stay in place',{exact:false})).toBeVisible()
   expect(writes.filter(r=>r.path.endsWith('/changes/accept'))).toHaveLength(1)
 })
