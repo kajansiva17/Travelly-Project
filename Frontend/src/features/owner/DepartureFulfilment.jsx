@@ -12,7 +12,7 @@ import {codeEnglish,codeLabel} from '../../i18n/codeLabels.js'
 // DECISION_REQUIRED, DISRUPTED, READY, CANCELLED. Nothing here is decided on the screen: every answer comes from the API.
 export const FULFILMENT_STATUS={
   PUBLISHED:['success','Published'],BOOKING_OPEN:['success','Booking open'],COMMITTED:['success','Committed'],READY:['success','Ready'],
-  DECISION_REQUIRED:['danger','Decision needed'],DISRUPTED:['danger','Disrupted'],CANCELLED:['muted','Cancelled'],DRAFT:['muted','Draft']}
+  DECISION_REQUIRED:['danger','Decision needed'],DISRUPTED:['danger','Disrupted'],CANCELLED:['muted','Cancelled'],COMPLETED:['success','Trip finished'],DRAFT:['muted','Draft']}
 export const statusChip=status=>{const [tone,label]=FULFILMENT_STATUS[status]||['muted',codeEnglish(status)];return {tone,label:t(label)}}
 
 const MINIMUM='MINIMUM_SEATS_WITH_PROTECTED_FULFILMENT'
@@ -25,7 +25,9 @@ export const canCommit=x=>COMMITTABLE.includes(x.status)&&beforeDeparture(x)&&!w
 export const canReport=x=>REPORTABLE.includes(x.status)&&beforeDeparture(x)
 // "Use another of my vehicles": only while the departure waits for Travelly, before it starts (contract section 5).
 export const canReplace=x=>['DECISION_REQUIRED','DISRUPTED'].includes(x.status)&&beforeDeparture(x)&&!waitingForOther(x)
-export const canManage=x=>x.status!=='DRAFT'
+// Over = finished, cancelled, or published but its time passed without running: nothing left to manage, only repeat or remove.
+export const isOver=x=>['COMPLETED','CANCELLED'].includes(x.status)||(!['DRAFT','IN_PROGRESS'].includes(x.status)&&new Date(x.departure_at).getTime()<=Date.now())
+export const canManage=x=>x.status!=='DRAFT'&&!isOver(x)
 
 function explain(error,action){
   const code=error.code,fields=fieldErrors(error)

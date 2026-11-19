@@ -12,6 +12,7 @@ from app.models.rate_models import ServiceType, VehicleService
 from app.schemas.rate_schemas import RateConfiguration, ExamplePreview
 from app.schemas.hire_schemas import EventPackages
 from app.services.rate_calculation import calculate
+from app.services.airports import min_distance_km
 from app.services.pricing_scope import private_hire_scope, require_supported_private_hire
 
 router = APIRouter(prefix='/api/v1', tags=['Vehicle rates'])
@@ -68,7 +69,8 @@ def locations(request: Request):
 @router.get('/service-types')
 def service_types(db: Session = Depends(get_db)):
     rows = db.scalars(select(ServiceType).where(ServiceType.is_active.is_(True), ServiceType.category == 'PRIVATE_HIRE').order_by(ServiceType.display_order, ServiceType.id).limit(100)).all()
-    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r)} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE','EVENT')]}
+    return {'items': [{'id': str(r.id), 'name': r.name, 'code': r.code, 'pricing_scope': private_hire_scope(r),
+                       **({'min_distance_km': min_distance_km(r)} if private_hire_scope(r) == 'LONG_DISTANCE' else {})} for r in rows if private_hire_scope(r) in ('AIRPORT','LOCAL','LONG_DISTANCE','EVENT')]}
 
 
 @router.get('/owners/me/vehicles')
@@ -76,9 +78,10 @@ def own_vehicles(request: Request, user=Depends(current), db: Session = Depends(
     require_role(db, user, 'OWNER')
     from app.api.routers.vehicle_api import summary
     from sqlalchemy import func
-    params=query_values(request,{'page','page_size'});params.setdefault('page_size','100')
+    params=query_values(request,{'page','page_size','removed'});params.setdefault('page_size','100')
+    removed=params.pop('removed','false')=='true'
     page,size=pagination(params)
-    q=select(Vehicle).where(Vehicle.owner_user_id==user.id)
+    q=select(Vehicle).where(Vehicle.owner_user_id==user.id,Vehicle.archived_at.isnot(None) if removed else Vehicle.archived_at.is_(None))
     total=db.scalar(select(func.count()).select_from(q.subquery()))
     rows=db.scalars(q.order_by(Vehicle.created_at,Vehicle.id).offset((page-1)*size).limit(size)).all()
     return page_result([summary(r) for r in rows],page,size,total)

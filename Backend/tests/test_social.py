@@ -157,3 +157,18 @@ def test_only_travellers_review_a_vehicle_once(client, running):
     assert post(client, stranger, post_type='REVIEW', linked_vehicle_id=vehicle_id, rating='1', caption='Bad').json()['code'] == 'REVIEW_NOT_ALLOWED'
     summary = client.get(f'/api/v1/social/vehicles/{vehicle_id}/reviews').json()
     assert summary['average_rating'] == '4.0' and summary['rating_count'] == 1 and summary['items'][0]['rating'] == 4
+
+
+def test_a_reel_can_show_only_the_posters_own_vehicle_and_the_profile_lists_vehicles(client, hire_setup):
+    c = hire_setup
+    stranger = person(client)
+    own = post(client, None, tokens=c.owner, files={'file': ('p.jpg', jpeg(), 'image/jpeg')}, post_type='PHOTO',
+               linked_vehicle_id=str(c.vehicle_id), caption='My van')
+    assert own.status_code == 201, own.text
+    card = own.json()['linked_vehicle']
+    assert card['id'] == str(c.vehicle_id) and card['hireable'] is True and set(card) == {'id', 'name', 'seats', 'hireable'}   # no plate, phone or email
+    other = post(client, stranger, files={'file': ('p.jpg', jpeg(), 'image/jpeg')}, post_type='PHOTO', linked_vehicle_id=str(c.vehicle_id), caption='Not mine')
+    assert other.status_code == 422                                     # nobody can advertise another person's vehicle
+    me = client.get('/api/v1/users/me', headers=bearer(c.owner)).json()
+    seen = client.get(f"/api/v1/social/users/{me['public_user_reference']}")
+    assert seen.status_code == 200 and [v['id'] for v in seen.json()['vehicles']] == [str(c.vehicle_id)]

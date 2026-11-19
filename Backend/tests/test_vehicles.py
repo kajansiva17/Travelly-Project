@@ -101,6 +101,36 @@ def test_draft_authorization_unique_registration_and_private_feedback_projection
     assert call(client,a,'owner','patch','/vehicles/'+row['id'],{'expected_version':1,'vehicle_type_code':'AIRCRAFT'}).status_code==422
 
 
+def test_owner_controls_hire_location_without_exposing_coordinates_or_refreshing_it_on_other_edits(client, actors):
+    row = draft(client, actors)
+    base = client.app.state.rate_locations.signed('Jaffna yard', '9.6615', '80.0255')
+    configured = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}/hire-location", {
+        'expected_version': row['version'], 'base_location': base,
+        'pickup_distance_km': '50', 'accepts_hire_bookings': True,
+    })
+    assert configured.status_code == 200, configured.text
+    row = configured.json()
+    assert row['hire_location']['base_label'] == 'Jaffna yard'
+    assert row['hire_location']['pickup_distance_km'] == '50.00'
+    assert not ({'base_latitude', 'base_longitude', 'current_latitude', 'current_longitude'} & set(row['hire_location']))
+    denied = call(client, actors, 'other', 'patch', f"/vehicles/{row['id']}/hire-location", {
+        'expected_version': row['version'], 'base_location': base,
+        'pickup_distance_km': '10', 'accepts_hire_bookings': False,
+    })
+    assert denied.status_code == 404
+    current = client.app.state.rate_locations.signed('Colombo', '6.9271', '79.8612')
+    confirmed = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}/location", {
+        'expected_version': row['version'], 'location': current, 'accuracy_m': '12.5',
+    })
+    assert confirmed.status_code == 200, confirmed.text
+    row = confirmed.json(); observed = row['hire_location']['current_observed_at']
+    edited = call(client, actors, 'owner', 'patch', f"/vehicles/{row['id']}", {
+        'expected_version': row['version'], 'description': 'Location timestamp must stay independent.',
+    })
+    assert edited.status_code == 200, edited.text
+    assert edited.json()['hire_location']['current_observed_at'] == observed
+
+
 @pytest.mark.parametrize('kind',['CAR','VAN','BUS','THREE_WHEELER'])
 def test_initial_vehicle_types_require_factual_capacity_and_submission_evidence(client,actors,kind):
     row=draft(client,actors,kind=kind)
@@ -249,6 +279,8 @@ def test_preferred_driver_minimal_lookup_and_preference_never_assigns_a_trip(cli
         assert db.scalar(select(func.count()).select_from(Trip))==0
         d=db.get(Document,lid);d.expiry_date=(datetime.now(timezone.utc)-timedelta(days=1)).date();db.commit()
     assert call(client,a,'owner','post','/drivers/eligible-lookup',body).status_code==409
+    anyservice=call(client,a,'owner','post','/drivers/eligible-lookup',{'vehicle_id':row['id'],'driver_reference':driver['public_user_reference']})
+    assert anyservice.status_code==409   # licence expired above: no active service fits
     cleared=call(client,a,'owner','patch',f"/vehicles/{row['id']}/preferred-driver",{'expected_version':selected.json()['version'],'driver_reference':None})
     assert cleared.status_code==200 and cleared.json()['preferred_driver_id'] is None
 
@@ -259,7 +291,7 @@ def test_invalid_photo_content_and_missing_review_applicability_fail_closed(clie
         response=call(client,a,'owner','post',f"/vehicles/{row['id']}/photos",data={'category':'EXTERIOR','expected_version':str(row['version'])},files={'file':(name,content,mime)})
         assert response.status_code==422,response.text
     assert call(client,a,'owner','get','/owners/me/vehicles/'+row['id']).json()['photos']==[]
-    invalid=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/review",{'expected_version':row['version'],'category':'TEST_CAR','conditional_documents':{'EMISSION':False},'authorisation_required':False})
+    invalid=call(client,a,'admin','patch',f"/admin/vehicles/{row['id']}/review",{'expected_version':row['version'],'category':'TEST_CAR','conditional_documents':{'FITNESS':False},'authorisation_required':False})
     assert invalid.status_code==422
 
 
@@ -332,3 +364,18 @@ def test_multibyte_description_audit_stays_bounded_and_withdrawal_is_immediate(c
         with pytest.raises(ApiError):client.app.state.audit.append({'correlation_id':str(uuid4()),'outcome':'history_read','payload':'\u8eca'*30000})
         with pytest.raises(ApiError):client.app.state.audit.append({'correlation_id':str(uuid4()),'outcome':'intent','payload':'x'*64000})
     records,_,_=client.app.state.audit.records();assert len(records)==len(previous)
+
+
+def test_owner_removes_and_restores_a_vehicle_without_deleting_it(client,actors):
+    a=actors;row=draft(client,a);keep=draft(client,a)
+    removed=call(client,a,'owner','post',f"/vehicles/{row['id']}/remove",{'expected_version':row['version']})
+    assert removed.status_code==200,removed.text
+    assert removed.json()['removed'] and not removed.json()['published']
+    assert [v['id'] for v in call(client,a,'owner','get','/owners/me/vehicles').json()['items']]==[keep['id']]
+    gone=call(client,a,'owner','get','/owners/me/vehicles?removed=true').json()['items']
+    assert [v['id'] for v in gone]==[row['id']]
+    again=call(client,a,'owner','post',f"/vehicles/{row['id']}/remove",{'expected_version':removed.json()['version']})
+    assert again.status_code==409 and again.json()['code']=='VEHICLE_ALREADY_REMOVED'
+    back=call(client,a,'owner','post',f"/vehicles/{row['id']}/restore",{'expected_version':removed.json()['version']})
+    assert back.status_code==200 and not back.json()['removed']
+    assert len(call(client,a,'owner','get','/owners/me/vehicles').json()['items'])==2

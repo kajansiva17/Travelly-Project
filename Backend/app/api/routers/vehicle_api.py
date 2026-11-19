@@ -22,7 +22,7 @@ from app.services.private_documents import document_summary
 from app.schemas.hire_schemas import Version
 from app.services.hire_services import eligible_vehicle, vehicle_evidence, compatible_driver, approved
 from app.schemas.vehicle_schemas import (VehicleCreate,VehiclePatch,VehicleFacts,VehicleDecision,RegistrationCorrection,
-    Availability,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision)
+    Availability,HireLocationSettings,VehicleLocationUpdate,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision)
 from app.services.review_audit import canonical
 from app.services.vehicle_rules import FACTS,MATERIAL,facts,require_complete,has_exterior,commitments,no_commitments,photo_summary,public_photos,validate_public_facts
 
@@ -36,8 +36,14 @@ def version(row,body):
 def summary(row):
     return {'id':str(row.id),'reference':row.public_vehicle_reference,'label':' '.join(str(x) for x in (row.make,row.model,row.registration_number) if x),
         'registration_number':str(row.registration_number),'verification_status':row.verification_status,'availability_status':row.availability_status,
-        'published':row.is_published,'version':row.version,**facts(row),
+        'published':row.is_published,'removed':row.archived_at is not None,'version':row.version,**facts(row),
         'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
+        'hire_location':{'base_label':row.base_location_label,'base_configured':row.base_latitude is not None,
+            'pickup_distance_km':format(row.pickup_distance_km, '.2f') if row.pickup_distance_km is not None else None,
+            'accepts_bookings':bool(row.accepts_hire_bookings),
+            'current_source':row.current_location_source,
+            'current_observed_at':row.current_location_observed_at.isoformat() if row.current_location_observed_at else None,
+            'current_accuracy_m':str(row.current_location_accuracy_m) if row.current_location_accuracy_m is not None else None},
         'photos':[photo_summary(row.id,p) for p in row.media],
         'description_review':{k:v for k,v in row.verified_eligibility.get('description_review',{}).items() if k in ('status','approved_text','reason','reviewed_at')}}
 
@@ -45,9 +51,19 @@ def summary(row):
 def before(row):
     return {'version':row.version,'verification_status':row.verification_status,'state':{
         **facts(row),'registration_number':str(row.registration_number),'verification_status':row.verification_status,
-        'availability_status':row.availability_status,'published':row.is_published,'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
+        'availability_status':row.availability_status,'published':row.is_published,'removed':row.archived_at is not None,'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
         'approved_by':str(row.approved_by) if row.approved_by else None,'approved_at':row.approved_at.isoformat() if row.approved_at else None,
         'odometer_updated_at':row.odometer_updated_at.isoformat() if row.odometer_updated_at else None,
+        'hire_location':{'base_location_label':row.base_location_label,
+            'base_latitude':str(row.base_latitude) if row.base_latitude is not None else None,
+            'base_longitude':str(row.base_longitude) if row.base_longitude is not None else None,
+            'pickup_distance_km':format(row.pickup_distance_km, '.2f') if row.pickup_distance_km is not None else None,
+            'accepts_hire_bookings':row.accepts_hire_bookings,
+            'current_latitude':str(row.current_latitude) if row.current_latitude is not None else None,
+            'current_longitude':str(row.current_longitude) if row.current_longitude is not None else None,
+            'current_location_source':row.current_location_source,
+            'current_location_observed_at':row.current_location_observed_at.isoformat() if row.current_location_observed_at else None,
+            'current_location_accuracy_m':str(row.current_location_accuracy_m) if row.current_location_accuracy_m is not None else None},
         'updated_by':str(row.updated_by) if row.updated_by else None,'updated_at':row.updated_at.isoformat() if row.updated_at else None,
         'media':copy.deepcopy(row.media),'eligibility':copy.deepcopy(row.verified_eligibility)}}
 
@@ -106,7 +122,8 @@ def details(db,request,user,row):
     applicable=row.verified_eligibility.get('conditional_documents',{})
     checklist=[{'type':t,'requirement':'Required'} for t in ('VEHICLE_REGISTRATION','INSURANCE','REVENUE_LICENCE')]
     checklist.append({'type':'OWNER_AUTHORISATION','requirement':'Required for your case' if declaration.get('registered_owner_case') in ('OTHER_PERSON','COMPANY') or row.verified_eligibility.get('authorisation_required') else 'Optional'})
-    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION','FITNESS'))
+    checklist.extend({'type':t,'requirement':'Required for your case' if applicable.get(t) else 'Optional' if applicable.get(t) is False else 'Required for your case — Admin must confirm applicability'} for t in ('EMISSION',))
+    checklist.append({'type':'FITNESS','requirement':'Optional — upload it only if you have one.'})
     checklist.append({'type':'ROUTE_PERMIT','requirement':'Optional — upload only if you have one. The system checks it; Admin does not review it.'})
     owner=db.get(User,row.owner_user_id)
     replacement=Document.__table__.alias('replacement')
@@ -135,6 +152,15 @@ def create_vehicle(body:VehicleCreate,request:Request,user=Depends(current),db:S
             'registration_number':body.registration_number,'public_reference':row.public_vehicle_reference},
             previous_status=None,new_status='DRAFT',previous_version=0,new_version=1,full_reason=None,previous_decision_evidence={},trace_id=request.state.trace_id)
     return summary(row)
+
+
+@router.get('/drivers/me/vehicles')
+def driver_vehicles(user=Depends(current),db:Session=Depends(get_db)):
+    """Vehicles this Driver is the preferred Driver of (for the Driver's Maintenance page; read-only)."""
+    require_role(db,user,'DRIVER')
+    rows=db.scalars(select(Vehicle).where(Vehicle.default_driver_user_id==user.id).order_by(Vehicle.created_at)).all()
+    return {'items':[{'id':str(r.id),'reference':r.public_vehicle_reference,'registration_number':str(r.registration_number),
+        'label':' '.join(str(x) for x in (r.make,r.model,r.registration_number) if x)} for r in rows]}
 
 
 @router.get('/owners/me/vehicles/{vehicle_id}')
@@ -219,13 +245,94 @@ def availability(vehicle_id:UUID,body:Availability,request:Request,user=Depends(
     return summary(row)
 
 
+@router.patch('/vehicles/{vehicle_id}/hire-location')
+def hire_location_settings(vehicle_id:UUID,body:HireLocationSettings,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Owner-controlled base, pickup radius and new-booking switch. This never refreshes current-location freshness."""
+    if body.base_location:request.app.state.rate_locations.verify(body.base_location)
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body);old=before(row)
+        if body.base_location:
+            row.base_location_label=body.base_location.label
+            row.base_latitude=body.base_location.latitude;row.base_longitude=body.base_location.longitude
+        elif row.base_latitude is None:
+            raise ApiError(422,'BASE_LOCATION_REQUIRED','Select the vehicle base location before accepting bookings.')
+        row.pickup_distance_km=body.pickup_distance_km
+        row.accepts_hire_bookings=body.accepts_hire_bookings
+        commit(db,request,user,row,old,purpose='VEHICLE_HIRE_LOCATION_SETTINGS')
+    return summary(row)
+
+
+def location_vehicle(db,request,user,vehicle_id,body):
+    """Owner, or an accepted operating Driver, may explicitly confirm this vehicle's position."""
+    from app.models.hire_models import Trip
+    row=db.get(Vehicle,vehicle_id)
+    if not row:raise ApiError(404,'VEHICLE_NOT_FOUND','Vehicle not found.')
+    if row.owner_user_id==user.id:
+        require_role(db,user,'OWNER')
+    else:
+        require_role(db,user,'DRIVER')
+        active=db.scalar(select(Trip.id).where(Trip.vehicle_id==vehicle_id,Trip.driver_user_id==user.id,
+            Trip.assignment_status=='ACCEPTED',Trip.status.in_(('READY','IN_PROGRESS','BREAKDOWN','ASSISTANCE_REQUIRED'))).limit(1))
+        if not active:raise ApiError(404,'VEHICLE_NOT_FOUND','Vehicle not found.')
+    locked_authority(db,request,user,user.id,require_admin=False)
+    row=db.scalar(select(Vehicle).where(Vehicle.id==vehicle_id).with_for_update().execution_options(populate_existing=True))
+    version(row,body)
+    return row
+
+
+@router.patch('/vehicles/{vehicle_id}/location')
+def confirm_vehicle_location(vehicle_id:UUID,body:VehicleLocationUpdate,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    request.app.state.rate_locations.verify(body.location)
+    with request.app.state.audit.coordinated():
+        row=location_vehicle(db,request,user,vehicle_id,body);old=before(row)
+        row.current_latitude=body.location.latitude;row.current_longitude=body.location.longitude
+        row.current_location_source='MANUAL';row.current_location_observed_at=datetime.now(timezone.utc)
+        row.current_location_accuracy_m=body.accuracy_m
+        commit(db,request,user,row,old,purpose='VEHICLE_LOCATION_CONFIRMATION')
+    return summary(row)
+
+
 def eligible_preference(db,vehicle,sid,reference):
-    service=db.get(ServiceType,sid)
-    if not service or not service.is_active or service.category!='PRIVATE_HIRE':raise ApiError(409,'SERVICE_UNAVAILABLE','Choose an active service for the suitability check.')
+    """A Driver is eligible when the licence fits the vehicle for the chosen service, or (no service chosen) for at least one active private-hire service."""
+    if sid:
+        services=[db.get(ServiceType,sid)]
+    else:
+        services=list(db.scalars(select(ServiceType).where(ServiceType.category=='PRIVATE_HIRE',ServiceType.is_active.is_(True)).order_by(ServiceType.code)))
+    services=[s for s in services if s and s.is_active and s.category=='PRIVATE_HIRE']
+    if not services:raise ApiError(409,'SERVICE_UNAVAILABLE','No active service is available for the suitability check.')
     driver=db.scalar(select(User).where(User.public_user_reference==reference))
     if not driver:raise ApiError(404,'DRIVER_NOT_FOUND','An eligible Driver for this vehicle/service was not found.')
-    compatible_driver(db,driver,vehicle,service,datetime.now(timezone.utc))
-    return driver
+    failure=None
+    for service in services:
+        try:
+            compatible_driver(db,driver,vehicle,service,datetime.now(timezone.utc));return driver
+        except ApiError as error:failure=error
+    raise failure
+
+
+@router.post('/vehicles/{vehicle_id}/remove')
+def remove_vehicle(vehicle_id:UUID,body:Version,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Owner removes a vehicle from the fleet list. Archive only: the record, bookings, payments and history stay (PRD).
+    A Draft goes at once; an approved vehicle only when no confirmed/upcoming booking, trip or scheduled trip needs it."""
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body)
+        if row.archived_at is not None:raise ApiError(409,'VEHICLE_ALREADY_REMOVED','This vehicle is already removed.')
+        if row.verification_status!='DRAFT':no_commitments(db,row.id)
+        old=before(row);row.archived_at=datetime.now(timezone.utc);row.is_published=False
+        if row.availability_status in ('ACTIVE',):row.availability_status='INACTIVE'
+        commit(db,request,user,row,old,purpose='VEHICLE_REMOVED')
+    return summary(row)
+
+
+@router.post('/vehicles/{vehicle_id}/restore')
+def restore_vehicle(vehicle_id:UUID,body:Version,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    """Brings a removed vehicle back to the fleet list. It stays unpublished and inactive until the Owner turns it on again."""
+    with request.app.state.audit.coordinated():
+        row=own_locked(db,request,user,vehicle_id,body)
+        if row.archived_at is None:raise ApiError(409,'VEHICLE_NOT_REMOVED','This vehicle is not removed.')
+        old=before(row);row.archived_at=None
+        commit(db,request,user,row,old,purpose='VEHICLE_RESTORED')
+    return summary(row)
 
 
 @router.post('/drivers/eligible-lookup')

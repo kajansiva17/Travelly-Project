@@ -1,5 +1,4 @@
-﻿/* Final six-page composition. Source assets remain individual responsive images. */
-body .public-page .passenger-hero{height:690px;min-height:690px;max-height:none}
+
 body .public-page .hero h1{font-size:clamp(44px,4.6vw,72px);font-weight:600;line-height:1.08;max-width:820px}
 body .public-page #services{padding-top:20px}
 /* Operational layouts are authored in workspaces.css, without the old dashboard theme. */
@@ -9,7 +8,6 @@ body .workspace-card-heading h2{font-size:17px}
 @media(min-width:1100px) and (min-height:760px){body .workspace-menu-toggle{display:none}}
 @media(max-width:1099px),(max-height:759px){body .workspace-menu-toggle{display:inline-flex}}
 @media(max-width:767px){
- body .public-page .passenger-hero{height:660px;min-height:660px}
  body .public-page .hero h1{font-size:clamp(36px,7.5vw,54px)}
  body .workspace-card-heading h2{font-size:17px}
 }

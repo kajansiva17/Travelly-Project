@@ -6,7 +6,6 @@ body .workspace-shell[data-workspace] {
 }
 body .workspace-shell .workspace-card {padding:16px}
 body .workspace-shell .review-reason {color:var(--brand-red);background:var(--brand-red-tint)}
-body .workspace-shell .dashboard-profile-dropdown {background:#f4f9ff;color:#071645;border:1px solid #b0c7da}
 @media(max-width:767px){
  body .workspace-shell .workspace-menu-toggle {color:#071645;background:#e7f3fd;border:1px solid #fff}
  body .workspace-shell .workspace-card {padding:14px}

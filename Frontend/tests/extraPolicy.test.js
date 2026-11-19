@@ -45,3 +45,11 @@ test('headings: Farther away before the first far entry, Ask the Owner before th
   assert.deepEqual(headingsBefore(all[3], undefined), ['ASK', 'FAR'])   // a page that starts in the far unpriced part
   assert.deepEqual(headingsBefore(all[0], undefined), [])
 })
+
+test('owner-confirmation entries form their own clearly labelled search section', () => {
+  const all = searchEntries({ items: [{ id: 'available' }], quote_on_request: [
+    { id: 'price', near: true }, { id: 'confirm', near: true, owner_confirmation_required: true },
+  ] })
+  assert.deepEqual(all.map(entry => entry.id), ['available', 'confirm', 'price'])
+  assert.deepEqual(all.map((entry, index) => headingsBefore(entry, all[index - 1])), [[], ['CONFIRM'], ['ASK']])
+})

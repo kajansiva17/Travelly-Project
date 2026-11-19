@@ -43,14 +43,14 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { 
   --lr-sheen: linear-gradient(180deg, rgb(255 255 255 / .3), rgb(255 255 255 / 0)) top / 100% 46% no-repeat;
   --lr-rim: inset 0 1px 0 rgb(255 255 255 / .9), inset 0 0 0 1px rgb(255 255 255 / .25);
   /* red glass: the brand red at 30% over a white-ish base, border at 50% */
-  --lr-gr-base: rgb(255 255 255 / .6);
-  --lr-gr-tint: rgb(var(--brand-red-rgb) / .3);
-  --lr-gr-tint-hover: rgb(var(--brand-red-rgb) / .42);
-  --lr-gr-tint-active: rgb(var(--brand-red-rgb) / .55);
-  --lr-gr-border: rgb(var(--brand-red-rgb) / .5);
-  --lr-gr-border-hover: rgb(var(--brand-red-rgb) / .75);
+  --lr-gr-base: rgb(255 255 255 / .55);
+  --lr-gr-tint: rgb(var(--brand-red-rgb) / .1);
+  --lr-gr-tint-hover: rgb(var(--brand-red-rgb) / .2);
+  --lr-gr-tint-active: rgb(var(--brand-red-rgb) / .34);
+  --lr-gr-border: rgb(var(--brand-red-rgb) / .85);
+  --lr-gr-border-hover: rgb(var(--brand-red-rgb) / 1);
   --lr-gr-text: var(--ui-ink);
-  --lr-gr-shadow: 0 6px 16px rgb(var(--brand-red-rgb) / .2), 0 2px 4px rgb(18 40 90 / .1);
+  --lr-gr-shadow: 0 6px 16px rgb(var(--brand-red-rgb) / .28), 0 2px 4px rgb(18 40 90 / .12);
   /* neutral glass */
   --lr-gn-top: rgb(255 255 255 / .82);
   --lr-gn-bottom: rgb(226 236 250 / .6);
@@ -61,13 +61,15 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-content > .lr-features-section { 
   --lr-gn-depth: 0 8px 18px rgb(18 40 90 / .2), 0 2px 4px rgb(18 40 90 / .12);
 }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red {
-  background: var(--lr-sheen), linear-gradient(var(--lr-gr-tint), var(--lr-gr-tint)), var(--lr-gr-base) !important;
+  background: linear-gradient(180deg, rgb(255 255 255 / .55), rgb(255 255 255 / 0) 52%), linear-gradient(180deg, rgb(var(--brand-red-rgb) / .34), rgb(var(--brand-red-rgb) / .62)), var(--lr-gr-base) !important;
   color: var(--lr-gr-text) !important; text-shadow: none;
-  border: 1px solid var(--lr-gr-border) !important; box-shadow: var(--lr-rim), var(--lr-gr-shadow) !important;
-  -webkit-backdrop-filter: var(--lr-glass-blur); backdrop-filter: var(--lr-glass-blur);
+  border: 1px solid rgb(255 255 255 / .85) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / .8), inset 0 -3px 6px rgb(var(--brand-red-rgb) / .22), 0 6px 16px rgb(var(--brand-red-rgb) / .3), 0 0 0 3px rgb(var(--brand-red-rgb) / .1) !important;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   transition: background .15s, box-shadow .15s, border-color .15s, transform .15s;
 }
-html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover { background: var(--lr-sheen), linear-gradient(var(--lr-gr-tint-hover), var(--lr-gr-tint-hover)), var(--lr-gr-base) !important; border-color: var(--lr-gr-border-hover) !important; transform: translateY(-1px); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red { font-weight: 650; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red :is(svg, .lr-role-icon) { color: var(--lr-navy, #07083e); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover { background: var(--lr-sheen), linear-gradient(180deg, rgb(var(--brand-red-rgb) / .62), rgb(var(--brand-red-rgb) / .9)), var(--lr-gr-base) !important; border-color: var(--lr-gr-border-hover) !important; transform: translateY(-1px); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:active { background: linear-gradient(var(--lr-gr-tint-active), var(--lr-gr-tint-active)), var(--lr-gr-base) !important; box-shadow: inset 0 2px 6px rgb(var(--brand-red-rgb) / .3) !important; transform: translateY(0); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral {
   background: var(--lr-sheen), linear-gradient(180deg, var(--lr-gn-top), var(--lr-gn-bottom)) !important;
@@ -81,12 +83,14 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral:hover { background:
 html body .lr-page.lr-page.lr-page.lr-page .lr-glass-neutral:active { background: linear-gradient(180deg, rgb(214 226 244 / .85), rgb(236 243 252 / .8)) !important; box-shadow: inset 0 2px 6px rgb(18 40 90 / .28) !important; transform: translateY(0); }
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
 html body .lr-page.lr-page.lr-page.lr-page :is(.lr-glass-red, .lr-glass-neutral):is(:disabled, [aria-disabled="true"]) { opacity: .55; transform: none; cursor: default; }
-/* Sign up: the only highlighted red. Flat brand red, white text, soft shadow of the same red, a faint white overlay for gloss. */
+/* Sign up: the one focus. Vivid brand red as glass: a top gloss, a deep translucent red body, a white rim and a red glow. The other red buttons (.lr-glass-red) are the clear second level. */
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup {
-  background: linear-gradient(180deg, rgb(255 255 255 / .22), rgb(255 255 255 / 0) 36%), var(--brand-red) !important; color: #fff !important; text-shadow: none;
-  border: 1px solid rgb(255 255 255 / .55) !important; box-shadow: 0 6px 14px rgb(var(--brand-red-rgb) / .38) !important;
+  background: linear-gradient(180deg, rgb(255 255 255 / .4), rgb(255 255 255 / 0) 52%), linear-gradient(180deg, rgb(var(--brand-red-rgb) / .97), rgb(var(--brand-red-rgb) / .86)) !important; color: #fff !important; text-shadow: none;
+  border: 1px solid rgb(255 255 255 / .8) !important; font-weight: 700;
+  -webkit-backdrop-filter: var(--lr-glass-blur); backdrop-filter: var(--lr-glass-blur);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .75), inset 0 -3px 6px rgb(0 0 0 / .14), 0 8px 20px rgb(var(--brand-red-rgb) / .5), 0 0 0 3px rgb(var(--brand-red-rgb) / .16) !important;
 }
-html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: 0 8px 18px rgb(var(--brand-red-rgb) / .55) !important; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-signup:hover { box-shadow: inset 0 1px 0 rgb(255 255 255 / .75), inset 0 -3px 6px rgb(0 0 0 / .14), 0 10px 24px rgb(var(--brand-red-rgb) / .65), 0 0 0 4px rgb(var(--brand-red-rgb) / .22) !important; transform: translateY(-1px); }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:active { box-shadow: inset 0 2px 6px rgb(0 0 0 / .22) !important; }
 html body .lr-page.lr-page.lr-page.lr-page .lr-signup:focus-visible { outline: 3px solid var(--brand-red); outline-offset: 3px; }
 /* role icons in the navbar take the text colour (red when the pill is active) */
@@ -103,7 +107,6 @@ html body .lr-page.lr-page.lr-page.lr-page .lr-footer nav > :first-child { min-w
 /* ---- phones ---- */
 @media (max-width: 760px) {
   html body .lr-page.lr-page.lr-page.lr-page .lr-hero { padding-bottom: 0; }
-  html body .lr-page.lr-page.lr-page.lr-page.lr-driver .lr-hero-art, html body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-hero-art { position: relative; inset: auto; flex: 1 1 auto; min-height: 230px; height: auto; margin: 16px calc(-1 * var(--lr-edge)) 0 calc(-1 * (var(--lr-edge) + var(--nav-pad-x))); width: auto; }
   html body .lr-page.lr-page.lr-page.lr-page.lr-home .lr-hero { padding-bottom: 16px; }
   html body .lr-page.lr-page.lr-page.lr-page .lr-footer { flex-direction: column; justify-content: center; gap: 12px; }
 }
@@ -126,10 +129,12 @@ html body .lr-page.lr-owner .lr-hero-scene { object-position: center 0%; }
 
 /* phones: a readable logo (the app navbar shrinks it to 80px; the landing bar has room) */
 @media (max-width: 760px) {
-  html body .lr-page.lr-page.lr-page.lr-page .lr-header.lr-header.lr-header.lr-header .brand.travelly-brand { width: 150px; }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-header.lr-header.lr-header.lr-header { --nav-pad-x: 8px; --nav-gap: 8px; }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-header.lr-header.lr-header.lr-header .brand.travelly-brand { width: clamp(128px, calc(100vw - 96px), 150px); flex: 0 0 auto; }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-header .lr-menu { width: 44px; min-width: 44px; height: 44px; min-height: 44px; flex: 0 0 auto; }
 }
 @media (max-width: 760px) {
-  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
 }
 
 @media (max-width: 760px) { html body .lr-page.lr-page.lr-page.lr-page .lr-hero-copy { width: 100%; } }
@@ -180,3 +185,158 @@ html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions .lr-p
   html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page .lr-hero-actions { flex-wrap: wrap; }
   html:not([lang=en]) body .lr-page.lr-page.lr-page.lr-page.lr-owner .lr-description { max-width: max(var(--lr-clear-w), 230px); }
 }
+
+/* Navbar links (Home / For Drivers / For Owners): no pill. The page you are on gets a dark red underline, the same red as Sign up; hover shows a lighter one. */
+html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link { border-color: transparent !important; background: none !important; box-shadow: none !important; border-radius: 0; color: var(--lr-navy, #07083e) !important; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link::before { content: ''; position: absolute; left: 8px; right: 8px; bottom: 1px; height: 3px; border-radius: 3px; background: rgb(var(--brand-red-rgb) / .45); transform: scaleX(0); transform-origin: center; transition: transform .18s; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link:hover::before { transform: scaleX(1); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link.lr-active::before { transform: scaleX(1); background: var(--brand-red); box-shadow: 0 1px 4px rgb(var(--brand-red-rgb) / .45); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link.lr-active .lr-role-icon { filter: none; }
+@media (prefers-reduced-motion: reduce) { html body .lr-page.lr-page.lr-page.lr-page .lr-nav-link::before { transition: none; } }
+
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover { color: #fff !important; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-glass-red:hover :is(svg, .lr-role-icon) { color: #fff; }
+
+/* The supplied Driver and Owner hero scenes are 16:9 landscapes. On phones,
+   keeping either image behind a tall hero necessarily cuts off the people at
+   the right edge. Show the complete supplied composition below the real HTML
+   copy instead; desktop continues to use the background treatment above. */
+@media (max-width: 760px) {
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero {
+    position: relative;
+    isolation: auto;
+    min-height: 0;
+    height: auto;
+    padding: calc(var(--lr-header-bottom, 76px) + 24px) var(--lr-gutter) 28px;
+    gap: 18px;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-art {
+    position: relative;
+    inset: auto;
+    order: 2;
+    z-index: 0;
+    width: calc(100% + 2 * var(--lr-gutter));
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1672 / 941;
+    margin: 0 calc(-1 * var(--lr-gutter));
+    overflow: visible;
+    pointer-events: none;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-scene { object-position: center; }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-art::before {
+    display: none;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-art::after {
+    display: none;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner) .lr-hero-copy {
+    position: relative;
+    order: 1;
+    z-index: 1;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* The last responsive layer made the open menu transparent and allowed its
+     links to compete in narrow columns. Keep the navigation in a clear glass
+     panel, with one aligned route per row and the account actions below. */
+  html body .lr-page.lr-page.lr-page.lr-page .lr-header.lr-header-menu-open {
+    height: auto !important;
+    min-height: var(--nav-h);
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-bottom: 12px;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-header .lr-nav.lr-nav-open {
+    /* Keep an expanded menu in the header's normal flow.  The header's
+       ResizeObserver then updates --lr-header-bottom, preventing its panel
+       from covering the hero title on Home, Driver, or Owner. */
+    position: static;
+    flex: 1 0 100%;
+    width: 100%;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / .92);
+    border-radius: 18px;
+    background: rgb(240 247 255 / .96);
+    box-shadow: 0 12px 28px rgb(18 40 90 / .22), inset 0 1px 0 rgb(255 255 255 / .88);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    backdrop-filter: blur(18px) saturate(1.15);
+  }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-nav.lr-nav-open .lr-nav-link {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+  }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-nav.lr-nav-open .lr-language {
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 40px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid rgb(18 40 90 / .12);
+    border-radius: 12px;
+    background: rgb(255 255 255 / .68);
+  }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-nav.lr-nav-open :is(.lr-login, .lr-signup) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
+/* Showcase (Driver / Owner second section): a big photo and a list. */
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; padding: 10px; margin-top: 16px; border-radius: 20px; align-items: stretch; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-photos { position: relative; aspect-ratio: 3 / 2; border-radius: 14px; overflow: hidden; background: rgb(255 255 255 / .4); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-photos img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.03); transition: opacity .35s, transform .5s; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-photos img.lr-on { opacity: 1; transform: none; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-auto-rows: 1fr; align-content: stretch; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-list li { display: flex; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item { flex: 1; position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 36px 12px 12px; border-radius: 14px; border: 1px solid transparent; background: rgb(255 255 255 / .28); color: var(--lr-navy, #07083e); text-align: left; transition: background .15s, border-color .15s, box-shadow .15s; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item.lr-on, html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item:hover { background: rgb(255 255 255 / .75); border-color: rgb(var(--brand-red-rgb) / .55); box-shadow: 0 6px 16px rgb(var(--brand-red-rgb) / .16); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item.lr-on::before { content: ''; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 4px; border-radius: 4px; background: var(--brand-red); }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-text { display: grid; gap: 2px; min-width: 0; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-text strong { font-size: 18px; font-weight: 800; letter-spacing: -.4px; line-height: 1.15; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-text small { font-size: 14px; font-weight: 550; line-height: 1.25; }
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item .lr-card-arrow { right: 10px; }
+@media (max-width: 760px) {
+  html body .lr-page.lr-page.lr-page.lr-page .lr-showcase { grid-template-columns: 1fr; }
+  html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-photos { min-height: 0; aspect-ratio: 16 / 9; }
+}
+@media (prefers-reduced-motion: reduce) { html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-photos img, html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item { transition: none; } }
+
+/* Driver and Owner first section: four equal cards, the whole photo (3:2, never cropped) above the text, aligned on one row. */
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first { grid-template-columns: repeat(var(--lr-first-cols, 4), minmax(0, 1fr)); gap: 12px; margin-top: 16px; align-items: stretch; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first .lr-card { position: relative; display: flex; flex-direction: column; height: auto; min-height: 0; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first .lr-card-photo { width: 100%; height: auto; aspect-ratio: 3 / 2; border-radius: 0; flex: none; position: static; inset: auto; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first .lr-card-body { flex: 1; align-items: flex-start; min-height: 0; margin-left: 0; width: 100%; padding: 10px 30px 12px 10px; gap: 9px; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first h3 { font-size: 17px; white-space: normal; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first p { font-size: 13px; margin-top: 4px; line-height: 1.2; }
+html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first .lr-card-arrow { top: auto; bottom: 14px; transform: rotate(-90deg); right: 8px; }
+@media (max-width: 1000px) { html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { html body .lr-page.lr-page.lr-page.lr-page:is(.lr-driver, .lr-owner, .lr-home) .lr-cards-first { grid-template-columns: 1fr; } }
+
+html body .lr-page.lr-page.lr-page.lr-page .lr-showcase-item .lr-icon-well { align-self: center; flex: none; margin: 0; }
+
+html body .lr-page.lr-page.lr-page.lr-page.lr-home { --lr-first-cols: 3; }

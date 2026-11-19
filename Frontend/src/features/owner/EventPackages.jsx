@@ -13,7 +13,7 @@ import {PACKAGE_LIMITS,canSave,checkPackage,newPackageId,readEvent,toBody} from 
    replaces the whole list (1 to 20). Add, edit and remove happen on the list first; Save packages sends it. */
 const MESSAGES={name:'Enter a name (up to 120 characters).',hours:'More than 0 and at most 24 hours.',price:'Above 0, with at most two decimals.',notes:'Up to 500 characters.'}
 
-export default function EventPackages({vehicle,Footer}){
+export default function EventPackages({vehicle,Footer,onServiceLoaded}){
   const [event,setEvent]=useState(null),[saved,setSaved]=useState(null),[packages,setPackages]=useState([]),[enabled,setEnabled]=useState(true),[editing,setEditing]=useState(null),[removing,setRemoving]=useState(null)
   const [busy,setBusy]=useState(false),[message,setMessage]=useState({text:'',warn:false}),[errors,setErrors]=useState({}),[loadError,setLoadError]=useState(''),sending=useRef(false)
   const load=useCallback(async(keepMessage=false)=>{
@@ -21,10 +21,10 @@ export default function EventPackages({vehicle,Footer}){
       const [types,own]=await Promise.all([publicRead('/service-types'),api(`/vehicles/${vehicle.id}/services`,{cache:'no-store'})])
       const service=(types.items||[]).find(s=>s.pricing_scope==='EVENT')
       setEvent(service||false)
-      if(service){const current=readEvent(own.items,service.id);setSaved(current);setPackages(current.packages);setEnabled(current.enabled)}
+      if(service){const row=(own.items||[]).find(item=>item.service_type_id===service.id)||{service_type_id:service.id,version:0,enabled:true,event_packages:[],cash_accepted:false};const current=readEvent(own.items,service.id);setSaved(current);setPackages(current.packages);setEnabled(current.enabled);onServiceLoaded?.(row)}
       setLoadError('');if(!keepMessage)setMessage({text:'',warn:false})
     }catch(error){setLoadError(fieldErrorText(error))}
-  },[vehicle.id])
+  },[vehicle.id,onServiceLoaded])
   useEffect(()=>{load()},[load])
   const dirty=saved&&(JSON.stringify(packages)!==JSON.stringify(saved.packages)||enabled!==saved.enabled)
   const draftErrors=editing?checkPackage(editing):{}

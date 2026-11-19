@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     payhere_app_secret: str = Field(default='', repr=False)
     # Public HTTPS address of this API (for example an ngrok URL) so PayHere can reach the notify endpoint.
     public_api_url: str = ''
+    # Set REQUIRE_EMAIL_VERIFICATION=false in .env to skip email verification for demos / local testing.
+    require_email_verification: bool = True
     private_document_root: Path | None = None
     vehicle_photo_root: Path | None = None
     review_audit_root: Path | None = None

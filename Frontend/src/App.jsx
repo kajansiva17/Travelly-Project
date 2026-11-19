@@ -2,11 +2,12 @@ import { t } from './i18n/language.js'
 import { useLanguage } from './i18n/useLanguage.js'
 import React, { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { NoticeProvider, ScrollToPage, useSession } from './components/components'
+import { Header, NoticeProvider, ScrollToPage, useSession } from './components/components'
 import { DriverPage, OwnerPage, PassengerPage } from './features/landing/ReferenceLandingPages'
 import AuthPage from './features/auth/AuthPage'
 import AccountPage from './pages/AccountPage'
 import PassengerDashboard from './features/passenger/PassengerDashboard'
+import FavouriteVehicles from './features/favourites/FavouriteVehicles'
 import {PassengerLongDistanceDetails,PassengerRequestReview,PassengerRequestStatus,PassengerRequirements,PassengerRideConfirmed,PassengerServiceSelection,PassengerTripDetails,PassengerVehicleMatching,PassengerVehicleReview} from './features/passenger/PassengerBookingFlow'
 import { CheckEmail, AuthLink, ForgotPassword, GoogleCompletion } from './features/auth/AuthFlows'
 import AdminApplications from './features/admin/AdminApplications'
@@ -21,7 +22,10 @@ import PassengerTicketBooking from './features/passenger/PassengerTicketBooking'
 import PassengerRental from './features/passenger/PassengerRental'
 import OwnerTicketDepartures,{OwnerReplacementRequests} from './features/owner/OwnerTicketDepartures'
 import OwnerDriving from './features/owner/OwnerDriving'
-import OwnerRoutes from './features/owner/OwnerRoutes'
+import MyDrivers from './features/owner/MyDrivers'
+
+import VehicleServicePage from './features/owner/VehicleServicePage'
+import OwnerHire from './features/owner/OwnerHire'
 import OwnerVehicleSetup from './features/owner/OwnerVehicleSetup'
 import OwnerFinanceOverview from './features/owner/OwnerFinanceOverview'
 import DriverTicketBoarding from './features/driver/DriverTicketBoarding'
@@ -33,8 +37,13 @@ import AdminDocuments from './features/admin/AdminDocuments'
 import AdminRoadAlerts from './features/admin/AdminRoadAlerts'
 import AdminPayments from './features/admin/AdminPayments'
 import DriverTripPage from './features/driver/DriverTripPage'
+import RoadAlerts from './features/driver/RoadAlerts'
+import Availability from './features/driver/Availability'
+import PassengerPayments from './features/passenger/PassengerPayments'
+import MyOwners from './features/driver/MyOwners'
 import WorkspaceShell from './components/WorkspaceShell'
 import { hasSession, sessionEndReason } from './services/api'
+import {safeReturnPath} from './features/auth/loginFlow'
 const UiKitPreview=import.meta.env.DEV?lazy(()=>import('./components/ui/UiKitPreview')):null
 import RoleOnboarding from './features/auth/RoleOnboarding'
 import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJourney'
@@ -86,6 +95,7 @@ import AdminSocialPosts from './features/admin/AdminSocialPosts'
 import OwnerReport from './features/reports/OwnerReport'
 import AdminReport from './features/reports/AdminReport'
 import './styles/reports.css'
+import './styles/mobile.css'
 
 function AdminApplicationRoute() {
   const { pathname } = useLocation()
@@ -111,12 +121,12 @@ function LegacyApplicationBoundary({children}){
 // EXPIRED, or a signed-out person opened a private link: after signing in they return to that page. It never applies
 // after a deliberate logout, and only when the page belongs to the workspace they signed in to, so signing in as
 // someone else (or as another role) never lands on the previous person's page.
-const RETURN_KEY='travelly-return-to'
+const RETURN_KEY='returnTo'
 const RETURN_PREFIXES=['/owner/','/driver/','/admin/','/travel/','/bookings','/trips/','/account','/passenger/']
 const returnable=pathname=>RETURN_PREFIXES.some(prefix=>pathname.startsWith(prefix))&&!pathname.endsWith('/onboarding')
 const workspaceOf=path=>{const [url]=path.split('#'),[base,query]=url.split('?'),role=['owner','driver','admin'].find(r=>base.startsWith('/'+r+'/'))
  return role?role.toUpperCase():base==='/account'?(new URLSearchParams(query).get('workspace')||'passenger').toUpperCase():'PASSENGER'}
-const readReturn=()=>{try{return sessionStorage.getItem(RETURN_KEY)}catch{return null}}
+const readReturn=()=>{try{const stored=sessionStorage.getItem(RETURN_KEY),safe=safeReturnPath(stored);if(stored&&!safe)sessionStorage.removeItem(RETURN_KEY);return safe}catch{return null}}
 const writeReturn=value=>{try{if(value)sessionStorage.setItem(RETURN_KEY,value);else sessionStorage.removeItem(RETURN_KEY)}catch{/* Without browser storage the person simply lands on their dashboard. */}}
 ;(function rememberRequestedPage(){
   if(hasSession())return writeReturn(null)
@@ -131,6 +141,7 @@ function ReturnToRequestedPage(){
     if(was.current&&!signedIn)writeReturn(sessionEndReason()==='expired'?last.current:null)
     was.current=signedIn
     if(signedIn&&returnable(pathname))last.current=here
+    else if(!signedIn&&returnable(pathname)&&sessionEndReason()!=='logout')writeReturn(here)
   },[signedIn,here])
   // After signing in, wait for the landing page, then go back only within the same workspace.
   useEffect(()=>{
@@ -180,9 +191,11 @@ function OldPersonalPath(){const {pathname,search}=useLocation();return <Navigat
 // My driving needs both approved roles (an Owner-only person never drives).
 function DrivingGate({children}){const {user}=useWorkspace();return canDriveAsOwner(user)?children:<Navigate to="/owner/dashboard" replace/>}
 function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="PASSENGER"/>:<Outlet/>}
+// Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
+function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
- OWNER:['ticket-departures','seat-inventory','earnings','reviews','support','reports'],
- DRIVER:['road-alerts','reels','feed','earnings','availability','support'],
+ OWNER:['seat-inventory','earnings','reviews','support','reports'],
+ DRIVER:['reels','feed','earnings','support'],
  ADMIN:['services-routes','bookings','payments','social-reviews','road-alerts','reports']
 }
 export default function App() {
@@ -197,8 +210,10 @@ export default function App() {
           <Route path="/" element={<PassengerPage />} />
           <Route path="/for-owners" element={<PublicRoleEntry role="OWNER"><OwnerPage/></PublicRoleEntry>} />
           <Route path="/drive-with-us" element={<PublicRoleEntry role="DRIVER"><DriverPage/></PublicRoleEntry>} />
-          <Route path="/owner/onboarding" element={<RoleOnboarding key="owner" role="OWNER"/>}/>
-          <Route path="/driver/onboarding" element={<RoleOnboarding key="driver" role="DRIVER"/>}/>
+          <Route element={<WorkspaceShell role="PASSENGER"/>}>
+            <Route path="/owner/onboarding" element={<RoleOnboarding key="owner" role="OWNER"/>}/>
+            <Route path="/driver/onboarding" element={<RoleOnboarding key="driver" role="DRIVER"/>}/>
+          </Route>
           <Route path="/register" element={<AuthPage signup />} />
           <Route path="/login" element={<AuthPage />} />
           {import.meta.env.DEV&&<Route path="/__ui-kit" element={<Suspense fallback={null}><UiKitPreview/></Suspense>}/>}
@@ -215,23 +230,11 @@ export default function App() {
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
+            <Route path="/passenger/favourites" element={<FavouriteVehicles/>}/>
             <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
-            <Route path="/passenger/payments" element={<WorkspacePlaceholder/>}/>
+            <Route path="/passenger/payments" element={<PassengerPayments/>}/>
             <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
             <Route path="/passenger/settings" element={<WorkspaceSettings/>}/>
-            <Route path="/travel/book/service" element={<PassengerServiceSelection/>}/>
-            <Route path="/travel/book/event" element={<Navigate to="/travel/book/details/event" replace/>}/>
-            <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
-            <Route path="/travel/book/rental" element={<PassengerRental/>}/>
-            <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>
-            <Route path="/travel/book/details/local" element={<PassengerTripDetails variant="local"/>}/>
-            <Route path="/travel/book/details/event" element={<PassengerTripDetails variant="event"/>}/>
-            <Route path="/travel/book/details/long-distance/one-day" element={<PassengerLongDistanceDetails/>}/>
-            <Route path="/travel/book/details/long-distance/multi-day" element={<PassengerLongDistanceDetails multiDay/>}/>
-            <Route path="/travel/book/requirements" element={<PassengerRequirements/>}/>
-            <Route path="/travel/book/vehicles" element={<PassengerVehicleMatching/>}/>
-            <Route path="/travel/book/vehicles/:vehicleId/review" element={<PassengerVehicleReview/>}/>
-            <Route path="/travel/book/review" element={<PassengerRequestReview/>}/>
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
             <Route path="/trips/:tripId/map" element={<TripMapPage/>}/>
@@ -243,13 +246,19 @@ export default function App() {
           <Route element={<WorkspaceShell role="OWNER"/>}>
             {travelRoutes('/owner')}
             <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
+            <Route path="/owner/drivers" element={<MyDrivers/>}/>
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
-            <Route path="/owner/rates" element={<OwnerRates/>}/>
+            <Route path="/owner/rates" element={<OwnerHire/>}/>
+            <Route path="/owner/rates/advanced" element={<OwnerRates/>}/>
             <Route path="/owner/service-readiness" element={<OwnerServiceReadiness/>}/>
-            <Route path="/owner/ticket-departures" element={<OwnerTicketDepartures/>}/>
-            <Route path="/owner/routes" element={<OwnerRoutes/>}/>
+            <Route path="/owner/ticket" element={<OwnerTicketDepartures/>}/>
+            <Route path="/owner/ticket-departures" element={<Navigate to="/owner/ticket?tab=departures" replace/>}/>
+            <Route path="/owner/routes" element={<Navigate to="/owner/ticket?tab=routes" replace/>}/>
+            <Route path="/owner/maintenance" element={<VehicleServicePage kind="maintenance"/>}/>
+            <Route path="/owner/event-packages" element={<VehicleServicePage kind="event-packages"/>}/>
+            <Route path="/owner/rental" element={<VehicleServicePage kind="rental"/>}/>
             <Route path="/owner/vehicles" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicle-setup" element={<OwnerVehicleSetup/>}/>
             <Route path="/owner/vehicles/:vehicleId" element={<VehicleRoute/>}/>
@@ -265,24 +274,24 @@ export default function App() {
           </Route>
           <Route element={<WorkspaceShell role="DRIVER"/>}>
             {travelRoutes('/driver')}
+            <Route path="/driver/owners" element={<MyOwners/>}/>
             <Route path="/driver/dashboard" element={<DriverDashboard/>}/>
             <Route path="/driver/assignments" element={<WorkspaceBookings kind="assignments"/>}/>
             <Route path="/driver/operate-trip" element={<WorkspaceBookings kind="operate"/>}/>
             <Route path="/driver/trips/:tripId/assigned" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/verify-passenger" element={<DriverTripPage/>}/>
             <Route path="/driver/trips/:tripId/live" element={<DriverTripPage/>}/>
+            <Route path="/driver/maintenance" element={<VehicleServicePage kind="maintenance" driver/>}/>
             <Route path="/driver/ticket-boarding" element={<DriverTicketBoarding/>}/>
             <Route path="/driver/rentals" element={<Navigate to="/driver/assignments" replace/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
+            <Route path="/driver/availability" element={<Availability/>}/>
+            <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="ADMIN"/>}>
-            <Route path="/admin/personal/hire" element={<HireSearchPage/>}/>
-            <Route path="/admin/personal/owners/:ownerReference" element={<HireSearchPage/>}/>
-            <Route path="/admin/personal/bookings" element={<WorkspaceBookings personal/>}/>
-            <Route path="/admin/personal/bookings/:bookingId" element={<BookingPage/>}/>
-            <Route path="/admin/personal/vehicles/:vehicleId" element={<PublicVehicle/>}/>
+            {travelRoutes('/admin')}
             <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
             <Route path="/admin/applications" element={<AdminApplicationRoute/>}/>
             <Route path="/admin/applications/:roleId" element={<AdminApplicationRoute/>}/>
@@ -304,6 +313,23 @@ export default function App() {
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>
             <Route path="/admin/settings" element={<WorkspaceSettings/>}/>
             {placeholders.ADMIN.map(path=><Route key={path} path={'/admin/'+path} element={<WorkspacePlaceholder/>}/>)}
+          </Route>
+          <Route element={<GuestOrWorkspace header/>}>
+            <Route path="/travel/book/event" element={<Navigate to="/travel/book/details/event" replace/>}/>
+            <Route path="/travel/book/service" element={<PassengerServiceSelection/>}/>
+            <Route path="/travel/book/details/airport" element={<PassengerTripDetails variant="airport"/>}/>
+            <Route path="/travel/book/details/local" element={<PassengerTripDetails variant="local"/>}/>
+            <Route path="/travel/book/details/event" element={<PassengerTripDetails variant="event"/>}/>
+            <Route path="/travel/book/details/long-distance/one-day" element={<PassengerLongDistanceDetails/>}/>
+            <Route path="/travel/book/details/long-distance/multi-day" element={<PassengerLongDistanceDetails multiDay/>}/>
+            <Route path="/travel/book/requirements" element={<PassengerRequirements/>}/>
+            <Route path="/travel/book/vehicles" element={<PassengerVehicleMatching/>}/>
+            <Route path="/travel/book/vehicles/:vehicleId/review" element={<PassengerVehicleReview/>}/>
+            <Route path="/travel/book/review" element={<PassengerRequestReview/>}/>
+          </Route>
+          <Route element={<GuestOrWorkspace/>}>
+            <Route path="/travel/book/tickets" element={<PassengerTicketBooking/>}/>
+            <Route path="/travel/book/rental" element={<PassengerRental/>}/>
           </Route>
           <Route element={<OptionalPassengerWorkspace/>}>
             <Route path="/vehicles/:vehicleId" element={<PublicVehicle/>}/>

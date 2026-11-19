@@ -46,7 +46,10 @@ def client(postgres_engine, tmp_path):
         'review_audit_root': tmp_path / 'audit', 'review_database_identity': str(uuid4()),
         'review_audit_endpoint': None, 'review_audit_auth_file': None,
         'mail_backend': 'capture', 'mail_capture_dir': tmp_path / 'mail',
+        'require_email_verification': True,
         'google_client_id': 'test-client.apps.googleusercontent.com',
+        'payhere_merchant_id': '', 'payhere_merchant_secret': '',
+        'payhere_app_id': '', 'payhere_app_secret': '',
         # Trip tests start and finish without photos; test_odometer_proof switches the photo rule on.
         'odometer_photo_required': False, 'odometer_photo_root': tmp_path / 'odometer-photos',
         'social_media_root': tmp_path / 'social-media'})
@@ -54,6 +57,7 @@ def client(postgres_engine, tmp_path):
     store = SessionStore(settings.redis_url, prefix='travelly-test:' + uuid4().hex + ':')
     assert store.client.ping()
     app = create_app(settings, postgres_engine, store)
+    app.state.hire_routing.road_km = lambda stops: None   # tests never call the real routing service; the Long distance minimum is tested with a stand-in
     with TestClient(app) as c:
         yield c
     keys = list(store.client.scan_iter(store.prefix + '*'))
@@ -82,6 +86,15 @@ def signed_in(client, passenger):
 
 def bearer(tokens):
     return {'Authorization': 'Bearer ' + tokens['access_token']}
+
+
+def check_passenger(client, passenger_tokens, operator_tokens, trip_id, version):
+    """The Passenger opens the pickup code and the assigned operator types its six digits (a trip cannot start before this)."""
+    opened = client.get(f'/api/v1/trips/{trip_id}/pickup-code', headers=bearer(passenger_tokens))
+    assert opened.status_code == 200, opened.text
+    done = client.post(f'/api/v1/trips/{trip_id}/pickup-verifications', headers=bearer(operator_tokens),
+                       json={'expected_version': version, 'pin': opened.json()['pin']})
+    assert done.status_code == 200, done.text
 
 
 def captured_token(client, purpose='verify'):

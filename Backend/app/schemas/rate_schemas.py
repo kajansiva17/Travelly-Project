@@ -42,7 +42,7 @@ class Area(RateModel):
 
 
 class Coverage(RateModel):
-    kind: Literal['ROUTE', 'AREA']
+    kind: Literal['ROUTE', 'AREA', 'ANY']
     places: list[Place] | None = Field(default=None, min_length=2, max_length=12)
     area: Area | None = None
 
@@ -52,6 +52,8 @@ class Coverage(RateModel):
             raise ValueError('A route needs ordered pickup/destination/stops, without area coverage.')
         if self.kind == 'AREA' and (self.area is None or self.places is not None):
             raise ValueError('Area coverage needs explicit boundaries, without a route list.')
+        if self.kind == 'ANY' and (self.area is not None or self.places is not None):
+            raise ValueError('General pricing cannot contain hidden route or area coverage.')
         return self
 
 
@@ -119,7 +121,7 @@ def extra_mode(rule, key):
 class RateRule(RateModel):
     id: UUID
     label: str = Field(min_length=1, max_length=120)
-    pickup_area: Area
+    pickup_area: Area | None = None  # retained for older rules; vehicle location settings now control pickup matching
     coverage: Coverage
     direction: Literal['ONE_WAY', 'RETURN']
     effective_from: date
@@ -192,9 +194,9 @@ def conflicting(a, b):
         return False
     if a.effective_from > (b.effective_until or date.max) or b.effective_from > (a.effective_until or date.max):
         return False
-    if not boxes_overlap(a.pickup_area, b.pickup_area):
-        return False
     ac, bc = a.coverage, b.coverage
+    if 'ANY' in (ac.kind, bc.kind):
+        return True
     if ac.kind == bc.kind == 'AREA':
         return boxes_overlap(ac.area, bc.area)
     if ac.kind == bc.kind == 'ROUTE':

@@ -72,9 +72,10 @@ html body .workspace-shell[data-workspace] .workspace-content :is(.flow-page, .d
 html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; margin: 0 auto; padding-inline: 0; box-sizing: border-box; }
 
 /* Landing header on phones: the links, language and Log in / Sign up sit behind the menu button (same breakpoint as the landing CSS). */
-@media (max-width: 760px) {
+/* Tablets and phones (≤1023px): landing nav collapses to hamburger menu */
+@media (max-width: 1023px) {
   html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav:not(.lr-nav-open) { display: none; }
-  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-menu { margin-left: auto; }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-menu { display: grid; place-items: center; padding: 8px; margin-left: auto; }  /* the landing CSS shows this button only up to 760px */
   html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + 8px);
     margin: 0; padding: 14px; box-sizing: border-box; border-radius: 23px; background: #edf5fff5; border: 1px solid #fff;
@@ -87,8 +88,14 @@ html body.flow-standalone .flow-page { width: var(--frame-w); max-width: none; m
   html body .workspace-shell[data-workspace] .workspace-content .dash-page { height: auto; }
   html body .workspace-shell[data-workspace] .workspace-content .dash-page .dash-grid { grid-template-rows: none; }
 }
+/* Phones (≤767px): sidebar hidden, full-width content, the menu button opens the drawer. From 768px the sidebar is
+   shown and the menu button is hidden (workspace CSS), so this breakpoint must stay at 767px. */
 @media (max-width: 767px) {
   html body .workspace-shell[data-workspace] .workspace-layout { grid-template-columns: minmax(0, 1fr); }
   html body .workspace-shell[data-workspace] .app-sidebar { display: none; }
   html body .workspace-shell[data-workspace] .workspace-content { grid-column: 1; }
 }
+
+/* The landing navbar on the inner pages (rental, tickets, hire...): same pill, kept in the page flow instead of floating over a hero photo. */
+html body .lr-page.lr-bare { min-height: 0 !important; background: none !important; padding: 0; margin: 0; display: block; overflow: visible; }
+html body .lr-page.lr-bare > header.lr-header.site-header.app-navbar.app-navbar.app-navbar.app-navbar { position: relative; top: auto; left: auto; transform: none; margin: var(--frame-top) auto 0; }

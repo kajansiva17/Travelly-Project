@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, and_, not_, func, update
 from sqlalchemy.orm import Session
 from app.dependencies.database import get_db
 from app.models import User, UserRole
@@ -15,19 +15,22 @@ from app.api.routers.review_api import admin, locked_authority, query_values
 from app.models.review_models import Vehicle, Document
 from app.models.rate_models import ServiceType, VehicleService
 from app.api.routers.rate_api import persist_rates
-from app.schemas.rate_schemas import RateRule, covered
+from app.schemas.rate_schemas import RateRule
 from app.models.hire_models import Booking, ScheduledTrip, Trip, Notification
 from app.services.vehicle_odometer import advance_odometer
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
     ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
-    PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate)
+    PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate, PositioningConfirmation)
 from app.services.hire_services import (event_price, digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
-    price, saved_rules, booking_summary, trip_summary, notify, audited, matches, matching_rules)
+    price, saved_rules, booking_summary, trip_summary, notify, audited, matching_rules, route_profile)
 from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
-from app.services import commission_overdue, vehicle_whereabouts
+from app.services import commission_overdue, vehicle_whereabouts, location_matching
+from app.services.airports import active_airports, airports_of, min_distance_km, near_airport
+
+CONFIRMED_CANCEL_HOURS = 3   # owner rule: Passenger may cancel a confirmed private hire until 3 hours before it starts
 
 router = APIRouter(prefix='/api/v1', tags=['Private hire pricing'])
 
@@ -59,8 +62,32 @@ def service_for(db, sid, new_offer=True):
     return service
 
 
-def validate_service_itinerary(service, itinerary):
+def settle_hours(request, service, itinerary):
+    """Owner decision 15 Nov 2026: the Passenger does not state service hours. When they are left out, the planned hours are the route's driving
+    time plus planned waits. Each Owner's package hours then decide the price (package, or package plus hours beyond it)."""
+    if not itinerary._auto or private_hire_scope(service) == 'EVENT': return itinerary
+    hours = request.app.state.hire_routing.estimate_hours(itinerary)   # hours per booked day
+    if hours > 24:
+        code = 'TRIP_TOO_LONG_FOR_ONE_DAY' if len(itinerary.service_hours) == 1 else 'TRIP_TOO_LONG_FOR_BOOKED_DAYS'
+        raise ApiError(422, code, 'This trip needs more time than the booked days allow. Choose more days.')
+    return itinerary.model_copy(update={'service_hours': [hours] * len(itinerary.service_hours), 'trip_days': None})
+
+
+def validate_service_itinerary(service, itinerary, db=None, request=None):
     scope = private_hire_scope(service)
+    # Airport hire (owner decision 15 Nov 2026): the pickup or the destination is an airport of the Admin's list (a place next to it counts).
+    if scope == 'AIRPORT' and db is not None:
+        airports = active_airports(db)
+        if airports and not any(near_airport(airports, stop.place) for stop in itinerary.stops):
+            raise ApiError(422, 'AIRPORT_LOCATION_REQUIRED', 'Airport hire is for trips to or from an airport. Choose an airport as the pickup or the destination, or choose Local hire.',
+                [{'field': 'itinerary.stops', 'message': 'Choose an airport as the pickup or the destination.'}])
+    # Long distance: the road distance of the whole trip (all stops, every service day) reaches the Admin's minimum (default 100 km).
+    if scope == 'LONG_DISTANCE' and request is not None:
+        minimum = min_distance_km(service)
+        km = request.app.state.hire_routing.road_km(itinerary.stops) if minimum else None
+        if km is not None and km < minimum:
+            raise ApiError(422, 'TRIP_TOO_SHORT_FOR_LONG_DISTANCE', f'This trip is about {km:.0f} km. Long distance is for trips of {minimum} km or more. Choose Local hire.',
+                [{'field': 'distance_km', 'message': f'{km:.0f}'}, {'field': 'min_distance_km', 'message': str(minimum)}])
     if scope == 'AIRPORT' and itinerary.direction == 'RETURN' and itinerary.return_start_at is None:
         raise ApiError(422, 'RETURN_INTERVAL_REQUIRED', 'Airport return journeys require a verified return pickup date and time.')
     if scope != 'EVENT' and itinerary.event_package_id is not None:
@@ -135,11 +162,14 @@ def safe_vehicle(vehicle, owner):
 
 def same_hire_request(row, body, user):
     original_itinerary = row.price_snapshot.get('initial', {}).get('itinerary') or row.itinerary_snapshot.get('itinerary')
+    asked_itinerary = body.itinerary.model_dump(mode='json')
+    if body.itinerary._auto:   # hours left out: Travelly stored the worked-out hours, so compare everything else
+        original_itinerary, asked_itinerary = ({k: v for k, v in x.items() if k not in ('service_hours', 'trip_days')} for x in (original_itinerary, asked_itinerary))
     return (row.passenger_user_id == user.id and row.vehicle_id == body.vehicle_id
             and row.service_type_id == body.service_type_id
             and all(getattr(row, name) == getattr(body, name) for name in
                     ('passenger_count', 'large_luggage_count', 'small_luggage_count'))
-            and original_itinerary == body.itinerary.model_dump(mode='json'))
+            and original_itinerary == asked_itinerary)
 
 
 @router.get('/vehicles')
@@ -162,13 +192,52 @@ MAX_OPEN_QUOTE_REQUESTS = 3    # a Passenger may wait for at most this many Owne
 
 
 def quote_candidate(request, db, vehicle, service, itinerary):
-    """A vehicle that offers this service around the pickup (one of its saved rates covers the pickup area) and is free then,
-    but has no saved rate for this exact journey: the Passenger may ask its Owner for a price. Nothing about its rates is shown."""
+    """A vehicle that offers this service and is free, but has no applicable saved journey price.
+    Location feasibility is evaluated independently by the caller; no rate details are exposed."""
     row, rules = saved_rules(db, vehicle.id, service.id)
-    if not rules or not any(covered(r.pickup_area, itinerary.stops[0].place) for r in rules): return None
+    if not row: return None
     eligible_vehicle(db, vehicle, public=True, at=itinerary.start_at); commission_gate(request, db, vehicle)
     for start, end in itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end)
     return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None, 'quote_required': True}
+
+
+def pickup_feasibility(request, db, vehicle, service, itinerary, reserved_end):
+    try:
+        profile = route_profile(service, vehicle)
+    except ApiError:
+        return {'status': 'CONFIRMATION_REQUIRED', 'code': 'REACHABILITY_UNKNOWN',
+                'message': 'Owner confirmation required: pickup routing is not configured.'}
+    return location_matching.assess(db, request.app.state.hire_routing, vehicle, itinerary, reserved_end, profile)
+
+
+def booking_pickup_feasibility(request, db, row, vehicle, service=None, itinerary=None, reserved_end=None):
+    service = service or service_for(db, row.service_type_id, new_offer=False)
+    itinerary = itinerary or Itinerary.model_validate(row.itinerary_snapshot['itinerary'])
+    plan = (row.itinerary_snapshot or {}).get('positioning_confirmation')
+    planned = None
+    if plan:
+        planned = {'point': (float(plan['latitude']), float(plan['longitude'])),
+                   'available_at': datetime.fromisoformat(plan['available_at']), 'kind': 'PLANNED'}
+    try: profile = route_profile(service, vehicle)
+    except ApiError:
+        return {'status': 'CONFIRMATION_REQUIRED', 'code': 'REACHABILITY_UNKNOWN',
+                'message': 'Owner confirmation required: pickup routing is not configured.'}
+    return location_matching.assess(db, request.app.state.hire_routing, vehicle, itinerary,
+        reserved_end or row.end_at, profile, planned=planned, require_accepting=False)
+
+
+def confirmation_entry(vehicle, owner, feasibility, *, quote_required=True, packages=None):
+    return {**safe_vehicle(vehicle, owner), 'price': None, 'quote_required': quote_required,
+            'owner_confirmation_required': True, 'availability_status': 'CONFIRMATION_REQUIRED',
+            'availability_label': 'Owner confirmation required',
+            'feasibility_code': feasibility['code'], 'packages': packages or [],
+            'distance_km': feasibility.get('distance_km'), 'location_source': feasibility.get('origin_source')}
+
+
+def position_signature(vehicle):
+    return (vehicle.version, vehicle.accepts_hire_bookings,
+            vehicle.current_latitude, vehicle.current_longitude, vehicle.current_location_observed_at,
+            vehicle.pickup_distance_km, vehicle.base_latitude, vehicle.base_longitude)
 
 
 @router.post('/search/vehicles')
@@ -176,7 +245,8 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
-    validate_service_itinerary(service, body.itinerary)
+    body.itinerary = settle_hours(request, service, body.itinerary)
+    validate_service_itinerary(service, body.itinerary, db, request)
     items, asks = [], []
     rows = db.scalars(select(Vehicle).where(Vehicle.is_published.is_(True)).order_by(Vehicle.id).limit(100)).all()
     unavailable = False
@@ -194,23 +264,48 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
                     except ApiError as exc:
                         if exc.code == 'AVAILABILITY_INCOMPLETE': raise
                         continue
+                    feasibility = pickup_feasibility(request, db, vehicle, service, asked, datetime.fromisoformat(snap['reserved_end_at']))
+                    if feasibility['status'] == 'UNREACHABLE':
+                        continue
                     found.append({'package_id': package['id'], 'name': package['name'], 'hours': package['hours'], 'notes': package.get('notes'),
-                                  'price': snap['calculation'], 'reserved_end_at': snap['reserved_end_at']})
+                                  'reserved_end_at': snap['reserved_end_at'], 'confirmation_required': feasibility['status'] != 'AVAILABLE'})
                 if not found: continue
-                found.sort(key=lambda f: Decimal(f['price']['total']))
-                items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': found[0]['price'],
-                              'reserved_end_at': found[0]['reserved_end_at'], 'packages': found})
+                available = [p for p in found if not p['confirmation_required']]
+                if available:
+                    items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': None,
+                                  'reserved_end_at': available[0]['reserved_end_at'], 'packages': found,
+                                  'availability_status': 'AVAILABLE', 'availability_label': 'Available'})
+                else:
+                    asks.append(confirmation_entry(vehicle, db.get(User, vehicle.owner_user_id),
+                        {'code': 'OWNER_CONFIRMATION_REQUIRED'}, quote_required=False, packages=found))
                 continue
             snapshot = offer(request, db, vehicle, service, body.itinerary)
-            # Every listed vehicle shows the Owner's own price for this itinerary, so the
-            # Passenger compares before choosing. Selecting one still asks for a fresh quote.
+            feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, datetime.fromisoformat(snapshot['reserved_end_at']))
+            if feasibility['status'] == 'UNREACHABLE':
+                continue
+            if feasibility['status'] == 'CONFIRMATION_REQUIRED':
+                asks.append(confirmation_entry(vehicle, db.get(User, vehicle.owner_user_id), feasibility,
+                                               quote_required=False));continue
+            # Search reveals feasibility, not a fare. Selection calculates the fresh quote.
             items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
-                          'price': snapshot['calculation'], 'reserved_end_at': snapshot['reserved_end_at']})
+                          'price': None, 'reserved_end_at': snapshot['reserved_end_at'], 'location_available': True,
+                          'availability_status': 'AVAILABLE', 'availability_label': 'Available',
+                          'distance_km': feasibility.get('distance_km'), 'location_source': feasibility.get('origin_source')})
         except ApiError as exc:
             if exc.code in QUOTEABLE and private_hire_scope(service) != 'EVENT':
                 try:
                     ask = quote_candidate(request, db, vehicle, service, body.itinerary)
-                    if ask: asks.append(ask); continue
+                    if ask:
+                        feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, body.itinerary.requested_end())
+                        if feasibility['status'] == 'UNREACHABLE': continue
+                        if feasibility['status'] == 'CONFIRMATION_REQUIRED':
+                            ask.update({'owner_confirmation_required': True, 'availability_label': 'Owner confirmation required',
+                                        'availability_status': 'CONFIRMATION_REQUIRED', 'feasibility_code': feasibility['code']})
+                        else:
+                            ask.update({'distance_km': feasibility.get('distance_km'),
+                                        'location_source': feasibility.get('origin_source'),
+                                        'availability_status': 'AVAILABLE', 'availability_label': 'Available'})
+                        asks.append(ask); continue
                 except ApiError as inner:
                     if inner.code == 'AVAILABILITY_INCOMPLETE': availability_incomplete = True
                     continue
@@ -227,11 +322,12 @@ def search(body: SearchRequest, request: Request, db: Session = Depends(get_db))
         for entry in items + asks:
             vehicle = by_id[entry['id']]
             _, rules = saved_rules(db, vehicle.id, service.id)
-            entry['distance_km'], entry['location_source'] = vehicle_whereabouts.locate(vehicle.id, last, rules, pickup)
+            if entry.get('distance_km') is None:
+                entry['distance_km'], entry['location_source'] = vehicle_whereabouts.locate(vehicle.id, last, rules, pickup)
         vehicle_whereabouts.order(items); vehicle_whereabouts.order(asks)
     if unavailable and not items and not asks:
         raise ApiError(503, 'TRIP_PRICING_UNAVAILABLE', 'Trusted route pricing is temporarily unavailable. Browse vehicles for an Owner quote.')
-    return {'items': items, 'quote_on_request': asks, 'message': 'Vehicles in `items` show the Owner\u2019s own price. Vehicles in `quote_on_request` serve this pickup area and are free, but have no saved price for this journey: ask the Owner for a price.'}
+    return {'items': items, 'quote_on_request': asks, 'message': 'Available vehicles passed location, reachability and schedule checks. Other entries require an Owner price or renewed positioning confirmation. Fares are calculated only after vehicle selection.'}
 
 
 @router.post('/search/vehicles/{vehicle_id}/quote')
@@ -240,15 +336,39 @@ def selected_vehicle_quote(vehicle_id: UUID, body: SearchRequest, request: Reque
     if body.itinerary.start_at <= datetime.now(timezone.utc):
         raise ApiError(422, 'ITINERARY_IN_PAST', 'Choose a future pickup time.')
     service = service_for(db, body.service_type_id)
-    validate_service_itinerary(service, body.itinerary)
+    body.itinerary = settle_hours(request, service, body.itinerary)
+    validate_service_itinerary(service, body.itinerary, db, request)
     vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle_id, Vehicle.is_published.is_(True)))
     if not vehicle:
         raise ApiError(404, 'VEHICLE_NOT_FOUND', 'The selected published vehicle is unavailable.')
     usable_capacity(vehicle, body)
-    snapshot = offer(request, db, vehicle, service, body.itinerary)
-    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'price': snapshot['calculation'],
-            'reserved_end_at': snapshot['reserved_end_at'], 'quote_digest': snapshot['digest'],
-            'rate_version': snapshot['rate_version'], 'message': 'This is a fresh quote. The accepted booking preserves this selected rate-rule version and calculation snapshot.'}
+    snapshot = None
+    try:
+        snapshot = offer(request, db, vehicle, service, body.itinerary)
+    except ApiError as exc:
+        if exc.code not in QUOTEABLE:
+            raise
+        # The enabled service remains discoverable; the supported Owner quote
+        # workflow handles missing or currently uncomputable automatic pricing.
+        if not quote_candidate(request, db, vehicle, service, body.itinerary):
+            raise ApiError(409, 'SERVICE_UNAVAILABLE', 'This vehicle does not offer the selected hire service.')
+    reserved_end = datetime.fromisoformat(snapshot['reserved_end_at']) if snapshot else body.itinerary.requested_end()
+    feasibility = pickup_feasibility(request, db, vehicle, service, body.itinerary, reserved_end)
+    if feasibility['status'] == 'UNREACHABLE':
+        raise ApiError(409, feasibility['code'], feasibility['message'])
+    confirmation = feasibility['status'] == 'CONFIRMATION_REQUIRED'
+    return {**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)),
+            'price': snapshot['calculation'] if snapshot else None,
+            'quote_required': snapshot is None, 'owner_confirmation_required': confirmation,
+            'availability_status': 'CONFIRMATION_REQUIRED' if confirmation else 'AVAILABLE',
+            'availability_label': 'Owner confirmation required' if confirmation else 'Available',
+            'feasibility_code': feasibility['code'],
+            'reserved_end_at': snapshot['reserved_end_at'] if snapshot else reserved_end.isoformat(),
+            'quote_digest': snapshot['digest'] if snapshot else None,
+            'rate_version': snapshot['rate_version'] if snapshot else None,
+            'message': feasibility['message'] if confirmation else
+                ('Request an Owner quote; no automatic price is available for this journey.' if snapshot is None else
+                 'This is a fresh quote. The accepted booking preserves this selected rate-rule version and calculation snapshot.')}
 
 
 @router.post('/bookings/private-hires', status_code=201)
@@ -260,6 +380,24 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
         if not same_hire_request(existing, body, user):
             raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'This request identifier was already used for a different request.')
         return booking_summary(existing)
+    # Routing is deliberately completed before any database row lock is held.
+    service = service_for(db, body.service_type_id)
+    body.itinerary = settle_hours(request, service, body.itinerary)
+    validate_service_itinerary(service, body.itinerary, db, request)
+    for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
+    preflight_vehicle = db.get(Vehicle, body.vehicle_id)
+    if not preflight_vehicle: raise ApiError(404, 'VEHICLE_NOT_FOUND', 'Vehicle not found.')
+    eligible_vehicle(db, preflight_vehicle, public=True, at=body.itinerary.start_at)
+    commission_gate(request, db, preflight_vehicle); usable_capacity(preflight_vehicle, body)
+    snapshot = None
+    try: snapshot = offer(request, db, preflight_vehicle, service, body.itinerary)
+    except ApiError as exc:
+        if exc.code not in ('QUOTE_REQUIRED', 'ROUTING_PROFILE_REQUIRED', 'ROUTING_UNAVAILABLE', 'ROUTING_NOT_CONFIGURED'): raise
+    reserved_end = datetime.fromisoformat(snapshot['reserved_end_at']) if snapshot else body.itinerary.requested_end()
+    feasibility = pickup_feasibility(request, db, preflight_vehicle, service, body.itinerary, reserved_end)
+    if feasibility['status'] == 'UNREACHABLE':
+        raise ApiError(409, feasibility['code'], feasibility['message'])
+    position_snapshot = position_signature(preflight_vehicle)
     with request.app.state.audit.coordinated():
         locked_authority(db, request, user, user.id, require_admin=False)
         require_role(db, user, 'PASSENGER')
@@ -267,39 +405,100 @@ def request_hire(body: HireRequest, request: Request, user=Depends(current), db:
             raise ApiError(403, 'EMAIL_VERIFICATION_REQUIRED', 'Verify your email before signing in.')
         vehicle = db.scalar(select(Vehicle).where(Vehicle.id == body.vehicle_id).with_for_update())
         if not vehicle: raise ApiError(404, 'VEHICLE_NOT_FOUND', 'Vehicle not found.')
+        current_snapshot = position_signature(vehicle)
+        if current_snapshot != position_snapshot:
+            raise ApiError(409, 'VEHICLE_LOCATION_CHANGED', 'Vehicle location settings changed. Search again before requesting.')
         existing = db.scalar(select(Booking).where(Booking.idempotency_key == body.idempotency_key))
         if existing:
             if not same_hire_request(existing, body, user):
                 raise ApiError(409, 'IDEMPOTENCY_CONFLICT', 'The request identifier belongs to a different request.')
             return booking_summary(existing)
         eligible_vehicle(db, vehicle, public=True, at=body.itinerary.start_at); commission_gate(request, db, vehicle); usable_capacity(vehicle, body)
-        service = service_for(db, body.service_type_id); validate_service_itinerary(service, body.itinerary)
-        snapshot = None
-        for stop in body.itinerary.stops: request.app.state.rate_locations.verify(stop.place)
-        try: snapshot = offer(request, db, vehicle, service, body.itinerary)
-        except ApiError as exc:
-            if exc.code not in ('QUOTE_REQUIRED', 'ROUTING_PROFILE_REQUIRED', 'ROUTING_UNAVAILABLE', 'ROUTING_NOT_CONFIGURED'): raise
-        if snapshot is None:
-            for start, end in body.itinerary.availability_intervals():
-                no_conflict(db, vehicle.id, start, end)
+        for start, end in body.itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end)
+        if snapshot is None or feasibility['status'] == 'CONFIRMATION_REQUIRED':
             waiting = db.scalar(select(func.count()).select_from(Booking).where(
                 Booking.passenger_user_id == user.id, Booking.booking_type == 'PRIVATE_HIRE', Booking.status == 'REQUESTED',
-                Booking.pending_change == {}, Booking.accepted_quote_digest.is_(None),
+                Booking.accepted_quote_digest.is_(None),
                 Booking.created_at > datetime.now(timezone.utc) - timedelta(hours=QUOTE_WAIT_HOURS))) or 0
             if waiting >= MAX_OPEN_QUOTE_REQUESTS:
                 raise ApiError(409, 'TOO_MANY_OPEN_REQUESTS', f'You are already waiting for {MAX_OPEN_QUOTE_REQUESTS} Owner prices. Wait for an answer or cancel one first.')
         row = Booking(booking_reference='BKG-' + secrets.token_hex(10).upper(), passenger_user_id=user.id, booking_type='PRIVATE_HIRE',
             service_type_id=service.id, requested_owner_user_id=vehicle.owner_user_id, owner_user_id=vehicle.owner_user_id,
             vehicle_id=vehicle.id, origin_text=body.itinerary.stops[0].place.label, destination_text=body.itinerary.stops[-1].place.label,
-            start_at=body.itinerary.start_at, end_at=datetime.fromisoformat(snapshot['reserved_end_at']) if snapshot else body.itinerary.requested_end(),
+            start_at=body.itinerary.start_at, end_at=reserved_end,
             passenger_count=body.passenger_count, large_luggage_count=body.large_luggage_count, small_luggage_count=body.small_luggage_count,
             status='REQUESTED', assurance_type='STANDARD_HIRE', currency='LKR', idempotency_key=body.idempotency_key,
             itinerary_snapshot={'itinerary': body.itinerary.model_dump(mode='json')}, created_by=user.id, updated_by=user.id,
-            pending_change={'kind': 'QUOTE', 'quote': snapshot} if snapshot else {})
+            pending_change=({'kind': 'LOCATION_CONFIRMATION_REQUIRED', 'code': feasibility['code'],
+                'message': feasibility['message']} if feasibility['status'] == 'CONFIRMATION_REQUIRED'
+                else {'kind': 'QUOTE', 'quote': snapshot} if snapshot else {}))
         db.add(row); db.flush(); notify(db, row, 'Private-hire request', 'A Passenger requested this itinerary. Any quote saves reusable route rates.')
         request.app.state.audit.commit(db, actor=user.id, target={'resource': 'bookings', 'id': str(row.id)}, previous_status=None,
             new_status='REQUESTED', previous_version=0, new_version=1, full_reason=None, previous_decision_evidence={}, trace_id=request.state.trace_id)
     return booking_summary(row)
+
+
+@router.post('/bookings/{booking_id}/location-confirmation')
+def confirm_booking_location(booking_id: UUID, body: PositioningConfirmation, request: Request,
+                             user=Depends(current), db: Session = Depends(get_db)):
+    """Owner supplies current/planned positioning; routing runs before locks, then versions and conflicts are rechecked."""
+    require_role(db, user, 'OWNER')
+    row = visible_booking(db, booking_id, user, owner=True)
+    if row.pending_change.get('kind') != 'LOCATION_CONFIRMATION_REQUIRED':
+        raise ApiError(409, 'LOCATION_CONFIRMATION_NOT_REQUIRED', 'This booking is not waiting for location confirmation.')
+    if row.version != body.expected_version:
+        raise ApiError(409, 'VERSION_CONFLICT', 'Booking changed. Reload before retrying.')
+    vehicle = db.get(Vehicle, row.vehicle_id)
+    if not vehicle or vehicle.version != body.vehicle_expected_version:
+        raise ApiError(409, 'VERSION_CONFLICT', 'Vehicle changed. Reload before retrying.')
+    request.app.state.rate_locations.verify(body.location)
+    itinerary = Itinerary.model_validate(row.itinerary_snapshot['itinerary'])
+    if itinerary.start_at > datetime.now(timezone.utc) + location_matching.IMMEDIATE_WINDOW and body.kind != 'PLANNED':
+        raise ApiError(422, 'FUTURE_POSITION_REQUIRED',
+                       'Confirm the vehicle position planned for the requested future date and time.')
+    service = service_for(db, row.service_type_id, new_offer=False)
+    snapshot = None
+    try: snapshot = offer(request, db, vehicle, service, itinerary)
+    except ApiError as exc:
+        if exc.code not in ('QUOTE_REQUIRED', 'ROUTING_PROFILE_REQUIRED', 'ROUTING_UNAVAILABLE', 'ROUTING_NOT_CONFIGURED'): raise
+    reserved_end = datetime.fromisoformat(snapshot['reserved_end_at']) if snapshot else row.end_at
+    planned = {'point': (float(body.location.latitude), float(body.location.longitude)),
+               'available_at': datetime.now(timezone.utc) if body.kind == 'CURRENT' else body.available_at,
+               'kind': body.kind}
+    # Re-evaluate using exactly the Owner-confirmed point rather than today's stored vehicle location.
+    try: profile = route_profile(service, vehicle)
+    except ApiError:
+        raise ApiError(409, 'REACHABILITY_UNKNOWN', 'Owner confirmation could not establish pickup routing.') from None
+    feasibility = location_matching.assess(db, request.app.state.hire_routing, vehicle, itinerary, reserved_end, profile, planned=planned)
+    if feasibility['status'] != 'AVAILABLE':
+        raise ApiError(409, feasibility['code'], feasibility['message'])
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id, require_admin=False)
+        locked_vehicle = db.scalar(select(Vehicle).where(Vehicle.id == vehicle.id).with_for_update().execution_options(populate_existing=True))
+        locked = db.scalar(select(Booking).where(Booking.id == row.id).with_for_update().execution_options(populate_existing=True))
+        if locked.version != body.expected_version or locked_vehicle.version != body.vehicle_expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'Booking or vehicle changed. Reload before retrying.')
+        if locked.pending_change.get('kind') != 'LOCATION_CONFIRMATION_REQUIRED':
+            raise ApiError(409, 'LOCATION_CONFIRMATION_NOT_REQUIRED', 'This booking no longer needs location confirmation.')
+        for start, end in itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end)
+        previous = booking_summary(locked)
+        if body.kind == 'CURRENT':
+            locked_vehicle.current_latitude = body.location.latitude
+            locked_vehicle.current_longitude = body.location.longitude
+            locked_vehicle.current_location_source = 'MANUAL'
+            locked_vehicle.current_location_observed_at = planned['available_at']
+            locked_vehicle.current_location_accuracy_m = body.accuracy_m
+            touch(locked_vehicle); locked_vehicle.updated_by = user.id
+        else:
+            locked.itinerary_snapshot = {**locked.itinerary_snapshot, 'positioning_confirmation': {
+                'latitude': str(body.location.latitude), 'longitude': str(body.location.longitude),
+                'available_at': body.available_at.isoformat(), 'confirmed_at': datetime.now(timezone.utc).isoformat()}}
+        locked.pending_change = {'kind': 'QUOTE', 'quote': snapshot} if snapshot else {}
+        locked.end_at = reserved_end
+        touch(locked); locked.updated_by = user.id
+        notify(db, locked, 'Vehicle positioning confirmed', 'The Owner confirmed positioning and Travelly renewed the pickup feasibility check.')
+        audited(request, db, user, locked, previous, 'Owner confirmed vehicle positioning and renewed reachability')
+    return booking_summary(locked)
 
 
 @router.get('/bookings')
@@ -319,6 +518,18 @@ def bookings(request: Request, user=Depends(current), db: Session = Depends(get_
     conditions = {'PASSENGER': Booking.passenger_user_id == user.id, 'OWNER': Booking.owner_user_id == user.id,
                   'DRIVER': Booking.id.in_(driven) if driven else Booking.id.is_(None)}
     where = conditions[view] if view else or_(*conditions.values())
+    # A finished booking the person removed from their list stays in History (?hidden=true); it is never deleted.
+    hidden = (request.query_params.get('hidden') or '').lower() == 'true'
+    # Finished bookings also tidy themselves away from the main list after HISTORY_AFTER_DAYS; nothing is deleted.
+    stale = and_(Booking.status.in_(FINISHED_BOOKING), Booking.updated_at < datetime.now(timezone.utc) - timedelta(days=HISTORY_AFTER_DAYS))
+    if view == 'OWNER':
+        mark = Booking.owner_hidden_at
+    elif view == 'PASSENGER':
+        mark = Booking.passenger_hidden_at
+    else:
+        mark = None
+    if mark is not None:
+        where = where & (or_(mark.is_not(None), stale) if hidden else and_(mark.is_(None), not_(stale)))
     rows = db.scalars(select(Booking).where(where).order_by(Booking.created_at.desc()).limit(100)).all()
 
     def roles(r):
@@ -327,26 +538,111 @@ def bookings(request: Request, user=Depends(current), db: Session = Depends(get_
     return {'items': [{**booking_summary(r), 'viewer_roles': roles(r)} for r in rows]}
 
 
+FINISHED_BOOKING = ('COMPLETED', 'CANCELLED', 'REJECTED')
+HISTORY_AFTER_DAYS = 30
+
+
+@router.post('/bookings/{booking_id}/hide')
+def hide_booking(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    """Take a finished booking off my own list. Nothing is deleted: payments and history stay as they are."""
+    row = db.scalar(select(Booking).where(Booking.id == booking_id).with_for_update())
+    if not row or user.id not in (row.owner_user_id, row.passenger_user_id):
+        raise missing()
+    if row.status not in FINISHED_BOOKING:
+        raise ApiError(409, 'BOOKING_NOT_FINISHED', 'Only a finished, cancelled or rejected booking can be moved to History.')
+    stamp = datetime.now(timezone.utc)
+    if row.owner_user_id == user.id and not row.owner_hidden_at:
+        row.owner_hidden_at = stamp
+    if row.passenger_user_id == user.id and not row.passenger_hidden_at:
+        row.passenger_hidden_at = stamp
+    db.commit()
+    return {'id': str(row.id), 'hidden': True}
+
+
 @router.get('/bookings/{booking_id}')
 def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     row = visible_booking(db, booking_id, user)
     result = booking_summary(row)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
+    if result['trip']:
+        result['trip']['pickup'] = {**result['trip']['pickup'], 'required': row.passenger_user_id != trip.driver_user_id}
+    if row.booking_type == 'TICKET_HIRE':
+        # The seats and Travellers of a ticket booking, for the Passenger who booked it and the Owner who runs it.
+        from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
+        result['scheduled_trip_id'] = str(row.current_scheduled_trip_id) if row.current_scheduled_trip_id else None
+        result['travellers'] = [] if user.id not in (row.owner_user_id, row.passenger_user_id) else [
+            {'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status, 'seat_code': seat.seat_code}
+            for t, _, seat in db.execute(select(BookingTraveller, ScheduledTripSeat, VehicleSeat)
+                                         .join(ScheduledTripSeat, ScheduledTripSeat.id == BookingTraveller.scheduled_trip_seat_id)
+                                         .join(VehicleSeat, VehicleSeat.id == ScheduledTripSeat.vehicle_seat_id)
+                                         .where(BookingTraveller.booking_id == row.id)
+                                         .order_by(VehicleSeat.row_number, VehicleSeat.column_number)).all()]
     return result
 
 
 @router.post('/bookings/{booking_id}/quote')
 def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    preview = visible_booking(db, booking_id, user, owner=True)
+    require_role(db, user, 'OWNER')
+    no_event_change(db, preview)
+    if preview.version != body.expected_version:
+        raise ApiError(409, 'VERSION_CONFLICT', 'Booking changed. Reload before retrying.')
+    preview_manual = preview.pending_change.get('kind') == 'CHANGE_REQUEST_UNPRICED' and preview.status in ('CONFIRMED', 'IN_PROGRESS')
+    if not preview_manual and (preview.status != 'REQUESTED' or preview.accepted_quote_digest):
+        raise ApiError(409, 'QUOTE_STATE_CONFLICT', 'An accepted booking uses change proposals, not a replacement quote.')
+    if body.rates.service_type_id != preview.service_type_id:
+        raise ApiError(422, 'SERVICE_MISMATCH', 'Quote rates must use the requested service.')
+    if not body.rates.enabled:
+        raise ApiError(422, 'QUOTE_REUSE_REQUIRED', 'A structured quote must save enabled reusable rules for future matching requests.')
+    preview_raw = dict(preview.pending_change['itinerary'] if preview_manual else preview.itinerary_snapshot['itinerary'])
+    if body.proposed_start_at is not None:
+        if preview_manual: raise ApiError(409, 'QUOTE_TIME_FIXED', 'A change to an accepted booking has its own departure-time proposal.')
+        if body.proposed_start_at <= datetime.now(timezone.utc):
+            raise ApiError(422, 'VALIDATION_ERROR', 'The proposed departure must be in the future.')
+        old_start = datetime.fromisoformat(preview_raw['start_at'])
+        shift = body.proposed_start_at - old_start
+        if preview_raw.get('return_start_at'):
+            preview_raw['return_start_at'] = (datetime.fromisoformat(preview_raw['return_start_at']) + shift).isoformat()
+        preview_raw['start_at'] = body.proposed_start_at.isoformat()
+    preview_itinerary = Itinerary.model_validate(preview_raw)
+    if preview_manual and preview.pending_change['reason'] == 'DEPARTURE_TIME_CHANGE' and (preview.status != 'CONFIRMED' or preview_itinerary.start_at <= datetime.now(timezone.utc)):
+        raise ApiError(409, 'DEPARTURE_CHANGE_UNAVAILABLE', 'Only an unstarted confirmed booking can receive a future departure quote.')
+    preview_matching = matching_rules(body.rates.rules, preview_itinerary)
+    if len(preview_matching) != 1 or preview_matching[0].coverage.kind != 'ROUTE':
+        raise ApiError(422, 'QUOTE_COVERAGE_REQUIRED', 'The quote needs one explicit matching route rule; it cannot silently become an area or nationwide rate.')
+    preview_vehicle = db.get(Vehicle, preview.vehicle_id)
+    preview_vehicle_version = preview_vehicle.version
+    # Route measurement happens before row locks. The booking version below prevents a stale result
+    # from being persisted, and conflicts are checked again inside the transaction.
+    prepared_snapshot = (price(request, service_for(db, preview.service_type_id, not preview_manual), preview_vehicle,
+                               preview_itinerary, preview_matching)
+                         if preview_manual else offer(request, db, preview_vehicle,
+                               service_for(db, preview.service_type_id), preview_itinerary,
+                               rules=body.rates.rules, gate=False))
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version, owner=True)
+        if vehicle.version != preview_vehicle_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'Vehicle changed. Reload before retrying.')
         require_role(db, user, 'OWNER')
         no_event_change(db, row)
         if not body.rates.enabled: raise ApiError(422, 'QUOTE_REUSE_REQUIRED', 'A structured quote must save enabled reusable rules for future matching requests.')
         manual_change = row.pending_change.get('kind') == 'CHANGE_REQUEST_UNPRICED' and row.status in ('CONFIRMED', 'IN_PROGRESS')
         if not manual_change and (row.status != 'REQUESTED' or row.accepted_quote_digest): raise ApiError(409, 'QUOTE_STATE_CONFLICT', 'An accepted booking uses change proposals, not a replacement quote.')
         if body.rates.service_type_id != row.service_type_id: raise ApiError(422, 'SERVICE_MISMATCH', 'Quote rates must use the requested service.')
-        itinerary = Itinerary.model_validate(row.pending_change['itinerary'] if manual_change else row.itinerary_snapshot['itinerary'])
+        raw_itinerary = dict(row.pending_change['itinerary'] if manual_change else row.itinerary_snapshot['itinerary'])
+        offered_time = None
+        if body.proposed_start_at is not None:
+            if manual_change: raise ApiError(409, 'QUOTE_TIME_FIXED', 'A change to an accepted booking has its own departure-time proposal.')
+            if body.proposed_start_at <= datetime.now(timezone.utc): raise ApiError(422, 'VALIDATION_ERROR', 'The proposed departure must be in the future.')
+            old_start = datetime.fromisoformat(raw_itinerary['start_at'])
+            if body.proposed_start_at != old_start:
+                shift = body.proposed_start_at - old_start
+                if raw_itinerary.get('return_start_at'):
+                    raw_itinerary['return_start_at'] = (datetime.fromisoformat(raw_itinerary['return_start_at']) + shift).isoformat()
+                raw_itinerary['start_at'] = body.proposed_start_at.isoformat()
+                offered_time = {'requested': old_start.isoformat(), 'proposed': body.proposed_start_at.isoformat()}
+        itinerary = Itinerary.model_validate(raw_itinerary)
         if manual_change and row.pending_change['reason'] == 'DEPARTURE_TIME_CHANGE' and (row.status != 'CONFIRMED' or itinerary.start_at <= datetime.now(timezone.utc)):
             raise ApiError(409, 'DEPARTURE_CHANGE_UNAVAILABLE', 'Only an unstarted confirmed booking can receive a future departure quote.')
         matching = matching_rules(body.rates.rules, itinerary)
@@ -354,7 +650,9 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
             raise ApiError(422, 'QUOTE_COVERAGE_REQUIRED', 'The quote needs one explicit matching route rule; it cannot silently become an area or nationwide rate.')
         previous = booking_summary(row)
         rate = persist_rates(vehicle.id, body.rates, request, user, db)
-        snapshot = price(request, service_for(db, row.service_type_id, not manual_change), vehicle, itinerary, matching) if manual_change else offer(request, db, vehicle, service_for(db, row.service_type_id), itinerary, rules=body.rates.rules, gate=False)
+        snapshot = copy.deepcopy(prepared_snapshot)
+        eligible_vehicle(db, vehicle, at=itinerary.start_at)
+        for start, end in itinerary.availability_intervals(): no_conflict(db, vehicle.id, start, end, exclude=row.id)
         snapshot['rate_version'] = rate.version; snapshot.pop('digest', None); snapshot['digest'] = digest(snapshot)
         if manual_change:
             old_total = row.price_snapshot['current']['calculation']['total']
@@ -368,7 +666,10 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
             notify(db, row, 'Changed-route quote is ready', 'Review old total, added charge and proposed total. Passenger acceptance and feasible Owner review are required.', assigned.driver_user_id if assigned else None)
         else:
             row.pending_change = {'kind': 'QUOTE', 'quote': snapshot}; row.quoted_amount = Decimal(snapshot['calculation']['total'])
-            notify(db, row, 'Your trip quote is ready', 'Review and accept the itinerary price before the Owner can commit.')
+            if offered_time:
+                notify(db, row, 'Your trip quote is ready, with a different time', 'The Owner cannot do the time you asked for and offers another departure. Review the new time and price before accepting.')
+            else:
+                notify(db, row, 'Your trip quote is ready', 'Review and accept the itinerary price before the Owner can commit.')
         audited(request, db, user, row, previous, 'Structured quote saved as reusable route rates')
     return booking_summary(row)
 
@@ -387,9 +688,12 @@ def accept_price(booking_id: UUID, body: Acceptance, request: Request, user=Depe
         if snapshot['rule']['method'] == 'FIXED_ROUTE' and not snapshot['rule'].get('departure'):
             raise ApiError(409, 'QUOTE_REVIEW_REQUIRED', 'This older fixed quote needs explicit departure applicability before acceptance.')
         previous = booking_summary(row)
-        no_conflict(db, row.vehicle_id, row.start_at, datetime.fromisoformat(snapshot['reserved_end_at']), exclude=row.id)
+        no_conflict(db, row.vehicle_id, quote_itinerary.start_at, datetime.fromisoformat(snapshot['reserved_end_at']), exclude=row.id)
+        row.start_at = quote_itinerary.start_at   # the quote may offer another time than the one first asked for; accepting it moves the booking
         row.price_snapshot = {'initial': copy.deepcopy(snapshot), 'current': copy.deepcopy(snapshot)}
-        row.itinerary_snapshot = {'itinerary': snapshot['itinerary'], 'measurement': snapshot['measurement']}
+        positioning = row.itinerary_snapshot.get('positioning_confirmation')
+        row.itinerary_snapshot = {'itinerary': snapshot['itinerary'], 'measurement': snapshot['measurement'],
+                                  **({'positioning_confirmation': positioning} if positioning else {})}
         row.accepted_quote_digest = body.digest; row.total_amount = row.quoted_amount = Decimal(snapshot['calculation']['total'])
         row.end_at = datetime.fromisoformat(snapshot['reserved_end_at']); row.accepted_at = datetime.now(timezone.utc); row.pending_change = {}
         notify(db, row, 'Trip price accepted', 'The Passenger accepted this price. The Owner must still confirm operational availability.')
@@ -400,8 +704,16 @@ def accept_price(booking_id: UUID, body: Acceptance, request: Request, user=Depe
 def commit_operator(booking_id, body, request, user, db, self_drive):
     driver = user if self_drive else db.scalar(select(User).where(User.public_user_reference == body.driver_reference))
     if not driver: raise ApiError(409, 'DRIVER_NOT_ELIGIBLE', 'That Driver reference is unavailable.')
+    preview = visible_booking(db, booking_id, user, owner=True)
+    preview_vehicle = db.get(Vehicle, preview.vehicle_id)
+    preview_position = position_signature(preview_vehicle)
+    feasibility = booking_pickup_feasibility(request, db, preview, preview_vehicle)
+    if feasibility['status'] != 'AVAILABLE':
+        raise ApiError(409, feasibility['code'], feasibility['message'])
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version, owner=True, driver_id=driver.id)
+        if position_signature(vehicle) != preview_position:
+            raise ApiError(409, 'VEHICLE_LOCATION_CHANGED', 'Vehicle location changed. Reload and check reachability again.')
         require_role(db, user, 'OWNER')
         if row.status not in ('REQUESTED', 'OWNER_ACTION_REQUIRED') or not row.accepted_quote_digest: raise ApiError(409, 'PRICE_ACCEPTANCE_REQUIRED', 'Passenger price acceptance is required before Owner commitment.')
         eligible_vehicle(db, vehicle, at=row.end_at)
@@ -438,9 +750,18 @@ def assign_driver(booking_id: UUID, body: Assignment, request: Request, user=Dep
 def assignment_decision(trip_id, body, request, user, db, accept):
     trip = db.get(Trip, trip_id)
     if not trip or trip.driver_user_id != user.id: raise missing()
+    if accept:
+        preview = db.get(Booking, trip.booking_id)
+        preview_vehicle = db.get(Vehicle, trip.vehicle_id)
+        preview_position = position_signature(preview_vehicle)
+        feasibility = booking_pickup_feasibility(request, db, preview, preview_vehicle)
+        if feasibility['status'] != 'AVAILABLE':
+            raise ApiError(409, feasibility['code'], feasibility['message'])
     with request.app.state.audit.coordinated():
         before = db.get(Booking, trip.booking_id)
         row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
+        if accept and position_signature(vehicle) != preview_position:
+            raise ApiError(409, 'VEHICLE_LOCATION_CHANGED', 'Vehicle location changed. Reload and check reachability again.')
         trip = db.scalar(select(Trip).where(Trip.id == trip_id).with_for_update().execution_options(populate_existing=True))
         if trip.version != body.expected_version or trip.assignment_status != 'PENDING': raise ApiError(409, 'ASSIGNMENT_CHANGED', 'Reload the current assignment.')
         previous = booking_summary(row)
@@ -483,6 +804,10 @@ def start_trip(trip_id: UUID, body: StartTrip, request: Request, user=Depends(cu
         eligible_vehicle(db, vehicle); compatible_driver(db, user, vehicle, service_for(db, row.service_type_id, False), datetime.now(timezone.utc))
         odometer_rules(request, trip, vehicle, 'START', body.start_odometer_km)
         no_conflict(db, vehicle.id, row.start_at, row.end_at, exclude=row.id, driver_id=user.id)
+        # Owner decision 16 Nov 2026: the trip starts only after the Driver has checked the Passenger (scanned QR or six-digit PIN).
+        # When the Driver booked the ride for themselves there is no one else to check.
+        if row.passenger_user_id != user.id and trip.pickup_verified_at is None:
+            raise ApiError(409, 'PICKUP_NOT_VERIFIED', 'Check the Passenger first: scan their pickup code or type the six digits, then start the trip.')
         previous = booking_summary(row); row.status = 'IN_PROGRESS'; trip.status = 'IN_PROGRESS'; trip.actual_start_at = datetime.now(timezone.utc); trip.start_odometer_km = body.start_odometer_km; touch(trip)
         notify(db, row, 'Trip started', 'The assigned Driver started this confirmed journey.', user.id)
         audited(request, db, user, row, previous, 'Assigned eligible Driver started the trip')
@@ -671,6 +996,9 @@ def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_
         row = db.get(Booking, trip.booking_id)
         if not row: raise missing()
         if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
+        data = trip_summary(trip)
+        data['pickup']['required'] = row.passenger_user_id != trip.driver_user_id   # a Driver riding alone has no one to check
+        return data
     return trip_summary(trip)
 
 
@@ -737,6 +1065,14 @@ def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: 
     trip.current_speed_kph = body.speed_kph
     trip.location_updated_at = datetime.now(timezone.utc)
     trip.tracking_status = 'ACTIVE'
+    # The assigned operator's authorized trip GPS is also the vehicle observation. It does not touch the
+    # vehicle version or any other setting, so unrelated edits can neither refresh nor overwrite freshness.
+    vehicle = db.scalar(select(Vehicle).where(Vehicle.id == trip.vehicle_id).with_for_update())
+    vehicle.current_latitude = body.latitude
+    vehicle.current_longitude = body.longitude
+    vehicle.current_location_accuracy_m = body.accuracy_m
+    vehicle.current_location_observed_at = trip.location_updated_at
+    vehicle.current_location_source = 'GPS'
     touch(trip); trip.updated_by = user.id
     db.commit()
     return trip_summary(trip)
@@ -910,7 +1246,7 @@ def prepare_change(row, body, request, db, vehicle):
                 'old_total': initial['calculation']['total'], 'old_departure': old.start_at.isoformat(),
                 'new_departure': body.itinerary.start_at.isoformat(), 'manual_review_required': True,
                 'message': 'The Owner proposed a departure change. A new disclosed reusable quote, Passenger acceptance and feasible manual confirmation are required; the current departure and price stay agreed.'}
-    if rule.method == 'FIXED_ROUTE' and [(s.place.latitude, s.place.longitude) for s in old.stops] != [(s.place.latitude, s.place.longitude) for s in body.itinerary.stops]:
+    if rule.coverage.kind == 'ROUTE' and [(s.place.latitude, s.place.longitude) for s in old.stops] != [(s.place.latitude, s.place.longitude) for s in body.itinerary.stops]:
         return {'kind': 'CHANGE_REQUEST_UNPRICED', 'reason': body.reason, 'itinerary': body.itinerary.model_dump(mode='json'),
                 'old_total': initial['calculation']['total'], 'manual_review_required': True,
                 'message': 'The fixed fare covers the agreed exact route. The Owner must quote reusable rules for this changed route before any added/new total can be accepted.'}
@@ -932,8 +1268,23 @@ def prepare_change(row, body, request, db, vehicle):
 
 @router.post('/bookings/{booking_id}/changes')
 def propose_change(booking_id: UUID, body: ChangeBody, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    preview = visible_booking(db, booking_id, user)
+    if user.id != preview.passenger_user_id:
+        require_role(db, user, 'OWNER' if user.id == preview.owner_user_id else 'DRIVER')
+    if preview.status not in ('CONFIRMED', 'IN_PROGRESS'):
+        raise ApiError(409, 'TRIP_CHANGE_UNAVAILABLE', 'Trip changes require a confirmed or active booking.')
+    if body.reason == 'DEPARTURE_TIME_CHANGE' and user.id != preview.owner_user_id:
+        raise ApiError(403, 'OWNER_REQUIRED', 'Only the booking Owner can propose this departure change.')
+    if body.reason == 'DEPARTURE_TIME_CHANGE': require_role(db, user, 'OWNER')
+    # Pricing may call the route provider. Calculate before taking booking/vehicle locks;
+    # the expected version below rejects a stale result before it is stored.
+    preview_vehicle = db.get(Vehicle, preview.vehicle_id)
+    preview_vehicle_version = preview_vehicle.version
+    prepared = prepare_change(preview, body, request, db, preview_vehicle)
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version)
+        if vehicle.version != preview_vehicle_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'Vehicle changed. Reload before retrying.')
         if user.id != row.passenger_user_id:
             require_role(db, user, 'OWNER' if user.id == row.owner_user_id else 'DRIVER')
         if row.status not in ('CONFIRMED', 'IN_PROGRESS'): raise ApiError(409, 'TRIP_CHANGE_UNAVAILABLE', 'Trip changes require a confirmed or active booking.')
@@ -941,7 +1292,7 @@ def propose_change(booking_id: UUID, body: ChangeBody, request: Request, user=De
             raise ApiError(403, 'OWNER_REQUIRED', 'Only the booking Owner can propose this departure change.')
         if body.reason == 'DEPARTURE_TIME_CHANGE': require_role(db, user, 'OWNER')
         previous = booking_summary(row)
-        row.pending_change = prepare_change(row, body, request, db, vehicle)
+        row.pending_change = prepared
         trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.assignment_status == 'ACCEPTED', Trip.status != 'CANCELLED'))
         notify(db, row, 'Trip change proposed', f"Old total LKR {row.pending_change['old_total']}; " + (row.pending_change['message'] if row.pending_change['kind'] == 'CHANGE_REQUEST_UNPRICED' else f"added charge {row.pending_change['added_charge']}; proposed total {row.pending_change['new_total']}. Passenger acceptance is required."), trip.driver_user_id if trip else None)
         audited(request, db, user, row, previous, 'Itinerary change proposed; agreed snapshot unchanged')
@@ -980,18 +1331,40 @@ def apply_change(db, request, row, vehicle, user, *, manual=False):
     return None
 
 
+def change_pickup_feasibility(request, db, row, vehicle):
+    proposal = row.pending_change or {}
+    snapshot = proposal.get('quote')
+    if not snapshot:
+        return {'status': 'AVAILABLE'}
+    itinerary = Itinerary.model_validate(snapshot['itinerary'])
+    if itinerary.start_at <= datetime.now(timezone.utc):
+        # An in-progress route change has no future pickup to reach; the existing
+        # Driver/vehicle conflict checks still protect the changed reserved end.
+        return {'status': 'AVAILABLE'}
+    return booking_pickup_feasibility(request, db, row, vehicle, itinerary=itinerary,
+        reserved_end=datetime.fromisoformat(snapshot['reserved_end_at']))
+
+
 @router.post('/bookings/{booking_id}/changes/accept')
 def accept_change(booking_id: UUID, body: Acceptance, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     visible = visible_booking(db, booking_id, user, passenger=True)
+    preview_vehicle = db.get(Vehicle, visible.vehicle_id)
+    preview_position = position_signature(preview_vehicle)
+    feasibility = change_pickup_feasibility(request, db, visible, preview_vehicle)
     assigned = db.scalar(select(Trip).where(Trip.booking_id == visible.id, Trip.assignment_status == 'ACCEPTED', Trip.status != 'CANCELLED'))
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version, passenger=True, driver_id=assigned.driver_user_id if assigned else None)
+        if position_signature(vehicle) != preview_position:
+            raise ApiError(409, 'VEHICLE_LOCATION_CHANGED', 'Vehicle location changed. Reload and check reachability again.')
         proposal = row.pending_change
         if row.status not in ('CONFIRMED', 'IN_PROGRESS') or proposal.get('kind') != 'CHANGE' or proposal.get('digest') != body.digest:
             raise ApiError(409, 'PROPOSAL_CHANGED', 'Reload the current change proposal before accepting.')
         previous = booking_summary(row)
         row.pending_change = {**proposal, 'passenger_accepted': True}
-        reason = apply_change(db, request, row, vehicle, user)
+        if feasibility['status'] != 'AVAILABLE':
+            row.pending_change = {**row.pending_change, 'manual_review_required': True,
+                                  'manual_review_reason': feasibility['message']}
+        reason = feasibility.get('message') if feasibility['status'] != 'AVAILABLE' else apply_change(db, request, row, vehicle, user)
         if reason:
             row.pending_change = {**row.pending_change, 'manual_review_required': True, 'manual_review_reason': reason}
             notify(db, row, 'Trip change needs manual review', reason, assigned.driver_user_id if assigned else None)
@@ -1002,9 +1375,16 @@ def accept_change(booking_id: UUID, body: Acceptance, request: Request, user=Dep
 @router.post('/bookings/{booking_id}/changes/review')
 def review_change(booking_id: UUID, body: Acceptance, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     visible = visible_booking(db, booking_id, user, owner=True)
+    preview_vehicle = db.get(Vehicle, visible.vehicle_id)
+    preview_position = position_signature(preview_vehicle)
+    feasibility = change_pickup_feasibility(request, db, visible, preview_vehicle)
+    if feasibility['status'] != 'AVAILABLE':
+        raise ApiError(409, feasibility['code'], feasibility['message'])
     assigned = db.scalar(select(Trip).where(Trip.booking_id == visible.id, Trip.assignment_status == 'ACCEPTED', Trip.status != 'CANCELLED'))
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version, owner=True, driver_id=assigned.driver_user_id if assigned else None)
+        if position_signature(vehicle) != preview_position:
+            raise ApiError(409, 'VEHICLE_LOCATION_CHANGED', 'Vehicle location changed. Reload and check reachability again.')
         require_role(db, user, 'OWNER')
         proposal = row.pending_change
         if proposal.get('kind') != 'CHANGE' or proposal.get('digest') != body.digest or not proposal.get('passenger_accepted'):
@@ -1021,29 +1401,61 @@ def resolve_request(booking_id: UUID, body: Resolution, request: Request, user=D
     with request.app.state.audit.coordinated():
         row, vehicle = lock_booking(db, request, booking_id, user, body.expected_version)
         if user.id != row.passenger_user_id: require_role(db, user, 'OWNER')
-        if user.id not in (row.owner_user_id, row.passenger_user_id) or row.status not in ('REQUESTED', 'OWNER_ACTION_REQUIRED', 'AWAITING_DRIVER'):
+        # A Passenger may cancel a CONFIRMED private hire until CONFIRMED_CANCEL_HOURS before it starts (no fee: private hire is paid after the trip).
+        confirmed_by_passenger = (user.id == row.passenger_user_id and row.status == 'CONFIRMED' and row.booking_type == 'PRIVATE_HIRE')
+        if confirmed_by_passenger and row.start_at - datetime.now(timezone.utc) < timedelta(hours=CONFIRMED_CANCEL_HOURS):
+            raise ApiError(409, 'CANCELLATION_TOO_LATE', f'A confirmed trip can be cancelled until {CONFIRMED_CANCEL_HOURS} hours before it starts. Please contact the Owner.')
+        if user.id not in (row.owner_user_id, row.passenger_user_id) or (row.status not in ('REQUESTED', 'OWNER_ACTION_REQUIRED', 'AWAITING_DRIVER') and not confirmed_by_passenger):
             raise ApiError(409, 'CANCELLATION_REVIEW_REQUIRED', 'Confirmed/in-progress journeys require the approved cancellation/financial workflow; no silent release was made.')
         if row.booking_type != 'PRIVATE_HIRE' or row.assurance_type != 'STANDARD_HIRE' or row.payment_status_snapshot not in (None, 'PENDING', 'FAILED'):
             raise ApiError(409, 'CANCELLATION_REVIEW_REQUIRED', 'Protected or funded journeys require their cancellation/financial workflow; no automatic release was made.')
         previous = booking_summary(row); row.status = 'CANCELLED'; row.vehicle_committed = False
         row.cancelled_by_user_id = user.id; row.cancelled_at = datetime.now(timezone.utc); row.cancellation_reason = body.reason
+        driver_ids = set()
         for trip in db.scalars(select(Trip).where(Trip.booking_id == row.id).with_for_update()):
+            if trip.assignment_status == 'ACCEPTED' and trip.driver_user_id: driver_ids.add(trip.driver_user_id)
             trip.status = 'CANCELLED'
             if trip.assignment_status != 'REJECTED': trip.assignment_status = 'CANCELLED'
             touch(trip)
-        notify(db, row, 'Booking resolved', 'The pending booking was explicitly cancelled and its reservation released.')
+        if confirmed_by_passenger:
+            notify(db, row, 'Trip cancelled by the Passenger', 'The Passenger cancelled this confirmed trip before it started. Do not take the vehicle out for it.', next(iter(driver_ids), None))
+        else:
+            notify(db, row, 'Booking resolved', 'The pending booking was explicitly cancelled and its reservation released.')
         audited(request, db, user, row, previous, body.reason)
     return booking_summary(row)
 
 
 @router.get('/notifications')
 def own_notifications(user=Depends(current), db: Session = Depends(get_db)):
+    query = notification_query(user)
+    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
+    return {'items': [notification_out(r) for r in rows]}
+
+
+def notification_query(user):
+    """The recipient-visible notification set shared by the list, badge and read action."""
     from app.api.routers.account_settings_api import muted_types
     query = select(Notification).where(Notification.recipient_user_id == user.id)
     if muted_types(user):                       # types the person turned off in Settings (only optional ones can be)
         query = query.where(Notification.notification_type.notin_(muted_types(user)))
-    rows = db.scalars(query.order_by(Notification.created_at.desc()).limit(100)).all()
-    return {'items': [notification_out(r) for r in rows]}
+    return query
+
+
+@router.get('/notifications/unread-count')
+def unread_notification_count(user=Depends(current), db: Session = Depends(get_db)):
+    visible = notification_query(user).where(Notification.read_at.is_(None)).subquery()
+    return {'unread_count': db.scalar(select(func.count()).select_from(visible)) or 0}
+
+
+@router.post('/notifications/read-all')
+def read_all_notifications(user=Depends(current), db: Session = Depends(get_db)):
+    from app.api.routers.account_settings_api import muted_types
+    conditions = [Notification.recipient_user_id == user.id, Notification.read_at.is_(None)]
+    if muted_types(user):
+        conditions.append(Notification.notification_type.notin_(muted_types(user)))
+    marked = db.execute(update(Notification).where(*conditions).values(read_at=datetime.now(timezone.utc)))
+    db.commit()
+    return {'unread_count': 0, 'marked_read': marked.rowcount or 0}
 
 
 def notification_out(r):
@@ -1154,6 +1566,8 @@ def admin_services(user=Depends(admin), db: Session = Depends(get_db)):
         items.append({'id': str(row.id), 'code': row.code, 'name': row.name, 'is_active': row.is_active,
             'version': row.version, 'default_pricing_basis': row.default_pricing_basis, 'pricing_scope': scope,
             'status': catalogue_status(row), 'ready_vehicle_count': len(ready),
+            'supports_min_distance': scope == 'LONG_DISTANCE', 'min_distance_km': min_distance_km(row) if scope == 'LONG_DISTANCE' else None,
+            'supports_airports': scope == 'AIRPORT', 'airports': airports_of(row) if scope == 'AIRPORT' else None,
             'ready_owner_count': len({vehicle.owner_user_id for vehicle in ready}),
             'ready_vehicles': [{'vehicle_reference': vehicle.public_vehicle_reference,
                 'owner_reference': db.get(User, vehicle.owner_user_id).public_user_reference} for vehicle in ready[:100]]})

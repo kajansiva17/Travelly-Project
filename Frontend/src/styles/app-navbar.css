@@ -20,7 +20,8 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display:
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > svg { box-sizing: content-box; padding: 5px; border-radius: 9px; background: #fff; border: 1px solid var(--ui-input-border); color: var(--ui-red-text); }
 
 /* Notifications and account. */
-html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { position: relative; display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell-badge { position: absolute; top: 1px; right: 0; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 2px solid #fff; border-radius: 999px; background: var(--ui-red-text); color: #fff; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 6px rgb(122 19 30 / .28); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; color: var(--ui-ink); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .dashboard-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; background: #dceafa; color: var(--ui-ink); box-shadow: 0 2px 8px rgb(40 80 120 / .2); }
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name { display: grid; line-height: 1.2; text-align: left; }
@@ -28,28 +29,30 @@ html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspa
 html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name small { font-size: 12px; font-weight: 500; color: var(--ui-muted); }
 
 
-/* Phones: keep only the avatar and icons so the bar never overflows (all roles). */
-@media (max-width: 767px) {
+/* Tablets (768-1023px): sidebar is in the drawer, so drop the text labels and keep icons; the bar fits beside the menu button. */
+@media (max-width: 1023px) {
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-profile .workspace-profile-name,
   html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels > span { display: none; }
 }
 
-/* Small phones: drop Travel Reels (not available yet) and compact the logo and
-   language so menu, logo, language, bell and avatar all fit without clipping. */
-@media (max-width: 480px) {
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 96px; }   /* frame.css sets the logo width from this variable, so the bar fits a 360px phone */
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 96px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation { gap: 6px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language { gap: 2px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 64px; font-size: 12px; }
+/* Phones: keep the controls inside the pill while reserving a readable brand.
+   Compact control gaps before reducing the logo. */
+@media (max-width: 767px) {
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-pad-x: 8px; --nav-gap: 4px; --nav-logo-w: clamp(100px, calc(100vw - 226px), 150px); }
+  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(130px, calc(100vw - 92px), 150px); }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .header-inner > .brand.travelly-brand { margin: 0 auto; }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar .navigation { position: static; flex: 0 0 auto; margin-left: 0; }
+  /* Login / register: menu button on the right edge, never on top of the logo. */
+  html body .auth-header.app-navbar.app-navbar.app-navbar.app-navbar .menu-toggle { margin-left: auto; }
 }
 
-/* 360px phones: a little tighter so the bar (menu, logo, language, bell, avatar) never makes the page scroll sideways. */
+/* Small phones: no Travel Reels icon in the bar (it is in the menu drawer). */
+@media (max-width: 480px) {
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-reels { display: none; }
+}
+
+/* Small phones retain the usable 44px menu target. */
 @media (max-width: 400px) {
-  html body .app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: 80px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .header-inner { gap: 8px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .language select { max-width: 52px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .brand.travelly-brand { width: 80px; }
-  html body .app-navbar.app-navbar.app-navbar.app-navbar .app-nav-bell { min-width: 34px; }
+  html body .workspace-header.app-navbar.app-navbar.app-navbar.app-navbar { --nav-logo-w: clamp(100px, calc(100vw - 226px), 150px); }
+  html body .app-navbar.app-navbar.app-navbar.app-navbar .navigation .language.language select { width: 68px !important; font-size: 12px; }
 }

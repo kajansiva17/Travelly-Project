@@ -45,12 +45,13 @@ function Stars({value,onChange,disabled}){
 
 export default function PostCreate(){
   const navigate=useNavigate(),[v,setV]=useState(BLANK),[step,setStep]=useState(0),[note,setNote]=useState(''),[errors,setErrors]=useState({}),[preview,setPreview]=useState('')
-  const [vehicles,setVehicles]=useState(null),[reading,setReading]=useState(false),[progress,setProgress]=useState(null),[busy,setBusy]=useState(false),controller=useRef(null),sending=useRef(false)
+  const [mine,setMine]=useState([]),[vehicles,setVehicles]=useState(null),[reading,setReading]=useState(false),[progress,setProgress]=useState(null),[busy,setBusy]=useState(false),controller=useRef(null),sending=useRef(false)
   const set=patch=>setV(c=>({...c,...patch}))
   useEffect(()=>()=>{controller.current?.abort()},[])
   useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview)},[preview])
   useEffect(()=>{if(v.post_type!=='REVIEW'||vehicles)return;api('/social/me/reviewable-vehicles',{cache:'no-store'}).then(r=>setVehicles(r.items||[])).catch(e=>{setVehicles([]);setNote(fieldErrorText(e))})},[v.post_type])
 
+  useEffect(()=>{if(v.post_type==='REVIEW'||!v.post_type||step<2)return;api('/owners/me/vehicles',{cache:'no-store'}).then(r=>setMine((r.items||[]).filter(x=>x.verification_status==='APPROVED'||!x.verification_status))).catch(()=>setMine([]))},[v.post_type,step])
   const kind=type=>{set({...BLANK,post_type:type,visibility:v.visibility});setPreview('');setNote('');setErrors({});setStep(1)}
   async function chooseFile(e){
     const file=e.target.files?.[0];e.target.value='';if(!file)return
@@ -107,6 +108,7 @@ export default function PostCreate(){
         <Field label="Caption" optional={v.post_type!=='REVIEW'} help="Words and #tags. Tags in the caption become hashtags."><textarea name="caption" rows={3} maxLength={LIMITS.caption} value={v.caption} onChange={e=>set({caption:e.target.value})} disabled={busy}/></Field>
         <div className="pc-side">
           <Field label="Place" optional><input name="location_name" maxLength={LIMITS.place} value={v.location_name} onChange={e=>set({location_name:e.target.value})} disabled={busy}/></Field>
+          {mine.length>0&&<Field label="Vehicle in this post" optional help="Passengers can then hire it from your reel."><select name="linked_vehicle_id" value={v.linked_vehicle_id} onChange={e=>set({linked_vehicle_id:e.target.value})} disabled={busy}><option value="">{t('No vehicle')}</option>{mine.map(x=><option key={x.id} value={x.id}>{[x.make,x.model].filter(Boolean).join(' ')||x.registration_number||x.id}</option>)}</select></Field>}
           <Field label="Hashtags" optional help="Separate them with commas. Up to 30."><input name="hashtags" value={v.hashtags} onChange={e=>set({hashtags:e.target.value})} disabled={busy}/></Field>
           <Field label="Who can see it"><select name="visibility" value={v.visibility} onChange={e=>set({visibility:e.target.value})} disabled={busy}>{VISIBILITY.map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}</select></Field></div></div>
       {tagCount>LIMITS.hashtags&&<p className="tk-line is-warn" role="status">{t('Up to {value0} hashtags.',{value0:LIMITS.hashtags})}</p>}

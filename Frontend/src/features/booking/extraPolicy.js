@@ -66,19 +66,22 @@ export function distanceValue(entry) {
    of a part on a page: 'ASK' (Ask the Owner for a price) and 'FAR' (Farther away). */
 export function searchEntries(result) {
   const priced = orderNearFirst(result?.items).map(entry => ({ ...entry, quote_required: false }))
-  const asked = orderNearFirst(result?.quote_on_request).map(entry => ({ ...entry, quote_required: true }))
-  return [...priced, ...asked]
+  const requested = result?.quote_on_request || []
+  const confirmations = orderNearFirst(requested.filter(entry => entry.owner_confirmation_required)).map(entry => ({ ...entry, quote_required: Boolean(entry.quote_required) }))
+  const asked = orderNearFirst(requested.filter(entry => !entry.owner_confirmation_required)).map(entry => ({ ...entry, quote_required: true }))
+  return [...priced, ...confirmations, ...asked]
 }
 export function headingsBefore(entry, previous) {
   const out = [], far = !isNear(entry)
-  if (entry.quote_required && !previous?.quote_required) out.push('ASK')
-  if (far && (!previous || previous.quote_required !== entry.quote_required || isNear(previous))) out.push('FAR')
+  if (entry.owner_confirmation_required && !previous?.owner_confirmation_required) out.push('CONFIRM')
+  else if (entry.quote_required && (!previous?.quote_required || previous?.owner_confirmation_required)) out.push('ASK')
+  if (far && (!previous || previous.quote_required !== entry.quote_required || previous.owner_confirmation_required !== entry.owner_confirmation_required || isNear(previous))) out.push('FAR')
   return out
 }
 
 /* Pages of the list: a page never mixes parts, so its heading sits once at the top. */
 export function pageEntries(entries, fit) {
-  const part = entry => `${entry.quote_required ? 1 : 0}${isNear(entry) ? 0 : 1}`
+  const part = entry => `${entry.quote_required ? 1 : 0}${entry.owner_confirmation_required ? 1 : 0}${isNear(entry) ? 0 : 1}`
   const pages = []
   let i = 0
   while (i < entries.length) {

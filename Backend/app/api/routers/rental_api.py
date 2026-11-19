@@ -312,7 +312,9 @@ def search_rentals(body: RentalSearch, request: Request, db: Session = Depends(g
                 if exc.status == 503: raise
                 continue
             if terms:
-                items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'rental': {**terms_view(terms), **estimate(terms, body.days)}})
+                shown = terms_view(terms)
+                shown['extras'] = [{**e, 'amount': format(extra_amount(e, body.days), '.2f')} for e in shown.get('extras', [])]   # the cost of each extra for these days
+                items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'rental': {**shown, **estimate(terms, body.days)}})
     return {'items': items, 'message': 'The final price is worked out when the vehicle is returned, from the odometer readings and these rates.'}
 
 

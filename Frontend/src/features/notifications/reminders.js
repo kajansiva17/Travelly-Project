@@ -9,7 +9,7 @@ export function reminderKind(note){
 export function reminderLink(note,role){
   const kind=reminderKind(note),payload=note?.action_payload,vehicleId=payload?.vehicle_id
   // A missing payload key falls back to the vehicle list.
-  if(kind==='MAINTENANCE_DUE')return vehicleId?`/owner/vehicles/${vehicleId}?tab=maintenance`:'/owner/vehicles'
+  if(kind==='MAINTENANCE_DUE')return vehicleId?`/owner/maintenance?vehicle=${vehicleId}`:'/owner/vehicles'
   if(kind==='DOCUMENT_EXPIRY'){
     // vehicle_id is present for vehicle documents only: they are under that vehicle. Any other document is the person's own.
     if(vehicleId)return `/owner/vehicles/${vehicleId}?tab=documents`
@@ -18,5 +18,5 @@ export function reminderLink(note,role){
   }
   return null
 }
-// Tab named in the address of a vehicle page (?tab=documents or ?tab=maintenance).
-export const vehicleTabFromSearch=search=>({documents:1,maintenance:5,'event-packages':6,'rental-rates':7})[new URLSearchParams(search).get('tab')]||0
+// Tab named in the address of a vehicle page (?tab=documents).
+export const vehicleTabFromSearch=search=>({documents:1})[new URLSearchParams(search).get('tab')]||0

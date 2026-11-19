@@ -1,5 +1,6 @@
 import { t, getLanguage } from '../../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
+import {createPortal} from 'react-dom'
 import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import {PlaceSearch} from '../owner/OwnerRates'
@@ -67,20 +68,27 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   const [tab,setTab]=useState(initialTab),[search,setSearch]=useState(freshSearch),[help,setHelp]=useState({messages:[],topics:null})
   const [text,setText]=useState(''),[busy,setBusy]=useState(false),[listening,setListening]=useState(false),[micNote,setMicNote]=useState(''),[blocked,setBlocked]=useState(false),[cardProblem,setCardProblem]=useState('')
   const Recognition=recognitionConstructor()
+  // The assistant listens, answers and speaks in the language chosen here (starts as the site language), so Tamil can be spoken on an English site.
+  const [aiLang,setAiLang]=useState(getLanguage)
   useEffect(()=>{latest.current={search,help,tab}},[search,help,tab])
-  useEffect(()=>{dialog.current?.showModal();return()=>{stopMic();globalThis.speechSynthesis?.cancel?.();try{dialog.current?.close()}catch{/* Already closed. */}}},[])
+  // Lock body scroll while AI panel is open (replaces native <dialog> modal behaviour)
+  useEffect(()=>{
+    const prev=document.body.style.overflow
+    document.body.style.overflow='hidden'
+    return()=>{document.body.style.overflow=prev;stopMic();globalThis.speechSynthesis?.cancel?.()}
+  },[])
   useEffect(()=>{if(list.current)list.current.scrollTop=list.current.scrollHeight},[search.messages.length,help.messages.length,tab,busy])
   // "What can I ask?": every help topic, read once when the Help tab is first opened.
   useEffect(()=>{
     if(tab!=='help'||help.topics!==null)return undefined
     let alive=true
-    helpTopics(getLanguage()).then(r=>{if(alive)setHelp(h=>({...h,topics:topicRows(r)}))}).catch(()=>{if(alive)setHelp(h=>({...h,topics:[]}))})
+    helpTopics(aiLang).then(r=>{if(alive)setHelp(h=>({...h,topics:topicRows(r)}))}).catch(()=>{if(alive)setHelp(h=>({...h,topics:[]}))})
     return()=>{alive=false}
-  },[tab,help.topics])
+  },[tab,help.topics,aiLang])
   const stopMic=()=>{const r=recognizer.current;recognizer.current=null;try{r&&r.abort&&r.abort()}catch{/* Already stopped. */}}
 
   const close=useCallback(()=>onClose&&onClose(),[onClose])
-  const say=question=>{if(question)speak(question,speechLang(getLanguage()))}   // text is always shown; speech only when the device has a voice for the language
+  const say=question=>{if(question)speak(question,speechLang(aiLang))}   // text is always shown; speech only when the device has a voice for the language
 
   async function sendSearch(message,{label,fromVoice=false}={}){
     const value=String(message||'').trim().slice(0,500);if(!value||busy)return
@@ -88,7 +96,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     setText('');setBusy(true);setCardProblem('')
     setSearch(s=>({...s,messages:[...s.messages,{role:'user',text:label||value}]}))
     try{
-      const r=await searchAssist({message:value,language:getLanguage(),filters:state.filters,asking:state.asking})
+      const r=await searchAssist({message:value,language:aiLang,filters:state.filters,asking:state.asking})
       setSearch(s=>({...s,filters:r.filters||{},asking:r.asking||null,summary:r.summary||[],ready:Boolean(r.ready),formPath:r.form_path||null,messages:[...s.messages,{role:'ai',text:r.question,notes:r.notes||[],options:r.options||[],ready:Boolean(r.ready),reply:r}]}))
       if(fromVoice)say(r.question)
     }catch(error){setSearch(s=>({...s,messages:[...s.messages,{role:'ai',text:aiErrorText(error),error:true}]}))}
@@ -99,7 +107,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     setText('');setBusy(true)
     setHelp(h=>({...h,messages:[...h.messages,{role:'user',text:value}]}))
     try{
-      const r=await askHelp({question:value,language:getLanguage()})
+      const r=await askHelp({question:value,language:aiLang})
       setHelp(h=>({...h,messages:[...h.messages,{role:'ai',help:r}]}))
     }catch(error){setHelp(h=>({...h,messages:[...h.messages,{role:'ai',text:aiErrorText(error),error:true}]}))}
     finally{setBusy(false)}
@@ -113,7 +121,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
     globalThis.speechSynthesis?.cancel?.()
     setMicNote('')
     const recognition=new Recognition()
-    recognition.lang=speechLang(getLanguage());recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false
+    recognition.lang=speechLang(aiLang);recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false
     let got=false
     recognition.onresult=event=>{const said=event.results?.[0]?.[0]?.transcript||'';if(!said||got)return;got=true;recognizer.current=null;setListening(false);submit(said,{fromVoice:true})}
     recognition.onerror=event=>{
@@ -131,7 +139,7 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
   // --- the "Check your search" card ---
   const edit=(field,value)=>{setCardProblem('');setSearch(s=>({...s,filters:{...s.filters,[field]:value}}))}
   const pickPlace=(field,place)=>setSearch(s=>({...s,places:{...s.places,[field]:place||undefined},filters:place?{...s.filters,[field]:place.label}:s.filters}))
-  const go=path=>{close();navigate(path)}
+  const go=(path,options)=>{close();navigate(path,options)}
   async function runSearch(){
     const f=latest.current.search.filters
     if(f.service==='ticket'){go('/travel/book/tickets?'+ticketQuery(f));return}
@@ -151,36 +159,44 @@ export default function AiAssistant({onClose,initialTab='search',startVoice=fals
       let services=[];if(isHire(f.service)){services=(await publicRead('/service-types')).items||[]}
       writeDraft(buildDraft(f,{services,places:s.places}))
     }catch{/* The form still opens, without the saved values. */}
-    go(s.formPath||'/travel/book/service')
+    go(s.formPath||'/travel/book/service',{state:{resume:true}})   // the AI just filled the draft: keep it
   }
 
   const lastAi=[...search.messages].reverse().find(m=>m.role==='ai'),convo=tab==='search'?search.messages:help.messages
   const placeholder=tab==='search'?t('Where do you want to go?'):t('Ask how to do something in Travelly')
   const micHidden=!Recognition||blocked
-  return <dialog ref={dialog} className="ai-dialog" aria-label={t('Travelly AI')} onClose={close} onClick={e=>{if(e.target===dialog.current)dialog.current.close()}}>
-    <div className="ai-panel">
-      <header className="ai-head"><h2><Icon name="spark" size={20}/>{t('Travelly AI')}</h2><button type="button" className="ai-x" aria-label={t('Close')} onClick={()=>dialog.current.close()}><Icon name="close" size={20}/></button></header>
-      <div className="ai-tabs" role="tablist" aria-label={t('Travelly AI')}>{[['search','Find a ride'],['help','Help']].map(([id,name])=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?'is-active':''} onClick={()=>setTab(id)}>{t(name)}</button>)}</div>
-      <div className="ai-messages" ref={list} role="log" aria-live="polite">
-        {tab==='help'&&help.topics&&help.topics.length>0&&<section className="ai-topics" aria-label={t('What can I ask?')}><strong>{t('What can I ask?')}</strong><div className="ai-chips">{help.topics.map(topic=><Chip key={topic.id} tone="info" onClick={()=>sendHelp(topic.title)}>{topic.title}</Chip>)}</div></section>}
-        {convo.length===0&&<p className="ai-intro">{t('Hi! Tell me where you want to go, or ask how to do something in Travelly.')}</p>}
-        {convo.map((m,i)=>m.role==='user'
-          ?<div className="ai-msg is-user" key={i}>{m.text}</div>
-          :<div className={'ai-msg is-ai'+(m.error?' is-error':'')} key={i}>
-            {m.notes?.map((n,k)=><p className="ai-note" key={k}>{n}</p>)}
-            {m.help?<HelpAnswer help={m.help} workspace={workspace} onOpen={go} onAsk={sendHelp}/>:<p>{m.text}</p>}
-            {m.options?.length>0&&m===lastAi&&!busy&&<div className="ai-chips" role="group" aria-label={t('Quick replies')}>{m.options.map(o=><Chip key={o.value} tone="info" onClick={()=>sendSearch(o.value,{label:o.label})}>{o.label}</Chip>)}</div>}
-            {m.ready&&m===lastAi&&<CheckCard reply={m.reply} state={search} onChange={edit} onPlace={pickPlace} onSearch={runSearch} onEditForm={editInForm} busy={busy} problem={cardProblem}/>}
-          </div>)}
-        {busy&&<div className="ai-msg is-ai is-busy" role="status"><span className="ai-dots" aria-label={t('Thinking…')}><i/><i/><i/></span></div>}
+  // div-based modal rendered into document.body via portal — avoids all iOS Safari <dialog> bugs
+  // (click non-bubble, showModal stacking, backdrop tap issues)
+  return createPortal(
+    <div className="ai-dialog" role="dialog" aria-modal="true" aria-label={t('Travelly AI')} ref={dialog}
+      onClick={e=>{if(e.target===dialog.current)close()}}
+      onTouchEnd={e=>{if(e.target===dialog.current)close()}}>
+      <div className="ai-panel">
+        <header className="ai-head"><h2><Icon name="spark" size={20}/>{t('Travelly AI')}</h2><button type="button" className="ai-x" aria-label={t('Close')} onClick={close}><Icon name="close" size={20}/></button></header>
+        <div className="ai-tabs" role="tablist" aria-label={t('Travelly AI')}>{[['search','Find a ride'],['help','Help']].map(([id,name])=><button key={id} type="button" role="tab" aria-selected={tab===id} className={tab===id?'is-active':''} onClick={()=>setTab(id)}>{t(name)}</button>)}</div>
+        <div className="ai-messages" ref={list} role="log" aria-live="polite">
+          {tab==='help'&&help.topics&&help.topics.length>0&&<section className="ai-topics" aria-label={t('What can I ask?')}><strong>{t('What can I ask?')}</strong><div className="ai-chips">{help.topics.map(topic=><Chip key={topic.id} tone="info" onClick={()=>sendHelp(topic.title)}>{topic.title}</Chip>)}</div></section>}
+          {convo.length===0&&<p className="ai-intro">{t('Hi! Tell me where you want to go, or ask how to do something in Travelly.')}</p>}
+          {convo.map((m,i)=>m.role==='user'
+            ?<div className="ai-msg is-user" key={i}>{m.text}</div>
+            :<div className={'ai-msg is-ai'+(m.error?' is-error':'')} key={i}>
+              {m.notes?.map((n,k)=><p className="ai-note" key={k}>{n}</p>)}
+              {m.help?<HelpAnswer help={m.help} workspace={workspace} onOpen={go} onAsk={sendHelp}/>:<p>{m.text}</p>}
+              {m.options?.length>0&&m===lastAi&&!busy&&<div className="ai-chips" role="group" aria-label={t('Quick replies')}>{m.options.map(o=><Chip key={o.value} tone="info" onClick={()=>sendSearch(o.value,{label:o.label})}>{o.label}</Chip>)}</div>}
+              {m.ready&&m===lastAi&&<CheckCard reply={m.reply} state={search} onChange={edit} onPlace={pickPlace} onSearch={runSearch} onEditForm={editInForm} busy={busy} problem={cardProblem}/>}
+            </div>)}
+          {busy&&<div className="ai-msg is-ai is-busy" role="status"><span className="ai-dots" aria-label={t('Thinking…')}><i/><i/><i/></span></div>}
+        </div>
+        {(micNote||!Recognition)&&<p className="ai-hint" role="status">{micNote||t('Voice is not available on this device. You can type instead.')}</p>}
+        <form className="ai-composer" onSubmit={e=>{e.preventDefault();submit(text)}}>
+          <input type="text" name="ai-message" value={text} maxLength={500} placeholder={placeholder} aria-label={placeholder} onChange={e=>setText(e.target.value)}/>
+          <select className="ai-lang" value={aiLang} aria-label={t('Language')} title={t('Language')} onChange={e=>{stopMic();setListening(false);globalThis.speechSynthesis?.cancel?.();setAiLang(e.target.value);setHelp(h=>({...h,topics:null}))}}>{[['en','EN'],['ta','தமிழ்'],['si','සිං']].map(([code,name])=><option key={code} value={code}>{name}</option>)}</select>
+          {!micHidden&&<button type="button" className={'ai-mic'+(listening?' is-live':'')} aria-label={listening?t('Stop listening'):t('Speak')} title={listening?t('Stop listening'):t('Speak')} onClick={mic} disabled={busy}><Icon name="mic" size={22}/></button>}
+          <button type="submit" className="ui-button ui-button-primary" disabled={busy||!text.trim()}>{t('Send')}</button>
+        </form>
+        {listening&&<p className="ai-hint" role="status">{t('Listening…')}</p>}
       </div>
-      {(micNote||!Recognition)&&<p className="ai-hint" role="status">{micNote||t('Voice is not available on this device. You can type instead.')}</p>}
-      <form className="ai-composer" onSubmit={e=>{e.preventDefault();submit(text)}}>
-        <input type="text" name="ai-message" value={text} maxLength={500} placeholder={placeholder} aria-label={placeholder} onChange={e=>setText(e.target.value)}/>
-        {!micHidden&&<button type="button" className={'ai-mic'+(listening?' is-live':'')} aria-label={listening?t('Stop listening'):t('Speak')} title={listening?t('Stop listening'):t('Speak')} onClick={mic} disabled={busy}><Icon name="mic" size={22}/></button>}
-        <button type="submit" className="ui-button ui-button-primary" disabled={busy||!text.trim()}>{t('Send')}</button>
-      </form>
-      {listening&&<p className="ai-hint" role="status">{t('Listening…')}</p>}
-    </div>
-  </dialog>
+    </div>,
+    document.body
+  )
 }

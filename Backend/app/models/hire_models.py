@@ -121,6 +121,7 @@ scheduled_trips_table = Table('scheduled_trips', Base.metadata,
     Column('final_operating_owner_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_scheduled_trips_final_operating_owner_user_id', ondelete='RESTRICT', onupdate='RESTRICT', deferrable=False), nullable=True),
     Column('committed_at', DateTime(timezone=True), nullable=True),
     Column('cancellation_reason', Text, nullable=True),
+    Column('archived_at', DateTime(timezone=True), nullable=True),
     CheckConstraint('estimated_arrival_at>departure_at', name='ck_scheduled_trips_01'),
     CheckConstraint('booking_cutoff_at<=departure_at', name='ck_scheduled_trips_02'),
     CheckConstraint('decision_deadline IS NULL OR decision_deadline<=departure_at', name='ck_scheduled_trips_03'),
@@ -182,6 +183,8 @@ bookings_table = Table('bookings', Base.metadata,
     Column('total_amount', Numeric(12,2), nullable=True),
     Column('currency', CHAR(3), nullable=False),
     Column('payment_status_snapshot', String(32), nullable=True),
+    Column('owner_hidden_at', DateTime(timezone=True), nullable=True),
+    Column('passenger_hidden_at', DateTime(timezone=True), nullable=True),
     Column('cancelled_by_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_bookings_cancelled_by_user_id', ondelete='RESTRICT', onupdate='RESTRICT', deferrable=False), nullable=True),
     Column('cancelled_at', DateTime(timezone=True), nullable=True),
     Column('cancellation_reason', Text, nullable=True),
@@ -419,3 +422,32 @@ class VehicleRecord(Base):
 
 class Notification(Base):
     __table__ = notifications_table
+
+
+favourite_vehicles_table = Table('favourite_vehicles', Base.metadata,
+    Column('id', UUID(as_uuid=True), nullable=False, server_default=text('gen_random_uuid()'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_favourite_vehicles_user_id', ondelete='CASCADE'), nullable=False),
+    Column('vehicle_id', UUID(as_uuid=True), ForeignKey('vehicles.id', name='fk_favourite_vehicles_vehicle_id', ondelete='CASCADE'), nullable=False),
+    Column('created_at', DateTime(timezone=True), nullable=False, server_default=text('now()')),
+    UniqueConstraint('user_id', 'vehicle_id', name='uq_favourite_vehicles_user_vehicle'),
+    Index('ix_favourite_vehicles_user', 'user_id', 'created_at'))
+
+class FavouriteVehicle(Base):
+    __table__ = favourite_vehicles_table
+
+
+# Owner decision 15 Nov 2026: "My drivers" is the Owner's own saved list of Drivers (a bookmark, like favourite vehicles).
+# It is not an Owner-Driver relationship and gives the Driver nothing: every assignment still needs the licence check and the Driver's acceptance.
+owner_drivers_table = Table('owner_drivers', Base.metadata,
+    Column('id', UUID(as_uuid=True), nullable=False, server_default=text('gen_random_uuid()'), primary_key=True),
+    Column('owner_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_owner_drivers_owner_user_id', ondelete='CASCADE'), nullable=False),
+    Column('driver_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_owner_drivers_driver_user_id', ondelete='CASCADE'), nullable=False),
+    Column('nickname', String(60), nullable=True),
+    Column('status', String(20), nullable=False, server_default=text("'ACTIVE'")),            # ACTIVE | DRIVER_REQUESTED | OWNER_INVITED | DECLINED
+    Column('initiated_by', String(6), nullable=False, server_default=text("'OWNER'")),         # OWNER | DRIVER
+    Column('created_at', DateTime(timezone=True), nullable=False, server_default=text('now()')),
+    UniqueConstraint('owner_user_id', 'driver_user_id', name='uq_owner_drivers_owner_driver'),
+    Index('ix_owner_drivers_owner', 'owner_user_id', 'created_at'))
+
+class OwnerDriver(Base):
+    __table__ = owner_drivers_table

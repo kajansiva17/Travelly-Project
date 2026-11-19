@@ -101,3 +101,26 @@ def test_one_value_at_a_time(client, ready):
     assert both.status_code == 422
     neither = verify(client, ready, {})
     assert neither.status_code == 422
+
+
+def test_the_trip_cannot_start_until_the_passenger_is_checked(client, ready, monkeypatch):
+    import app.api.routers.hire_api as module
+    from datetime import datetime, timedelta, timezone
+    from app.models.hire_models import Booking
+    run = ready
+    with client.app.state.sessions() as db:
+        start = db.get(Booking, UUID(run.booking['id'])).start_at
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None): return (start + timedelta(minutes=1)).astimezone(tz or timezone.utc)
+    monkeypatch.setattr(module, 'datetime', Clock)
+    body = {'expected_version': run.trip['version'], 'start_odometer_km': '1234.5', 'checklist_confirmed': True}
+    blocked = client.post(f"/api/v1/trips/{run.trip['id']}/start", headers=bearer(run.ctx.owner), json=body)
+    assert blocked.status_code == 409 and blocked.json()['code'] == 'PICKUP_NOT_VERIFIED', blocked.text
+    shown = client.get(f"/api/v1/trips/{run.trip['id']}", headers=bearer(run.ctx.owner)).json()
+    assert shown['pickup']['required'] is True and shown['pickup']['verified_at'] is None
+    pin = code(client, run).json()['pin']
+    assert verify(client, run, {'pin': pin}).status_code == 200
+    started = client.post(f"/api/v1/trips/{run.trip['id']}/start", headers=bearer(run.ctx.owner), json=body)
+    assert started.status_code == 200, started.text

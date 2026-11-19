@@ -8,7 +8,7 @@ from PIL import Image
 from app.models.hire_models import Booking, Trip
 from app.models.review_models import Vehicle
 from app.services import ai_assist
-from conftest import bearer
+from conftest import bearer, check_passenger
 from test_rates import rule, rate_owner
 from test_hire_pricing import hire_setup, committed
 from test_ticket_holds import person, api
@@ -40,8 +40,8 @@ def ready(client, hire_setup, monkeypatch):
     reads = {'value': None}
 
     def fake(name, settings, prompt, schema, image=None):
-        assert name == 'openrouter' and 'odometer' in prompt.lower() and image.startswith('data:image/jpeg;base64,')
-        if reads['value'] == 'offline': raise httpx.ConnectError('offline')
+        if reads['value'] == 'offline': raise httpx.ConnectError('offline')   # every service is down, whichever keys the machine's .env holds
+        assert 'odometer' in prompt.lower() and image.startswith('data:image/jpeg;base64,')
         return {'readable': False} if reads['value'] is None else {'readable': True, 'odometer_km': reads['value']}
     monkeypatch.setattr(ai_assist, 'call', fake)
     here = {'latitude': str(pickup['latitude']), 'longitude': str(pickup['longitude'])}
@@ -61,6 +61,8 @@ def snap(client, run, stage, typed, where=None, code=None):
 
 def start(client, run, km):
     trip = client.get(f"/api/v1/bookings/{run.booking['id']}", headers=bearer(run.ctx.owner)).json()['trip']
+    if not trip['pickup']['verified_at']:
+        check_passenger(client, run.ctx.passenger, run.ctx.owner, run.trip['id'], trip['version'])
     return client.post(f"/api/v1/trips/{run.trip['id']}/start", headers=bearer(run.ctx.owner),
                        json={'expected_version': trip['version'], 'start_odometer_km': km, 'checklist_confirmed': True})
 

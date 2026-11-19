@@ -111,7 +111,7 @@ export default function DriverTripPage(){
 
   async function act(run,message){
     setBusy(true);setError(null)
-    try{await run();setNotice(message)}catch(e){setError(e);if(['ODOMETER_PROOF_REQUIRED','CAPTURE_CODE_INVALID'].includes(e.code)){setStepKey(k=>k+1);setStartKm(null);setEndKm(null)}}finally{setBusy(false)}
+    try{await run();setNotice(message)}catch(e){setError(e);if(e.code==='PICKUP_NOT_VERIFIED'){setTab('verify');load()}if(['ODOMETER_PROOF_REQUIRED','CAPTURE_CODE_INVALID'].includes(e.code)){setStepKey(k=>k+1);setStartKm(null);setEndKm(null)}}finally{setBusy(false)}
   }
   const start=event=>{event.preventDefault();act(async()=>{
     await request(`/trips/${tripId}/start`,{expected_version:trip.version,start_odometer_km:startKm,checklist_confirmed:true})
@@ -136,7 +136,7 @@ export default function DriverTripPage(){
   const finished=['COMPLETED','CANCELLED'].includes(trip.status)
   const checked=Boolean(trip.pickup?.verified_at)
   const panels=finished||running?[]
-    :trip.status==='READY'?[...(checked?[]:[['verify','Check the Passenger','user']]),['start','Start the trip','car']]:[]
+    :trip.status==='READY'?[...(checked?[]:[['verify','Check the Passenger','user']]),...(checked||trip.pickup?.required===false?[['start','Start the trip','car']]:[])]:[]
   // Running: the map is the main view; Problem on the road, Finish and (if still needed) the passenger check open from its side column.
   const open=running?(['problem','finish','verify'].includes(tab)?tab:'map'):(panels.some(([id])=>id===tab)?tab:panels[0]?.[0])
   const tabs=panels.length>1?panels.map(([id,label,icon])=>({label:t(label),icon,active:open===id,onClick:()=>setTab(id)})):undefined
@@ -226,7 +226,7 @@ export default function DriverTripPage(){
         <div><dt>{t('Odometer')}</dt><dd>{trip.start_odometer_km} → {trip.end_odometer_km} {t('km')}</dd></div>
         <div><dt>{t('Distance')}</dt><dd>{trip.calculated_distance_km} {t('km')}</dd></div>
       </dl>
-      {trip.status==='COMPLETED'&&trip.booking_id&&<HirePayment asCollector bookingId={trip.booking_id}/>}
+      {trip.status==='COMPLETED'&&trip.booking_id&&<><p>{t('Waiting for cash payment…')}</p><HirePayment asCollector bookingId={trip.booking_id}/></>}
       <div className="flow-actions"><Link className="ui-button ui-button-secondary" to={workspace?.role==='OWNER'?'/owner/driving':'/driver/trip-history'}>{workspace?.role==='OWNER'?t('My driving'):t('My trips')}</Link>{trip.status==='COMPLETED'&&<Button variant="secondary" onClick={()=>setShowProof(true)}>{t('See proof')}</Button>}</div>
     </div>}
 

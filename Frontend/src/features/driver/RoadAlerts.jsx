@@ -7,6 +7,8 @@ import {CONFIRM_SECONDS,answerOf,readSetting,recognitionConstructor,saveSetting,
 import {acquireWakeLock,releaseWakeLock} from './screenWakeLock'
 import {usePoll as usePollEvery} from '../trips/usePoll'
 import {codeEnglish} from '../../i18n/codeLabels.js'
+import {Link} from 'react-router-dom'
+import {StateCard} from '../booking/flow/FlowParts'
 
 /* Road alerts on the Driver's live trip (contract 03A). Only the assigned Driver of a running trip reports. Every alert
    needs one tap (buttons) or one confirmation (voice). The server decides who sees what, in each person's language. */
@@ -308,4 +310,10 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
         </>}
     </aside>
   </div>
+}
+
+export default function RoadAlerts(){
+  return <StateCard icon="alert" title={t('Road alerts')} actions={<Link className="ui-button ui-button-primary" to="/driver/operate-trip">{t('Open an active trip')}</Link>}>
+    <p>{t('Road alerts are available while you operate an active trip.')}</p>
+  </StateCard>
 }

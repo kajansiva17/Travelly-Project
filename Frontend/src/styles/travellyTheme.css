@@ -20,11 +20,9 @@ body .site-header .brand-mark{display:block;width:100%;height:auto;position:stat
 body .site-header .brand-mark img{display:block;width:100%;height:auto;max-height:54px;object-fit:contain;object-position:left center;position:static;filter:none}
 body .site-header .brand.travelly-brand{flex-direction:row}
 body .site-header .brand.travelly-brand .brand-mark{width:100%;height:auto;max-width:none;max-height:none}
-body .auth-header .navigation .button.nav-cta{background:linear-gradient(110deg,var(--primary-red),var(--primary-red));color:white;border-color:var(--primary-red)}
 body .navigation{color:var(--ui-ink);gap:24px;font-size:13px}
 body .navigation :is(a,button){color:var(--ui-ink)}
 body .navigation a:not(.button):hover{color:var(--primary-red)}
-body .navigation .nav-divider{background:var(--ui-glass-strong)}
 body .language{display:flex;align-items:center;gap:7px}
 body .language select{border:0;background:transparent;padding:6px 2px;min-height:40px;font-size:13px}
 body .menu-toggle{background:var(--ui-glass-strong);border:1px solid #6baeff;color:var(--ui-ink);border-radius:10px;min-width:44px;min-height:44px}
@@ -33,7 +31,6 @@ body .public-page .hero{position:relative;min-height:650px;height:calc(min(850px
 body .public-page .hero::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:var(--ui-glass-strong)}
 body .public-page .hero h1{font-size:clamp(38px,4.8vw,76px);font-weight:600;line-height:1.04;letter-spacing:-.045em;color:#fff;margin:10px 0 17px;max-width:850px}
 body .public-page .hero h1 span{color:var(--primary-red)}
-body .public-page .passenger-hero{height:650px;min-height:650px;max-height:700px}
 body .section-kicker{color:var(--ui-text);font-size:11px;letter-spacing:1.8px;font-weight:600}
 /* Authentication is a real HTML ticket and form over supplied scenic artwork. */
 body .ticket-services{display:flex;justify-content:center;gap:16px;align-items:center;color:#fff;font-size:clamp(15px,1.8vw,27px);font-weight:600;margin:18px 0 10px}
@@ -56,19 +53,9 @@ body dialog::backdrop{background:rgb(18 21 82 / .45);backdrop-filter:blur(3px)}
 @media(max-width:1200px){body .site-header .brand.travelly-brand{width:185px}body .navigation{gap:15px;font-size:12px}body .ticket-services{gap:10px;font-size:18px}}
 @media(max-width:1023px){body .site-header .navigation:not(.workspace-header .navigation){background:var(--ui-glass-strong);border:1px solid #64acff;border-radius:16px;backdrop-filter:blur(20px)}body .ticket-services{gap:8px;font-size:15px}body .public-page .hero{height:700px;min-height:700px}body .public-page .hero h1{font-size:50px}body .workspace-card{padding:16px}body .workspace-card-heading h2{font-size:18px}}
 @media(max-width:767px){body .site-header .brand.travelly-brand{width:155px;height:44px}body .site-header .brand-mark img{max-height:44px}body .site-header .navigation.open{top:calc(100% + 8px);right:0;left:0;width:auto;padding:18px;background:var(--ui-glass-strong);border:1px solid #5ba5f3;border-radius:14px;color:var(--ui-ink);gap:16px}
- body .public-page .hero{min-height:620px;height:620px;max-height:none}body .public-page .hero h1{font-size:clamp(35px,7.4vw,54px);max-width:550px}body .public-page .hero::after{background:var(--ui-glass-strong)}body .ticket-services{font-size:17px;gap:12px}body .workspace-header .navigation{gap:10px}body .workspace-card-heading{align-items:start}body .workspace-card-heading h2{font-size:18px}body .workspace-card-heading>a{font-size:10px;padding:6px 8px}body .workspace-record .workspace-badge{margin-left:0}body .workspace-card p{font-size:12px}body .pipeline-row{grid-template-columns:95px 1fr 20px;font-size:10px}body .workspace-drawer-panel{padding-top:20px}
+ body .public-page .hero{min-height:620px;height:620px;max-height:none}body .public-page .hero h1{font-size:clamp(35px,7.4vw,54px);max-width:550px}body .public-page .hero::after{background:var(--ui-glass-strong)}body .ticket-services{font-size:17px;gap:12px}body .workspace-header .navigation{gap:10px}body .workspace-card-heading{align-items:start}body .workspace-card-heading h2{font-size:18px}body .workspace-card-heading>a{font-size:10px;padding:6px 8px}body .workspace-record .workspace-badge{margin-left:0}body .workspace-card p{font-size:12px}body .workspace-drawer-panel{padding-top:20px}
 }
 @media(max-width:380px){body .site-header .brand.travelly-brand{width:140px}body .ticket-services{font-size:14px;gap:9px}}
 @media(prefers-reduced-motion:reduce){body *,body *::before,body *::after{scroll-behavior:auto;animation-duration:.01ms;animation-iteration-count:1;transition-duration:.01ms}}
-/* Clean artwork fills the complete hero beneath the live header and copy. */
-body .public-page :is(.owner-hero,.driver-hero){background:var(--ui-glass-strong);height:auto;min-height:clamp(580px,43vw,760px);max-height:none;display:grid;align-items:center}
-body .public-page :is(.owner-hero,.driver-hero)::after{
- z-index:1;
- background:var(--ui-glass-strong);
-}
-body .public-page :is(.owner-hero,.driver-hero) h1{font-size:clamp(38px,3.8vw,66px);max-width:56%;font-weight:750}
 @media(max-width:767px){
- body .public-page :is(.owner-hero,.driver-hero){height:auto;min-height:0;max-height:none;display:flex;flex-direction:column}
- body .public-page :is(.owner-hero,.driver-hero)::after{background:var(--ui-glass-strong)}
- body .public-page :is(.owner-hero,.driver-hero) h1{max-width:100%;font-size:clamp(34px,7vw,50px)}
 }

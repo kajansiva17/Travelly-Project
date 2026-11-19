@@ -1,0 +1,66 @@
+ta 1280x585 home red | முகப்பு | 14px | need 4.5 | navy p10 9.81 med 9.88 | brand p10 2.54 med 2.56
+ta 1280x585 home neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.77 med 15.18 | brand p10 3.83 med 3.93
+ta 1280x585 home signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1280x585 home red | பயணங்களைப் பாருங்கள் | 15px | need 4.5 | navy p10 7.50 med 7.87 | brand p10 1.94 med 2.04
+ta 1280x585 home neutral | கணக்கை உருவாக்கவும் | 15px | need 4.5 | navy p10 9.32 med 11.23 | brand p10 2.41 med 2.91
+ta 1280x585 home red | வாகனச் சேவை | 14px | need 4.5 | navy p10 9.41 med 9.55 | brand p10 2.44 med 2.47
+ta 1280x585 home neutral | பயணச்சீட்டுகள் | 14px | need 4.5 | navy p10 14.15 med 15.12 | brand p10 3.66 med 3.92
+ta 1280x585 home neutral | வாடகை வாகனங்கள் | 14px | need 4.5 | navy p10 13.97 med 14.77 | brand p10 3.62 med 3.82
+ta 1280x585 home red | தேடவும் | 16px | need 4.5 | navy p10 9.08 med 9.16 | brand p10 2.35 med 2.37
+ta 1280x585 home red | பயணிக் கணக்கை உருவாக | 16px | need 4.5 | navy p10 9.74 med 9.93 | brand p10 2.52 med 2.57
+ta 1280x585 home neutral | உள்நுழையவும் | 16px | need 4.5 | navy p10 15.31 med 15.59 | brand p10 3.96 med 4.04
+ta 1280x585 drv red | ஓட்டுநர்களுக்கு | 14px | need 4.5 | navy p10 9.78 med 9.88 | brand p10 2.53 med 2.56
+ta 1280x585 drv neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.81 med 15.21 | brand p10 3.83 med 3.94
+ta 1280x585 drv signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1280x585 drv red | ஓட்டுநராக விண்ணப்பிக | 15px | need 4.5 | navy p10 8.16 med 8.81 | brand p10 2.11 med 2.28
+ta 1280x585 drv neutral | ஓட்டுநர் உள்நுழைவு | 15px | need 4.5 | navy p10 13.56 med 14.40 | brand p10 3.51 med 3.73
+ta 1280x585 drv red | ஓட்டுநராக விண்ணப்பிக | 16px | need 4.5 | navy p10 9.61 med 9.77 | brand p10 2.49 med 2.53
+ta 1280x585 drv neutral | ஏற்கனவே பதிவு செய்து | 16px | need 4.5 | navy p10 15.31 med 15.84 | brand p10 3.96 med 4.10
+ta 1280x585 own red | உரிமையாளர்களுக்கு | 14px | need 4.5 | navy p10 9.53 med 9.63 | brand p10 2.47 med 2.49
+ta 1280x585 own neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.78 med 15.18 | brand p10 3.83 med 3.93
+ta 1280x585 own signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1280x585 own red | உரிமையாளராக விண்ணப்ப | 15px | need 4.5 | navy p10 8.04 med 8.78 | brand p10 2.08 med 2.27
+ta 1280x585 own neutral | உரிமையாளர் உள்நுழைவு | 15px | need 4.5 | navy p10 11.10 med 12.37 | brand p10 2.87 med 3.20
+ta 1280x585 own red | உரிமையாளர் விண்ணப்பத | 16px | need 4.5 | navy p10 9.68 med 9.93 | brand p10 2.51 med 2.57
+ta 1280x585 own neutral | உள்நுழையவும் | 16px | need 4.5 | navy p10 15.19 med 15.52 | brand p10 3.93 med 4.02
+ta 1920x1080 home red | முகப்பு | 14px | need 4.5 | navy p10 9.78 med 9.85 | brand p10 2.53 med 2.55
+ta 1920x1080 home neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.72 med 15.14 | brand p10 3.81 med 3.92
+ta 1920x1080 home signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1920x1080 home red | பயணங்களைப் பாருங்கள் | 18px | need 4.5 | navy p10 8.30 med 8.41 | brand p10 2.15 med 2.18
+ta 1920x1080 home neutral | கணக்கை உருவாக்கவும் | 18px | need 4.5 | navy p10 12.88 med 13.31 | brand p10 3.34 med 3.45
+ta 1920x1080 home red | வாகனச் சேவை | 19px | need 3 | navy p10 9.29 med 9.39 | brand p10 2.41 med 2.43
+ta 1920x1080 home neutral | பயணச்சீட்டுகள் | 19px | need 3 | navy p10 14.27 med 14.96 | brand p10 3.69 med 3.87
+ta 1920x1080 home neutral | வாடகை வாகனங்கள் | 19px | need 3 | navy p10 14.11 med 14.93 | brand p10 3.65 med 3.87
+ta 1920x1080 home red | தேடவும் | 20px | need 3 | navy p10 9.14 med 9.17 | brand p10 2.37 med 2.37
+ta 1920x1080 home red | பயணிக் கணக்கை உருவாக | 16px | need 4.5 | navy p10 9.76 med 9.93 | brand p10 2.53 med 2.57
+ta 1920x1080 home neutral | உள்நுழையவும் | 16px | need 4.5 | navy p10 15.29 med 15.58 | brand p10 3.96 med 4.03
+ta 1920x1080 drv red | ஓட்டுநர்களுக்கு | 14px | need 4.5 | navy p10 9.72 med 9.81 | brand p10 2.52 med 2.54
+ta 1920x1080 drv neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.81 med 15.19 | brand p10 3.83 med 3.93
+ta 1920x1080 drv signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1920x1080 drv red | ஓட்டுநராக விண்ணப்பிக | 18px | need 4.5 | navy p10 7.65 med 8.46 | brand p10 1.98 med 2.19
+ta 1920x1080 drv neutral | ஓட்டுநர் உள்நுழைவு | 18px | need 4.5 | navy p10 11.92 med 12.99 | brand p10 3.09 med 3.36
+ta 1920x1080 drv red | ஓட்டுநராக விண்ணப்பிக | 16px | need 4.5 | navy p10 9.60 med 9.75 | brand p10 2.49 med 2.52
+ta 1920x1080 drv neutral | ஏற்கனவே பதிவு செய்து | 16px | need 4.5 | navy p10 15.39 med 15.85 | brand p10 3.99 med 4.10
+ta 1920x1080 own red | உரிமையாளர்களுக்கு | 14px | need 4.5 | navy p10 9.53 med 9.66 | brand p10 2.47 med 2.50
+ta 1920x1080 own neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 14.84 med 15.22 | brand p10 3.84 med 3.94
+ta 1920x1080 own signup | பதிவு செய்யுங்கள் | 14px | need 4.5 | white p10 4.28 med 4.33
+ta 1920x1080 own red | உரிமையாளராக விண்ணப்ப | 18px | need 4.5 | navy p10 7.45 med 8.02 | brand p10 1.93 med 2.08
+ta 1920x1080 own neutral | உரிமையாளர் உள்நுழைவு | 18px | need 4.5 | navy p10 11.97 med 13.02 | brand p10 3.10 med 3.37
+ta 1920x1080 own red | உரிமையாளர் விண்ணப்பத | 16px | need 4.5 | navy p10 9.65 med 9.93 | brand p10 2.50 med 2.57
+ta 1920x1080 own neutral | உள்நுழையவும் | 16px | need 4.5 | navy p10 15.19 med 15.52 | brand p10 3.93 med 4.02
+ta 390x844 home red | பயணங்களைப் பாருங்கள் | 15px | need 4.5 | navy p10 7.63 med 8.18 | brand p10 1.98 med 2.12
+ta 390x844 home neutral | கணக்கை உருவாக்கவும் | 15px | need 4.5 | navy p10 10.81 med 12.51 | brand p10 2.80 med 3.24
+ta 390x844 home red | வாகனச் சேவை | 14px | need 4.5 | navy p10 9.53 med 9.63 | brand p10 2.47 med 2.49
+ta 390x844 home neutral | பயணச்சீட்டுகள் | 14px | need 4.5 | navy p10 14.65 med 15.31 | brand p10 3.79 med 3.97
+ta 390x844 home neutral | வாடகை வாகனங்கள் | 14px | need 4.5 | navy p10 14.36 med 15.15 | brand p10 3.72 med 3.92
+ta 390x844 home red | தேடவும் | 20px | need 3 | navy p10 9.11 med 9.16 | brand p10 2.36 med 2.37
+ta 390x844 home red | பயணிக் கணக்கை உருவாக | 14px | need 4.5 | navy p10 9.66 med 9.96 | brand p10 2.50 med 2.58
+ta 390x844 home neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 15.42 med 15.71 | brand p10 3.99 med 4.07
+ta 390x844 drv red | ஓட்டுநராக விண்ணப்பிக | 15px | need 4.5 | navy p10 9.29 med 9.54 | brand p10 2.40 med 2.47
+ta 390x844 drv neutral | ஓட்டுநர் உள்நுழைவு | 15px | need 4.5 | navy p10 14.90 med 15.20 | brand p10 3.86 med 3.94
+ta 390x844 drv red | ஓட்டுநராக விண்ணப்பிக | 14px | need 4.5 | navy p10 9.51 med 9.87 | brand p10 2.46 med 2.56
+ta 390x844 drv neutral | ஏற்கனவே பதிவு செய்து | 14px | need 4.5 | navy p10 15.10 med 15.61 | brand p10 3.91 med 4.04
+ta 390x844 own red | உரிமையாளராக விண்ணப்ப | 15px | need 4.5 | navy p10 9.26 med 9.47 | brand p10 2.40 med 2.45
+ta 390x844 own neutral | உரிமையாளர் உள்நுழைவு | 15px | need 4.5 | navy p10 14.64 med 15.05 | brand p10 3.79 med 3.90
+ta 390x844 own red | உரிமையாளர் விண்ணப்பத | 14px | need 4.5 | navy p10 9.56 med 9.93 | brand p10 2.47 med 2.57
+ta 390x844 own neutral | உள்நுழையவும் | 14px | need 4.5 | navy p10 15.39 med 15.71 | brand p10 3.99 med 4.07

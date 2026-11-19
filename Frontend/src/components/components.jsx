@@ -1,12 +1,11 @@
 import { t } from '../i18n/language.js'
 import LanguageSelector from './LanguageSelector'
-import DashboardAvatar from './DashboardAvatar'
-import {journeyRole,authJourney,journeyLink} from '../features/auth/onboardingJourney'
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import TravellyBrand, { useNeedleEvents } from './NavbarBrand'
-import { api, logout, hasSession, subscribeSession } from '../services/api'
+import { hasSession, subscribeSession } from '../services/api'
 import { useWorkspace } from '../context/workspaceContext'
+import { LandingHeader } from '../features/landing/ReferenceLandingPages'
 
 export const useSession = () => useSyncExternalStore(subscribeSession, hasSession, () => false)
 
@@ -58,9 +57,13 @@ export function Icon({ name, size = 22, ...props }) {
     mic: <><rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></>,
     bookmark: <path d="M6 3h12v18l-6-4-6 4Z"/>,
     share: <><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/></>,
+    expand: <><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></>,
+    shrink: <><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></>,
     more: <><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></>,
     volume: <><path d="M4 9v6h4l5 4V5L8 9Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></>,
     mute: <><path d="M4 9v6h4l5 4V5L8 9Z"/><path d="m17 9 5 6m0-6-5 6"/></>,
+    play: <path d="m8 5 11 7-11 7Z"/>,
+    pause: <><path d="M9 5v14M15 5v14"/></>,
     plus: <path d="M12 5v14M5 12h14"/>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name] || paths.arrow}</svg>
@@ -88,7 +91,6 @@ export function NoticeProvider({ children }) {
 
 export function Header({ auth = false, signup = false, dashboard = false, workspaceHeader = false, customerHeader = false, children }) {
   const { pathname, search, key: navigationKey } = useLocation()
-  const journey=signup?journeyRole(search):authJourney(search)
   const signedIn = useSession()
   const [openAt, setOpenAt] = useState(null)
   const open = openAt === navigationKey
@@ -100,19 +102,12 @@ export function Header({ auth = false, signup = false, dashboard = false, worksp
     return()=>document.removeEventListener('keydown',dismiss)
   },[open])
   const notice = useNotice()
-  const customerMenu=useRef(null)
-  useEffect(()=>{customerMenu.current?.removeAttribute('open')},[navigationKey])
   const workspace = useWorkspace()
-  const navigate=useNavigate()
-  const [profile,setProfile]=useState(null)
-  const [signoutError,setSignoutError]=useState(null)
   const navbarRef=useRef(null)
   useNeedleEvents(navbarRef)
-  useEffect(()=>{let current=true;setProfile(null);if(signedIn&&!workspaceHeader&&(!workspace||customerHeader))Promise.all([api('/users/me'),api('/users/me/roles')]).then(([user,result])=>{if(current)setProfile(user)}).catch(()=>{});return()=>{current=false}},[signedIn,workspaceHeader,pathname])
-  async function signOut(){try{await logout();navigate('/login')}catch(error){setSignoutError(error)}}
-  const owner = pathname === '/for-owners'
-  const driver = pathname === '/drive-with-us'
   if(workspace && !workspaceHeader && !customerHeader)return null
+  // One navbar outside the workspace too: the landing navbar (guests see Log in / Sign up, a signed-in person sees Dashboard).
+  if(!auth && !dashboard && !workspaceHeader)return <div className="lr-page lr-bare"><LandingHeader role="home" signedIn={signedIn}/></div>
   return <header ref={navbarRef}
     className={`site-header app-navbar ${auth ? 'auth-header' : ''} ${workspaceHeader ? 'workspace-header' : ''}`}
   ><div className="header-inner">
@@ -120,13 +115,9 @@ export function Header({ auth = false, signup = false, dashboard = false, worksp
     <Brand/>
     {!workspaceHeader && <button ref={menuTrigger} className="menu-toggle" onClick={()=>setOpenAt(open ? null : navigationKey)} aria-label={open ? t('Close navigation') : t('Open navigation')} aria-expanded={open} aria-controls="site-navigation"><Icon name={open ? 'close' : 'menu'}/></button>}
     <nav id="site-navigation" aria-label={t("Main navigation")} className={open ? 'navigation open' : 'navigation'}>
-      {dashboard ? <><LanguageSelector/>{children}</> : signedIn && !auth ? <><NavLink to="/dashboard">{t("Home")}</NavLink><Link to="/hire">{t("Vehicles")}<Icon name="chevron" size={13}/></Link><button className="text-button" onClick={()=>notice({title:'Ticket booking',message:'Ticket checkout is not available yet. Private vehicle hire is available in trip search.'})}>{t("Tickets")}<Icon name="chevron" size={13}/></button><button className="text-button" onClick={()=>notice({title:'Vehicle rentals',message:'Rental checkout is not available yet. Plan a private hire with a driver in trip search.'})}>{t("Rentals")}<Icon name="chevron" size={13}/></button><Link to="/dashboard#destinations">{t("Destinations")}<Icon name="chevron" size={13}/></Link><NavLink className="nav-trips" to="/bookings"><Icon name="calendar" size={20}/>{t("My Trips")}</NavLink><button className="text-button nav-reels" onClick={()=>notice({title:'Travel Reels',message:'Travel Reels are not available yet. The destination artwork on your dashboard is travel inspiration.'})}><Icon name="video" size={21}/>{t("Travel Reels")}</button><details ref={customerMenu} className="customer-profile workspace-profile" onKeyDown={e=>{if(e.key==='Escape'){e.currentTarget.open=false;e.currentTarget.querySelector('summary').focus()}}}><summary aria-label={t("Your account menu")}><DashboardAvatar name={workspace?.user?.full_name||profile?.full_name} url={workspace?.user?.profile_image_url||profile?.profile_image_url}/><span>{workspace?.user?.display_name||workspace?.user?.full_name||profile?.full_name||t('Your account')}</span><Icon name="chevron" size={16}/></summary><div className="dashboard-profile-dropdown"><Link to="/account"><Icon name="user" size={17}/>{t("Your profile")}</Link><Link to="/bookings"><Icon name="calendar" size={17}/>{t("My Trips")}</Link><button className="inline-link" onClick={signOut}>{t("Sign out")}</button></div></details></> : <>{auth ? <><Link to="/" className="nav-icon"><Icon name="home"/>{t(" Back to home")}</Link><button className="text-button nav-icon" onClick={()=>notice({title:'Travelly help',message:'Use one Travelly account for Passenger, Owner and Driver membership. Create an account, then sign in to view your profile and role applications.'})}><Icon name="help"/>{t(" Help")}</button></> : <><NavLink to="/" end>{t("Home")}</NavLink><Link to="/#rides">{t("Vehicles")}</Link><Link to="/#services">{t("Tickets")}</Link><Link to="/#services">{t("Rentals")}</Link><NavLink to="/for-owners">{t("For Owners")}</NavLink><NavLink to="/drive-with-us">{t("Drive with us")}</NavLink></>}
-      <LanguageSelector/>
-      {!auth&&<span className="nav-divider"/>}
-      {auth ? null : <><Link className="login-link" to={journeyLink('/login',owner?'OWNER':driver?'DRIVER':null)}>{t("Log in")}</Link><Link className="button nav-cta" to={owner ? '/owner/onboarding' : driver ? '/driver/onboarding' : '/#search'}>{owner ? t('List your vehicle') : driver ? t('Drive with Travelly') : t('Find a ride')}</Link></>}</>}
-      {!dashboard && signedIn && !auth && <LanguageSelector/>}
+      {dashboard ? <><LanguageSelector/>{children}</> : <><Link to="/" className="nav-icon"><Icon name="home"/>{t(" Back to home")}</Link><button className="text-button nav-icon" onClick={()=>notice({title:'Travelly help',message:'Use one Travelly account for Passenger, Owner and Driver membership. Create an account, then sign in to view your profile and role applications.'})}><Icon name="help"/>{t(" Help")}</button><LanguageSelector/></>}
     </nav>
-  </div>{signoutError&&<ErrorNotice error={signoutError}/>}</header>
+  </div></header>
 }
 
 export function ButtonLink({ to, children, outline = false, arrow = false, className = '', ...props }) {

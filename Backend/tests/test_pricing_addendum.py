@@ -30,26 +30,37 @@ def save(client, c, rules):
     return body
 
 
-def test_fixed_first_then_distance_then_quote_and_no_duration_switch(client, hire_setup):
+def test_fixed_first_then_distance_then_quote_and_no_duration_switch(client, hire_setup, monkeypatch):
     c = hire_setup
     start = datetime.fromisoformat(c.itinerary()['start_at']).astimezone(ZoneInfo('Asia/Colombo')).replace(hour=10, minute=0)
     f = fixed(c, departure={'kind': 'WEEKLY_WINDOW', 'weekdays': [start.weekday()], 'from_time': '09:00', 'until_time': '17:00'})
     save(client, c, [c.rule, f])
     inside = {**c.itinerary(hours='8'), 'start_at': start.isoformat()}
-    row = c.create(inside); calculation = row['proposal']['quote']['calculation']
+    def selected(itinerary):
+        return client.post(f"/api/v1/search/vehicles/{c.vehicle_id}/quote", json={
+            'service_type_id': str(c.service_id), 'itinerary': itinerary,
+            'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
+    response = selected(inside)
+    assert response.status_code == 200, response.text
+    calculation = response.json()['price']
     assert calculation['method'] == 'FIXED_ROUTE' and calculation['total'] == '1500.00'
     assert not {'BASE', 'EXTRA_KM', 'NIGHT_KM'} & {x['code'] for x in calculation['breakdown']}
-    assert row['itinerary']['itinerary']['method'] == 'DISTANCE' and calculation['reserved_service_hours'] == []
+    assert calculation['reserved_service_hours'] == []
+    assert response.json()['owner_confirmation_required'] is True
+    measured = client.app.state.hire_routing.measure
+    monkeypatch.setattr(client.app.state.hire_routing, 'measure',
+                        lambda *_args: (_ for _ in ()).throw(RuntimeError('fixed route must not call routing')))
+    assert selected(inside).json()['price']['total'] == '1500.00'
+    monkeypatch.setattr(client.app.state.hire_routing, 'measure', measured)
     outside = {**inside, 'start_at': start.replace(hour=8).isoformat()}
-    assert c.create(outside)['proposal']['quote']['calculation']['method'] == 'DISTANCE'
-    assert c.create(c.itinerary(('A', 'C')))['proposal'] == {}
+    assert selected(outside).json()['price']['method'] == 'DISTANCE'
+    assert selected(c.itinerary(('A', 'C'))).json()['quote_required'] is True
     searched = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': inside,
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
     assert searched.status_code == 200, searched.text
-    assert searched.json()['items'][0]['price']['total'] == '1500.00'  # the list shows each Owner's own price
-    quoted = client.post(f"/api/v1/search/vehicles/{searched.json()['items'][0]['id']}/quote", json={'service_type_id': str(c.service_id), 'itinerary': inside,
-        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1})
-    assert quoted.status_code == 200 and quoted.json()['price']['total'] == '1500.00'
+    entries = searched.json()['items'] + searched.json()['quote_on_request']
+    assert len(entries) == 1 and entries[0]['price'] is None
+    assert entries[0]['availability_status'] == 'CONFIRMATION_REQUIRED'
 
 
 @pytest.mark.parametrize('reverse_fare', ['1500', '1750'])

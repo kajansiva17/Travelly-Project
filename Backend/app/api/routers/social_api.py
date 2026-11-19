@@ -150,9 +150,22 @@ def media_links(request, post):
     return link('media', post.media_url), link('thumbnail', post.thumbnail_url)
 
 
+def vehicle_cards(db, vehicle_ids):
+    """The vehicle shown under a reel: its name and whether a Passenger can hire it right now. Never a phone, email or plate."""
+    from app.api.routers.favourite_api import hireable
+    cards = {}
+    for vehicle in db.scalars(select(Vehicle).where(Vehicle.id.in_(list(vehicle_ids)))) if vehicle_ids else []:
+        if vehicle.archived_at is not None:
+            continue
+        cards[vehicle.id] = {'id': str(vehicle.id), 'name': ' '.join(x for x in (vehicle.make, vehicle.model) if x) or 'Vehicle',
+                             'seats': vehicle.seat_capacity, 'hireable': hireable(db, vehicle)}
+    return cards
+
+
 def posts_out(request, db, posts, viewer):
     authors = {u.id: u for u in db.scalars(select(User).where(User.id.in_({p.author_user_id for p in posts})))} if posts else {}
     ids = [p.id for p in posts]
+    cards = vehicle_cards(db, {p.linked_vehicle_id for p in posts if p.linked_vehicle_id})
     liked, saved, stars = mine(db, viewer, ids, 'LIKE'), mine(db, viewer, ids, 'SAVE'), ratings(db, posts)
     followed = set(db.scalars(select(SocialInteraction.target_user_id).where(
         SocialInteraction.actor_user_id == viewer.id, SocialInteraction.interaction_type == 'FOLLOW',
@@ -166,6 +179,7 @@ def posts_out(request, db, posts, viewer):
                     'latitude': None if p.latitude is None else str(p.latitude),
                     'longitude': None if p.longitude is None else str(p.longitude),
                     'linked_vehicle_id': str(p.linked_vehicle_id) if p.linked_vehicle_id else None,
+                    'linked_vehicle': cards.get(p.linked_vehicle_id),
                     'linked_route_id': str(p.linked_route_id) if p.linked_route_id else None,
                     'linked_scheduled_trip_id': str(p.linked_scheduled_trip_id) if p.linked_scheduled_trip_id else None,
                     'visibility': p.visibility, 'moderation_status': p.moderation_status,
@@ -280,7 +294,10 @@ def place_post(form, request, user, db):
     if (lat is None) != (lng is None):
         raise ApiError(422, 'VALIDATION_ERROR', 'Send both latitude and longitude, or neither.')
     vehicle_id, route_id, departure_id = (uuid_field(form, n) for n in ('linked_vehicle_id', 'linked_route_id', 'linked_scheduled_trip_id'))
-    if vehicle_id and not db.get(Vehicle, vehicle_id): raise ApiError(422, 'VALIDATION_ERROR', 'That vehicle does not exist.')
+    linked = db.get(Vehicle, vehicle_id) if vehicle_id else None
+    if vehicle_id and not linked: raise ApiError(422, 'VALIDATION_ERROR', 'That vehicle does not exist.')
+    if linked and kind != 'REVIEW' and linked.owner_user_id != user.id:
+        raise ApiError(422, 'VALIDATION_ERROR', 'You can show only your own vehicle in a reel or photo.')
     if route_id and not db.get(Route, route_id): raise ApiError(422, 'VALIDATION_ERROR', 'That route does not exist.')
     if departure_id and not db.get(ScheduledTrip, departure_id): raise ApiError(422, 'VALIDATION_ERROR', 'That departure does not exist.')
     upload, thumb_upload = form.get('file'), form.get('thumbnail')
@@ -650,6 +667,15 @@ def count_follow(db, column, user_id):
         column == user_id, SocialInteraction.interaction_type == 'FOLLOW', SocialInteraction.interaction_status == 'ACTIVE'))
 
 
+def profile_vehicles(db, target):
+    """The vehicles a visitor can hire from this person (only approved, published, switched-on vehicles)."""
+    from app.api.routers.favourite_api import hireable
+    rows = db.scalars(select(Vehicle).where(Vehicle.owner_user_id == target.id, Vehicle.archived_at.is_(None),
+                                            Vehicle.verification_status == 'APPROVED').order_by(Vehicle.created_at).limit(12)).all()
+    return [{'id': str(v.id), 'name': ' '.join(x for x in (v.make, v.model) if x) or 'Vehicle', 'seats': v.seat_capacity,
+             'year': v.manufacture_year, 'colour': v.colour} for v in rows if hireable(db, v)]
+
+
 @router.get('/social/users/{reference}')
 def profile(reference: str, request: Request, db: Session = Depends(get_db)):
     viewer = maybe_user(request, db)
@@ -660,6 +686,7 @@ def profile(reference: str, request: Request, db: Session = Depends(get_db)):
             'following': count_follow(db, SocialInteraction.actor_user_id, target.id),
             'post_count': db.scalar(select(func.count()).select_from(SocialPost).where(
                 SocialPost.author_user_id == target.id, SocialPost.moderation_status == 'APPROVED')),
+            'vehicles': profile_vehicles(db, target),
             'followed_by_me': bool(viewer and follows(db, viewer.id, target.id)), 'is_me': bool(viewer and viewer.id == target.id),
             'posts': posts_out(request, db, posts, viewer)}
 

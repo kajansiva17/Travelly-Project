@@ -1,0 +1,157 @@
+/* Phones (767px and narrower). The desktop screens are built to fit one screen with no scrolling, using fixed heights, hidden overflow and
+   single-row buttons. A phone cannot fit that, so here every page grows with its content and the page itself scrolls down. Nothing is
+   hidden or cut off, and nothing scrolls sideways. Imported last. */
+@media (max-width: 767px) {
+  /* 1. Pages grow with their content */
+  html body .workspace-shell[data-workspace] .workspace-content :is(.flow-page, .dash-page),
+  html body.flow-standalone .flow-page, html body .flow-page { height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; }
+  html body .flow-page :is(div, section, form, article, fieldset, main, aside, ul, ol, header, footer):not([class*="photo"]):not([class*="media"]):not([class*="thumb"]):not([class*="map"]):not([class*="avatar"]):not([class*="table"]):not([class*="frame"]):not([class*="strip"]):not(.ui-tabs):not(.flow-tabs) {
+    height: auto; max-height: none; min-height: 0; overflow: visible; }
+  html body .flow-page .flow-card, html body .flow-page .flow-body, html body .flow-page .flow-main { display: block; }
+  html body .flow-page .flow-card { display: grid; gap: 12px; align-content: start; }
+  html body .flow-page :is(.flow-body, .flow-body.has-summary, .flow-main) { display: grid; gap: 12px; grid-template-rows: none !important; grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page .flow-body > * { grid-column: 1 !important; grid-row: auto !important; min-width: 0; }
+  html body .flow-page :is(.trip-results, .flow-summary, .trip-summary) { grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page :is(.journey-choice, .segmented, .ui-segmented, .radio-row, .choice-row, .chip-row) { flex-wrap: wrap; height: auto !important; }
+  html body .flow-page .tk-pane, html body .flow-page .flow-wizard-form { display: grid; gap: 12px; align-content: start; grid-template-rows: none !important; }
+
+  /* 2. Forms: one column, fields as wide as the screen */
+  html body .flow-page :is(.tk-grid, .rate-grid, .flow-grid-2, .flow-grid-3, .flow-two, .desc-grid, .submit-grid, .hire-area, .hire-fixed-row, .create-row form fieldset, .rate-preview form fieldset, .pc-details > .tk-grid) { grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page :is(.rate-area, .rate-grid, .rate-row, .rate-pair, .rate-preview form, .owner-rate-form fieldset, .flow-fields, .flow-grid-2 > *) { grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page .rate-area { display: grid; gap: 10px; }
+  html body .flow-page :is(.travelly-field > span, .rate-field > label) { white-space: normal !important; min-height: 0; }
+  html body .flow-page :is(input, select, textarea) { max-width: 100%; box-sizing: border-box; }
+  html body .flow-page :is(label, .field, .ui-field) { min-width: 0; }
+
+  /* 3. Buttons: stacked, full width, text may wrap, never hidden */
+  html body .flow-page .flow-actions { flex-direction: column-reverse !important; align-items: stretch !important; flex-wrap: wrap !important; overflow: visible !important; border-top: 0; }
+  html body .flow-page .flow-actions .ui-button, html body .flow-page .flow-actions .ui-button-primary, html body .flow-page .flow-actions .footer-slot, html body .flow-page .flow-actions .footer-slot .ui-button-primary {
+    flex: 0 0 auto !important; width: 100%; max-width: none !important; margin: 0 !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; min-height: 46px; }
+  html body .flow-page .flow-actions .footer-slot { display: grid; gap: 8px; }
+  html body .flow-page :is(.status-chips, .tk-bar, .fav-actions, .rl-actions) { flex-wrap: wrap; }
+  html body .flow-page .ui-button { white-space: normal; text-align: center; }
+
+  /* 4. Tabs wrap onto more lines instead of running off the screen */
+  html body .flow-top, html body .flow-tabs, html body .ui-tabs { flex-wrap: wrap !important; overflow: visible !important; height: auto !important; max-width: 100%; }
+  html body .flow-top .ui-tabs, html body .flow-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 18px; }
+  html body .ui-tabs .ui-tab { flex: 1 1 auto; min-width: 0; white-space: normal; text-align: center; }
+
+  /* 5. Rows with a name and buttons: name on top, buttons below, long names wrap */
+  html body .flow-page :is(.trip-vehicle-card, .fav-row, .sp-car, .vehicle-rows > *) { grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page :is(.trip-vehicle-card, .fav-row) > * { grid-column: 1 !important; grid-row: auto !important; }
+  html body .flow-page :is(h1, h2, h3, h4, p, strong, small, span, a, li, td, th, dd, dt) { overflow-wrap: anywhere; min-width: 0; }
+  html body .flow-page .fav-row { display: grid; }
+  html body .flow-page :is(.next-steps, .hire-area .next-steps) { grid-template-columns: minmax(0, 1fr) !important; }
+  html body .flow-page .next-steps li { grid-template-columns: 28px minmax(0, 1fr); }
+
+
+  /* List rows (applications, documents, vehicles, bookings...): details on top, status and buttons underneath */
+  html body .flow-page .tk-row, html body .flow-page .ra-item { flex-wrap: wrap !important; align-items: flex-start !important; height: auto !important; min-height: 0 !important; gap: 8px 10px; }
+  html body .flow-page .tk-row-main { flex: 1 1 100% !important; min-width: 0; }
+  html body .flow-page .tk-row-main > strong, html body .flow-page .tk-row-main > span { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; display: block; overflow-wrap: anywhere; }
+  html body .flow-page .ra-item .tk-row-main span { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+  html body .flow-page .tk-row-actions { flex: 1 1 100%; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+  html body .flow-page .tk-row-actions .ui-button { flex: 1 1 auto; min-width: 120px; }
+  html body .flow-page .tk-rows { gap: 8px; }
+
+  /* Steps: with six or more, the dots wrap in rows instead of squeezing */
+  html body .ui-stepper:has(> .ui-step:nth-child(6)) { flex-wrap: wrap; justify-content: center; gap: 8px 10px; }
+  html body .ui-stepper:has(> .ui-step:nth-child(6)) .ui-step { flex: 0 0 auto; }
+  html body .ui-stepper:has(> .ui-step:nth-child(6)) .ui-step::before { display: none; }
+
+  /* 6. Content never wider than the screen */
+  html body .workspace-content, html body .flow-page, html body .dash-page, html body .flow-card { min-width: 0; max-width: 100%; }
+  html body .flow-page :is(table) { display: block; max-width: 100%; overflow-x: auto; }
+  html body .flow-page img, html body .flow-page video, html body .flow-page canvas { max-width: 100%; }
+
+  /* 7. Dashboard tiles: natural height, links wrap */
+  html body .dash-page .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: none !important; gap: 12px; }
+  html body .dash-page .dash-tile { height: auto !important; min-height: 0; overflow: visible; }
+  html body .dash-page .dash-tile-body { overflow: visible !important; height: auto !important; max-height: none !important; }
+  html body .dash-page :is(.dash-links, .dash-stats) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  html body .dash-page :is(h3, h4, strong, small, span, a, b, p, em) { min-width: 0; overflow-wrap: break-word; word-break: normal; text-overflow: clip !important; white-space: normal !important; overflow: visible !important; }
+  html body .dash-page :is(.dash-stat, .dash-stats > *) strong { font-size: clamp(17px, 5.2vw, 24px); line-height: 1.1; overflow-wrap: normal; }
+  html body .dash-page :is(.dash-links, .dash-quick) a { height: auto; min-height: 40px; padding-block: 6px; }
+  html body .dash-page .dash-vehicle, html body .dash-page .dash-vehicles > * { min-width: 0; }
+  html body .dash-page :is(.dash-vehicles, .dash-fleet) { grid-template-columns: minmax(0, 1fr) !important; }
+
+  /* 8. Navbar pill: keep the language name readable */
+  :root { --nav-pad-x: 8px; --nav-gap: 4px; }
+  html body .app-navbar :is(.language, .language select) { max-width: none; min-width: 0; }
+  html body .app-navbar .language { flex: none; }
+  html body .app-navbar .language > :not(select) { display: none; }
+  html body .app-navbar .language select { width: 68px !important; max-width: none !important; flex: none; text-overflow: clip; padding-inline: 4px 1px; }
+  html body .app-navbar .navigation { gap: 2px; min-width: 0; }
+  html body .app-navbar :is(.app-nav-bell, .admin-notifications) { width: 40px; min-width: 40px; }
+  html body .app-navbar .app-nav-profile { width: 34px; }
+
+  /* 9. Menu drawer */
+  html body .workspace-drawer .workspace-icon-button { color: var(--ui-ink); background: #fff; border: 1px solid var(--ui-glass-border); }
+  html body .workspace-drawer .workspace-icon-button svg { stroke: currentColor; }
+
+  /* 10. Travel Reels: the reel fills the phone, buttons sit on the video */
+  html body .workspace-shell[data-workspace] .rl-page, html body .rl-page { height: calc(100dvh - var(--workspace-header-height, 100px)) !important; }
+  html body .rl-wrap { gap: 0; padding: 0; width: 100%; }
+  html body .rl-frame { max-width: 100%; width: 100%; aspect-ratio: auto; border-radius: 14px; }
+  html body .rl-rail { right: 8px; bottom: 12px; gap: 6px; }
+  html body .rl-btn { background: rgb(255 255 255 / .88) !important; color: var(--ui-ink) !important; min-width: 44px; min-height: 44px; padding: 4px; border-radius: 14px; }
+  html body .rl-btn.is-on { background: var(--ui-red, var(--brand-red)) !important; color: #fff !important; }
+  html body .rl-overlay { padding-right: 64px; }
+  html body .rl-top { gap: 6px; padding: 6px; }
+
+  /* Landing navigation is loaded before the shared frame styles. Keep this
+     phone-only override last so an open panel becomes part of the header,
+     rather than covering the Home / Driver / Owner hero copy. */
+  html body header.lr-header.site-header.app-navbar.app-navbar.app-navbar.app-navbar.lr-header-menu-open {
+    height: auto !important;
+    min-height: var(--nav-h);
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-bottom: 12px;
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open {
+    position: static !important;
+    display: grid !important;
+    flex: 1 0 100%;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / .92);
+    border-radius: 18px;
+    background: rgb(240 247 255 / .96);
+    box-shadow: 0 12px 28px rgb(18 40 90 / .22), inset 0 1px 0 rgb(255 255 255 / .88);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    backdrop-filter: blur(18px) saturate(1.15);
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open .lr-nav-link {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open .lr-language {
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 40px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid rgb(18 40 90 / .12);
+    border-radius: 12px;
+    background: rgb(255 255 255 / .68);
+  }
+  html body header.lr-header.app-navbar.app-navbar.app-navbar.app-navbar .lr-nav.lr-nav-open :is(.lr-login, .lr-signup) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}

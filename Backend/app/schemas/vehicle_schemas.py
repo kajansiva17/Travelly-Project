@@ -5,7 +5,7 @@ import re
 from typing import Annotated
 from typing import Literal
 from pydantic import Field, StrictBool, model_validator, field_validator, BeforeValidator
-from app.schemas.rate_schemas import RateModel, Amount
+from app.schemas.rate_schemas import RateModel, Amount, Place
 from app.schemas.hire_schemas import Version, VehicleEligibility
 
 
@@ -75,6 +75,23 @@ class Availability(Version):
     availability_status: Literal['ACTIVE', 'INACTIVE']
 
 
+class HireLocationSettings(Version):
+    base_location: Place | None = None
+    pickup_distance_km: Amount
+    accepts_hire_bookings: StrictBool
+
+    @model_validator(mode='after')
+    def pickup_distance(self):
+        if not Decimal('0') < self.pickup_distance_km:
+            raise ValueError('Pickup distance must be above 0 km.')
+        return self
+
+
+class VehicleLocationUpdate(Version):
+    location: Place
+    accuracy_m: Decimal | None = Field(default=None, ge=0, le=Decimal('99999999.99'))
+
+
 class VehicleDecision(RateModel):
     expected_version: int = Field(strict=True, ge=1)
     decision: Literal['APPROVED', 'REJECTED', 'SUSPENDED'] = 'APPROVED'
@@ -101,7 +118,7 @@ class RegistrationCorrection(VehicleCreate):
 
 class DriverLookup(RateModel):
     vehicle_id: UUID
-    service_type_id: UUID
+    service_type_id: UUID | None = None
     driver_reference: str = Field(pattern=r'^USR-[0-9A-F]{16}$')
 
 
@@ -110,8 +127,7 @@ class PreferredDriver(Version):
     service_type_id: UUID | None = None
     @model_validator(mode='after')
     def service(self):
-        if self.driver_reference and not self.service_type_id: raise ValueError('Select the service for the eligibility check.')
-        return self
+        return self   # service_type_id is optional: without it the Driver may match any active private-hire service
 
 
 class PhotoDecision(Version):

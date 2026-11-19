@@ -31,8 +31,11 @@ def test_event_search_lists_each_package_with_the_owner_price(client, hire_setup
     found = client.post('/api/v1/search/vehicles', json=body)
     assert found.status_code == 200, found.text
     item = found.json()['items'][0]
-    assert item['price']['total'] == '15000.00' and item['price']['method'] == 'EVENT_PACKAGE'
-    assert [p['price']['total'] for p in item['packages']] == ['15000.00', '25000.00']
+    assert item['price'] is None
+    assert {p['name'] for p in item['packages']} == {'Wedding car 3 hours', 'Wedding car 6 hours'}
+    selected = client.post(f"/api/v1/search/vehicles/{item['id']}/quote", json={**body, 'itinerary': event_itinerary(c, packages[1])})
+    assert selected.status_code == 200, selected.text
+    assert selected.json()['price']['total'] == '15000.00' and selected.json()['price']['method'] == 'EVENT_PACKAGE'
     public = client.get('/api/v1/service-types').json()['items']
     assert any(s['pricing_scope'] == 'EVENT' for s in public)
 

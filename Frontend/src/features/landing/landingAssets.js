@@ -7,7 +7,7 @@ export const heroArtwork = {
   owner: 'owner/hero-fleet-depot',
 }
 export const cardArtwork = {
-  'home-hire': 'home/card-vehicle-hire-route.svg',
+  'home-hire': 'home/card-vehicle-hire-family',
   'home-tickets': 'home/card-bus-van-tickets',
   'home-rentals': 'home/card-rental-key-handover',
   'home-airport': 'home/card-airport-pickup',

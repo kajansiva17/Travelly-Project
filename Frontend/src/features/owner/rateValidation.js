@@ -7,6 +7,7 @@ const allPrices = [...new Set(Object.values(priceFields).flat())]
 const decimal = value => typeof value === 'string' && /^[0-9]{1,10}(\.[0-9]{1,10})?$/.test(value)
 const inBox = (a,p) => Number(p.latitude)>=Number(a.south)&&Number(p.latitude)<=Number(a.north)&&Number(p.longitude)>=Number(a.west)&&Number(p.longitude)<=Number(a.east)
 const boxesOverlap = (a,b) => Number(a.south)<=Number(b.north)&&Number(a.north)>=Number(b.south)&&Number(a.west)<=Number(b.east)&&Number(a.east)>=Number(b.west)
+const pickupOverlap = (a,b) => !a || !b || boxesOverlap(a,b)
 const week = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 export function departureDescription(value){
   if(!value)return 'Legacy agreed departure; see the accepted itinerary.'
@@ -29,9 +30,10 @@ function validDeparture(d){
   return d?.kind==='WEEKLY_WINDOW'&&Array.isArray(d.weekdays)&&d.weekdays.length>0&&d.weekdays.length<=7&&new Set(d.weekdays).size===d.weekdays.length&&d.weekdays.every(v=>Number.isInteger(v)&&v>=0&&v<=6)&&[d.from_time,d.until_time].every(t=>typeof t==='string'&&/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(t))&&d.from_time!==d.until_time
 }
 function conflict(a,b){
-  if((a.method==='DAY_HIRE')!==(b.method==='DAY_HIRE')||a.direction!==b.direction||a.effective_from>(b.effective_until||'9999-12-31')||b.effective_from>(a.effective_until||'9999-12-31')||!boxesOverlap(a.pickup_area,b.pickup_area))return false
+  if((a.method==='DAY_HIRE')!==(b.method==='DAY_HIRE')||a.direction!==b.direction||a.effective_from>(b.effective_until||'9999-12-31')||b.effective_from>(a.effective_until||'9999-12-31')||!pickupOverlap(a.pickup_area,b.pickup_area))return false
   if(new Set([a.method,b.method]).size===2&&[a.method,b.method].every(m=>['DISTANCE','FIXED_ROUTE'].includes(m))&&a.direction==='ONE_WAY')return false
   if(a.method===b.method&&a.method==='FIXED_ROUTE'&&!intervals(a.departure).some(([x,y])=>intervals(b.departure).some(([u,v])=>x<v&&y>u)))return false
+  if(a.coverage.kind==='ANY'||b.coverage.kind==='ANY')return true
   if(a.coverage.kind===b.coverage.kind)return a.coverage.kind==='AREA'?boxesOverlap(a.coverage.area,b.coverage.area):JSON.stringify(a.coverage.places.map(p=>[Number(p.latitude),Number(p.longitude)]))===JSON.stringify(b.coverage.places.map(p=>[Number(p.latitude),Number(p.longitude)]))
   const area=a.coverage.kind==='AREA'?a.coverage.area:b.coverage.area,places=a.coverage.kind==='ROUTE'?a.coverage.places:b.coverage.places
   return places.every(p=>inBox(area,p))

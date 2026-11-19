@@ -124,3 +124,7 @@ class ReplacementAnswer(Strict):
     decision: Literal['ACCEPT', 'DECLINE']
     operator_driver_user_id: Optional[UUID] = None
     reason: Optional[str] = Field(default=None, min_length=3, max_length=1000)
+
+
+class RepeatBody(TimezoneChecked):
+    departure_at: datetime

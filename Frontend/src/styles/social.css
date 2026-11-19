@@ -1,16 +1,20 @@
 /* Travel Reels (contract 03SO): the viewing page, profile grid, dashboard card, vehicle rating */
 html body .workspace-shell[data-workspace] .rl-page { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 1240px; margin: 0; padding: 0; box-sizing: border-box; height: calc(100dvh - var(--workspace-header-height, 106px) - var(--ui-gutter, 20px)); min-height: 0; overflow: hidden; color: var(--ui-ink); }
 html body .rl-top { flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-radius: 16px; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); }
-html body .rl-stage { position: relative; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; border-radius: 20px; overflow: hidden; background: rgb(15 23 42 / .82); touch-action: pan-x; overscroll-behavior: contain; }
-html body .rl-state { margin: 0; color: #fff; font-weight: 600; }
+html body .rl-stage { position: relative; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; border-radius: 20px; overflow: hidden; background: var(--ui-glass); border: 1px solid var(--ui-glass-border); box-shadow: var(--ui-shadow-card); touch-action: pan-x; overscroll-behavior: contain; }
+html body .rl-state { margin: 0; color: var(--ui-ink); font-weight: 600; }
 html body .rl-stage .ui-empty { background: var(--ui-glass-strong, #fff); border-radius: 18px; padding: 18px 24px; max-width: 420px; }
 html body .rl-wrap { position: relative; height: 100%; max-width: 100%; display: flex; align-items: stretch; justify-content: center; gap: 12px; padding: 8px 0; box-sizing: border-box; }
 html body .rl-frame { position: relative; height: 100%; aspect-ratio: 9 / 16; max-width: calc(100vw - 110px); border-radius: 18px; overflow: hidden; background: #0b1220; flex: none; }
 html body .rl-media { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #0b1220; cursor: pointer; }
 html body .rl-media video, html body .rl-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-html body .rl-media.rl-text { background: linear-gradient(160deg, #1d3b6f, var(--brand-red)); cursor: default; }
-html body .rl-sound { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgb(0 0 0 / .5); color: #fff; }
-html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 36px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .72), transparent); display: grid; gap: 4px; pointer-events: none; }
+html body .rl-media.rl-text { background: linear-gradient(160deg, #1f2430, var(--brand-red)); cursor: default; }
+html body .rl-media-toggle { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; color: #fff; cursor: pointer; }
+html body .rl-play-state { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: rgb(0 0 0 / .55); opacity: 0; transform: scale(.88); transition: opacity .16s ease, transform .16s ease; pointer-events: none; }
+html body .rl-media-toggle:hover .rl-play-state, html body .rl-media-toggle:focus-visible .rl-play-state, html body .rl-play-state.is-paused { opacity: 1; transform: scale(1); }
+html body .rl-media-toggle:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
+html body .rl-sound { position: absolute; top: 10px; right: 10px; z-index: 3; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / .55); color: #fff; cursor: pointer; }
+html body .rl-overlay { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 64px 12px 12px; color: #fff; background: linear-gradient(to top, rgb(0 0 0 / .88), rgb(0 0 0 / .55) 55%, transparent); text-shadow: 0 1px 3px rgb(0 0 0 / .6); display: grid; gap: 4px; pointer-events: none; }
 html body .rl-overlay a, html body .rl-overlay button { pointer-events: auto; }
 html body .rl-author { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 html body .rl-author a { color: #fff; font-weight: 800; text-decoration: none; }
@@ -20,17 +24,19 @@ html body .rl-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 html body .rl-tags button { border: 0; background: rgb(255 255 255 / .22); color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
 html body .rl-views, html body .rl-stars { margin: 0; font-size: 12px; opacity: .9; }
 html body .rl-stars { font-size: 20px; color: #ffc233; opacity: 1; }
-html body .rl-rail { flex: none; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; align-self: flex-end; }
-html body .rl-btn { display: grid; justify-items: center; gap: 1px; min-width: 52px; min-height: 52px; padding: 6px; border: 0; border-radius: 16px; background: rgb(255 255 255 / .16); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
-html body .rl-btn:hover:not(:disabled) { background: rgb(255 255 255 / .28); }
-html body .rl-btn.is-on { background: var(--ui-red, var(--brand-red)); }
+html body .rl-rail { flex: none; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; align-self: center; }
+html body .rl-btn { display: grid; justify-items: center; gap: 1px; min-width: 52px; min-height: 52px; padding: 6px; border: 0; border-radius: 16px; background: var(--ui-glass-strong, #fff); color: var(--ui-ink); box-shadow: var(--ui-shadow-card); font-size: 12px; font-weight: 700; cursor: pointer; }
+html body .rl-btn:hover:not(:disabled) { background: #fff; }
+html body .rl-btn.is-on { background: var(--ui-red, var(--brand-red)); color: #fff; }
 html body .rl-btn:disabled { opacity: .6; cursor: default; }
 html body .rl-preload { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 html body .rl-note { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: rgb(255 255 255 / .95); color: var(--ui-ink); font-weight: 600; font-size: 13px; z-index: 6; }
 html body .rl-note.is-warn { background: #fff2d9; }
-html body .rl-nav { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+html body .rl-nav { flex: none; align-self: center; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
 html body .rl-x { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .9); color: var(--ui-ink); cursor: pointer; }
 html body .rl-x:disabled { opacity: .4; cursor: default; }
+html body .rl-x.is-prev svg { transform: rotate(-90deg); }
+html body .rl-x.is-next svg { transform: rotate(90deg); }
 html body .rl-panel { flex: none; width: 340px; max-width: 100%; display: flex; flex-direction: column; min-height: 0; border-radius: 18px; background: var(--ui-glass-strong, #fff); color: var(--ui-ink); overflow: hidden; }
 html body .rl-panel > header { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--ui-glass-border); }
 html body .rl-panel h3 { margin: 0; font-size: 16px; }
@@ -103,3 +109,20 @@ html body .as-info { flex: 1; min-width: 0; display: grid; gap: 6px; align-conte
 html body .as-h { margin: 4px 0 0; font-size: 14px; }
 html body .as-reports { margin: 0; padding-left: 18px; max-height: 84px; overflow-y: auto; }
 @media (max-width: 760px) { html body .as-top { flex-direction: column; } html body .as-media { width: 100%; max-height: 180px; } }
+html body .rl-person { display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; }
+html body .rl-person img, html body .rl-face { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: rgb(255 255 255 / .25); border: 1px solid rgb(255 255 255 / .6); }
+html body .rl-person b { font-weight: 800; }
+html body .rl-vehicle { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+html body .rl-car { display: inline-flex; align-items: center; gap: 5px; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .22); }
+html body .rl-vehicle .fav-heart { width: 30px; height: 30px; }
+html body .rl-hire { border: 0; border-radius: 999px; padding: 5px 14px; background: var(--brand-red); color: #fff; font-weight: 800; font-size: 12px; cursor: pointer; }
+html body .sp-cars { display: grid; gap: 8px; align-content: start; }
+html body .sp-car { display: flex; align-items: center; gap: 12px; padding: 8px 12px; }
+html body .sp-car > div { flex: 1; display: grid; }
+html body .sp-car small { color: var(--ui-muted, #5b6478); }
+/* Full screen: the reel fills the whole screen height like a phone, on black */
+html body .rl-stage:fullscreen { border-radius: 0; border: 0; background: #000; }
+html body .rl-stage:fullscreen .rl-wrap { padding: 0; gap: 16px; }
+html body .rl-stage:fullscreen .rl-frame { border-radius: 0; }
+html body .rl-stage:fullscreen .rl-nav { right: 24px; }
+html body .rl-stage:fullscreen .rl-state { color: #fff; }

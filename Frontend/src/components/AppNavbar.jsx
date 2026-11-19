@@ -2,6 +2,7 @@ import { t } from '../i18n/language.js'
 import { Link } from 'react-router-dom'
 import { Icon } from './components'
 import DashboardAvatar from './DashboardAvatar'
+import {unreadBadge} from '../features/notifications/unread.js'
 
 /* Right-hand items of the single Travelly navbar (owner design). Every role
    renders the same pieces in the same order: language, Travel Reels,
@@ -13,8 +14,13 @@ export function NavbarReels({ to }) {
   return <span className="workspace-reels app-nav-reels" aria-label={t('Travel Reels unavailable')}><Icon name="video" size={22}/><span>{t('Travel Reels')}</span></span>
 }
 
-export function NavbarBell({ to, label }) {
-  return <Link className="admin-notifications app-nav-bell" to={to} aria-label={label}><Icon name="bell" size={25}/></Link>
+export function NavbarBell({ to, label, unreadCount=0, onOpen }) {
+  const badge=unreadBadge(unreadCount)
+  const accessible=badge?t('{value0}. {value1} unread notifications',{value0:label,value1:unreadCount}):label
+  return <Link className="admin-notifications app-nav-bell" to={to} aria-label={accessible} onClick={onOpen}>
+    <Icon name="bell" size={25}/>
+    {badge&&<span className="app-nav-bell-badge" aria-hidden="true">{badge}</span>}
+  </Link>
 }
 
 /* Avatar + name: a plain link to the role's profile page (no menu). */

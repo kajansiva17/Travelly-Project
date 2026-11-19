@@ -1,12 +1,11 @@
 /* Travelly AI chat panel (contract 03AI). One modal panel: header, tabs, a message list that scrolls, and the composer pinned at the bottom. */
-html body .ai-dialog { padding: 0; border: 0; background: transparent; max-width: none; max-height: none; width: 100vw; height: 100dvh; overflow: hidden; color: var(--ui-ink, #121552); }
-html body .ai-dialog::backdrop { background: rgb(18 21 82 / .35); }
-html body .ai-dialog[open] { display: grid; place-items: center; }
+/* div-based modal portal – replaces <dialog> to avoid iOS Safari showModal/click bugs */
+html body .ai-dialog { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; background: rgb(18 21 82 / .35); color: var(--ui-ink, #121552); overscroll-behavior: contain; }
 html body .ai-panel { display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; width: min(560px, calc(100vw - 24px)); height: min(640px, calc(100dvh - 24px)); padding: 14px; border-radius: 24px; background: linear-gradient(180deg, rgb(255 255 255 / .94), rgb(244 247 252 / .92)); border: 1.5px solid rgb(255 255 255 / .9); box-shadow: 0 24px 60px rgb(18 40 90 / .35); }
 html body .ai-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 html body .ai-head h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 20px; font-style: italic; font-weight: 800; color: #3b2a99; }
 html body .ai-head svg { color: #7c4dff; }
-html body .ai-x { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: rgb(255 255 255 / .85); color: inherit; cursor: pointer; }
+html body .ai-x { display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: rgb(255 255 255 / .85); color: inherit; cursor: pointer; position: relative; z-index: 10; touch-action: manipulation; }
 html body .ai-tabs { display: flex; gap: 6px; padding: 4px; border-radius: 999px; background: rgb(18 21 82 / .07); }
 html body .ai-tabs button { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; font: inherit; font-weight: 700; color: inherit; cursor: pointer; }
 html body .ai-tabs button.is-active { background: #fff; box-shadow: 0 2px 8px rgb(18 40 90 / .15); color: #3b2a99; }
@@ -41,6 +40,8 @@ html body .ai-composer input { flex: 1 1 auto; min-width: 0; min-height: 44px; p
 html body .ai-mic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgb(18 21 82 / .12); background: #fff; color: inherit; cursor: pointer; }
 html body .ai-mic.is-live { background: var(--ui-red, var(--brand-red)); color: #fff; }
 @media (max-width: 560px) { html body .ai-rows { grid-template-columns: minmax(0, 1fr); } html body .ai-panel { width: calc(100vw - 16px); height: calc(100dvh - 16px); border-radius: 18px; padding: 10px; } }
+/* Mobile: panel max-height so it never overflows the fixed overlay */
+@media (max-width: 767px) { html body .ai-panel { max-height: calc(100dvh - 16px); } }
 @media (prefers-reduced-motion: reduce) { html body .ai-dots i { animation: none; opacity: .7; } }
 
 /* The dashboard card: both buttons are live now (they were a disabled placeholder). Full names show when the card is wide enough. */
@@ -111,3 +112,4 @@ html body .rb-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 html body .rb-confirm { display: grid; gap: 8px; }
 html body .rb-bill { width: 100%; }
 html body .rb-bill tfoot th, html body .rb-bill tfoot td { padding: 6px 8px; text-align: right; }
+html body .ai-lang { flex: none; min-height: 44px; padding: 0 10px; border-radius: 999px; border: 1px solid rgb(18 21 82 / .12); background: #fff; font: inherit; cursor: pointer; }

@@ -42,7 +42,8 @@ def test_owner_route_needs_owner_role_and_valid_stops(client):
     owner = person(client, 'OWNER')
     assert api(client, owner, 'post', '/owners/me/routes', {'stops': STOPS[:1]}).status_code == 422
     backwards = [STOPS[0], {**STOPS[1], 'scheduled_offset_minutes': 300}, {**STOPS[2], 'scheduled_offset_minutes': 10}]
-    assert api(client, owner, 'post', '/owners/me/routes', {'stops': backwards}).status_code == 422
+    made = api(client, owner, 'post', '/owners/me/routes', {'stops': backwards})   # times typed by the Owner are ignored (decision 15 Nov 2026)
+    assert made.status_code == 201 and [x['scheduled_offset_minutes'] for x in made.json()['stops']] != [0, 300, 10]
     assert api(client, owner, 'post', '/owners/me/routes', {'stops': STOPS, 'route_code': 'X'}).status_code == 422
 
 
@@ -197,3 +198,33 @@ def departure_body(route_id, vehicle_id):
             'estimated_arrival_at': iso(timedelta(days=3, hours=7)), 'booking_cutoff_at': iso(timedelta(days=2)),
             'fare_per_seat': '3500.00', 'fulfilment_policy': 'FIXED_GUARANTEED', 'accepted_time_window_minutes': 0,
             'accepted_replacement_terms': {}}
+
+
+# ---------------------------------------------------------------- automatic stop times and stop-wise search (decision 15 Nov 2026)
+def test_stop_times_are_worked_out_from_the_road_not_typed_by_the_owner(client):
+    owner = person(client, 'OWNER')
+    route = create(client, owner)   # no routing key in tests: the straight-line fallback answers
+    offsets = [s['scheduled_offset_minutes'] for s in route['stops']]
+    assert offsets[0] == 0 and offsets == sorted(offsets) and offsets[1] > 0 and offsets[2] > offsets[1]
+    assert all(m % 5 == 0 for m in offsets)
+    assert route['estimated_duration_minutes'] == offsets[-1]
+
+
+def test_search_finds_a_departure_by_a_stop_in_the_middle_only_where_boarding_and_leaving_are_allowed(client, ticket):
+    owner = ticket['owner']
+    stops = [STOPS[0], {**STOPS[1], 'pickup_allowed': True, 'dropoff_allowed': False}, STOPS[2]]
+    route = create_with(client, owner, stops)
+    trip = departure(client, owner, route['id'], ticket['trip']['vehicle_id']).json()
+    assert api(client, owner, 'post', f"/scheduled-trips/{trip['id']}/publish", {'expected_version': trip['version'], 'publish_confirmed': True}).status_code == 200
+    found = lambda query: {i['id'] for i in client.get('/api/v1/scheduled-trips?' + query).json()['items']}
+    assert trip['id'] in found('origin=Colombo&destination=Jaffna')
+    assert trip['id'] in found('origin=Vavuniya&destination=Jaffna')        # boarding at a middle stop that allows it
+    assert trip['id'] not in found('origin=Colombo&destination=Vavuniya')   # Vavuniya does not allow getting off
+    assert trip['id'] not in found('origin=Jaffna&destination=Vavuniya')    # wrong direction
+    assert trip['id'] in found('origin=Vavuniya')
+
+
+def create_with(client, owner, stops):
+    result = api(client, owner, 'post', '/owners/me/routes', {'stops': stops})
+    assert result.status_code == 201, result.text
+    return result.json()

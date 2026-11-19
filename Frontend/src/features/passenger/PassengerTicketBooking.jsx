@@ -1,13 +1,13 @@
 import { t } from '../../i18n/language.js'
 import {useEffect,useState} from 'react'
 import {api,publicRead} from '../../services/api'
-import {ButtonLink,Header,useSession} from '../../components/components'
+import {Header,useSession} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import SeatMap from '../../components/SeatMap'
 import {Field,Compact} from '../owner/OwnerRates'
 import {FlowShell,useWizard,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Empty} from '../ticketing/TicketParts'
-import {useLocation} from 'react-router-dom'
+import {useLocation,useNavigate} from 'react-router-dom'
 import TicketPayment from './TicketPayment'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import TicketCancel,{CancelledTicket} from './TicketCancel'
@@ -15,6 +15,8 @@ import FulfilmentNotice from './FulfilmentNotice'
 import ReplacementCard,{isPending,vehicleLine} from './ReplacementCard'
 import NotAvailableNotice from '../../components/NotAvailableNotice'
 
+/* A guest can search, pick a departure and seats and type names; sign-in is asked at "hold seats". The choice waits in session storage across the sign-in and is checked again against the live seat map. */
+const PENDING='travelly.ticket.pending.v1'
 const newKey=()=>(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g,'').slice(0,40)
 
 function useCountdown(until){
@@ -28,7 +30,7 @@ function useCountdown(until){
 }
 
 export default function PassengerTicketBooking(){
-  const signedIn=useSession()
+  const signedIn=useSession(),navigate=useNavigate()
   const [query,setQuery]=useState({origin:'',destination:'',date:'',travellers:1}),[items,setItems]=useState(null),[departure,setDeparture]=useState(null),
     [seats,setSeats]=useState([]),[selected,setSelected]=useState([]),[error,setError]=useState(null)
   const [names,setNames]=useState({}),[stops,setStops]=useState({boarding:'',dropoff:''}),[booking,setBooking]=useState(null),[busy,setBusy]=useState(false),[key,setKey]=useState(newKey),[cancelOpen,setCancelOpen]=useState(false),[cancelResult,setCancelResult]=useState(null)
@@ -45,6 +47,24 @@ export default function PassengerTicketBooking(){
       setDeparture({...detail,currency:map.currency});w.setStep(2)
     }catch(e){setError(e)}})()
   },[bookingParam,signedIn])
+
+  // Back from sign-in: the same departure and seats come back (seats taken meanwhile are dropped) and the person only presses Hold.
+  useEffect(()=>{
+    if(!signedIn||bookingParam)return
+    let saved=null
+    try{saved=JSON.parse(sessionStorage.getItem(PENDING)||'null');sessionStorage.removeItem(PENDING)}catch{/* Without storage the person simply chooses again. */}
+    if(!saved?.departureId)return
+    ;(async()=>{try{
+      const [detail,map]=await Promise.all([publicRead(`/scheduled-trips/${saved.departureId}`),loadSeats(saved.departureId)])
+      const free=(saved.selected||[]).filter(code=>map.seats.find(s=>s.code===code)?.status==='AVAILABLE')
+      setDeparture({...detail,currency:map.currency});if(saved.query)setQuery(saved.query)
+      setSelected(free);setNames(saved.names||{});setStops(saved.stops||{boarding:'',dropoff:''});w.setStep(free.length?2:1)
+    }catch(e){setError(e)}})()
+  },[signedIn])
+  function signInToHold(){
+    try{sessionStorage.setItem(PENDING,JSON.stringify({departureId:departure.id,selected,names,stops,query}))}catch{/* Storage can be unavailable. */}
+    navigate('/login',{state:{returnTo:'/travel/book/tickets'}})
+  }
 
   async function find(q){
     setError(null);setDeparture(null);setSeats([]);setSelected([]);setBooking(null)
@@ -80,6 +100,7 @@ export default function PassengerTicketBooking(){
   const toggle=s=>{if(s.bookable===false||!s.seat_id)return;setSelected(selected.includes(s.code)?selected.filter(x=>x!==s.code):[...selected,s.code])}
   // Each stop is optional on its own: no get-on stop = route start, no get-off stop = route end.
   const routeStops=departure?.stops||[]
+  const at=stop=>{const ms=Date.parse(departure?.departure_at)+(Number(stop?.scheduled_offset_minutes)||0)*60000;return Number.isFinite(ms)?' · '+t('about {value0}',{value0:new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Colombo'})}):''}   // arrival time at a stop: departure plus the time Travelly worked out from the road
   const onStop=routeStops.find(s=>s.id===stops.boarding)||routeStops[0]
   const offStop=routeStops.find(s=>s.id===stops.dropoff)||routeStops[routeStops.length-1]
   const stopsReady=!onStop||!offStop||onStop.stop_order<offStop.stop_order
@@ -156,9 +177,9 @@ export default function PassengerTicketBooking(){
         {routeStops.length>0&&!held&&<div className="tk-grid" style={{'--cols':1}}>
           <Field label="Where will you get on?" optional><select name="boarding" value={stops.boarding} onChange={e=>{const on=routeStops.find(s=>s.id===e.target.value),off=routeStops.find(s=>s.id===stops.dropoff)
               setStops({boarding:e.target.value,dropoff:on&&off&&off.stop_order<=on.stop_order?'':stops.dropoff})}}>
-            <option value="">{routeStops[0].stop_name} {t('(start)')}</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[0].stop_name} {t('(start)')}{at(routeStops[0])}</option>{routeStops.slice(1,-1).filter(s=>s.pickup_allowed).map(s=><option key={s.id} value={s.id}>{s.stop_name}{at(s)}</option>)}</select></Field>
           <Field label="Where will you get off?" optional><select name="dropoff" value={stops.dropoff} onChange={e=>setStops({...stops,dropoff:e.target.value})}>
-            <option value="">{routeStops[routeStops.length-1].stop_name} {t('(end)')}</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}</option>)}</select></Field>
+            <option value="">{routeStops[routeStops.length-1].stop_name} {t('(end)')}{at(routeStops[routeStops.length-1])}</option>{routeStops.slice(1,-1).filter(s=>s.dropoff_allowed&&(!onStop||s.stop_order>onStop.stop_order)).map(s=><option key={s.id} value={s.id}>{s.stop_name}{at(s)}</option>)}</select></Field>
         </div>}
         {!stopsReady&&<p className="tk-line is-warn" role="alert">{t('Choose a get-off stop after the stop where you get on.')}</p>}
         {fareBad&&<p className="tk-line is-warn" role="alert">{t('The Owner has no price for travel between these stops.')}</p>}
@@ -200,7 +221,7 @@ export default function PassengerTicketBooking(){
           :confirmed||cancelledPaid?<button type="button" className="ui-button ui-button-primary" onClick={bookMore}>{t('Find another departure')}</button>
           :signedIn
             ?<button type="button" className="ui-button ui-button-primary" disabled={busy||!namesReady||!stopsReady||fareBad} onClick={hold}>{busy?'Holding…':'Hold selected seats'}</button>
-            :<ButtonLink to="/login">{t('Sign in to hold seats')}</ButtonLink>}
+            :<button type="button" className="ui-button ui-button-primary" disabled={!namesReady||!stopsReady||fareBad} onClick={signInToHold}>{t('Sign in to hold seats')}</button>}
       </div>
     </div>}
 

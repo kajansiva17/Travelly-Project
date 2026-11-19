@@ -13,7 +13,7 @@ from app.services.hire_services import vehicle_evidence
 from app.schemas.rate_schemas import ExampleTrip, RateRule
 from app.services.rate_calculation import calculate
 from app.services.hire_routing import night_distance
-from conftest import signed_in, bearer
+from conftest import signed_in, bearer, check_passenger
 from test_rates import rule, rate_owner
 
 
@@ -111,6 +111,50 @@ def test_request_idempotency_binds_service_and_capacity_as_well_as_itinerary(cli
         assert collision.status_code == 409 and collision.json()['code'] == 'IDEMPOTENCY_CONFLICT'
 
 
+def test_future_request_keeps_price_and_position_verification_separate_through_commit(client, hire_setup):
+    c = hire_setup
+    booking = c.create()
+    assert booking['proposal']['kind'] == 'LOCATION_CONFIRMATION_REQUIRED'
+    with client.app.state.sessions() as db:
+        vehicle_version = db.get(Vehicle, c.vehicle_id).version
+    start = datetime.fromisoformat(booking['start_at'])
+    current = client.post(f"/api/v1/bookings/{booking['id']}/location-confirmation", headers=bearer(c.owner), json={
+        'expected_version': booking['version'], 'vehicle_expected_version': vehicle_version,
+        'kind': 'CURRENT', 'location': c.places['A'],
+    })
+    assert current.status_code == 422 and current.json()['code'] == 'FUTURE_POSITION_REQUIRED'
+    confirmed = client.post(f"/api/v1/bookings/{booking['id']}/location-confirmation", headers=bearer(c.owner), json={
+        'expected_version': booking['version'], 'vehicle_expected_version': vehicle_version,
+        'kind': 'PLANNED', 'location': c.places['A'],
+        'available_at': (start - timedelta(hours=1)).isoformat(),
+    })
+    assert confirmed.status_code == 200, confirmed.text
+    booking = confirmed.json()
+    assert booking['proposal']['kind'] == 'QUOTE'
+    booking = accept(client, c, booking)
+    with client.app.state.sessions() as db:
+        saved = db.get(Booking, UUID(booking['id']))
+        assert saved.itinerary_snapshot['positioning_confirmation']['latitude'] == c.places['A']['latitude']
+    committed_booking = client.post(f"/api/v1/bookings/{booking['id']}/self-drive", headers=bearer(c.owner),
+                                    json={'expected_version': booking['version']})
+    assert committed_booking.status_code == 200, committed_booking.text
+    assert committed_booking.json()['vehicle_committed'] is True
+
+
+def test_routing_price_failure_keeps_enabled_vehicle_discoverable_for_quote(client, hire_setup, monkeypatch):
+    from app.core.errors import ApiError
+    c = hire_setup
+    monkeypatch.setattr(client.app.state.hire_routing, 'measure',
+                        lambda *_args: (_ for _ in ()).throw(ApiError(503, 'ROUTING_UNAVAILABLE', 'Retry routing.')))
+    body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(), 'passenger_count': 2,
+            'large_luggage_count': 1, 'small_luggage_count': 1}
+    found = client.post('/api/v1/search/vehicles', json=body)
+    assert found.status_code == 200, found.text
+    entries = found.json()['quote_on_request']
+    assert len(entries) == 1 and entries[0]['quote_required'] is True
+    assert entries[0]['availability_status'] == 'CONFIRMATION_REQUIRED'
+
+
 def day_rule():
     data = rule()
     for name in ('base_charge', 'included_km'): data.pop(name)
@@ -152,6 +196,10 @@ def hire_setup(client, rate_owner, monkeypatch):
         vehicle.vehicle_type_code='CAR';vehicle.manufacture_year=2020;vehicle.colour='White';vehicle.power_type='ICE';vehicle.engine_fuel_type='PETROL';vehicle.make = 'Test'; vehicle.model = 'Vehicle'; vehicle.seat_capacity = 4; vehicle.large_luggage_capacity = 2; vehicle.small_luggage_capacity = 2
         vehicle.media = [{'id':str(uuid4()),'category':'EXTERIOR','status':'APPROVED','privacy_confirmed':True,'genuine_vehicle_confirmed':True,'variants':{'480':{'width':480,'height':320,'sha256':'0'*64}}}]
         vehicle.verification_status = 'APPROVED'; vehicle.approved_by = owner_id; vehicle.approved_at = func.now(); vehicle.availability_status = 'ACTIVE'
+        vehicle.accepts_hire_bookings = True; vehicle.base_location_label = 'A'
+        vehicle.base_latitude = Decimal(places['A']['latitude']); vehicle.base_longitude = Decimal(places['A']['longitude'])
+        vehicle.pickup_distance_km = Decimal('500'); vehicle.current_latitude = vehicle.base_latitude; vehicle.current_longitude = vehicle.base_longitude
+        vehicle.current_location_source = 'MANUAL'; vehicle.current_location_observed_at = datetime.now(timezone.utc)
         vehicle.verified_eligibility = {'owner_declaration':{'registered_owner_case':'SELF'},'category': 'CAR', 'authorisation_required': False, 'conditional_documents': {'EMISSION': False, 'FITNESS': False, 'ROUTE_PERMIT': False}}
         db.add(UserRole(user_id=owner_id, role_code='DRIVER', approval_status='APPROVED', approved_by=owner_id, approved_at=func.now()))
         for t in ('VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE', 'DRIVING_LICENCE'):
@@ -176,6 +224,7 @@ def hire_setup(client, rate_owner, monkeypatch):
             'service_hours': [str(h) for h in itinerary.service_hours], 'overnight_stays': 0})
         return {'usage': usage, 'source': 'trusted-test-provider', 'geometry': [[float(s.place.longitude),float(s.place.latitude)] for s in itinerary.stops], 'end_at': itinerary.requested_end()}
     monkeypatch.setattr(client.app.state.hire_routing, 'measure', measure)
+    monkeypatch.setattr(client.app.state.hire_routing, 'travel_seconds', lambda *args: 300)
     passenger = {'full_name': 'Journey Passenger', 'email': uuid4().hex+'@example.com', 'phone_e164': '+9477'+str(uuid4().int%10000000).zfill(7), 'password': 'TravellyStrong1!', 'accept_terms': True}
     p, pt = signed_in(client, passenger)
     def itinerary(names=('A','B'), hours='3', wait='0'):
@@ -195,6 +244,16 @@ def accept(client, ctx, booking):
     result = client.post(f"/api/v1/bookings/{booking['id']}/price-acceptance", headers=bearer(ctx.passenger), json={'expected_version': booking['version'], 'digest': snap['digest']})
     assert result.status_code == 200, result.text
     return result.json()
+
+
+def quote_changed_route(client, ctx, booking, names=('A', 'Stop', 'B'), expected=200):
+    changed = {**deepcopy(ctx.rule), 'id': str(uuid4()),
+               'coverage': {'kind': 'ROUTE', 'places': [ctx.places[name] for name in names]}}
+    config = {**ctx.config, 'expected_version': 1, 'rules': [ctx.rule, changed]}
+    result = client.post(f"/api/v1/bookings/{booking['id']}/quote", headers=bearer(ctx.owner),
+                         json={'expected_version': booking['version'], 'rates': config})
+    assert result.status_code == expected, result.text
+    return result if expected != 200 else result.json()
 
 
 @pytest.mark.parametrize('workspace', ['owner', 'driver'])
@@ -255,17 +314,22 @@ def committed(client, ctx):
     return result.json()
 
 
-def test_vehicle_list_shows_each_owner_price_before_the_passenger_selects(client, hire_setup):
+def test_vehicle_list_hides_price_until_the_passenger_selects(client, hire_setup):
     c = hire_setup
     body = {'service_type_id': str(c.service_id), 'itinerary': c.itinerary(), 'passenger_count': 2,
             'large_luggage_count': 1, 'small_luggage_count': 1}
     found = client.post('/api/v1/search/vehicles', json=body)
     assert found.status_code == 200, found.text
-    items = found.json()['items']
-    assert items and all(item['price']['total'] for item in items)
-    quoted = client.post(f"/api/v1/search/vehicles/{items[0]['id']}/quote", json=body)
+    data = found.json()
+    entries = data['items'] + data['quote_on_request']
+    assert entries and all(item['price'] is None for item in entries)
+    assert entries[0]['availability_status'] == 'CONFIRMATION_REQUIRED'
+    assert entries[0]['quote_required'] is False
+    quoted = client.post(f"/api/v1/search/vehicles/{entries[0]['id']}/quote", json=body)
     assert quoted.status_code == 200, quoted.text
-    assert quoted.json()['price']['total'] == items[0]['price']['total']  # the listed price is the Owner's own rate
+    assert quoted.json()['price']['total'] == '2050.00'
+    assert quoted.json()['owner_confirmation_required'] is True
+    assert quoted.json()['quote_required'] is False
 
 
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):
@@ -301,10 +365,16 @@ def test_change_passenger_acceptance_totals_and_notifications(client, hire_setup
     response = client.post(f"/api/v1/bookings/{booked['id']}/changes", headers=bearer(c.owner), json={'expected_version': booked['version'], 'reason': 'ADDED_STOP', 'itinerary': c.itinerary(('A','Stop','B'), hours='4')})
     assert response.status_code == 200, response.text
     proposal = response.json(); assert proposal['price']['current']['calculation']['total'] == '2050.00'
+    assert proposal['proposal']['kind'] == 'CHANGE_REQUEST_UNPRICED'
+    proposal = quote_changed_route(client, c, proposal)
     assert proposal['proposal']['old_total'] == '2050.00' and proposal['proposal']['new_total'] == '2800.00'
     result = client.post(f"/api/v1/bookings/{booked['id']}/changes/accept", headers=bearer(c.passenger), json={'expected_version': proposal['version'], 'digest': proposal['proposal']['digest']})
     assert result.status_code == 200, result.text
-    changed = result.json(); assert changed['proposal'] == {} and Decimal(changed['total_amount']) == Decimal('2800.00')
+    pending = result.json(); assert pending['proposal']['passenger_accepted'] and Decimal(pending['total_amount']) == Decimal('2050.00')
+    reviewed = client.post(f"/api/v1/bookings/{booked['id']}/changes/review", headers=bearer(c.owner),
+                           json={'expected_version': pending['version'], 'digest': pending['proposal']['digest']})
+    assert reviewed.status_code == 200, reviewed.text
+    changed = reviewed.json(); assert changed['proposal'] == {} and Decimal(changed['total_amount']) == Decimal('2800.00')
     assert changed['price']['initial'] == original
     with client.app.state.sessions() as db:
         key = db.get(Booking, UUID(booked['id'])).idempotency_key
@@ -323,12 +393,11 @@ def test_conflicting_change_stays_manual_without_mutating_agreement(client, hire
         db.add(VehicleRecord(vehicle_id=c.vehicle_id, recorded_by_user_id=row.owner_user_id, record_type='AVAILABILITY_BLOCK', recorded_at=func.now(), start_at=row.end_at, end_at=row.end_at+timedelta(hours=2)))
         db.commit()
     response = client.post(f"/api/v1/bookings/{booked['id']}/changes", headers=bearer(c.owner), json={'expected_version': booked['version'], 'reason': 'ADDED_STOP', 'itinerary': c.itinerary(('A','Stop','B'), hours='4')}).json()
-    result = client.post(f"/api/v1/bookings/{booked['id']}/changes/accept", headers=bearer(c.passenger), json={'expected_version': response['version'], 'digest': response['proposal']['digest']})
-    assert result.status_code == 200, result.text
-    row = result.json(); assert row['proposal']['manual_review_required'] and row['proposal']['passenger_accepted']
+    refused = quote_changed_route(client, c, response, expected=409)
+    assert refused.json()['code'] == 'VEHICLE_SCHEDULE_CONFLICT'
+    row = client.get(f"/api/v1/bookings/{booked['id']}", headers=bearer(c.owner)).json()
+    assert row['proposal']['kind'] == 'CHANGE_REQUEST_UNPRICED'
     assert Decimal(row['total_amount']) == Decimal('2050')
-    review = client.post(f"/api/v1/bookings/{booked['id']}/changes/review", headers=bearer(c.owner), json={'expected_version': row['version'], 'digest': row['proposal']['digest']})
-    assert review.status_code == 409
 
 
 def test_missing_or_suspended_category_blocks_operation(client, hire_setup):
@@ -479,14 +548,17 @@ def test_started_trip_change_and_three_party_notifications(client,hire_setup,mon
     class Clock(datetime):
         @classmethod
         def now(cls,tz=None):return (start+timedelta(minutes=1)).astimezone(tz or timezone.utc)
+    check_passenger(client,c.passenger,dt,trip['id'],detail['trip']['version'])
     monkeypatch.setattr(module,'datetime',Clock)
     started=client.post(f"/api/v1/trips/{trip['id']}/start",headers=bearer(dt),json={'expected_version':detail['trip']['version'],'start_odometer_km':'1234.5','checklist_confirmed':True})
     assert started.status_code==200 and started.json()['status']=='IN_PROGRESS',started.text
     b=started.json()
     proposed=client.post(f"/api/v1/bookings/{b['id']}/changes",headers=bearer(dt),json={'expected_version':b['version'],'reason':'ADDED_STOP','itinerary':c.itinerary(('A','Stop','B'),hours='4')})
     assert proposed.status_code==200,proposed.text
-    b=proposed.json();changed=client.post(f"/api/v1/bookings/{b['id']}/changes/accept",headers=bearer(c.passenger),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
-    assert changed.status_code==200 and changed.json()['proposal']=={},changed.text
+    b=quote_changed_route(client,c,proposed.json());changed=client.post(f"/api/v1/bookings/{b['id']}/changes/accept",headers=bearer(c.passenger),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
+    assert changed.status_code==200 and changed.json()['proposal']['passenger_accepted'],changed.text
+    b=changed.json();reviewed=client.post(f"/api/v1/bookings/{b['id']}/changes/review",headers=bearer(c.owner),json={'expected_version':b['version'],'digest':b['proposal']['digest']})
+    assert reviewed.status_code==200 and reviewed.json()['proposal']=={},reviewed.text
     for tokens in (c.owner,c.passenger,dt):
         assert any(n['title']=='Trip change confirmed' for n in client.get('/api/v1/notifications',headers=bearer(tokens)).json()['items'])
 
@@ -529,7 +601,9 @@ def test_search_lists_free_vehicles_without_a_saved_price_as_ask_the_owner(clien
     assert data['items'] == [] and len(data['quote_on_request']) == 1 and data['quote_on_request'][0]['quote_required'] is True
     assert data['quote_on_request'][0]['price'] is None and 'rules' not in data['quote_on_request'][0]
     priced = client.post('/api/v1/search/vehicles', json={**body, 'itinerary': c.itinerary(('A', 'B'))}).json()
-    assert len(priced['items']) == 1 and priced['quote_on_request'] == []
+    assert priced['items'] == [] and len(priced['quote_on_request']) == 1
+    assert priced['quote_on_request'][0]['quote_required'] is False
+    assert priced['quote_on_request'][0]['availability_status'] == 'CONFIRMATION_REQUIRED'
 
 
 def test_a_passenger_waits_for_at_most_three_owner_prices_and_unanswered_ones_lapse(client, hire_setup):
@@ -556,8 +630,12 @@ def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(c
     search = lambda wait: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'B'), wait=wait),
                                       'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     plain = search('0')
-    assert len(plain['items']) == 1 and plain['quote_on_request'] == []
-    policies = {p['code']: p for p in plain['items'][0]['price']['extra_policies']}
+    plain_entries = plain['items'] + plain['quote_on_request']
+    assert len(plain_entries) == 1 and plain_entries[0]['quote_required'] is False
+    selected = client.post(f"/api/v1/search/vehicles/{plain_entries[0]['id']}/quote", json={
+        'service_type_id': str(c.service_id), 'itinerary': c.itinerary(wait='0'), 'passenger_count': 2,
+        'large_luggage_count': 1, 'small_luggage_count': 1}).json()
+    policies = {p['code']: p for p in selected['price']['extra_policies']}
     assert policies['WAITING']['mode'] == 'NOT_OFFERED' and policies['EXTRA_KM']['mode'] == 'CHARGED' and policies['EXTRA_KM']['km_rate'] == '50'
     waiting = search('30')
     assert waiting['items'] == [] and len(waiting['quote_on_request']) == 1
@@ -568,7 +646,7 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
     ask = lambda names: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
         'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()['items'][0]
     first = ask(('A', 'B'))
-    assert first['location_source'] == 'SERVICE_AREA' and first['distance_km'] > 50 and first['near'] is False   # centre of the Owner's pickup area
+    assert first['location_source'] == 'BASE_LOCATION' and first['distance_km'] == 0.0 and first['near'] is True
     row = committed(client, c)                                        # booked A -> B; the vehicle finishes at B
     with client.app.state.sessions() as db:
         trip = db.scalar(select(Trip).where(Trip.booking_id == UUID(row['id'])))
@@ -577,4 +655,134 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
     later = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': {**c.itinerary(('B', 'A')), 'start_at': (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()},
                                                          'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     entry = (later['items'] + later['quote_on_request'])[0]
-    assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True
+    assert entry['location_source'] == 'BASE_LOCATION' and entry['distance_km'] > 50 and entry['near'] is False
+
+
+def test_owner_can_offer_another_time_and_the_booking_moves_only_when_the_passenger_accepts(client, hire_setup):
+    c = hire_setup; request = c.create()
+    asked = datetime.fromisoformat(request['start_at'])
+    offered = asked + timedelta(days=2)
+    cfg = {**deepcopy(c.config), 'expected_version': 1}
+    response = client.post(f"/api/v1/bookings/{request['id']}/quote", headers=bearer(c.owner),
+                           json={'expected_version': request['version'], 'rates': cfg, 'proposed_start_at': offered.isoformat()})
+    assert response.status_code == 200, response.text
+    quoted = response.json()
+    assert datetime.fromisoformat(quoted['proposal']['quote']['itinerary']['start_at']) == offered
+    assert datetime.fromisoformat(quoted['start_at']) == asked  # nothing moves before the Passenger agrees
+    accepted = accept(client, c, quoted)
+    assert datetime.fromisoformat(accepted['start_at']) == offered
+    assert datetime.fromisoformat(accepted['end_at']) > offered
+
+
+def test_a_proposed_time_in_the_past_is_refused(client, hire_setup):
+    c = hire_setup; request = c.create()
+    cfg = {**deepcopy(c.config), 'expected_version': 1}
+    response = client.post(f"/api/v1/bookings/{request['id']}/quote", headers=bearer(c.owner),
+                           json={'expected_version': request['version'], 'rates': cfg,
+                                 'proposed_start_at': (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()})
+    assert response.status_code == 422
+
+
+def test_old_finished_bookings_move_to_history_by_themselves(client, hire_setup):
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import text
+    c = hire_setup; b = c.create()
+    client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'test'})
+    h = bearer(c.passenger)
+    assert any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger', headers=h).json()['items'])
+    with client.app.state.sessions() as db:
+        db.execute(text("update bookings set created_at = :t, updated_at = :t where id = :i"), {'t': datetime.now(timezone.utc) - timedelta(days=31), 'i': b['id']}); db.commit()
+    assert not any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger', headers=h).json()['items'])
+    assert any(x['id'] == b['id'] for x in client.get('/api/v1/bookings?as=passenger&hidden=true', headers=h).json()['items'])
+
+
+def test_passenger_keeps_favourite_vehicles_and_removes_them(client, hire_setup):
+    c = hire_setup; h = bearer(c.passenger); vid = str(c.vehicle_id)
+    assert client.get('/api/v1/me/favourite-vehicles', headers=h).json()['items'] == []
+    assert client.put(f'/api/v1/me/favourite-vehicles/{vid}', headers=h, json={}).status_code == 200
+    assert client.put(f'/api/v1/me/favourite-vehicles/{vid}', headers=h, json={}).status_code == 200   # saving twice keeps one
+    listed = client.get('/api/v1/me/favourite-vehicles', headers=h).json()
+    assert [i['id'] for i in listed['items']] == [vid] and listed['items'][0]['available'] is True and listed['ids'] == [vid]
+    assert client.get('/api/v1/me/favourite-vehicles', headers=bearer(c.owner)).json()['items'] == []   # each person sees only their own
+    assert client.delete(f'/api/v1/me/favourite-vehicles/{vid}', headers=h).status_code == 200
+    assert client.get('/api/v1/me/favourite-vehicles', headers=h).json()['items'] == []
+    assert client.put(f'/api/v1/me/favourite-vehicles/{uuid4()}', headers=h, json={}).status_code == 404
+    assert client.get('/api/v1/me/favourite-vehicles').status_code == 401
+
+
+def test_passenger_cancels_confirmed_hire_until_three_hours_before_start_and_everyone_is_told(client, hire_setup):
+    c = hire_setup
+    b = committed(client, c)
+    assert b['status'] == 'CONFIRMED'
+    with client.app.state.sessions() as db:                      # too late: starts in 2 hours
+        row = db.get(Booking, UUID(b['id']))
+        keep = (row.start_at, row.end_at)
+        row.start_at = datetime.now(timezone.utc) + timedelta(hours=2); row.end_at = row.start_at + timedelta(hours=3); db.commit()
+    late = client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'late'})
+    assert late.status_code == 409 and late.json()['code'] == 'CANCELLATION_TOO_LATE'
+    with client.app.state.sessions() as db:                      # back to the original (far) time
+        row = db.get(Booking, UUID(b['id'])); row.start_at, row.end_at = keep; db.commit()
+    done = client.post(f"/api/v1/bookings/{b['id']}/cancel", headers=bearer(c.passenger), json={'expected_version': b['version'], 'reason': 'Plans changed'})
+    assert done.status_code == 200, done.text
+    assert done.json()['status'] == 'CANCELLED' and not done.json()['vehicle_committed']
+    assert any('Passenger cancelled' in n['body'] for n in client.get('/api/v1/notifications', headers=bearer(c.owner)).json()['items'])
+
+
+def test_my_drivers_needs_a_request_or_invitation_that_the_other_side_accepts(client, hire_setup):
+    c = hire_setup
+    driver, dt = external_driver(client, c)
+    oh, dh = bearer(c.owner), bearer(dt)
+    first = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()
+    assert first['items'] == [] and first['my_reference'].startswith('USR-')
+    assert client.post('/api/v1/owners/me/saved-drivers', headers=oh, json={'driver_reference': 'USR-0000000000000000'}).status_code == 404
+    # Driver asks the Owner by the Owner's reference; the Owner accepts
+    assert client.post('/api/v1/drivers/me/owner-links', headers=dh, json={'owner_reference': 'USR-0000000000000000'}).status_code == 404
+    asked = client.post('/api/v1/drivers/me/owner-links', headers=dh, json={'owner_reference': first['my_reference']})
+    assert asked.status_code == 201 and asked.json()['status'] == 'DRIVER_REQUESTED', asked.text
+    waiting = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items']
+    assert len(waiting) == 1 and waiting[0]['status'] == 'DRIVER_REQUESTED'
+    assert any('asked to join' in n['title'] for n in client.get('/api/v1/notifications', headers=oh).json()['items'])
+    # the Driver cannot accept their own request
+    assert client.post(f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}/accept", headers=dh, json={}).status_code in (403, 404)   # the Driver cannot accept their own request
+    ok = client.post(f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}/accept", headers=oh, json={})
+    assert ok.status_code == 200 and ok.json()['status'] == 'ACTIVE'
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items'][0]['status'] == 'ACTIVE'
+    mine = client.get('/api/v1/drivers/me/owner-links', headers=dh).json()['items']
+    assert len(mine) == 1 and mine[0]['status'] == 'ACTIVE'
+    # the Owner removes the link; it can be re-made by an invitation the Driver accepts
+    assert client.request('DELETE', f"/api/v1/owners/me/saved-drivers/{waiting[0]['id']}", headers=oh, json={}).status_code == 200
+    invited = client.post('/api/v1/owners/me/saved-drivers', headers=oh, json={'driver_reference': driver['public_user_reference'], 'nickname': 'Kumar'})
+    assert invited.status_code == 201 and invited.json()['status'] == 'OWNER_INVITED'
+    link = client.get('/api/v1/drivers/me/owner-links', headers=dh).json()['items'][0]
+    assert link['status'] == 'OWNER_INVITED'
+    assert client.post(f"/api/v1/drivers/me/owner-links/{link['id']}/decline", headers=dh, json={}).json()['status'] == 'DECLINED'
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()['items'] == []     # declined links are not listed
+    assert client.get('/api/v1/owners/me/saved-drivers', headers=bearer(c.passenger)).status_code in (403, 404)
+
+
+def test_driver_finds_an_owner_by_name_or_full_plate_unless_the_owner_hides(client, hire_setup):
+    c = hire_setup
+    driver, dt = external_driver(client, c)
+    oh, dh = bearer(c.owner), bearer(dt)
+    mine = client.get('/api/v1/owners/me/saved-drivers', headers=oh).json()
+    assert mine['findable'] is True
+    me = client.get('/api/v1/users/me', headers=oh).json()
+    first = me['full_name'][:4]
+    assert client.get('/api/v1/drivers/me/owner-search?q=ab', headers=dh).status_code == 422          # too short
+    named = client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=dh)
+    assert named.status_code == 200, named.text
+    by_name = named.json()['items']
+    assert any(i['reference'] == mine['my_reference'] for i in by_name)
+    assert all(set(i) == {'reference', 'name', 'vehicles', 'link_status', 'link_id'} for i in by_name)   # no phone, email or plate
+    by_ref = client.get(f"/api/v1/drivers/me/owner-search?q={mine['my_reference']}", headers=dh).json()['items']
+    assert [i['reference'] for i in by_ref] == [mine['my_reference']]
+    with client.app.state.sessions() as db:
+        plate = str(db.get(Vehicle, c.vehicle_id).registration_number)
+    exact = client.get(f'/api/v1/drivers/me/owner-search?q={plate}', headers=dh).json()['items']
+    assert any(i['reference'] == mine['my_reference'] for i in exact)
+    assert not any(plate in str(i) for i in exact)                                                    # the plate itself is never shown
+    # the Owner hides from search: name no longer finds them, the reference still does
+    assert client.put('/api/v1/owners/me/findable', headers=oh, json={'findable': False}).json() == {'findable': False}
+    assert not any(i['reference'] == mine['my_reference'] for i in client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=dh).json()['items'])
+    assert len(client.get(f"/api/v1/drivers/me/owner-search?q={mine['my_reference']}", headers=dh).json()['items']) == 1
+    assert client.get(f'/api/v1/drivers/me/owner-search?q={first}', headers=bearer(c.passenger)).status_code in (403, 404)   # only a Driver searches

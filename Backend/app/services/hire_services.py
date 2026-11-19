@@ -10,7 +10,7 @@ from app.models import User, UserRole
 from app.models.review_models import Document, Vehicle
 from app.models.rate_models import VehicleService, ServiceType
 from app.models.hire_models import Booking, Trip, VehicleRecord, ScheduledTrip, Notification
-from app.schemas.rate_schemas import RateRule, covered, departure_applies, extra_mode, EXTRA_METHODS
+from app.schemas.rate_schemas import RateRule, ExampleTrip, covered, departure_applies, extra_mode, EXTRA_METHODS
 from app.services.pricing_scope import require_supported_private_hire
 from app.services.rate_calculation import calculate
 from app.core.errors import ApiError
@@ -44,12 +44,12 @@ def current_documents(db, *, uid=None, vid=None, at=None):
 def vehicle_evidence(db, vehicle, at=None):
     policy = vehicle.verified_eligibility
     applicability = policy.get('conditional_documents', {})
-    if not {'EMISSION', 'FITNESS'} <= set(applicability) <= {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
+    if 'EMISSION' not in applicability or not set(applicability) <= {'EMISSION', 'FITNESS', 'ROUTE_PERMIT'} or any(type(v) is not bool for v in applicability.values()):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'Vehicle evidence applicability has not been verified.')
     if type(policy.get('authorisation_required')) is not bool or not policy.get('category'):
         raise ApiError(409, 'VEHICLE_EVIDENCE_UNKNOWN', 'The registered-owner case and vehicle category must be reviewed.')
     # A route permit is optional for every vehicle (project-owner decision), even on vehicles reviewed before that rule.
-    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed and t != 'ROUTE_PERMIT'}
+    required = {'VEHICLE_REGISTRATION', 'INSURANCE', 'REVENUE_LICENCE'} | {t for t, needed in applicability.items() if needed and t not in ('ROUTE_PERMIT', 'FITNESS')}
     if policy['authorisation_required']: required.add('OWNER_AUTHORISATION')
     docs = current_documents(db, vid=vehicle.id, at=at)
     if not required <= set(docs):
@@ -78,14 +78,15 @@ def compatible_driver(db, driver, vehicle, service, at):
     if not approved(db, driver.id, 'DRIVER'):
         raise ApiError(409, 'DRIVER_NOT_ELIGIBLE', 'The Driver must have current approved Driver membership.')
     licence = current_documents(db, uid=driver.id, at=at).get('DRIVING_LICENCE')
-    category = vehicle.verified_eligibility.get('category')
-    accepted = service.settings.get('licence_compatibility', {}).get(category)
+    from app.services.hire_defaults import accepted_licences
+    accepted = accepted_licences(service.settings, vehicle)
     if not licence or licence.issuing_country != 'LK' or not licence.expiry_date or not accepted or not set(licence.verified_categories).intersection(accepted):
         raise ApiError(409, 'DRIVER_CATEGORY_MISMATCH', 'Verified current licence categories do not match this vehicle/service. Missing compatibility rules block assignment.')
 
 
 def route_profile(service, vehicle):
-    profile = service.settings.get('routing_profiles', {}).get(vehicle.verified_eligibility.get('category'))
+    from app.services.hire_defaults import routing_profile_for
+    profile = routing_profile_for(service.settings, vehicle)
     if profile not in ('driving-car', 'driving-hgv'):
         raise ApiError(409, 'ROUTING_PROFILE_REQUIRED', 'The reviewed vehicle/service routing profile is not configured.')
     return profile
@@ -109,13 +110,14 @@ def matches(rule, itinerary, geometry=None):
     if rule.method == 'FIXED_ROUTE' and not departure_applies(rule.departure, itinerary.start_at.astimezone(ZONE)): return False
     if rule.effective_until and (itinerary.requested_end() - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until: return False
     places = [s.place for s in itinerary.stops]
-    if not covered(rule.pickup_area, places[0]): return False
     if rule.coverage.kind == 'ROUTE':
         return [(p.latitude, p.longitude) for p in places] == [(p.latitude, p.longitude) for p in rule.coverage.places]
+    if rule.coverage.kind == 'ANY':
+        return True
+    # Area rules: only the pickup must be inside the coverage area.
+    # Destination and intermediate stops may be anywhere — the per-km rate covers the full distance.
     area = rule.coverage.area
-    if not all(covered(area, p) for p in places): return False
-    if geometry:
-        return all(area.west <= Decimal(str(p[0])) <= area.east and area.south <= Decimal(str(p[1])) <= area.north for p in geometry)
+    if not covered(area, places[0]): return False
     return True
 
 
@@ -154,13 +156,31 @@ def extra_policies(rule):
 
 def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     scope = require_supported_private_hire(service)
-    measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
-    candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
+    initial = list(rules) if agreed_rule else matching_rules(rules, itinerary)
+    exact_fixed = len(initial) == 1 and initial[0].method == 'FIXED_ROUTE'
+    if exact_fixed:
+        rule = initial[0]
+        if agreed_rule and not matches(rule, itinerary):
+            raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
+        for stop in itinerary.stops:
+            request.app.state.rate_locations.verify(stop.place)
+        usage = ExampleTrip.model_validate({
+            'distance_km': '0', 'night_km': '0',
+            'waiting_minutes': str(sum((stop.wait_minutes for stop in itinerary.stops if not stop.overnight_rest), Decimal('0'))),
+            'service_hours': [str(value) for value in itinerary.service_hours],
+            'overnight_stays': sum(stop.overnight_rest for stop in itinerary.stops),
+        })
+        measurement = {'source': 'SAVED_FIXED_ROUTE', 'usage': usage,
+                       'geometry': [[float(stop.place.longitude), float(stop.place.latitude)] for stop in itinerary.stops]}
+        candidates = initial
+    else:
+        measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
+        candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
     if len(candidates) != 1:
         raise ApiError(409, 'QUOTE_REQUIRED', 'Saved rates do not uniquely cover this complete itinerary. Request an Owner quote.')
     rule = candidates[0]
-    if agreed_rule and (not covered(rule.pickup_area, itinerary.stops[0].place)):
-        raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed pickup coverage.')
+    if agreed_rule and not matches(rule, itinerary, measurement['geometry']):
+        raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
     try: result = calculate(rule, measurement['usage'])
     except ValueError as exc: raise ApiError(422, 'PRICING_UNAVAILABLE', str(exc)) from None
     if not agreed_rule: refuse_unoffered_extras(rule, result)
@@ -173,7 +193,9 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     end = max(end, itinerary.requested_end())
     if not agreed_rule and rule.effective_until and (end - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until:
         raise ApiError(409, 'QUOTE_REQUIRED', 'The saved rate does not cover the complete reserved interval. Request an Owner quote.')
-    return {'calculation': {**result, 'service_scope': scope, 'extra_policies': extra_policies(rule)}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
+    hours_note = {'planned_service_hours': [str(h) for h in measurement['usage'].service_hours], 'package_hours': str(rule.included_hours_per_day),
+                                                                                'package_km': str(rule.included_km_per_day), 'package_days': len(measurement['usage'].service_hours)} if rule.method == 'DAY_HIRE' else {}
+    return {'calculation': {**result, 'service_scope': scope, 'extra_policies': extra_policies(rule), **hours_note}, 'rule': rule.model_dump(mode='json'), 'itinerary': itinerary.model_dump(mode='json'),
             'measurement': {'source': measurement['source'], 'usage': measurement['usage'].model_dump(mode='json')},
             'reserved_end_at': end.isoformat()}
 
@@ -210,7 +232,8 @@ def booking_summary(row):
             'large_luggage_count': row.large_luggage_count, 'small_luggage_count': row.small_luggage_count,
             'itinerary': row.itinerary_snapshot, 'price': row.price_snapshot, 'proposal': row.pending_change,
             'accepted_quote_digest': row.accepted_quote_digest, 'vehicle_committed': row.vehicle_committed,
-            'total_amount': str(row.total_amount) if row.total_amount is not None else None, 'currency': row.currency}
+            'total_amount': str(row.total_amount) if row.total_amount is not None else None, 'currency': row.currency,
+            'origin_text': row.origin_text, 'destination_text': row.destination_text}
 
 
 def trip_summary(trip):

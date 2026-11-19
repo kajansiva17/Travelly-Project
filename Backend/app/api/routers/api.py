@@ -19,16 +19,21 @@ router = APIRouter(prefix='/api/v1')
 logger = logging.getLogger('travelly.audit')
 
 
-def session_meta(request):
-    """What the sessions list shows: a device label from the browser and a coarse address (last part hidden)."""
+def session_meta(request: Request) -> dict:
+    """What the sessions list shows: a device label and a coarse address."""
     agent = (request.headers.get('user-agent') or '')[:300]
     low = agent.lower()
-    system = next((n for k, n in (('windows', 'Windows'), ('android', 'Android'), ('iphone', 'iPhone'), ('ipad', 'iPad'), ('mac os', 'Mac'), ('linux', 'Linux')) if k in low), None)
-    browser = next((n for k, n in (('edg/', 'Edge'), ('opr/', 'Opera'), ('chrome/', 'Chrome'), ('firefox/', 'Firefox'), ('safari/', 'Safari')) if k in low), None)
-    host = request.client.host if request.client else ''
+    system = next((name for key, name in (
+        ('windows', 'Windows'), ('android', 'Android'), ('iphone', 'iPhone'),
+        ('ipad', 'iPad'), ('mac os', 'Mac'), ('linux', 'Linux')) if key in low), None)
+    browser = next((name for key, name in (
+        ('edg/', 'Edge'), ('opr/', 'Opera'), ('chrome/', 'Chrome'),
+        ('firefox/', 'Firefox'), ('safari/', 'Safari')) if key in low), None)
+    forwarded = request.headers.get('x-forwarded-for', '')
+    host = forwarded.split(',')[0].strip() if forwarded else (request.client.host if request.client else '')
     parts = host.split('.')
     hint = '.'.join(parts[:2]) + '.x.x' if len(parts) == 4 else (host.split(':')[0] + ':x' if ':' in host else '')
-    return {'device': ' on '.join(x for x in (browser, system) if x) or 'Unknown device', 'ip_hint': hint}
+    return {'device': ' on '.join(value for value in (browser, system) if value) or 'Unknown device', 'ip_hint': hint}
 
 
 def touch(row):
@@ -84,9 +89,12 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     encoded = hasher.hash(body.password)
     for _ in range(3):
         try:
+            need_verify = request.app.state.settings.require_email_verification
             user = User(public_user_reference='USR-' + secrets.token_hex(8).upper(), password_hash=encoded,
                         full_name=body.full_name, email=body.email, phone_e164=body.phone_e164,
-                        preferred_language=body.preferred_language, email_login_required=True,
+                        preferred_language=body.preferred_language, email_login_required=need_verify,
+                        email_verified_at=None if need_verify else datetime.now(timezone.utc),
+                        account_status='PENDING_VERIFICATION' if need_verify else 'ACTIVE',
                         terms_accepted_at=datetime.now(timezone.utc))
             db.add(user)
             db.flush()
@@ -136,13 +144,14 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         store.clear_failures(body.identifier)
         from app.api.routers.auth_extension import verification_result
         return verification_result(request, user, journey=body.journey, sign_in=True)
-    if user.totp_enabled_at:                    # second step: the authenticator code (owner decision 14 Nov 2026)
+    if user.totp_enabled_at:
         from app.api.routers.account_security_api import challenge_for
         user.failed_login_count, user.locked_until = 0, None
-        touch(user); db.commit()
+        touch(user)
+        db.commit()
         store.clear_failures(body.identifier)
         return challenge_for(request, user, body.remember_me)
-    from app.api.routers.account_security_api import reactivate   # signing in again brings a deactivated account back and cancels a delete request
+    from app.api.routers.account_security_api import reactivate
     welcome = reactivate(user)
     user.failed_login_count, user.locked_until, user.last_login_at = 0, None, now
     if hasher.check_needs_rehash(user.password_hash):

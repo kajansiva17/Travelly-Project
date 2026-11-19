@@ -13,7 +13,7 @@ import { emailError, passwordErrors, passwordHint } from './authValidation'
 import { loginDestination } from '../../routes/workspaceRoutes'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
 import TwoFactorStep from './TwoFactorStep'
-import {isTwoFactor,returnTarget,twoFactorBody,welcomeBack} from './loginFlow'
+import {isTwoFactor,returnTarget,safeReturnPath,twoFactorBody,welcomeBack} from './loginFlow'
 
 export default function AuthPage({ signup = false }) {
   const language = getLanguage()
@@ -72,7 +72,10 @@ export default function AuthPage({ signup = false }) {
     try {
       const [user, roles] = await Promise.all([api('/users/me',{cache:'no-store'}), api('/users/me/roles',{cache:'no-store'})])
       // A landing card for tickets or rentals sends a signed-out visitor here first; they return to that booking page.
-      const destination = returnTarget(location.state) || loginDestination(user, roles.items || [], journey)
+      let stored=null
+      try{stored=sessionStorage.getItem('returnTo');sessionStorage.removeItem('returnTo')}catch{/* Browser storage can be unavailable. */}
+      const safeStored=safeReturnPath(stored)
+      const destination = safeStored || returnTarget(location.state) || loginDestination(user, roles.items || [], journey)
       setResolvedDestination(destination)
       return destination
     } catch(error) {
