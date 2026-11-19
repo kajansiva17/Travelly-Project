@@ -24,7 +24,8 @@ def test_provider_outage_keeps_an_unpriced_enquiry_without_reservation(client, h
         raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Trusted routing is not configured.')
     monkeypatch.setattr(client.app.state.hire_routing, 'measure', unavailable)
     row = c.create()
-    assert row['status'] == 'REQUESTED' and row['proposal'] == {}
+    # Location verification is independent from unavailable automatic pricing.
+    assert row['status'] == 'REQUESTED' and row['proposal']['kind'] == 'LOCATION_CONFIRMATION_REQUIRED'
     assert not row['vehicle_committed'] and not row['accepted_quote_digest']
     assert row['total_amount'] is None
 
@@ -39,7 +40,9 @@ def test_legacy_passenger_uses_existing_auth_contact_policy(client, hire_setup):
         user.phone_verified_at = func.now()
         db.commit()
     row = c.create()
-    assert row['status'] == 'REQUESTED' and row['proposal']['kind'] == 'QUOTE'
+    # The two-day fixture request still needs the Owner to confirm its future
+    # vehicle position; this authentication policy must not bypass that rule.
+    assert row['status'] == 'REQUESTED' and row['proposal']['kind'] == 'LOCATION_CONFIRMATION_REQUIRED'
 
 
 def test_quote_must_save_enabled_reusable_rules(client, hire_setup):
@@ -60,7 +63,7 @@ def test_rate_must_cover_the_complete_reserved_interval(client, hire_setup):
     cfg = {**deepcopy(c.config), 'expected_version': 1}
     cfg['rules'][0]['effective_until'] = pickup_day.isoformat()
     assert client.put(f'/api/v1/vehicles/{c.vehicle_id}/services', headers=bearer(c.owner), json=cfg).status_code == 200
-    row = c.create(itinerary)
+    row = c.confirm_position(c.create(itinerary))
     assert row['proposal'] == {} and not row['vehicle_committed'] and row['total_amount'] is None
 
 
@@ -94,7 +97,7 @@ def test_fixed_route_change_requires_a_reusable_quote_and_passenger_acceptance(c
     assert reviewed.status_code == 200, reviewed.text
     assert reviewed.json()['price']['initial'] == initial and reviewed.json()['total_amount'] == '2600.00'
     later_itinerary = {**changed_itinerary, 'start_at': (datetime.fromisoformat(changed_itinerary['start_at']) + timedelta(days=1)).isoformat()}
-    future = c.create(later_itinerary)
+    future = c.confirm_position(c.create(later_itinerary))
     assert future['proposal']['quote']['calculation']['total'] == '2600.00'
 
 
@@ -235,11 +238,24 @@ def hire_setup(client, rate_owner, monkeypatch):
             'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1, 'idempotency_key': uuid4().hex})
         assert response.status_code == 201, response.text
         return response.json()
+    def confirm_position(booking):
+        if booking.get('proposal', {}).get('kind') != 'LOCATION_CONFIRMATION_REQUIRED':
+            return booking
+        with client.app.state.sessions() as db:
+            vehicle_version = db.get(Vehicle, vid).version
+        confirmed = client.post(f"/api/v1/bookings/{booking['id']}/location-confirmation", headers=bearer(owner_tokens), json={
+            'expected_version': booking['version'], 'vehicle_expected_version': vehicle_version,
+            'kind': 'PLANNED', 'location': places['A'],
+            'available_at': (datetime.fromisoformat(booking['start_at']) - timedelta(hours=1)).isoformat(),
+        })
+        assert confirmed.status_code == 200, confirmed.text
+        return confirmed.json()
     return SimpleNamespace(owner=owner_tokens, passenger=pt, passenger_id=p['id'], vehicle_id=vid, service_id=sid, places=places,
-        rule=r, config=config, itinerary=itinerary, create=create)
+        rule=r, config=config, itinerary=itinerary, create=create, confirm_position=confirm_position)
 
 
 def accept(client, ctx, booking):
+    booking = ctx.confirm_position(booking)
     snap = booking['proposal']['quote']
     result = client.post(f"/api/v1/bookings/{booking['id']}/price-acceptance", headers=bearer(ctx.passenger), json={'expected_version': booking['version'], 'digest': snap['digest']})
     assert result.status_code == 200, result.text
@@ -333,20 +349,20 @@ def test_vehicle_list_hides_price_until_the_passenger_selects(client, hire_setup
 
 
 def test_quote_reuse_recalculates_and_rate_edit_preserves_agreed_price(client, hire_setup):
-    c = hire_setup; request = c.create(c.itinerary(('A','C')))
+    c = hire_setup; request = c.confirm_position(c.create(c.itinerary(('A','C'))))
     assert request['proposal'] == {} and request['status'] == 'REQUESTED'
     new = {**deepcopy(c.rule), 'id': str(uuid4()), 'coverage': {'kind': 'ROUTE', 'places': [c.places['A'], c.places['C']]}}
     cfg = {**c.config, 'expected_version': 1, 'rules': [c.rule, new]}
     response = client.post(f"/api/v1/bookings/{request['id']}/quote", headers=bearer(c.owner), json={'expected_version': request['version'], 'rates': cfg})
     assert response.status_code == 200, response.text
     first = accept(client, c, response.json()); snapshot = deepcopy(first['price'])
-    later = c.create(c.itinerary(('A','C'), wait='80'))
+    later = c.confirm_position(c.create(c.itinerary(('A','C'), wait='80')))
     assert later['proposal']['quote']['calculation']['total'] != first['total_amount']
     cfg['expected_version'] = 2; cfg['rules'][1]['extra_km_rate'] = '90'
     assert client.put(f'/api/v1/vehicles/{c.vehicle_id}/services', headers=bearer(c.owner), json=cfg).status_code == 200
     got = client.get(f"/api/v1/bookings/{first['id']}", headers=bearer(c.passenger)).json()
     assert got['price'] == snapshot
-    fresh = c.create(c.itinerary(('A','C')))
+    fresh = c.confirm_position(c.create(c.itinerary(('A','C'))))
     assert fresh['proposal']['quote']['calculation']['total'] != first['total_amount']
 
 
@@ -467,7 +483,7 @@ def test_day_hire_reserves_full_first_package_in_booking(client,hire_setup):
     cfg={**c.config,'expected_version':1,'rules':[c.rule,day]}
     assert client.put(f'/api/v1/vehicles/{c.vehicle_id}/services',headers=bearer(c.owner),json=cfg).status_code==200
     itin=c.itinerary(hours='4');itin['method']='DAY_HIRE'
-    b=c.create(itin)
+    b=c.confirm_position(c.create(itin))
     quote=b['proposal']['quote'];assert quote['calculation']['reserved_service_hours']==['8']
     assert datetime.fromisoformat(quote['reserved_end_at'])-datetime.fromisoformat(itin['start_at'])==timedelta(hours=8)
 
@@ -609,7 +625,7 @@ def test_search_lists_free_vehicles_without_a_saved_price_as_ask_the_owner(clien
 def test_a_passenger_waits_for_at_most_three_owner_prices_and_unanswered_ones_lapse(client, hire_setup):
     from app.services.reminders import run_reminders
     c = hire_setup
-    rows = [c.create(c.itinerary(('A', 'C'))) for _ in range(3)]
+    rows = [c.confirm_position(c.create(c.itinerary(('A', 'C')))) for _ in range(3)]
     assert all(r['status'] == 'REQUESTED' and r['proposal'] == {} for r in rows)
     body = {'vehicle_id': str(c.vehicle_id), 'service_type_id': str(c.service_id), 'itinerary': c.itinerary(('A', 'C')),
             'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1, 'idempotency_key': uuid4().hex}
@@ -643,8 +659,11 @@ def test_extra_the_owner_does_not_offer_sends_the_passenger_to_ask_for_a_quote(c
 
 def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup):
     c = hire_setup
-    ask = lambda names: client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
-        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()['items'][0]
+    # Future results are discoverable in quote-on-request until the Owner
+    # confirms their planned position; their location ranking is still shown.
+    ask = lambda names: (lambda data: (data['items'] + data['quote_on_request'])[0])(
+        client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': c.itinerary(names),
+        'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json())
     first = ask(('A', 'B'))
     assert first['location_source'] == 'BASE_LOCATION' and first['distance_km'] == 0.0 and first['near'] is True
     row = committed(client, c)                                        # booked A -> B; the vehicle finishes at B
@@ -655,7 +674,8 @@ def test_search_orders_vehicles_by_where_they_most_likely_are(client, hire_setup
     later = client.post('/api/v1/search/vehicles', json={'service_type_id': str(c.service_id), 'itinerary': {**c.itinerary(('B', 'A')), 'start_at': (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()},
                                                          'passenger_count': 2, 'large_luggage_count': 1, 'small_luggage_count': 1}).json()
     entry = (later['items'] + later['quote_on_request'])[0]
-    assert entry['location_source'] == 'BASE_LOCATION' and entry['distance_km'] > 50 and entry['near'] is False
+    # A completed prior hire is a more recent location signal than the base.
+    assert entry['location_source'] == 'LAST_TRIP' and entry['distance_km'] == 0.0 and entry['near'] is True
 
 
 def test_owner_can_offer_another_time_and_the_booking_moves_only_when_the_passenger_accepts(client, hire_setup):
