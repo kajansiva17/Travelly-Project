@@ -42,12 +42,14 @@ export default function DriverTripPage(){
   useRoadAlertNotifications({running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.sayNotification})
   const wake=useScreenWakeLock(Boolean(trip&&RUNNING.includes(trip.status)))
   // The live trip map (contract 03O, C) is the main view while the trip runs: route, road line and position from GET /trips/{id}/map, the vehicle from our own location updates.
-  const [follow,setFollow]=useState(true),map=useTripMap(tripId,{enabled:Boolean(trip&&RUNNING.includes(trip.status))}),autoShared=useRef(false)   // keep the screen on while the trip runs (contract 03A)
+  const [follow,setFollow]=useState(true),map=useTripMap(tripId,{enabled:Boolean(trip&&(RUNNING.includes(trip.status)||(trip.status==='READY'&&trip.book_now)))}),autoShared=useRef(false)   // keep the screen on while the trip runs (contract 03A)
   useEffect(()=>{latest.current=trip},[trip])
   useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),8000);return()=>clearTimeout(timer)},[notice])
 
   const load=useCallback(async()=>{try{setTrip(await api('/trips/'+tripId));setError(null)}catch(e){setError(e)}},[tripId])
   useEffect(()=>{load()},[load])
+  // A Book now trip waiting at the pickup follows the vehicle: the trip is read again every 15 seconds.
+  useEffect(()=>{if(!(trip&&trip.status==='READY'&&trip.book_now))return;const timer=setInterval(load,15000);return()=>clearInterval(timer)},[trip?.status,trip?.book_now,load])
 
   const sendPosition=useCallback(()=>new Promise(done=>{
     const current=latest.current
@@ -80,7 +82,7 @@ export default function DriverTripPage(){
     setBusy(true);setError(null)
     try{
       const result=await request(`/trips/${tripId}/pickup-verifications`,{expected_version:latest.current.version,...body})
-      setTrip(result.trip);setPin('');setNotice('Passenger checked.')
+      setTrip(result.trip);setPin('');setNotice('Passenger checked.');setTab('start')
       return true
     }catch(e){setError(e);return false}finally{setBusy(false)}
   },[tripId])
@@ -136,16 +138,28 @@ export default function DriverTripPage(){
   const finished=['COMPLETED','CANCELLED'].includes(trip.status)
   const checked=Boolean(trip.pickup?.verified_at)
   const panels=finished||running?[]
-    :trip.status==='READY'?[...(checked?[]:[['verify','Check the Passenger','user']]),...(checked||trip.pickup?.required===false?[['start','Start the trip','car']]:[])]:[]
+    :trip.status==='READY'?[...(trip.book_now?[['pickup','Go to pickup','pin']]:[]),...(checked?[]:[['verify','Check the Passenger','user']]),...(checked||trip.pickup?.required===false?[['start','Start the trip','car']]:[])]:[]
   // Running: the map is the main view; Problem on the road, Finish and (if still needed) the passenger check open from its side column.
   const open=running?(['problem','finish','verify'].includes(tab)?tab:'map'):(panels.some(([id])=>id===tab)?tab:panels[0]?.[0])
   const tabs=panels.length>1?panels.map(([id,label,icon])=>({label:t(label),icon,active:open===id,onClick:()=>setTab(id)})):undefined
   const backToMap=running&&open!=='map'?<Button variant="secondary" onClick={()=>setTab(null)}>{t('Back to the map')}</Button>:null
+  const pickupPoint=map.data?.points?.[0]
 
   return <><Header/><FlowShell heading={t('Operate trip')} icon="car" title={codeLabel(trip.status)}
     subtitle={t('Planned ')+clock(trip.scheduled_start_at)+t(' to ')+clock(trip.scheduled_end_at)+t(' Sri Lanka time')} tabs={tabs}>
     {notice&&<p role="status" style={NOTICE_STYLE}>{'✓ '}{notice}</p>}
     <ErrorNotice error={error}/>
+
+    {open==='pickup'&&<div className="flow-fields tm-view">
+      <FlowBanner tone="info" icon="pin" title={t('Go to the pickup')}>
+        {t('Your Passenger is waiting at {value0}. Drive to the pickup, then check the Passenger.',{value0:pickupPoint?.label||''})}</FlowBanner>
+      {map.data&&<TripMap data={map.data} position={trip.location||map.data?.position} alerts={[]} selectedId={null} onSelect={()=>{}} follow={follow} onFollow={setFollow}/>}
+      {map.error&&<p className="tk-line is-warn" role="status">{map.error}</p>}
+      <div className="flow-actions">
+        {pickupPoint&&<a className="ui-button ui-button-secondary" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${pickupPoint.latitude},${pickupPoint.longitude}`}>{t('Open in Google Maps')}</a>}
+        {!checked&&<Button onClick={()=>setTab('verify')}>{t('Check the Passenger')}</Button>}
+      </div>
+    </div>}
 
     {open==='verify'&&<div className="flow-fields">
       <FlowBanner tone="info" icon="user" title={t('Check the Passenger at the pickup')}>

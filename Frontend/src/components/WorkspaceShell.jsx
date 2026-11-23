@@ -10,6 +10,7 @@ import {accountPath,eligibleWorkspaces,travelPath,requestedWorkspace,workspaceMe
 import {journeyLink} from '../features/auth/onboardingJourney'
 import {StateCard} from '../features/booking/flow/FlowParts'
 import {NOTIFICATION_POLL_MS} from '../features/notifications/unread.js'
+import LiveLocationSender from '../features/live/LiveLocationSender'
 
 export default function WorkspaceShell({role:fixedRole}){
  const location=useLocation(),navigate=useNavigate(),signedIn=useSession()
@@ -79,6 +80,7 @@ export default function WorkspaceShell({role:fixedRole}){
  const notificationLabel=role==='ADMIN'?'View support notifications':role==='OWNER'?'View customer bookings':role==='DRIVER'?'View assigned trips':'View my trips'
  return <WorkspaceContext.Provider value={value}>
   <div className="workspace-shell" data-workspace={role.toLowerCase()} style={{'--workspace-nav-count':workspaceMenu(role).length+(role==='OWNER'?0:2)+(role==='PASSENGER'?0:1)}} ref={shell}>
+   <LiveLocationSender enabled={Boolean(access.user)&&authorized&&(allowed.includes('OWNER')||allowed.includes('DRIVER'))}/>
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>

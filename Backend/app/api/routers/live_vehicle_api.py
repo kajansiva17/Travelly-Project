@@ -110,6 +110,21 @@ def go_offline(vehicle_id: UUID, user=Depends(current), db: Session = Depends(ge
     return state(vehicle, user, now)
 
 
+class InstantSwitch(BaseModel):
+    enabled: bool
+
+
+@router.patch('/vehicles/{vehicle_id}/live/instant-booking')
+def set_instant_booking(vehicle_id: UUID, body: InstantSwitch, user=Depends(current), db: Session = Depends(get_db)):
+    """Only the Owner. When on, a Passenger who accepts the price of an immediate pickup is confirmed at once while the vehicle is online."""
+    vehicle = locked(db, vehicle_id)
+    if not vehicle or vehicle.owner_user_id != user.id or not approved(db, user.id, 'OWNER'):
+        raise ApiError(404, 'VEHICLE_NOT_FOUND', 'This vehicle was not found.')
+    vehicle.instant_booking = body.enabled   # not a position change: the vehicle version stays
+    db.commit()
+    return {'vehicle_id': str(vehicle.id), 'instant_booking': bool(vehicle.instant_booking)}
+
+
 @router.put('/vehicles/{vehicle_id}/live/location')
 def send_location(vehicle_id: UUID, body: Live, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     request.app.state.store.rate(f'live-location:{vehicle_id}', 60, 60)

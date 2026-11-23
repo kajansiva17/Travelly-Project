@@ -950,8 +950,11 @@ def active_trips(user=Depends(current), db: Session = Depends(get_db)):
     mine_booking = select(Booking.id).where(Booking.passenger_user_id == user.id)
     riding = select(ScheduledTripSeat.scheduled_trip_id).join(Booking, ScheduledTripSeat.booked_booking_id == Booking.id) \
         .where(Booking.passenger_user_id == user.id)
+    now = datetime.now(timezone.utc)
+    on_the_way = and_(Trip.status == 'READY', Trip.assignment_status == 'ACCEPTED', Trip.scheduled_end_at > now,
+                      Trip.booking_id.in_(select(Booking.id).where(Booking.idempotency_key.like('RIDE-%'))))   # a Book now trip heading to the pickup
     trips = db.scalars(select(Trip).where(
-        Trip.status == 'IN_PROGRESS',
+        or_(Trip.status == 'IN_PROGRESS', on_the_way),
         or_(Trip.driver_user_id == user.id, Trip.operating_owner_user_id == user.id,
             Trip.booking_id.in_(mine_booking), Trip.scheduled_trip_id.in_(riding)))
         .order_by(Trip.actual_start_at.desc()).limit(20)).all()
@@ -978,8 +981,23 @@ def active_trips(user=Depends(current), db: Session = Depends(get_db)):
                       'vehicle': vehicle.registration_number if vehicle else None,
                       'actual_start_at': trip.actual_start_at.isoformat() if trip.actual_start_at else None,
                       'start_odometer_km': str(trip.start_odometer_km) if trip.start_odometer_km is not None else None,
-                      'tracking_status': trip.tracking_status})
+                      'tracking_status': trip.tracking_status, 'phase': 'PICKUP' if trip.status == 'READY' else 'TRIP'})
     return {'items': items}
+
+
+def ride_now_booking(booking):
+    """Book now bookings are created by ride_now_api with a RIDE- idempotency key."""
+    return bool(booking and booking.idempotency_key and booking.idempotency_key.startswith('RIDE-'))
+
+
+def vehicle_live_position(vehicle):
+    """The vehicle's phone position while it is fresh; before a Book now trip starts this is what the Passenger follows."""
+    now = datetime.now(timezone.utc)
+    if not vehicle or vehicle.current_latitude is None or vehicle.current_location_observed_at is None: return None
+    if now - vehicle.current_location_observed_at > location_matching.LOCATION_FRESHNESS: return None
+    return {'latitude': str(vehicle.current_latitude), 'longitude': str(vehicle.current_longitude),
+            'accuracy_m': str(vehicle.current_location_accuracy_m) if vehicle.current_location_accuracy_m is not None else None,
+            'speed_kph': None, 'updated_at': vehicle.current_location_observed_at.isoformat()}
 
 
 @router.get('/trips/{trip_id}')
@@ -998,6 +1016,9 @@ def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_
         if not reviewer and user.id not in (row.owner_user_id, row.passenger_user_id, trip.driver_user_id): raise missing()
         data = trip_summary(trip)
         data['pickup']['required'] = row.passenger_user_id != trip.driver_user_id   # a Driver riding alone has no one to check
+        if ride_now_booking(row):
+            data['book_now'] = True
+            if trip.status == 'READY': data['location'] = vehicle_live_position(db.get(Vehicle, trip.vehicle_id))
         return data
     return trip_summary(trip)
 
@@ -1023,10 +1044,14 @@ def trip_map(trip_id: UUID, request: Request, user=Depends(current), db: Session
             place = stop['place']
             kind = 'START' if index == 0 else 'END' if index == len(stops) - 1 else 'STOP'
             points.append({'label': place['label'], 'latitude': str(place['latitude']), 'longitude': str(place['longitude']), 'kind': kind})
-    return {'trip_id': str(trip.id), 'status': trip.status, 'points': points, 'line': road_line(request, trip.id, points),
-            'position': None if trip.current_latitude is None else {
-                'latitude': str(trip.current_latitude), 'longitude': str(trip.current_longitude),
-                'updated_at': trip.location_updated_at.isoformat() if trip.location_updated_at else None}}
+    position = None if trip.current_latitude is None else {
+        'latitude': str(trip.current_latitude), 'longitude': str(trip.current_longitude),
+        'updated_at': trip.location_updated_at.isoformat() if trip.location_updated_at else None}
+    booking = db.get(Booking, trip.booking_id) if trip.booking_id else None
+    if ride_now_booking(booking) and trip.status == 'READY':
+        position = vehicle_live_position(db.get(Vehicle, trip.vehicle_id))   # on the way to the pickup
+    return {'trip_id': str(trip.id), 'status': trip.status, 'points': points, 'line': road_line(request, trip.id, points), 'position': position,
+            'book_now': ride_now_booking(booking), 'viewer_is_passenger': bool(booking and booking.passenger_user_id == user.id)}
 
 
 def road_line(request, trip_id, points):
