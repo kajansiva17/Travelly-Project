@@ -50,6 +50,7 @@ import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJo
 import {useWorkspace} from './context/workspaceContext'
 import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
+import DriverEarnings from './features/driverPayments/DriverPayments'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -195,7 +196,7 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
  OWNER:['seat-inventory','reviews','support'],
- DRIVER:['reels','feed','earnings','support'],
+ DRIVER:['reels','feed','support'],
  ADMIN:[]
 }
 export default function App() {
@@ -286,6 +287,7 @@ export default function App() {
             <Route path="/driver/rentals" element={<Navigate to="/driver/assignments" replace/>}/>
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
             <Route path="/driver/availability" element={<Availability/>}/>
+            <Route path="/driver/earnings" element={<DriverEarnings/>}/>
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
