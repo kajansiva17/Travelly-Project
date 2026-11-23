@@ -59,6 +59,7 @@ from app.api.routers.trip_review_api import router as trip_review_router
 from app.api.routers.seat_inventory_api import router as seat_inventory_router
 from app.api.routers.charge_report_api import router as charge_report_router
 from app.api.routers.trip_km_api import router as trip_km_router
+from app.api.routers.ticket_boarding_api import router as ticket_boarding_router
 from app.api.routers.admin_summary_api import router as admin_summary_router
 from app.services.vehicle_media import VehiclePhotos
 from starlette.concurrency import run_in_threadpool
@@ -282,6 +283,7 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(seat_inventory_router)
     app.include_router(charge_report_router)
     app.include_router(trip_km_router)
+    app.include_router(ticket_boarding_router)
     app.include_router(admin_summary_router)
     from app.api.routers.calendar_api import router as calendar_router
     app.include_router(calendar_router)

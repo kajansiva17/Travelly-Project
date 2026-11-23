@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
+import TicketBoardingCode from './TicketBoardingCode'
 import {Field} from '../owner/OwnerRates'
 import {correctAmount,waitingPaymentId,payerFieldNames} from '../../services/fieldErrors.js'
 
@@ -102,6 +103,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
 
   if(paid)return <div className="tk-pay">
     <p className="tk-line"><Chip tone="success">{hire?t('Paid'):t('Seats confirmed')}</Chip> {latest?.payment_reference&&<strong>{latest.payment_reference}</strong>}</p>
+    {!hire&&booking.status!=='CANCELLED'&&<TicketBoardingCode bookingId={booking.id}/>}
   </div>
   if(booking.status==='CANCELLED')return <div className="tk-pay"><p className="tk-line is-warn" role="status">{t('Hold ended — choose seats again')}</p>{onChooseSeats&&<button type="button" className="ui-button ui-button-secondary" onClick={onChooseSeats}>{t('Choose seats again')}</button>}</div>
   if(unavailable)return <p className="tk-line">{t('Online payment is not available for this booking.')}</p>
