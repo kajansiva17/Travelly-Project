@@ -52,6 +52,7 @@ import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
 import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/DriverPayments'
 import DriverReport from './features/reports/DriverReport'
+import GoOnline from './features/live/GoOnline'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -250,6 +251,7 @@ export default function App() {
             <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
             <Route path="/owner/drivers" element={<MyDrivers/>}/>
             <Route path="/owner/driver-payments" element={<OwnerDriverPayments/>}/>
+            <Route path="/owner/go-online" element={<GoOnline/>}/>
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>
@@ -290,6 +292,7 @@ export default function App() {
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
             <Route path="/driver/availability" element={<Availability/>}/>
             <Route path="/driver/earnings" element={<DriverEarnings/>}/>
+            <Route path="/driver/go-online" element={<GoOnline/>}/>
             <Route path="/driver/reports" element={<DriverReport/>}/>
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
