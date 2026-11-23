@@ -111,9 +111,9 @@ export function DriverDashboard(){
 }
 
 export function AdminDashboard(){
- const {user}=useWorkspace(),roles=useWorkspaceData(()=>api('/admin/role-requests?status=PENDING&page=1&page_size=4'),[]),vehicles=useWorkspaceData(()=>api('/admin/vehicles?verification_status=SUBMITTED&page=1&page_size=4'),[]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Colombo',hour:'numeric',hourCycle:'h23'}).format(new Date())),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
+ const {user}=useWorkspace(),roles=useWorkspaceData(()=>api('/admin/role-requests?status=PENDING&page=1&page_size=4'),[]),vehicles=useWorkspaceData(()=>api('/admin/vehicles?verification_status=SUBMITTED&page=1&page_size=4'),[]),alerts=useWorkspaceData(()=>api('/admin/road-alerts'),[]),recent=useWorkspaceData(()=>api('/admin/workflow/bookings?page=1&page_size=4'),[]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Colombo',hour:'numeric',hourCycle:'h23'}).format(new Date())),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
  const rows=useDashRows(),limit=rows>3?2:1,count=r=>r.loading?'?':r.error?'Unavailable':r.data?.total??r.data?.items?.length??0
- const apps=(roles.data?.items||[]).slice(0,limit),subs=(vehicles.data?.items||[]).slice(0,limit)
+ const apps=(roles.data?.items||[]).slice(0,limit),subs=(vehicles.data?.items||[]).slice(0,limit),liveAlerts=(alerts.data?.items||[]).filter(a=>['UNCONFIRMED','ACTIVE','VERIFIED'].includes(a.status)),shownAlerts=liveAlerts.slice(0,limit),shownBookings=(recent.data?.items||[]).slice(0,limit)
  return <DashPage title={`${t(greeting)}, ${first}`} subtitle={t("Welcome to your Travelly Command Centre. Here's what's happening with your platform today.")}
   stats={<><DashStat icon="users" label="Pending role applications" value={count(roles)} to="/admin/applications"/><DashStat tone="red" icon="car" label="Submitted vehicles" value={count(vehicles)} to="/admin/vehicles"/><DashStat icon="calendar" label="Global trips today" value={'—'} to="/admin/bookings" note="Summary unavailable"/><DashStat tone="red" icon="wallet" label="Revenue today (LKR)" value={'—'} to="/admin/payments" note="Summary unavailable"/></>}>
   <Tile className="a-main" icon="users" title="Pending verifications" to="/admin/applications" link="View all">
@@ -123,9 +123,13 @@ export function AdminDashboard(){
     :<Soft>{t("The current review queue is clear. Your own applications are excluded by the review API.")}</Soft>}</Tile>
   <Tile className="a-side" icon="pin" title="Live Trip Map" tip={t("Live location service is not connected.")}><Soft>{t("Live location service is not connected.")}</Soft></Tile>
   <Tile className="b-1" icon="chart" title="Booking Trend" tip={t("Bookings across the platform.")}><Soft>{t("Booking trend data is not available from the current API.")}</Soft></Tile>
-  <Tile className="b-2" icon="shield" title="Safety Alerts" to="/admin/road-alerts" link="View all"><Soft>{t("A live safety-alert feed is not available yet.")} <Link to="/admin/manual-fulfilment">{t("Vehicle support notices")}</Link></Soft></Tile>
+  <Tile className="b-2" icon="shield" title="Safety Alerts" to="/admin/road-alerts" link="View all">{alerts.loading?<Soft>{t(" Loading…")}</Soft>:alerts.error?<Soft>{t("Unable to load this information")}</Soft>:shownAlerts.length
+   ?<div className="dash-list">{shownAlerts.map(a=><Link className="dash-row" key={a.id} to="/admin/road-alerts"><Icon name="alert" size={16}/><div><strong>{a.name}</strong><span>{displayTime(a.reported_at)}</span></div><Chip tone="muted">{t(words(a.status))}</Chip></Link>)}</div>
+   :<Soft>{t("No live road alerts right now.")}</Soft>}</Tile>
   <Tile className="b-3" icon="spark" title="Quick actions"><DashLinks items={[['Review role applications','/admin/applications','users'],['Approve vehicles','/admin/vehicles','car'],['Review documents','/admin/documents','document'],['Payments review','/admin/payments','wallet'],['Road alerts','/admin/road-alerts','alert'],['Reports','/admin/reports','chart']]}/></Tile>
-  <Tile className="c-main" icon="calendar" title="Recent bookings" to="/admin/bookings" link="View all"><Soft>{t("Global booking summary unavailable")}. {t("A global booking list is not available to this Admin API.")}</Soft></Tile>
+  <Tile className="c-main" icon="calendar" title="Recent bookings" to="/admin/bookings" link="View all">{recent.loading?<Soft>{t(" Loading…")}</Soft>:recent.error?<Soft>{t("Unable to load this information")}</Soft>:shownBookings.length
+   ?<div className="dash-list">{shownBookings.map(b=><Link className="dash-row" key={b.id} to="/admin/bookings"><Icon name="calendar" size={16}/><div><strong>{b.booking_reference}</strong><span>{[b.origin,b.destination].filter(Boolean).join(' → ')||displayTime(b.created_at)}</span></div><Chip tone="muted">{t(words(b.status))}</Chip></Link>)}</div>
+   :<Soft>{t("No bookings yet.")}</Soft>}</Tile>
  </DashPage>
 }
 
