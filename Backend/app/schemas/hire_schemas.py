@@ -201,6 +201,10 @@ class Resolution(Version):
     reason: str = Field(min_length=1, max_length=500)
 
 
+class CancelRide(Version):
+    reason: str | None = Field(default=None, max_length=300)   # Book now: why the ride was cancelled before it started
+
+
 class LicenceCategories(Version):
     categories: list[str] = Field(min_length=1, max_length=30)
 

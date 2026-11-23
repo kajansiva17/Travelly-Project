@@ -1,11 +1,12 @@
 import { t } from '../../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
-import {Link,Navigate,useParams} from 'react-router-dom'
+import {Link,Navigate,useNavigate,useParams} from 'react-router-dom'
 import {useWorkspace} from '../../context/workspaceContext'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
 import OdometerStep from '../odometer/OdometerStep'
 import TripMap from '../trips/TripMap'
 import ReturnWaiting from '../trips/ReturnWaiting'
+import CancelRide from '../trips/CancelRide'
 import {useTripMap} from '../trips/tripHooks'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {api,hasSession} from '../../services/api'
@@ -28,7 +29,7 @@ const request=(path,body,method='POST')=>api(path,{method,body:JSON.stringify(bo
 const canScan=()=>typeof window!=='undefined'&&'BarcodeDetector'in window&&navigator.mediaDevices?.getUserMedia
 
 export default function DriverTripPage(){
-  const {tripId}=useParams(),workspace=useWorkspace()
+  const {tripId}=useParams(),workspace=useWorkspace(),navigate=useNavigate()
   const [trip,setTrip]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
   const [notice,setNotice]=useState(''),[tab,setTab]=useState(null)
   // The readings come from the odometer step (typed number + live photo checked by the server); Start and Finish use exactly that number.
@@ -164,6 +165,7 @@ export default function DriverTripPage(){
         {pickupPoint&&<a className="ui-button ui-button-secondary" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${pickupPoint.latitude},${pickupPoint.longitude}`}>{t('Open in Google Maps')}</a>}
         {!checked&&<Button onClick={()=>setTab('verify')}>{t('Check the Passenger')}</Button>}
       </div>
+      <CancelRide tripId={tripId} operator onDone={()=>navigate(workspace?.role==='OWNER'?'/owner/go-online':'/driver/go-online')}/>
     </div>}
 
     {open==='verify'&&<div className="flow-fields">

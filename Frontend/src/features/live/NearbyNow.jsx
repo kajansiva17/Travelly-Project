@@ -19,6 +19,7 @@ export default function NearbyNow() {
   const [destination, setDestination] = useState(null)
   const [passengers, setPassengers] = useState('1')
   const [journey, setJourney] = useState('ONE_WAY')
+  const [saved, setSaved] = useState([])
   const [items, setItems] = useState(null)
   const [asked, setAsked] = useState(null)
   const [message, setMessage] = useState('')
@@ -27,6 +28,7 @@ export default function NearbyNow() {
   const stillHere = useRef(true)
 
   useEffect(() => () => { stillHere.current = false }, [])
+  useEffect(() => { api('/me/saved-places', { cache: 'no-store' }).then(result => { if (stillHere.current) setSaved(result?.items || []) }).catch(() => {}) }, [])
   useEffect(() => {
     if (!navigator.geolocation) { setProblem(t('This device cannot share a location.')); return }
     navigator.geolocation.getCurrentPosition(result => setHere({ latitude: result.coords.latitude, longitude: result.coords.longitude }), failure => {
@@ -90,6 +92,9 @@ export default function NearbyNow() {
         <div>{t('{seconds} s left', { seconds: asked.seconds_left })}</div>
         <div className="flow-actions"><button type="button" onClick={cancel}>{t('Cancel request')}</button></div>
       </section> : <>
+        {saved.length > 0 && <div className="flow-actions" role="group" aria-label={t('Saved Places')}>
+          {saved.map(item => <button key={item.id} type="button" className="ui-button ui-button-secondary" onClick={() => { setDestination(item.place); setItems(null) }}>{item.name}</button>)}
+        </div>}
         <PlaceSearch label="Destination" value={destination} onChange={value => { setDestination(value); setItems(null) }}/>
         <label>{t('Passengers')}
           <select value={passengers} onChange={event => { setPassengers(event.target.value); setItems(null) }}>{[1, 2, 3, 4, 5, 6].map(count => <option key={count} value={count}>{count}</option>)}</select>

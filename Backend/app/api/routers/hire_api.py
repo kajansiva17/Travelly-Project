@@ -20,7 +20,7 @@ from app.models.hire_models import Booking, ScheduledTrip, Trip, Notification
 from app.services.vehicle_odometer import advance_odometer
 from app.schemas.hire_schemas import (HireRequest, SearchRequest, Version, QuoteBody, Acceptance, Assignment,
     ChangeBody, Resolution, Compatibility, LicenceCategories, VehicleEligibility, Itinerary, StartTrip, TripLocation, Breakdown, CompleteTrip,
-    PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate, PositioningConfirmation)
+    PickupVerification, Publication, ServiceCreate, PricingScope, ServiceCatalogueUpdate, PositioningConfirmation, CancelRide)
 from app.services.hire_services import (event_price, digest, approved, eligible_vehicle, vehicle_evidence, compatible_driver, no_conflict,
     price, saved_rules, booking_summary, trip_summary, notify, audited, matching_rules, route_profile)
 from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
@@ -1082,6 +1082,33 @@ def wait_start(trip_id: UUID, body: Version, request: Request, user=Depends(curr
 @router.post('/trips/{trip_id}/wait/end')
 def wait_end(trip_id: UUID, body: Version, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     return wait_step(trip_id, body, request, user, db, start=False)
+
+
+@router.post('/trips/{trip_id}/cancel-ride')
+def cancel_ride(trip_id: UUID, body: CancelRide, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Book now: until the trip starts, the Passenger or the person sending the vehicle's location can cancel. There is no fee, because
+    private hire is paid after the trip. Once the trip has started it runs to its end (a breakdown has its own steps)."""
+    first = db.get(Trip, trip_id)
+    before = db.get(Booking, first.booking_id) if first and first.booking_id else None
+    if not before or user.id not in (before.passenger_user_id, first.driver_user_id): raise missing()
+    with request.app.state.audit.coordinated():
+        row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=first.driver_user_id)
+        trip = locked_trip(db, trip_id, body.expected_version)
+        if not ride_now_booking(row): raise ApiError(409, 'NOT_A_BOOK_NOW_TRIP', 'Only a Book now ride can be cancelled here.')
+        if trip.status != 'READY' or row.status != 'CONFIRMED':
+            raise ApiError(409, 'CANCELLATION_TOO_LATE', 'This ride has already started or ended, so it cannot be cancelled here.')
+        by_passenger = user.id == row.passenger_user_id
+        previous = booking_summary(row)
+        row.status, row.vehicle_committed = 'CANCELLED', False
+        row.cancelled_by_user_id, row.cancelled_at = user.id, datetime.now(timezone.utc)
+        row.cancellation_reason = body.reason or ('The Passenger cancelled before pickup.' if by_passenger else 'The vehicle could not take this ride.')
+        trip.status, trip.assignment_status, trip.tracking_status = 'CANCELLED', 'CANCELLED', 'ENDED'
+        touch(trip); trip.updated_by = user.id
+        notify(db, row, 'Ride cancelled by the Passenger' if by_passenger else 'Ride cancelled by the vehicle',
+               'The Passenger cancelled this Book now ride before pickup. No charge applies.' if by_passenger
+               else 'The vehicle cannot take this Book now ride. No charge applies. Please book another vehicle.', trip.driver_user_id)
+        audited(request, db, user, row, previous, row.cancellation_reason)
+    return {**booking_summary(row), 'trip': trip_summary(trip)}
 
 
 @router.get('/trips/{trip_id}')

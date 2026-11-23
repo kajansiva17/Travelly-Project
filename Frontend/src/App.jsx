@@ -54,6 +54,8 @@ import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/D
 import DriverReport from './features/reports/DriverReport'
 import GoOnline from './features/live/GoOnline'
 import NearbyNow from './features/live/NearbyNow'
+import SavedPlaces from './features/passenger/SavedPlaces'
+import Support from './features/support/Support'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -198,8 +200,8 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 // Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
- OWNER:['seat-inventory','reviews','support'],
- DRIVER:['reels','feed','support'],
+ OWNER:['seat-inventory','reviews'],
+ DRIVER:['reels','feed'],
  ADMIN:[]
 }
 export default function App() {
@@ -236,9 +238,9 @@ export default function App() {
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
             <Route path="/passenger/favourites" element={<FavouriteVehicles/>}/>
-            <Route path="/passenger/saved-places" element={<WorkspacePlaceholder/>}/>
+            <Route path="/passenger/saved-places" element={<SavedPlaces/>}/>
             <Route path="/passenger/payments" element={<PassengerPayments/>}/>
-            <Route path="/passenger/support" element={<WorkspacePlaceholder/>}/>
+            <Route path="/passenger/support" element={<Support/>}/>
             <Route path="/passenger/settings" element={<WorkspaceSettings/>}/>
             <Route path="/trips/:tripId/request-status" element={<PassengerRequestStatus/>}/>
             <Route path="/trips/:tripId/confirmed" element={<PassengerRideConfirmed/>}/>
@@ -277,6 +279,7 @@ export default function App() {
             <Route path="/owner/reports" element={<OwnerReport/>}/>
             <Route path="/owner/rentals" element={<Navigate to="/owner/bookings" replace/>}/>
             <Route path="/owner/settings" element={<WorkspaceSettings/>}/>
+            <Route path="/owner/support" element={<Support/>}/>
             {placeholders.OWNER.map(path=><Route key={path} path={'/owner/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="DRIVER"/>}>
@@ -298,6 +301,7 @@ export default function App() {
             <Route path="/driver/reports" element={<DriverReport/>}/>
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
+            <Route path="/driver/support" element={<Support/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="ADMIN"/>}>
@@ -321,6 +325,7 @@ export default function App() {
             <Route path="/admin/road-alerts" element={<AdminRoadAlerts/>}/>
             <Route path="/admin/reports" element={<AdminReport/>}/>
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>
+            <Route path="/admin/support" element={<Support admin/>}/>
             <Route path="/admin/settings" element={<WorkspaceSettings/>}/>
             {placeholders.ADMIN.map(path=><Route key={path} path={'/admin/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
