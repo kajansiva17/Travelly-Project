@@ -2303,7 +2303,14 @@ const rows = [
   ["Location is blocked. Allow location for this site in your browser, then try again.", "இருப்பிடம் தடுக்கப்பட்டுள்ளது. உலாவியில் இந்தத் தளத்திற்கு இருப்பிடத்தை அனுமதித்து மீண்டும் முயலவும்.", "ස්ථානය අවහිර කර ඇත. බ්‍රවුසරයේ මෙම අඩවියට ස්ථානය ඉඩ දී නැවත උත්සාහ කරන්න."],
   ["Your device could not find its location. Check that location is switched on.", "உங்கள் சாதனத்தால் இருப்பிடத்தைக் கண்டறிய முடியவில்லை. இருப்பிடம் இயக்கப்பட்டுள்ளதா எனப் பார்க்கவும்.", "ඔබේ උපාංගයට ස්ථානය සොයා ගත නොහැකි විය. ස්ථානය සක්‍රීය දැයි පරීක්ෂා කරන්න."],
   ["While you are online, this page sends your phone location so nearby Passengers can find the vehicle. Keep this page open. The location is sent only while the page is open.", "நீங்கள் ஆன்லைனில் இருக்கும்போது, அருகிலுள்ள பயணிகள் வாகனத்தைக் கண்டறிய இந்தப் பக்கம் உங்கள் தொலைபேசி இருப்பிடத்தை அனுப்பும். இந்தப் பக்கத்தைத் திறந்து வைத்திருக்கவும். பக்கம் திறந்திருக்கும்போது மட்டுமே இருப்பிடம் அனுப்பப்படும்.", "ඔබ ඔන්ලයින් සිටින විට, ළඟ සිටින මගීන්ට වාහනය සොයා ගැනීමට මෙම පිටුව ඔබේ දුරකථන ස්ථානය යවයි. මෙම පිටුව විවෘතව තබන්න. ස්ථානය යවන්නේ පිටුව විවෘතව ඇති විට පමණි."],
-  ["Share your phone location so nearby Passengers can find your vehicle.", "அருகிலுள்ள பயணிகள் உங்கள் வாகனத்தைக் கண்டறிய உங்கள் தொலைபேசி இருப்பிடத்தைப் பகிரவும்.", "ළඟ සිටින මගීන්ට ඔබේ වාහනය සොයා ගැනීමට ඔබේ දුරකථන ස්ථානය බෙදා ගන්න."]
+  ["Share your phone location so nearby Passengers can find your vehicle.", "அருகிலுள்ள பயணிகள் உங்கள் வாகனத்தைக் கண்டறிய உங்கள் தொலைபேசி இருப்பிடத்தைப் பகிரவும்.", "ළඟ සිටින මගීන්ට ඔබේ වාහනය සොයා ගැනීමට ඔබේ දුරකථන ස්ථානය බෙදා ගන්න."],
+  ["Nearby now", "இப்போது அருகில்", "දැන් ළඟ"],
+  ["Search distance", "தேடும் தூரம்", "සෙවුම් දුර"],
+  ["seats", "இருக்கைகள்", "ආසන"],
+  ["Looking for vehicles near you", "உங்கள் அருகிலுள்ள வாகனங்களைத் தேடுகிறோம்", "ඔබ ළඟ වාහන සොයමින්"],
+  ["{minutes} min away", "{minutes} நிமிடத்தில்", "මිනිත්තු {minutes}කින්"],
+  ["No vehicle is online near you right now.", "இப்போது உங்கள் அருகில் ஆன்லைனில் வாகனம் இல்லை.", "දැන් ඔබ ළඟ ඔන්ලයින් වාහන නොමැත."],
+  ["Vehicles shown here are online and have sent their location in the last few minutes. Distances and minutes are approximate.", "இங்கே காட்டப்படும் வாகனங்கள் ஆன்லைனில் இருந்து சில நிமிடங்களுக்குள் இருப்பிடத்தை அனுப்பியவை. தூரமும் நிமிடங்களும் தோராயமானவை.", "මෙහි පෙන්වන වාහන ඔන්ලයින් වන අතර මිනිත්තු කිහිපයක් ඇතුළත ස්ථානය යවා ඇත. දුර සහ මිනිත්තු දළ අගයන් වේ."]
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

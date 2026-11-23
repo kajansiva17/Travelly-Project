@@ -53,6 +53,7 @@ import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceB
 import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/DriverPayments'
 import DriverReport from './features/reports/DriverReport'
 import GoOnline from './features/live/GoOnline'
+import NearbyNow from './features/live/NearbyNow'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -230,6 +231,7 @@ export default function App() {
             <Route path="/dashboard" element={<PassengerEntry/>}/>
             <Route path="/account" element={<AccountEntry/>}/>
             <Route path="/bookings" element={<WorkspaceBookings/>}/>
+            <Route path="/nearby-now" element={<NearbyNow/>}/>
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
             <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
