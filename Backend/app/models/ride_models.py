@@ -1,6 +1,6 @@
 # Book now requests (migration 0027): one Passenger asks one online vehicle; the operator accepts within the time limit.
 from sqlalchemy import Table, Column, CheckConstraint, ForeignKey, Index, text
-from sqlalchemy import String, DateTime, Numeric, CHAR, SmallInteger
+from sqlalchemy import String, DateTime, Numeric, CHAR, SmallInteger, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.models import Base
 
@@ -20,6 +20,7 @@ ride_requests_table = Table('ride_requests', Base.metadata,
     Column('expires_at', DateTime(timezone=True), nullable=False),
     Column('responded_at', DateTime(timezone=True), nullable=True),
     Column('booking_id', UUID(as_uuid=True), ForeignKey('bookings.id', name='fk_ride_requests_booking', ondelete='RESTRICT'), nullable=True),
+    Column('round_trip', Boolean, nullable=False, server_default=text('false')),
     CheckConstraint("status IN ('OFFERED','ACCEPTED','DECLINED','EXPIRED','CANCELLED')", name='ck_ride_requests_status'),
     CheckConstraint('fare>0', name='ck_ride_requests_fare'),
     CheckConstraint('passenger_count>0', name='ck_ride_requests_passengers'),

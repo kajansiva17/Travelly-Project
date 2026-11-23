@@ -5,6 +5,7 @@ import {useWorkspace} from '../../context/workspaceContext'
 import {fieldErrorMap} from '../../services/fieldErrors.js'
 import OdometerStep from '../odometer/OdometerStep'
 import TripMap from '../trips/TripMap'
+import ReturnWaiting from '../trips/ReturnWaiting'
 import {useTripMap} from '../trips/tripHooks'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {api,hasSession} from '../../services/api'
@@ -33,7 +34,7 @@ export default function DriverTripPage(){
   // The readings come from the odometer step (typed number + live photo checked by the server); Start and Finish use exactly that number.
   const [startKm,setStartKm]=useState(null),[ready,setReady]=useState(false),[stepKey,setStepKey]=useState(0),[showProof,setShowProof]=useState(false)
   const [kind,setKind]=useState('BREAKDOWN'),[details,setDetails]=useState('')
-  const [endKm,setEndKm]=useState(null),[notes,setNotes]=useState('')
+  const [endKm,setEndKm]=useState(null),[notes,setNotes]=useState(''),[waitMin,setWaitMin]=useState('')
   const [sharing,setSharing]=useState(false),[sentAt,setSentAt]=useState(null)
   const [scanning,setScanning]=useState(false),[pin,setPin]=useState('')
   const latest=useRef(null),video=useRef(null)
@@ -123,8 +124,12 @@ export default function DriverTripPage(){
     const result=await request(`/trips/${tripId}/breakdown`,{expected_version:trip.version,kind,details})
     setTrip(result.trip);setDetails('')
   },'The Owner and the Passenger were told.')}
+  // Book now return: the minutes the timer measured, and the minutes the Driver confirms at finish (only lower; with no timer, up to 180 added by hand).
+  const measured=trip&&trip.wait?(trip.wait.state==='WAITING'?Math.max(0,(Date.now()-Date.parse(trip.wait.started_at))/60000):Number(trip.wait.minutes)):0
+  const typed=waitMin===''?measured:Number(waitMin)
+  const waitedNow=trip&&trip.wait?Math.max(0,Math.min(Number.isFinite(typed)?typed:0,trip.wait.started_at?measured:180)):0
   const finish=event=>{event.preventDefault();act(async()=>{
-    const result=await request(`/trips/${tripId}/complete`,{expected_version:trip.version,end_odometer_km:endKm,completion_notes:notes||null})
+    const result=await request(`/trips/${tripId}/complete`,{expected_version:trip.version,end_odometer_km:endKm,completion_notes:notes||null,waiting_minutes:trip.wait?waitedNow.toFixed(1):undefined})
     setTrip(result.trip)
   },'Trip completed.')}
 
@@ -188,6 +193,7 @@ export default function DriverTripPage(){
     </form>}
 
     {open==='map'&&<div className="flow-fields tm-view">
+      {trip.wait&&<ReturnWaiting trip={trip} operator onChanged={load}/>}
       <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} keepScreenOn={wake.unavailable}
         strip={!alertsOpen&&<div className="tm-strip">
           <Chip tone={trip.location?'success':'info'} icon="pin">{trip.location?t('Your position is shared'):t('Position not shared yet')}</Chip>
@@ -221,6 +227,11 @@ export default function DriverTripPage(){
 
     {open==='finish'&&<form className="flow-fields" onSubmit={finish}>
       <OdometerStep key={'end'+stepKey} tripId={tripId} stage="END" onReady={setEndKm} fieldError={fieldMsg.end_odometer_km}/>
+      {trip.wait&&<><FormField label={t('Waiting minutes at the destination')} error={fieldMsg.waiting_minutes}>
+        {({id})=><Input id={id} inputMode="decimal" value={waitMin===''?waitedNow.toFixed(1):waitMin} onChange={e=>setWaitMin(e.target.value)}/>}
+      </FormField>
+      <InfoCallout>{trip.wait.started_at?t('The timer measured {minutes} min. You can only lower it.',{minutes:measured.toFixed(1)}):t('No waiting timer was started. You can add the minutes the Passenger really kept you waiting, up to 180. The Passenger will see that it was added by hand.')}</InfoCallout>
+      <p>{t('Waiting charge for these minutes: LKR {charge}',{charge:(Math.max(0,waitedNow-Number(trip.wait.free_minutes))/60*Number(trip.wait.hour_rate)).toFixed(2)})}</p></>}
       <FormField label={t('Anything to note? (Optional)')} error={fieldMsg.completion_notes}>
         {({id})=><textarea id={id} maxLength={2000} rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/>}
       </FormField>

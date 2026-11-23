@@ -172,6 +172,7 @@ class Breakdown(Version):
 class CompleteTrip(Version):
     end_odometer_km: Amount
     completion_notes: str | None = Field(default=None, max_length=2000)
+    waiting_minutes: Decimal | None = Field(default=None, ge=0, le=1440, max_digits=6, decimal_places=1)   # Book now return: the waited minutes the Driver confirms
     @field_validator('end_odometer_km')
     @classmethod
     def closing_odometer(cls, value):

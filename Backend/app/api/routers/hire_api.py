@@ -1000,6 +1000,90 @@ def vehicle_live_position(vehicle):
             'speed_kph': None, 'updated_at': vehicle.current_location_observed_at.isoformat()}
 
 
+def ride_now_return(row):
+    """A Book now return journey is priced as pickup -> destination -> pickup (three stops)."""
+    stops = ((row.itinerary_snapshot or {}).get('itinerary') or {}).get('stops') or []
+    return ride_now_booking(row) and len(stops) >= 3
+
+
+def wait_info(row, trip, now=None):
+    """The waiting terms and the wait so far for a Book now return: the Owner's free minutes and hourly rate come from the agreed rate."""
+    if not ride_now_return(row): return None
+    now = now or datetime.now(timezone.utc)
+    rule = (row.price_snapshot.get('current') or {}).get('rule') or {}
+    free, rate = Decimal(str(rule.get('free_wait_minutes', '0'))), Decimal(str(rule.get('waiting_hour_rate', '0')))
+    started, ended = trip.wait_started_at, trip.wait_ended_at
+    minutes = Decimal(str(((ended or now) - started).total_seconds())) / Decimal('60') if started else Decimal('0')
+    if trip.wait_confirmed_minutes is not None: minutes = Decimal(trip.wait_confirmed_minutes)   # settled at finish
+    charge = (max(Decimal('0'), minutes - free) / Decimal('60') * rate).quantize(Decimal('0.01'))
+    return {'free_minutes': str(free), 'hour_rate': str(rate), 'minutes': format(minutes, '.1f'), 'charge': format(charge, '.2f'),
+            'started_at': started.isoformat() if started else None, 'ended_at': ended.isoformat() if ended else None, 'source': trip.wait_source,
+            'state': 'RETURNING' if ended else 'WAITING' if started else 'NOT_STARTED'}
+
+
+MAX_MANUAL_WAIT_MINUTES = Decimal('180')   # most a Driver can add when the timer was never started
+WAIT_MOVE_KM = 0.2                         # the vehicle moving this far from where the waiting started ends the waiting
+
+
+def settle_waiting(row, trip, now, confirmed=None):
+    """At completion the wait is settled and the charge beyond the free minutes joins the total, which the Passenger pays after the trip.
+    The Driver's confirmed minutes can only lower what the timer measured; with no timer at all they are added, up to a limit."""
+    info = wait_info(row, trip, now)
+    if info is None: return Decimal('0')
+    if trip.wait_started_at is None:
+        if confirmed is None or confirmed <= 0: return Decimal('0')
+        confirmed = min(Decimal(confirmed), MAX_MANUAL_WAIT_MINUTES)
+        trip.wait_started_at, trip.wait_ended_at, trip.wait_source = now - timedelta(minutes=float(confirmed)), now, 'MANUAL'
+    else:
+        if trip.wait_ended_at is None: trip.wait_ended_at = now; trip.wait_source = trip.wait_source or 'DRIVER'
+        confirmed = min(Decimal(confirmed), Decimal(wait_info(row, trip, now)['minutes'])) if confirmed is not None else None
+    if confirmed is not None: trip.wait_confirmed_minutes = confirmed.quantize(Decimal('0.1'))
+    info = wait_info(row, trip, now)
+    charge = Decimal(info['charge'])
+    if charge > 0:
+        row.total_amount = row.total_amount + charge
+        snapshot = copy.deepcopy(row.price_snapshot)
+        snapshot['waiting'] = {'minutes': info['minutes'], 'free_minutes': info['free_minutes'], 'hour_rate': info['hour_rate'], 'charge': info['charge'], 'source': trip.wait_source}
+        row.price_snapshot = snapshot
+    return charge
+
+
+def wait_step(trip_id, body, request, user, db, *, start):
+    first = driving_trip(db, trip_id, user)
+    with request.app.state.audit.coordinated():
+        before = db.get(Booking, first.booking_id)
+        row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
+        trip = locked_trip(db, trip_id, body.expected_version)
+        running(trip)
+        if not ride_now_return(row): raise ApiError(409, 'NOT_A_RETURN_TRIP', 'Waiting is recorded only on a Book now return trip.')
+        if start and trip.wait_started_at is not None: raise ApiError(409, 'WAITING_ALREADY_STARTED', 'The waiting at the destination was already started.')
+        if not start and (trip.wait_started_at is None or trip.wait_ended_at is not None):
+            raise ApiError(409, 'WAITING_NOT_RUNNING', 'There is no waiting running to end.')
+        now = datetime.now(timezone.utc)
+        if start:
+            trip.wait_started_at = now
+            spot = (trip.current_latitude, trip.current_longitude) if trip.location_updated_at and now - trip.location_updated_at <= location_matching.LOCATION_FRESHNESS else (None, None)
+            trip.wait_latitude, trip.wait_longitude = spot   # where the vehicle waits: moving away from here ends the waiting by itself
+        else:
+            trip.wait_ended_at, trip.wait_source = now, 'DRIVER'
+        touch(trip); trip.updated_by = user.id
+        notify(db, row, 'Waiting started' if start else 'Return started',
+               'The vehicle is waiting at the destination.' if start else 'The vehicle is on the way back.', user.id)
+        db.commit()
+    return {'trip': trip_summary(trip), 'wait': wait_info(row, trip, now)}
+
+
+@router.post('/trips/{trip_id}/wait/start')
+def wait_start(trip_id: UUID, body: Version, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Book now return: the Driver reached the destination and the Passenger is staying. The waiting is charged only beyond the free minutes."""
+    return wait_step(trip_id, body, request, user, db, start=True)
+
+
+@router.post('/trips/{trip_id}/wait/end')
+def wait_end(trip_id: UUID, body: Version, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    return wait_step(trip_id, body, request, user, db, start=False)
+
+
 @router.get('/trips/{trip_id}')
 def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     trip = db.get(Trip, trip_id)
@@ -1018,6 +1102,7 @@ def trip_detail(trip_id: UUID, user=Depends(current), db: Session = Depends(get_
         data['pickup']['required'] = row.passenger_user_id != trip.driver_user_id   # a Driver riding alone has no one to check
         if ride_now_booking(row):
             data['book_now'] = True
+            data['wait'] = wait_info(row, trip)
             if trip.status == 'READY': data['location'] = vehicle_live_position(db.get(Vehicle, trip.vehicle_id))
         return data
     return trip_summary(trip)
@@ -1098,6 +1183,10 @@ def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: 
     vehicle.current_location_accuracy_m = body.accuracy_m
     vehicle.current_location_observed_at = trip.location_updated_at
     vehicle.current_location_source = 'GPS'
+    if trip.wait_started_at and not trip.wait_ended_at and trip.wait_latitude is not None and (body.accuracy_m is None or body.accuracy_m <= 100):
+        from app.services.odometer_proof import distance_km
+        if distance_km(float(trip.wait_latitude), float(trip.wait_longitude), float(body.latitude), float(body.longitude)) > WAIT_MOVE_KM:
+            trip.wait_ended_at, trip.wait_source = trip.location_updated_at, 'GPS'   # the vehicle left the waiting spot: the Passenger is back on board
     touch(trip); trip.updated_by = user.id
     db.commit()
     return trip_summary(trip)
@@ -1137,6 +1226,7 @@ def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depe
         odometer_rules(request, trip, None, 'END', body.end_odometer_km)
         previous = booking_summary(row)
         trip.actual_end_at = datetime.now(timezone.utc)
+        waited = settle_waiting(row, trip, trip.actual_end_at, body.waiting_minutes)   # a Book now return adds the waiting beyond the free minutes
         trip.end_odometer_km = body.end_odometer_km
         trip.calculated_distance_km = body.end_odometer_km - trip.start_odometer_km
         advance_odometer(db, trip.vehicle_id, body.end_odometer_km, user.id, trip.actual_end_at)  # PRD: finish updates the odometer
@@ -1145,7 +1235,7 @@ def complete_trip(trip_id: UUID, body: CompleteTrip, request: Request, user=Depe
         trip.tracking_status = 'ENDED'
         row.status = 'COMPLETED'
         touch(trip); trip.updated_by = user.id
-        notify(db, row, 'Trip completed', 'The assigned Driver completed this journey.', user.id)
+        notify(db, row, 'Trip completed', 'The assigned Driver completed this journey.' + (f' Waiting charge added: LKR {waited} for {trip.wait_confirmed_minutes if trip.wait_confirmed_minutes is not None else wait_info(row, trip, trip.actual_end_at)["minutes"]} min.' if waited else ''), user.id)
         audited(request, db, user, row, previous, 'Assigned Driver completed the trip')
     return {**booking_summary(row), 'trip': trip_summary(trip)}
 

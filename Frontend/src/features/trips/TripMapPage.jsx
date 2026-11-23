@@ -12,6 +12,7 @@ import {useTripMap} from './tripHooks'
 import {routeText} from './tripMapModel'
 import {drivesTrip,tripLink} from './tripLinks'
 import PickupCode from '../passenger/PickupCode'
+import ReturnWaiting from './ReturnWaiting'
 
 /* The read-only live trip map (contract 03O, C): the route, the vehicle's position and the nearby road alerts, with the speaker switch.
    No alert buttons and no microphone. A person who drives this trip is sent to the Operate trip page, whose map has the driver controls. */
@@ -36,6 +37,7 @@ export default function TripMapPage(){
     {!map.loaded&&!map.error?<p role="status">{t('Loading…')}</p>
       :map.data&&<div className="flow-fields tm-view">
         {onTheWay&&map.data.viewer_is_passenger&&<PickupCode tripId={tripId}/>}
+        {map.data.book_now&&<ReturnWaiting tripId={tripId}/>}
         <RoadAlertsPanel readOnly trip={{id:tripId}} alerts={alerts} speaker={speaker} disabled keepScreenOn={speaker.enabled&&wake.unavailable}
           strip={<div className="tm-strip"><Chip tone={running||onTheWay?'success':'muted'} icon="pin">{onTheWay?t('Vehicle is on the way to your pickup'):running?t('Trip in progress'):t('Trip finished')}</Chip>
             <span className="ra-position">{position?.updated_at?t('Last seen at {value0}',{value0:clock(position.updated_at)}):t('The vehicle position is not shared yet.')}</span></div>}

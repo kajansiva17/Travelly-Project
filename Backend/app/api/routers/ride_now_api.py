@@ -52,6 +52,7 @@ class Options(BaseModel):
     destination: Place
     passenger_count: int = Field(default=1, strict=True, ge=1, le=20)
     radius_km: float = Field(default=5.0, gt=0, le=MAX_RADIUS_KM)
+    round_trip: bool = False   # go, wait at the destination (charged by the minute actually waited, after the Owner's free minutes) and come back
 
 
 class Ask(BaseModel):
@@ -60,6 +61,7 @@ class Ask(BaseModel):
     destination: Place
     passenger_count: int = Field(default=1, strict=True, ge=1, le=20)
     fare: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    round_trip: bool = False
 
 
 def now_utc():
@@ -78,9 +80,11 @@ def book_now_service(db):
     raise ApiError(409, 'BOOK_NOW_UNAVAILABLE', 'Book now is not available right now.')
 
 
-def itinerary_of(request, pickup, destination, start):
+def itinerary_of(request, pickup, destination, start, round_trip=False):
+    """A return is priced as one chain pickup -> destination -> pickup with no planned wait; the real wait is charged when the trip ends."""
+    stops = [pickup, destination] + ([pickup] if round_trip else [])
     return Itinerary.model_validate({'start_at': start.isoformat(), 'direction': 'ONE_WAY', 'method': 'DISTANCE',
-        'stops': [{'place': pickup, 'wait_minutes': '0', 'overnight_rest': False}, {'place': destination, 'wait_minutes': '0', 'overnight_rest': False}]})
+        'stops': [{'place': place, 'wait_minutes': '0', 'overnight_rest': False} for place in stops]})
 
 
 def place_dicts(request, body):
@@ -135,7 +139,7 @@ def view(db, row, now):
     vehicle = db.get(Vehicle, row.vehicle_id)
     passenger = db.get(User, row.passenger_user_id)
     name = (passenger.display_name or passenger.full_name or '').split(' ')[0] if passenger else None
-    return {'id': str(row.id), 'status': row.status, 'fare': str(row.fare), 'currency': row.currency, 'passenger_count': row.passenger_count,
+    return {'id': str(row.id), 'status': row.status, 'fare': str(row.fare), 'currency': row.currency, 'passenger_count': row.passenger_count, 'round_trip': bool(row.round_trip),
             'pickup': place_out(row.pickup), 'destination': place_out(row.destination), 'passenger_first_name': name,
             'expires_at': row.expires_at.isoformat(), 'seconds_left': max(0, int((row.expires_at - now).total_seconds())) if row.status == 'OFFERED' else 0,
             'booking_id': str(row.booking_id) if row.booking_id else None,
@@ -163,7 +167,7 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
     service = book_now_service(db)
     pickup, destination = place_dicts(request, body)
     request.app.state.rate_locations.verify(body.destination)
-    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY))
+    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip))
     validate_service_itinerary(service, itinerary, db, request)
     items = []
     for km, vehicle in nearby_vehicles(db, body.pickup, body.radius_km, now):
@@ -175,7 +179,8 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
         items.append({'vehicle_id': str(vehicle.id), 'reference': vehicle.public_vehicle_reference, 'name': ' '.join(filter(None, [vehicle.make, vehicle.model])) or None,
                       'colour': vehicle.colour, 'vehicle_type': vehicle.vehicle_type_code, 'seats': vehicle.seat_capacity,
                       'distance_km': round(km, 1), 'minutes_away': max(1, round(km / CITY_SPEED_KMH * 60)),
-                      'fare': snapshot['calculation']['total'], 'currency': 'LKR'})
+                      'fare': snapshot['calculation']['total'], 'currency': 'LKR'}
+                     | ({'waiting': {'free_minutes': snapshot['rule']['free_wait_minutes'], 'hour_rate': snapshot['rule']['waiting_hour_rate']}} if body.round_trip else {}))
         if len(items) >= MAX_OPTIONS:
             break
     db.commit()
@@ -200,7 +205,7 @@ def ask(body: Ask, request: Request, user=Depends(current), db: Session = Depend
         raise ApiError(409, 'VEHICLE_TOO_FAR', 'This vehicle is too far from your pickup. Choose another one.')
     pickup, destination = place_dicts(request, body)
     request.app.state.rate_locations.verify(body.destination)
-    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY))
+    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip))
     validate_service_itinerary(service, itinerary, db, request)
     snapshot = fare_for(request, db, vehicle, service, itinerary, body.passenger_count)
     if snapshot is None:
@@ -212,7 +217,7 @@ def ask(body: Ask, request: Request, user=Depends(current), db: Session = Depend
     if not bookable(locked, now) or locked.live_online_user_id != vehicle.live_online_user_id:
         raise ApiError(409, 'VEHICLE_NOT_AVAILABLE', 'This vehicle is not available right now. Choose another one.')
     row = RideRequest(passenger_user_id=user.id, vehicle_id=vehicle.id, operator_user_id=locked.live_online_user_id, service_type_id=service.id,
-        pickup=pickup, destination=destination, passenger_count=body.passenger_count, fare=fare, currency='LKR', status='OFFERED',
+        pickup=pickup, destination=destination, passenger_count=body.passenger_count, round_trip=body.round_trip, fare=fare, currency='LKR', status='OFFERED',
         expires_at=now + timedelta(seconds=OFFER_SECONDS))
     db.add(row)
     try:
@@ -273,7 +278,7 @@ def accept_request(request_id: UUID, request: Request, user=Depends(current), db
         raise ApiError(409, 'REQUEST_NOT_OPEN', 'This request is no longer open.' if preview.status != 'EXPIRED' else 'This request was not answered in time.')
     service = service_for(db, preview.service_type_id, new_offer=False)
     start = now + START_DELAY
-    itinerary = settle_hours(request, service, itinerary_of(request, preview.pickup, preview.destination, start))   # routing before any lock
+    itinerary = settle_hours(request, service, itinerary_of(request, preview.pickup, preview.destination, start, preview.round_trip))   # routing before any lock
     vehicle = db.get(Vehicle, preview.vehicle_id)
     snapshot = fare_for(request, db, vehicle, service, itinerary, preview.passenger_count)
     if snapshot is None or Decimal(snapshot['calculation']['total']) != preview.fare:

@@ -2330,7 +2330,22 @@ const rows = [
   ["Vehicle is on the way to your pickup", "வாகனம் உங்கள் பிக்கப் இடத்திற்கு வந்துகொண்டிருக்கிறது", "වාහනය ඔබ ඉන්න තැනට පැමිණෙමින් පවතී"],
   ["Your Passenger is waiting at {value0}. Drive to the pickup, then check the Passenger.", "உங்கள் பயணி {value0} இல் காத்திருக்கிறார். பிக்கப் இடத்திற்குச் சென்று, பின்னர் பயணியைச் சரிபாருங்கள்.", "ඔබේ මගියා {value0} හි බලා සිටී. ගැනීමේ ස්ථානයට ගොස් පසුව මගියා පරීක්ෂා කරන්න."],
   ["Open in Google Maps", "கூகுள் மேப்ஸில் திற", "Google Maps හි විවෘත කරන්න"],
-  ["While you are online, your phone location is sent so nearby Passengers can find the vehicle. Keep Travelly open on your phone. The location is sent only while the app is open.", "நீங்கள் ஆன்லைனில் இருக்கும்போது, அருகிலுள்ள பயணிகள் வாகனத்தைக் கண்டறிய உங்கள் தொலைபேசி இருப்பிடம் அனுப்பப்படும். உங்கள் தொலைபேசியில் Travelly-ஐத் திறந்து வைத்திருக்கவும். ஆப் திறந்திருக்கும்போது மட்டுமே இருப்பிடம் அனுப்பப்படும்.", "ඔබ ඔන්ලයින් සිටින විට ළඟ සිටින මගීන්ට වාහනය සොයා ගැනීමට ඔබේ දුරකථන ස්ථානය යවයි. ඔබේ දුරකථනයේ Travelly විවෘතව තබන්න. ස්ථානය යවන්නේ යෙදුම විවෘතව ඇති විට පමණි."]
+  ["While you are online, your phone location is sent so nearby Passengers can find the vehicle. Keep Travelly open on your phone. The location is sent only while the app is open.", "நீங்கள் ஆன்லைனில் இருக்கும்போது, அருகிலுள்ள பயணிகள் வாகனத்தைக் கண்டறிய உங்கள் தொலைபேசி இருப்பிடம் அனுப்பப்படும். உங்கள் தொலைபேசியில் Travelly-ஐத் திறந்து வைத்திருக்கவும். ஆப் திறந்திருக்கும்போது மட்டுமே இருப்பிடம் அனுப்பப்படும்.", "ඔබ ඔන්ලයින් සිටින විට ළඟ සිටින මගීන්ට වාහනය සොයා ගැනීමට ඔබේ දුරකථන ස්ථානය යවයි. ඔබේ දුරකථනයේ Travelly විවෘතව තබන්න. ස්ථානය යවන්නේ යෙදුම විවෘතව ඇති විට පමණි."],
+  ["Return trip", "திரும்பும் பயணம்", "ආපසු ගමන"],
+  ["Free waiting: {free} min. After that LKR {hour} per hour (LKR {minute} per minute), for the time actually waited.", "இலவச காத்திருப்பு: {free} நிமிடம். அதன்பிறகு மணிக்கு LKR {hour} (நிமிடத்திற்கு LKR {minute}), உண்மையில் காத்திருந்த நேரத்திற்கு மட்டும்.", "නොමිලේ බලා සිටීම: මිනිත්තු {free}. ඉන්පසු පැයකට LKR {hour} (මිනිත්තුවකට LKR {minute}), සැබවින්ම බලා සිටි කාලයට පමණි."],
+  ["Waiting started", "காத்திருப்பு தொடங்கியது", "බලා සිටීම ආරම්භ විය"],
+  ["Return started", "திரும்பும் பயணம் தொடங்கியது", "ආපසු ගමන ආරම්භ විය"],
+  ["Waiting time: {minutes} min", "காத்திருப்பு நேரம்: {minutes} நிமிடம்", "බලා සිටි කාලය: මිනිත්තු {minutes}"],
+  ["Still free: {minutes} min", "இன்னும் இலவசம்: {minutes} நிமிடம்", "තවමත් නොමිලේ: මිනිත්තු {minutes}"],
+  ["Waiting charge so far: LKR {charge}", "இதுவரை காத்திருப்பு கட்டணம்: LKR {charge}", "මෙතෙක් බලා සිටීමේ ගාස්තුව: LKR {charge}"],
+  ["Waiting finished: {minutes} min · charge LKR {charge}", "காத்திருப்பு முடிந்தது: {minutes} நிமிடம் · கட்டணம் LKR {charge}", "බලා සිටීම අවසන්: මිනිත්තු {minutes} · ගාස්තුව LKR {charge}"],
+  ["The waiting charge is added to the fare and paid after the trip.", "காத்திருப்பு கட்டணம் பயணக் கட்டணத்துடன் சேர்க்கப்பட்டு பயணத்திற்குப் பிறகு செலுத்தப்படும்.", "බලා සිටීමේ ගාස්තුව ගාස්තුවට එකතු කර ගමනෙන් පසු ගෙවනු ලැබේ."],
+  ["Waiting minutes at the destination", "இலக்கில் காத்திருந்த நிமிடங்கள்", "ගමනාන්තයේ බලා සිටි මිනිත්තු"],
+  ["The timer measured {minutes} min. You can only lower it.", "நேரமானி {minutes} நிமிடம் அளந்தது. அதை குறைக்க மட்டுமே முடியும்.", "කාල ගණකය මිනිත්තු {minutes} ක් මැන ඇත. ඔබට අඩු කිරීමට පමණක් හැකිය."],
+  ["No waiting timer was started. You can add the minutes the Passenger really kept you waiting, up to 180. The Passenger will see that it was added by hand.", "காத்திருப்பு நேரமானி தொடங்கப்படவில்லை. பயணி உண்மையில் உங்களை காத்திருக்க வைத்த நிமிடங்களை 180 வரை சேர்க்கலாம். கையால் சேர்க்கப்பட்டது என்பதை பயணி பார்ப்பார்.", "බලා සිටීමේ කාල ගණකය ආරම්භ කර නැත. මගියා ඇත්තටම ඔබව බලා සිටින්නට සැලැස් වූ මිනිත්තු 180 දක්වා එකතු කළ හැකිය. අතින් එකතු කළ බව මගියාට පෙනේ."],
+  ["Waiting charge for these minutes: LKR {charge}", "இந்த நிமிடங்களுக்கான காத்திருப்பு கட்டணம்: LKR {charge}", "මෙම මිනිත්තු සඳහා බලා සිටීමේ ගාස්තුව: LKR {charge}"],
+  ["Ended automatically when the vehicle moved away.", "வாகனம் நகர்ந்தவுடன் தானாக முடிந்தது.", "වාහනය ඉවත් වූ විට ස්වයංක්‍රීයව අවසන් විය."],
+  ["Added by the Driver without the timer.", "நேரமானி இல்லாமல் ஓட்டுநரால் சேர்க்கப்பட்டது.", "කාල ගණකයෙන් තොරව රියදුරු විසින් එකතු කරන ලදී."]
 ]
 
 export const messages = { ...landing, ...generated, ...trips, ...Object.fromEntries(rows.map(([en, ta, si]) => [en, { ta, si }])) }

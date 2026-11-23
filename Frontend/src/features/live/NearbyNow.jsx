@@ -18,6 +18,7 @@ export default function NearbyNow() {
   const [problem, setProblem] = useState('')
   const [destination, setDestination] = useState(null)
   const [passengers, setPassengers] = useState('1')
+  const [journey, setJourney] = useState('ONE_WAY')
   const [items, setItems] = useState(null)
   const [asked, setAsked] = useState(null)
   const [message, setMessage] = useState('')
@@ -39,16 +40,16 @@ export default function NearbyNow() {
     if (!here || !destination) return
     setBusy(true); setError(null)
     try {
-      const result = await api('/ride-now/options', { method: 'POST', body: JSON.stringify({ pickup: here, destination: place(destination), passenger_count: Number(passengers), radius_km: 5 }) })
+      const result = await api('/ride-now/options', { method: 'POST', body: JSON.stringify({ pickup: here, destination: place(destination), passenger_count: Number(passengers), radius_km: 5, round_trip: journey === 'RETURN' }) })
       if (stillHere.current) setItems(result?.items || [])
     } catch (failure) { setError(failure) }
     finally { setBusy(false) }
-  }, [here, destination, passengers])
+  }, [here, destination, passengers, journey])
 
   async function book(item) {
     setBusy(true); setError(null); setMessage('')
     try {
-      const result = await api('/ride-now/requests', { method: 'POST', body: JSON.stringify({ vehicle_id: item.vehicle_id, pickup: here, destination: place(destination), passenger_count: Number(passengers), fare: item.fare }) })
+      const result = await api('/ride-now/requests', { method: 'POST', body: JSON.stringify({ vehicle_id: item.vehicle_id, pickup: here, destination: place(destination), passenger_count: Number(passengers), fare: item.fare, round_trip: journey === 'RETURN' }) })
       setAsked(result)
     } catch (failure) { setError(failure); find() }
     finally { setBusy(false) }
@@ -85,6 +86,7 @@ export default function NearbyNow() {
       {asked ? <section role="status">
         <strong>{t('Waiting for the vehicle to accept')}</strong>
         <div>{asked.vehicle?.name || asked.vehicle?.registration_number} · {t('Fare')} {asked.fare} {asked.currency}</div>
+        {asked.round_trip && <div>{t('Return trip')}</div>}
         <div>{t('{seconds} s left', { seconds: asked.seconds_left })}</div>
         <div className="flow-actions"><button type="button" onClick={cancel}>{t('Cancel request')}</button></div>
       </section> : <>
@@ -92,12 +94,19 @@ export default function NearbyNow() {
         <label>{t('Passengers')}
           <select value={passengers} onChange={event => { setPassengers(event.target.value); setItems(null) }}>{[1, 2, 3, 4, 5, 6].map(count => <option key={count} value={count}>{count}</option>)}</select>
         </label>
+        <label>{t('Journey')}
+          <select value={journey} onChange={event => { setJourney(event.target.value); setItems(null) }}>
+            <option value="ONE_WAY">{t('One way')}</option>
+            <option value="RETURN">{t('Return')}</option>
+          </select>
+        </label>
         <div className="flow-actions"><button type="button" disabled={busy || !here || !destination} onClick={find}>{busy ? t('Searching…') : t('Find vehicles')}</button></div>
         {items && (items.length === 0 ? <p>{t('No vehicle is online near you right now.')}</p> : items.map(item => <section key={item.vehicle_id} className="dash-row" style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', padding: '12px 0' }}>
           <div>
             <strong>{item.name || item.reference}</strong>
             <div>{item.seats} {t('seats')} · {item.distance_km}{' km · '}{t('{minutes} min away', { minutes: item.minutes_away })}</div>
             <div>{t('Fare')} {item.fare} {item.currency}</div>
+            {item.waiting && <div>{t('Free waiting: {free} min. After that LKR {hour} per hour (LKR {minute} per minute), for the time actually waited.', { free: item.waiting.free_minutes, hour: Number(item.waiting.hour_rate).toFixed(2), minute: (Number(item.waiting.hour_rate) / 60).toFixed(2) })}</div>}
           </div>
           <button type="button" disabled={busy} onClick={() => book(item)}>{t('Book now')}</button>
         </section>))}
