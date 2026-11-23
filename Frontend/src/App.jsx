@@ -56,6 +56,8 @@ import GoOnline from './features/live/GoOnline'
 import NearbyNow from './features/live/NearbyNow'
 import SavedPlaces from './features/passenger/SavedPlaces'
 import Support from './features/support/Support'
+import OwnerReviews from './features/owner/OwnerReviews'
+import OwnerSeatInventory from './features/owner/OwnerSeatInventory'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -200,8 +202,8 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 // Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
- OWNER:['seat-inventory','reviews'],
- DRIVER:['reels','feed'],
+ OWNER:[],
+ DRIVER:[],
  ADMIN:[]
 }
 export default function App() {
@@ -280,6 +282,8 @@ export default function App() {
             <Route path="/owner/rentals" element={<Navigate to="/owner/bookings" replace/>}/>
             <Route path="/owner/settings" element={<WorkspaceSettings/>}/>
             <Route path="/owner/support" element={<Support/>}/>
+            <Route path="/owner/reviews" element={<OwnerReviews/>}/>
+            <Route path="/owner/seat-inventory" element={<OwnerSeatInventory/>}/>
             {placeholders.OWNER.map(path=><Route key={path} path={'/owner/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="DRIVER"/>}>
@@ -302,6 +306,8 @@ export default function App() {
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             <Route path="/driver/support" element={<Support/>}/>
+            <Route path="/driver/reels" element={<Navigate to="/driver/travel/reels" replace/>}/>
+            <Route path="/driver/feed" element={<Navigate to="/driver/travel/reels" replace/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>
           <Route element={<WorkspaceShell role="ADMIN"/>}>

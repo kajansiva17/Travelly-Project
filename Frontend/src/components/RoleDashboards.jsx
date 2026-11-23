@@ -21,6 +21,8 @@ import TripInProgressCard from '../features/trips/TripInProgressCard'
 import {useActiveTrips} from '../features/trips/tripHooks'
 import CommissionBanner from '../features/settlements/CommissionBanner'
 import ReelsCard,{useReelsPreview} from '../features/social/ReelsCard'
+import VehicleExpenses from '../features/owner/VehicleExpenses'
+import {useAdminSummary,LiveVehicleMap,TrendBars} from '../features/admin/AdminSummaryTiles'
 
 function Resource({resource,children,empty='Nothing here yet.'}){if(resource.loading)return <p className="workspace-loading" role="status"><span className="spinner"/>{t(" Loading…")}</p>;if(resource.error)return <div className="workspace-resource-error"><h3>{[401,403].includes(resource.error.status)?t('Access unavailable'):t('Unable to load this information')}</h3><ErrorNotice error={resource.error}/><button className="button outline" onClick={resource.reload}>{t("Try again")}</button></div>;if(!resource.data)return <p>{t(empty)}</p>;return children(resource.data)}
 function Empty({icon='calendar',title,children,to,action}){return <div className="workspace-empty"><Icon name={icon} size={30}/><h3>{t(title)}</h3><p>{children}</p>{to&&<Link className="button outline" to={to}>{t(action)||t('Explore')}<Icon name="arrow" size={17}/></Link>}</div>}
@@ -111,18 +113,19 @@ export function DriverDashboard(){
 }
 
 export function AdminDashboard(){
+ const summary=useAdminSummary(),sd=summary.data,lkr=v=>Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
  const {user}=useWorkspace(),roles=useWorkspaceData(()=>api('/admin/role-requests?status=PENDING&page=1&page_size=4'),[]),vehicles=useWorkspaceData(()=>api('/admin/vehicles?verification_status=SUBMITTED&page=1&page_size=4'),[]),alerts=useWorkspaceData(()=>api('/admin/road-alerts'),[]),recent=useWorkspaceData(()=>api('/admin/workflow/bookings?page=1&page_size=4'),[]),first=(user.display_name||user.full_name).trim().split(/\s+/)[0],hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Colombo',hour:'numeric',hourCycle:'h23'}).format(new Date())),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
  const rows=useDashRows(),limit=rows>3?2:1,count=r=>r.loading?'?':r.error?'Unavailable':r.data?.total??r.data?.items?.length??0
  const apps=(roles.data?.items||[]).slice(0,limit),subs=(vehicles.data?.items||[]).slice(0,limit),liveAlerts=(alerts.data?.items||[]).filter(a=>['UNCONFIRMED','ACTIVE','VERIFIED'].includes(a.status)),shownAlerts=liveAlerts.slice(0,limit),shownBookings=(recent.data?.items||[]).slice(0,limit)
  return <DashPage title={`${t(greeting)}, ${first}`} subtitle={t("Welcome to your Travelly Command Centre. Here's what's happening with your platform today.")}
-  stats={<><DashStat icon="users" label="Pending role applications" value={count(roles)} to="/admin/applications"/><DashStat tone="red" icon="car" label="Submitted vehicles" value={count(vehicles)} to="/admin/vehicles"/><DashStat icon="calendar" label="Global trips today" value={'—'} to="/admin/bookings" note="Summary unavailable"/><DashStat tone="red" icon="wallet" label="Revenue today (LKR)" value={'—'} to="/admin/payments" note="Summary unavailable"/></>}>
+  stats={<><DashStat icon="users" label="Pending role applications" value={count(roles)} to="/admin/applications"/><DashStat tone="red" icon="car" label="Submitted vehicles" value={count(vehicles)} to="/admin/vehicles"/><DashStat icon="calendar" label="Global trips today" value={sd?String(sd.trips.today):'—'} to="/admin/bookings" note={sd?'Trips scheduled to start today':'Summary unavailable'}/><DashStat tone="red" icon="wallet" label="Revenue today (LKR)" value={sd?lkr(sd.money_today.commission):'—'} to="/admin/payments" note={sd?'Travelly commission on payments received today':'Summary unavailable'}/></>}>
   <Tile className="a-main" icon="users" title="Pending verifications" to="/admin/applications" link="View all">
    {roles.loading||vehicles.loading?<Soft>{t(" Loading…")}</Soft>:roles.error||vehicles.error?<Soft>{t("Unable to load this information")}</Soft>:apps.length||subs.length
     ?<div className="dash-list">{apps.map(r=><Link className="dash-row" key={r.id} to={'/admin/applications/'+r.id}><Icon name="document" size={16}/><div><strong>{t(words(r.role_code))}{t(" application")}</strong><span>{r.applicant?.full_name} · {displayTime(r.requested_at)}</span></div><Chip tone="muted">{t("Pending review")}</Chip></Link>)}
      {subs.map(v=><Link className="dash-row" key={v.id} to={'/admin/vehicles/'+v.id}><Icon name="car" size={16}/><div><strong>{v.label||v.reference}</strong><span>{t("Vehicle submission")}</span></div><Chip tone="muted">{t(words(v.verification_status))}</Chip></Link>)}</div>
     :<Soft>{t("The current review queue is clear. Your own applications are excluded by the review API.")}</Soft>}</Tile>
-  <Tile className="a-side" icon="pin" title="Live Trip Map" tip={t("Live location service is not connected.")}><Soft>{t("Live location service is not connected.")}</Soft></Tile>
-  <Tile className="b-1" icon="chart" title="Booking Trend" tip={t("Bookings across the platform.")}><Soft>{t("Booking trend data is not available from the current API.")}</Soft></Tile>
+  <Tile className="a-side" icon="pin" title="Live Trip Map" tip={t("Vehicles that sent their position in the last 15 minutes.")}>{summary.loading?<Soft>{t(" Loading…")}</Soft>:summary.error&&!sd?<Soft>{t("Unable to load this information")}</Soft>:sd.live_vehicles.length?<LiveVehicleMap vehicles={sd.live_vehicles}/>:<Soft>{t("No vehicle has sent a position in the last 15 minutes.")}</Soft>}</Tile>
+  <Tile className="b-1" icon="chart" title="Booking Trend" tip={t("Bookings across the platform.")}>{summary.loading?<Soft>{t(" Loading…")}</Soft>:summary.error&&!sd?<Soft>{t("Unable to load this information")}</Soft>:<TrendBars days={sd.booking_trend}/>}</Tile>
   <Tile className="b-2" icon="shield" title="Safety Alerts" to="/admin/road-alerts" link="View all">{alerts.loading?<Soft>{t(" Loading…")}</Soft>:alerts.error?<Soft>{t("Unable to load this information")}</Soft>:shownAlerts.length
    ?<div className="dash-list">{shownAlerts.map(a=><Link className="dash-row" key={a.id} to="/admin/road-alerts"><Icon name="alert" size={16}/><div><strong>{a.name}</strong><span>{displayTime(a.reported_at)}</span></div><Chip tone="muted">{t(words(a.status))}</Chip></Link>)}</div>
    :<Soft>{t("No live road alerts right now.")}</Soft>}</Tile>
@@ -178,7 +181,7 @@ export function OwnerOperations(){
  }
  return <><Header/><FlowShell heading={t('Operations')} title={t(names[tab])} icon="watch" tabs={tabs} info={t('Run your journeys from your Owner workspace.')+' '+t('Drive a trip yourself or assign a verified Driver without leaving this page.')}>
   <ErrorNotice error={operations.error}/>
-  {tab===3?<div className="tk-pane"><EmptyState icon="wallet" title={t('Vehicle expense tracking is coming soon')}>{t('Soon you will be able to record fuel, repairs and other vehicle costs here.')}</EmptyState></div>
+  {tab===3?<VehicleExpenses/>
   :operations.loading?<p role="status">{t(" Loading…")}</p>
   :<div className="tk-pane">
     {lists[tab].length?<div className="tk-rows">{paged.slice.map(booking=>tab===1
