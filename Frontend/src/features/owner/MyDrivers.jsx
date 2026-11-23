@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
@@ -39,6 +39,7 @@ export default function MyDrivers() {
       {notice && <p className="flow-note" role="status">{notice}</p>}
       <ErrorNotice error={error}/>
       {tab < 2 && <>
+        <p><Link className="ui-button ui-button-secondary" to="/owner/driver-payments">{t('Pay Drivers')}</Link></p>
         {mine && <p className="flow-note">{t('Your Travelly reference')}: <strong>{mine}</strong> · {t('Share it with a Driver so they can ask you.')}</p>}
         <label className="terms-check"><input type="checkbox" checked={findable} disabled={busy} onChange={e => toggleFindable(e.target.checked)}/><span>{t('Drivers can find me by name or number plate')}</span></label>
         {items === null && !error && <p role="status">{t('Loading…')}</p>}

@@ -81,3 +81,42 @@ def test_only_the_trips_owner_can_record_and_only_after_completion(client, done)
         trip = db.get(Trip, UUID(done.trip_id)); trip.status = 'IN_PROGRESS'; db.commit()
     assert record(client, done).status_code == 409
     assert record(client, done, amount='0').status_code == 422
+
+
+def test_paid_on_defaults_to_today_and_can_be_an_earlier_day_but_not_a_future_one(client, done):
+    from datetime import timedelta
+    from app.api.routers.driver_payment_api import today_in_sri_lanka
+    today = today_in_sri_lanka()
+    assert record(client, done, paid_on=(today + timedelta(days=1)).isoformat()).status_code == 422
+    earlier = (today - timedelta(days=3)).isoformat()
+    made = record(client, done, paid_on=earlier)
+    assert made.status_code == 201, made.text
+    assert made.json()['paid_on'] == earlier
+
+
+def test_paid_on_is_today_when_not_given(client, done):
+    from app.api.routers.driver_payment_api import today_in_sri_lanka
+    made = record(client, done)
+    assert made.status_code == 201, made.text
+    assert made.json()['paid_on'] == today_in_sri_lanka().isoformat()
+
+
+def test_due_list_shows_unpaid_trips_and_drops_them_once_paid(client, done):
+    due = client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.c.owner))
+    assert due.status_code == 200, due.text
+    assert [i['trip_id'] for i in due.json()['items']] == [done.trip_id]
+    assert due.json()['items'][0]['driver']['reference'] == done.driver['public_user_reference']
+    assert record(client, done, method='ONLINE', reference='BANK-TRF-0002').status_code == 201
+    assert client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.c.owner)).json()['count'] == 0
+
+
+def test_due_list_shows_a_declined_cash_payment_again_with_the_note(client, done):
+    payment_id = record(client, done).json()['id']
+    assert client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.c.owner)).json()['count'] == 0
+    assert client.post(f'/api/v1/driver-payments/{payment_id}/decline', headers=bearer(done.dt), json={'note': 'Nothing received'}).status_code == 200
+    due = client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.c.owner)).json()
+    assert due['count'] == 1 and due['items'][0]['declined_note'] == 'Nothing received'
+
+
+def test_only_an_owner_can_see_the_due_list(client, done):
+    assert client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.dt)).status_code in (403, 404)

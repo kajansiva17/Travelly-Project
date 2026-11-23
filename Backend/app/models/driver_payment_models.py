@@ -1,6 +1,6 @@
-# What an Owner paid a Driver for one completed trip (migration 0024). Separate from `payments`, which is Passenger money.
+# What an Owner paid a Driver for one completed trip (migrations 0024, 0025). Separate from `payments`, which is Passenger money.
 from sqlalchemy import Table, Column, CheckConstraint, ForeignKey, Index, text
-from sqlalchemy import String, DateTime, Numeric, CHAR
+from sqlalchemy import String, Date, DateTime, Numeric, CHAR
 from sqlalchemy.dialects.postgresql import UUID
 from app.models import Base
 
@@ -16,6 +16,7 @@ driver_payments_table = Table('driver_payments', Base.metadata,
     Column('method', String(6), nullable=False),
     Column('reference', String(80), nullable=True),
     Column('status', String(16), nullable=False, server_default=text("'PENDING_DRIVER'")),
+    Column('paid_on', Date, nullable=False, server_default=text('CURRENT_DATE')),
     Column('owner_recorded_at', DateTime(timezone=True), nullable=False, server_default=text('now()')),
     Column('driver_confirmed_at', DateTime(timezone=True), nullable=True),
     Column('driver_note', String(300), nullable=True),

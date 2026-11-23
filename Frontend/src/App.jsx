@@ -50,7 +50,7 @@ import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJo
 import {useWorkspace} from './context/workspaceContext'
 import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
-import DriverEarnings from './features/driverPayments/DriverPayments'
+import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/DriverPayments'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -248,6 +248,7 @@ export default function App() {
             {travelRoutes('/owner')}
             <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
             <Route path="/owner/drivers" element={<MyDrivers/>}/>
+            <Route path="/owner/driver-payments" element={<OwnerDriverPayments/>}/>
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
             <Route path="/owner/dashboard" element={<OwnerDashboard/>}/>

@@ -4,7 +4,7 @@
  * ONLINE (a bank or wallet transfer made outside Travelly, with its reference): recorded and final at once. Travelly moves no money.
  * CASH: waits until the Driver confirms they received it. The Driver can instead say it was not received; the Owner may then record it again.
  * The Owner and the Driver each see it in their own list and report. The Passenger's payment to the Owner is separate (payments)."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -21,12 +21,18 @@ from app.models.hire_models import Notification, Trip
 
 router = APIRouter(prefix='/api/v1', tags=['Driver payments'])
 ZERO = Decimal('0')
+SRI_LANKA = timedelta(hours=5, minutes=30)
+
+
+def today_in_sri_lanka():
+    return (datetime.now(timezone.utc) + SRI_LANKA).date()
 
 
 class Record(BaseModel):
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     method: Literal['CASH', 'ONLINE']
     reference: str | None = Field(default=None, max_length=80)
+    paid_on: date | None = None
 
     @field_validator('reference')
     @classmethod
@@ -61,7 +67,7 @@ def view(row, trip, other):
     return {'id': str(row.id), 'trip_id': str(row.trip_id), 'trip_reference': trip.trip_reference,
             'trip_date': (trip.actual_end_at or trip.scheduled_end_at).isoformat() if (trip.actual_end_at or trip.scheduled_end_at) else None,
             'amount': money(row.amount), 'currency': row.currency, 'method': row.method, 'reference': row.reference,
-            'status': row.status, 'recorded_at': row.owner_recorded_at.isoformat(),
+            'status': row.status, 'paid_on': row.paid_on.isoformat() if row.paid_on else None, 'recorded_at': row.owner_recorded_at.isoformat(),
             'driver_confirmed_at': row.driver_confirmed_at.isoformat() if row.driver_confirmed_at else None,
             'driver_note': row.driver_note,
             'other_party': {'reference': other.public_user_reference, 'name': other.display_name or other.full_name} if other else None}
@@ -81,6 +87,10 @@ def record_payment(trip_id: UUID, body: Record, user=Depends(current), db: Sessi
     if body.method == 'ONLINE' and not body.reference:
         raise ApiError(422, 'VALIDATION_ERROR', 'Enter the transfer reference for an online payment.',
                        [{'field': 'reference', 'code': 'required', 'message': 'Enter the transfer reference.'}])
+    today = today_in_sri_lanka()
+    if body.paid_on and body.paid_on > today:
+        raise ApiError(422, 'VALIDATION_ERROR', 'The payment date cannot be in the future.',
+                       [{'field': 'paid_on', 'code': 'future', 'message': 'Choose today or an earlier date.'}])
     trip = db.scalar(select(Trip).where(Trip.id == trip_id).with_for_update())
     if not trip or trip.operating_owner_user_id != user.id:
         raise ApiError(404, 'TRIP_NOT_FOUND', 'This trip was not found.')
@@ -94,7 +104,7 @@ def record_payment(trip_id: UUID, body: Record, user=Depends(current), db: Sessi
     now = datetime.now(timezone.utc)
     online = body.method == 'ONLINE'
     row = DriverPayment(trip_id=trip.id, owner_user_id=user.id, driver_user_id=trip.driver_user_id, amount=body.amount, method=body.method,
-                        reference=body.reference if online else (body.reference or None), status='CONFIRMED' if online else 'PENDING_DRIVER',
+                        reference=body.reference if online else (body.reference or None), paid_on=body.paid_on or today, status='CONFIRMED' if online else 'PENDING_DRIVER',
                         owner_recorded_at=now)
     db.add(row)
     db.flush()
@@ -163,6 +173,30 @@ def owner_payments(user=Depends(current), db: Session = Depends(get_db)):
                       .order_by(DriverPayment.created_at.desc()).limit(200)).all()
     people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({p.driver_user_id for p, _ in rows}))).all()} if rows else {}
     return {'items': [view(p, t, people.get(p.driver_user_id)) for p, t in rows], 'totals': totals([p for p, _ in rows])}
+
+
+@router.get('/owners/me/driver-payments/due')
+def owner_due(user=Depends(current), db: Session = Depends(get_db)):
+    """Owner: completed trips that had a separate Driver and have no live payment yet (a declined cash payment shows again, with the Driver's note)."""
+    require_role(db, user, 'OWNER')
+    live = select(DriverPayment.id).where(DriverPayment.trip_id == Trip.id, DriverPayment.status != 'DECLINED').exists()
+    trips = db.scalars(select(Trip).where(Trip.operating_owner_user_id == user.id, Trip.status == 'COMPLETED', Trip.driver_user_id.is_not(None),
+                                          Trip.driver_user_id != user.id, ~live)
+                       .order_by(func.coalesce(Trip.actual_end_at, Trip.scheduled_end_at).desc()).limit(200)).all()
+    people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({t.driver_user_id for t in trips}))).all()} if trips else {}
+    declined = {}
+    if trips:
+        for row in db.scalars(select(DriverPayment).where(DriverPayment.trip_id.in_([t.id for t in trips]), DriverPayment.status == 'DECLINED')
+                              .order_by(DriverPayment.updated_at)).all():
+            declined[row.trip_id] = row
+    items = []
+    for trip in trips:
+        driver, bounced = people.get(trip.driver_user_id), declined.get(trip.id)
+        ended = trip.actual_end_at or trip.scheduled_end_at
+        items.append({'trip_id': str(trip.id), 'trip_reference': trip.trip_reference, 'trip_date': ended.isoformat() if ended else None,
+                      'driver': {'reference': driver.public_user_reference, 'name': driver.display_name or driver.full_name} if driver else None,
+                      'declined_note': bounced.driver_note if bounced else None})
+    return {'items': items, 'count': len(items)}
 
 
 @router.get('/drivers/me/payments')
