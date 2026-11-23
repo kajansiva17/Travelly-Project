@@ -2,6 +2,7 @@
 
     GET /owners/me/reports/monthly/{YYYY-MM}       the report as JSON (on-screen preview)
     GET /owners/me/reports/monthly/{YYYY-MM}/pdf   the same report as a PDF download (English, A4)
+    GET /drivers/me/reports/monthly/{YYYY-MM}[/pdf] the Driver's trips and the payments Owners recorded (app/services/driver_report.py)
     GET /admin/reports/monthly/{YYYY-MM}           the whole-platform Admin report as JSON (app/services/admin_report.py)
     GET /admin/reports/monthly/{YYYY-MM}/pdf       the same as a PDF
 
@@ -18,7 +19,7 @@ from app.api.routers.api import current, require_role
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.api.routers.review_api import admin
-from app.services import admin_report, owner_report
+from app.services import admin_report, driver_report, owner_report
 
 router = APIRouter(prefix='/api/v1', tags=['reports'])
 
@@ -50,6 +51,26 @@ async def monthly_pdf(period: str, request: Request, user=Depends(current), db: 
     pdf = await run_in_threadpool(owner_report.render_pdf, data)
     return Response(pdf, media_type='application/pdf', headers={
         'Content-Disposition': f'attachment; filename="travelly-report-{period}.pdf"', 'Cache-Control': 'private, no-store'})
+
+
+@router.get('/drivers/me/reports/monthly/{period}')
+def driver_monthly(period: str, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Driver: the month's completed trips and the payments Owners recorded for them."""
+    require_role(db, user, 'DRIVER')
+    year, month = period_of(period)
+    request.app.state.store.rate(f'driver-report:{user.id}', 30, 600)
+    return driver_report.build(db, user, year, month)
+
+
+@router.get('/drivers/me/reports/monthly/{period}/pdf')
+async def driver_monthly_pdf(period: str, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    require_role(db, user, 'DRIVER')
+    year, month = period_of(period)
+    request.app.state.store.rate(f'driver-report:{user.id}', 30, 600)
+    data = await run_in_threadpool(driver_report.build, db, user, year, month)
+    pdf = await run_in_threadpool(driver_report.render_pdf, data)
+    return Response(pdf, media_type='application/pdf', headers={
+        'Content-Disposition': f'attachment; filename="travelly-driver-report-{period}.pdf"', 'Cache-Control': 'private, no-store'})
 
 
 @router.get('/admin/reports/monthly/{period}')

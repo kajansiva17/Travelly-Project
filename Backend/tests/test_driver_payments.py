@@ -120,3 +120,71 @@ def test_due_list_shows_a_declined_cash_payment_again_with_the_note(client, done
 
 def test_only_an_owner_can_see_the_due_list(client, done):
     assert client.get('/api/v1/owners/me/driver-payments/due', headers=bearer(done.dt)).status_code in (403, 404)
+
+
+# ---- reports (Owner "Paid to Drivers" and the Driver report) ----
+from datetime import datetime, timezone  # noqa: E402
+from decimal import Decimal  # noqa: E402
+from zoneinfo import ZoneInfo  # noqa: E402
+
+THIS_MONTH = datetime.now(ZoneInfo('Asia/Colombo')).strftime('%Y-%m')
+
+
+def finished_today(client, done):
+    with client.app.state.sessions() as db:
+        trip = db.get(Trip, UUID(done.trip_id))
+        trip.actual_end_at = datetime.now(timezone.utc)
+        db.commit()
+
+
+def test_owner_report_subtracts_confirmed_driver_payments_and_shows_waiting_cash(client, done):
+    assert record(client, done, method='ONLINE', reference='BANK-TRF-0003', amount='2500.00').status_code == 201
+    data = client.get(f'/api/v1/owners/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.c.owner)).json()
+    result = data['result']
+    assert result['expenses_driver_payments'] == '2500.00' and result['expenses_total'] == '2500.00'
+    assert Decimal(result['profit']) == Decimal(result['income']) - Decimal(result['expenses_total'])
+    assert data['summary']['driver_payments_paid'] == '2500.00'
+    item = data['driver_payments']['items'][0]
+    assert item['status'] == 'Confirmed' and item['reference'] == 'BANK-TRF-0003' and item['trip']
+    pdf = client.get(f'/api/v1/owners/me/reports/monthly/{THIS_MONTH}/pdf', headers=bearer(done.c.owner))
+    assert pdf.status_code == 200 and pdf.content[:5] == b'%PDF-'
+
+
+def test_owner_report_counts_cash_only_after_the_driver_confirms(client, done):
+    payment_id = record(client, done, amount='1000.00').json()['id']
+    waiting = client.get(f'/api/v1/owners/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.c.owner)).json()
+    assert waiting['result']['expenses_driver_payments'] == '0.00' and waiting['result']['driver_payments_waiting'] == '1000.00'
+    assert waiting['driver_payments']['items'][0]['status'] == 'Waiting for the Driver'
+    assert client.post(f'/api/v1/driver-payments/{payment_id}/confirm', headers=bearer(done.dt), json={}).status_code == 200
+    paid = client.get(f'/api/v1/owners/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.c.owner)).json()
+    assert paid['result']['expenses_driver_payments'] == '1000.00' and paid['result']['driver_payments_waiting'] == '0.00'
+
+
+def test_a_payment_belongs_to_the_month_it_was_paid_in(client, done):
+    from datetime import timedelta
+    from app.api.routers.driver_payment_api import today_in_sri_lanka
+    last_month_day = (today_in_sri_lanka().replace(day=1) - timedelta(days=1)).isoformat()
+    assert record(client, done, method='ONLINE', reference='BANK-TRF-0004', paid_on=last_month_day).status_code == 201
+    now = client.get(f'/api/v1/owners/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.c.owner)).json()
+    assert now['driver_payments']['items'] == [] and now['result']['expenses_driver_payments'] == '0.00'
+    before = client.get(f'/api/v1/owners/me/reports/monthly/{last_month_day[:7]}', headers=bearer(done.c.owner)).json()
+    assert before['result']['expenses_driver_payments'] == '2500.00'
+
+
+def test_driver_gets_their_month_as_json_and_pdf(client, done):
+    finished_today(client, done)
+    before = client.get(f'/api/v1/drivers/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.dt))
+    assert before.status_code == 200, before.text
+    assert before.json()['summary']['completed_trips'] == 1 and before.json()['summary']['trips_without_payment'] == 1
+    assert record(client, done, method='ONLINE', reference='BANK-TRF-0005').status_code == 201
+    data = client.get(f'/api/v1/drivers/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.dt)).json()
+    assert data['summary']['received_total'] == '2500.00' and data['summary']['trips_without_payment'] == 0
+    assert data['payments']['items'][0]['status'] == 'Confirmed' and data['trips']['items'][0]['payment'] == 'Recorded'
+    pdf = client.get(f'/api/v1/drivers/me/reports/monthly/{THIS_MONTH}/pdf', headers=bearer(done.dt))
+    assert pdf.status_code == 200 and pdf.content[:5] == b'%PDF-' and 'travelly-driver-report' in pdf.headers['content-disposition']
+
+
+def test_only_a_driver_gets_the_driver_report_and_the_month_is_checked(client, done):
+    assert client.get(f'/api/v1/drivers/me/reports/monthly/{THIS_MONTH}', headers=bearer(done.c.passenger)).status_code == 403
+    assert client.get('/api/v1/drivers/me/reports/monthly/2999-01', headers=bearer(done.dt)).status_code == 422
+    assert client.get('/api/v1/drivers/me/reports/monthly/nov-2026', headers=bearer(done.dt)).status_code == 422

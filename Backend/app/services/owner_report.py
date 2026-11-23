@@ -16,6 +16,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 from sqlalchemy import func, or_, select
 from app.models import User
+from app.models.driver_payment_models import DriverPayment
 from app.models.hire_models import Booking, Route, ScheduledTrip, Trip, VehicleRecord
 from app.models.payment_models import Payment
 from app.models.review_models import Document, Vehicle
@@ -177,15 +178,36 @@ def build(db, owner, year, month, moment=None):
                               'number': masked(d.document_number), 'expiry_date': d.expiry_date.isoformat() if d.expiry_date else None,
                               'status': label(d.status), 'state': state})
 
-    # 5. Month result: what the Owner earned minus the costs recorded in Travelly (owner request 13 Nov 2026).
-    expenses = spend['service_and_repair'] + spend['fuel_and_charging']
+    # 5. Paid to Drivers: what the Owner recorded paying Drivers, by the day paid (owner decision 23 Nov 2026). Online and confirmed cash
+    # count as an expense; cash still waiting for the Driver's confirmation is shown but not subtracted yet.
+    first_day, next_first = date(year, month, 1), date(year + (month == 12), month % 12 + 1, 1)
+    pays = db.execute(select(DriverPayment, Trip).join(Trip, Trip.id == DriverPayment.trip_id)
+                      .where(DriverPayment.owner_user_id == owner.id, DriverPayment.status != 'DECLINED',
+                             DriverPayment.paid_on >= first_day, DriverPayment.paid_on < next_first)
+                      .order_by(DriverPayment.paid_on, DriverPayment.created_at)).all()
+    pay_people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({p.driver_user_id for p, _ in pays})))} if pays else {}
+    driver_rows, paid_drivers, waiting_drivers = [], ZERO, ZERO
+    for p, trip in pays:
+        person = pay_people.get(p.driver_user_id)
+        confirmed = p.status == 'CONFIRMED'
+        driver_rows.append({'paid_on': p.paid_on.isoformat(), 'trip': trip.trip_reference, 'driver': (person.display_name or person.full_name) if person else None,
+                            'method': label(p.method), 'reference': p.reference, 'amount': money(p.amount),
+                            'status': 'Confirmed' if confirmed else 'Waiting for the Driver'})
+        if confirmed:
+            paid_drivers += p.amount
+        else:
+            waiting_drivers += p.amount
+
+    # 6. Month result: what the Owner earned minus the costs recorded in Travelly (owner request 13 Nov 2026).
+    expenses = spend['service_and_repair'] + spend['fuel_and_charging'] + paid_drivers
     profit = totals['owner_net'] - expenses
     result = {'income': money(totals['owner_net']), 'expenses_service_and_repair': money(spend['service_and_repair']),
-              'expenses_fuel_and_charging': money(spend['fuel_and_charging']), 'expenses_total': money(expenses),
+              'expenses_fuel_and_charging': money(spend['fuel_and_charging']), 'expenses_driver_payments': money(paid_drivers),
+              'driver_payments_waiting': money(waiting_drivers), 'expenses_total': money(expenses),
               'profit': money(profit), 'is_loss': profit < 0,
               'note': 'Income is your share of trips paid this month after Travelly commission and refunds. Expenses are the '
-                      'maintenance, fuel and charging records entered in Travelly for this month; other costs (driver pay, loans, '
-                      'insurance premiums) are not included.'}
+                      'maintenance, fuel and charging records and the Driver payments entered in Travelly for this month; cash paid to a '
+                      'Driver counts once the Driver confirms it. Other costs (loans, insurance premiums) are not included.'}
 
     return {
         'owner': {'name': owner.display_name or owner.full_name, 'reference': owner.public_user_reference},
@@ -196,6 +218,7 @@ def build(db, owner, year, month, moment=None):
                     'refunded': money(totals['refunded']), 'owner_net': money(totals['owner_net']),
                     'payouts_received': money(sum((p.amount for p in payouts), ZERO)),
                     'maintenance_spend': money(spend['service_and_repair']), 'fuel_and_charging_spend': money(spend['fuel_and_charging']),
+                    'driver_payments_paid': money(paid_drivers),
                     'documents_needing_attention': attention, 'expenses_total': money(expenses), 'profit': money(profit)},
         'trips': {'per_vehicle': [{'vehicle': b['vehicle'], 'trips': b['trips'], 'km': km(b['km'])} for b in per_vehicle.values()],
                   'items': trip_rows},
@@ -204,6 +227,7 @@ def build(db, owner, year, month, moment=None):
                                             'waiting_for_refunds': len(balance['needs_review'])}},
         'maintenance': {'items': record_rows, 'coming_up_today': coming[:15]},
         'documents': {'items': document_rows},
+        'driver_payments': {'items': driver_rows, 'paid_total': money(paid_drivers), 'waiting_total': money(waiting_drivers)},
         'result': result,
     }
 
@@ -366,17 +390,26 @@ def render_pdf(data):
             [Paragraph('<b>Expenses</b>', body), ''],
             [Paragraph('Service and repair', cell), Paragraph(f"\u2212 {cash(r['expenses_service_and_repair'])}", right)],
             [Paragraph('Fuel and charging', cell), Paragraph(f"\u2212 {cash(r['expenses_fuel_and_charging'])}", right)],
+            [Paragraph('Paid to Drivers', cell), Paragraph(f"\u2212 {cash(r['expenses_driver_payments'])}", right)],
             [Paragraph('Total expenses', cell), Paragraph(f"<b>\u2212 {cash(r['expenses_total'])}</b>", right)],
             [Paragraph(f"<font size=11><b>{'Month loss' if r['is_loss'] else 'Month profit'}</b></font>", body),
              Paragraph(f"<font size=12 color='{tone.hexval().replace('0x', '#')}'><b>{cur} {cash(r['profit'])}</b></font>", right)]]
     sheet = Table(rows, colWidths=[132 * mm, 50 * mm])
     sheet.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 0.6, line), ('LINEBELOW', (0, 1), (-1, 1), 0.3, line),
-                               ('LINEBELOW', (0, 4), (-1, 4), 0.3, line), ('LINEABOVE', (0, -1), (-1, -1), 1.2, tone),
+                               ('LINEBELOW', (0, 5), (-1, 5), 0.3, line), ('LINEABOVE', (0, -1), (-1, -1), 1.2, tone),
                                ('BACKGROUND', (0, 0), (-1, 0), soft), ('BACKGROUND', (0, 2), (-1, 2), soft),
                                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F0FDF4') if not r['is_loss'] else colors.HexColor('#FEF2F2')),
                                ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                                ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
-    story += [KeepTogether([*section(f"5. Month result \u2013 {data['period_label']}"), sheet, Spacer(1, 3), Paragraph(esc(r['note']), small)]),
+    dp = data['driver_payments']
+    story += [KeepTogether([*section('5. Paid to Drivers'),
+              grid(['Paid on', 'Trip', 'Driver', 'Method', 'Reference', f'Amount ({cur})', 'Status'],
+                   [[x['paid_on'], x['trip'], x['driver'], x['method'], x['reference'], cash(x['amount']), x['status']] for x in dp['items']],
+                   [20, 26, 34, 18, 32, 24, 28], numeric=(5,), empty='No Driver payments recorded this month.'),
+              Paragraph(f"Confirmed {cur} {esc(cash(dp['paid_total']))} \u2022 waiting for the Driver to confirm the cash {cur} {esc(cash(dp['waiting_total']))}", small)]),
+              Spacer(1, 4)]
+
+    story += [KeepTogether([*section(f"6. Month result \u2013 {data['period_label']}"), sheet, Spacer(1, 3), Paragraph(esc(r['note']), small)]),
               Spacer(1, 8),
               Paragraph('This report is generated from Travelly records. Amounts are in Sri Lankan rupees. Prices follow the accepted '
                         'booking and approved extras; odometer distance is shown as a record, not as a charge.', small)]
