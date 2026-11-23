@@ -57,6 +57,8 @@ import NearbyNow from './features/live/NearbyNow'
 import SavedPlaces from './features/passenger/SavedPlaces'
 import Support from './features/support/Support'
 import OwnerReviews from './features/owner/OwnerReviews'
+import DriverReviews from './features/driver/DriverReviews'
+import AdminReviews from './features/admin/AdminReviews'
 import OwnerSeatInventory from './features/owner/OwnerSeatInventory'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
@@ -306,6 +308,7 @@ export default function App() {
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             <Route path="/driver/support" element={<Support/>}/>
+            <Route path="/driver/reviews" element={<DriverReviews/>}/>
             <Route path="/driver/reels" element={<Navigate to="/driver/travel/reels" replace/>}/>
             <Route path="/driver/feed" element={<Navigate to="/driver/travel/reels" replace/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}
@@ -332,6 +335,7 @@ export default function App() {
             <Route path="/admin/reports" element={<AdminReport/>}/>
             <Route path="/admin/manual-fulfilment" element={<AdminWorkflowPage kind="manual"/>}/>
             <Route path="/admin/support" element={<Support admin/>}/>
+            <Route path="/admin/reviews" element={<AdminReviews/>}/>
             <Route path="/admin/settings" element={<WorkspaceSettings/>}/>
             {placeholders.ADMIN.map(path=><Route key={path} path={'/admin/'+path} element={<WorkspacePlaceholder/>}/>)}
           </Route>

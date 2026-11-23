@@ -111,6 +111,7 @@ export default function NearbyNow() {
             <strong>{item.name || item.reference}</strong>
             <div>{item.seats} {t('seats')} · {item.distance_km}{' km · '}{t('{minutes} min away', { minutes: item.minutes_away })}</div>
             <div>{t('Fare')} {item.fare} {item.currency}</div>
+            {item.rating && <div title={t('Passenger rating')}><span style={{ color: '#f5a623' }}>★</span> {item.rating.average} ({item.rating.count})</div>}
             {item.waiting && <div>{t('Free waiting: {free} min. After that LKR {hour} per hour (LKR {minute} per minute), for the time actually waited.', { free: item.waiting.free_minutes, hour: Number(item.waiting.hour_rate).toFixed(2), minute: (Number(item.waiting.hour_rate) / 60).toFixed(2) })}</div>}
           </div>
           <button type="button" disabled={busy} onClick={() => book(item)}>{t('Book now')}</button>

@@ -14,7 +14,7 @@ from app.api.routers.api import current, require_role
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models import User
-from app.models.hire_models import Booking, Trip
+from app.models.hire_models import Booking, Notification, Trip
 from app.models.review_models import Vehicle
 from app.models.trip_review_models import TripReview
 
@@ -30,6 +30,21 @@ class NewReview(BaseModel):
 
 class Reply(BaseModel):
     text: str = Field(min_length=1, max_length=300)
+
+
+def tell(db, user_id, booking, trip, title, body):
+    """An information notice about a review (type REVIEW); it opens the booking."""
+    db.add(Notification(recipient_user_id=user_id, booking_id=booking.id, trip_id=trip.id, notification_type='REVIEW', channel='IN_APP',
+                        title=title, body=body, action_required=False, action_payload={'booking_id': str(booking.id), 'trip_id': str(trip.id)}, status='QUEUED'))
+
+
+def vehicle_ratings(db, vehicle_ids):
+    """{vehicle id: {'average': '4.5', 'count': 12}} from the reviews that are not hidden; a vehicle with no review is left out."""
+    if not vehicle_ids:
+        return {}
+    rows = db.execute(select(TripReview.vehicle_id, func.count(TripReview.id), func.avg(TripReview.rating))
+                      .where(TripReview.vehicle_id.in_(list(vehicle_ids)), TripReview.hidden_at.is_(None)).group_by(TripReview.vehicle_id)).all()
+    return {vid: {'average': format(Decimal(str(avg)).quantize(Decimal('0.1')), '.1f'), 'count': count} for vid, count, avg in rows}
 
 
 def review_out(row, vehicle=None, trip=None, passenger=None):
@@ -84,6 +99,10 @@ def write_review(trip_id: UUID, body: NewReview, request: Request, user=Depends(
                      owner_user_id=trip.operating_owner_user_id or booking.owner_user_id, driver_user_id=trip.driver_user_id,
                      rating=body.rating, driver_rating=body.driver_rating, comment=comment)
     db.add(row)
+    owner_id = row.owner_user_id
+    tell(db, owner_id, booking, trip, 'New review', f'A Passenger rated your vehicle {body.rating} out of 5.')
+    if body.driver_rating is not None and trip.driver_user_id and trip.driver_user_id != owner_id:
+        tell(db, trip.driver_user_id, booking, trip, 'New review', f'A Passenger rated your driving {body.driver_rating} out of 5.')
     try:
         db.commit()
     except IntegrityError:
@@ -125,7 +144,7 @@ def delete_review(trip_id: UUID, user=Depends(current), db: Session = Depends(ge
 @router.get('/owners/me/reviews')
 def owner_reviews(user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
-    rows = db.scalars(select(TripReview).where(TripReview.owner_user_id == user.id).order_by(TripReview.created_at.desc()).limit(300)).all()
+    rows = db.scalars(select(TripReview).where(TripReview.owner_user_id == user.id, TripReview.hidden_at.is_(None)).order_by(TripReview.created_at.desc()).limit(300)).all()
     vehicles = {v.id: v for v in db.scalars(select(Vehicle).where(Vehicle.id.in_({r.vehicle_id for r in rows})))} if rows else {}
     trips = {t.id: t for t in db.scalars(select(Trip).where(Trip.id.in_({r.trip_id for r in rows})))} if rows else {}
     people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({r.passenger_user_id for r in rows})))} if rows else {}
@@ -148,6 +167,8 @@ def reply(review_id: UUID, body: Reply, user=Depends(current), db: Session = Dep
     if not text:
         raise ApiError(422, 'VALIDATION_ERROR', 'Write a reply.', [{'field': 'text', 'message': 'This is required.'}])
     row.reply, row.replied_at = text, datetime.now(timezone.utc)   # a second reply replaces the first
+    trip, booking = trip_and_booking(db, row.trip_id)
+    tell(db, row.passenger_user_id, booking, trip, 'The Owner replied to your review', text[:200])
     db.commit()
     return review_out(row)
 
@@ -160,3 +181,66 @@ def delete_reply(review_id: UUID, user=Depends(current), db: Session = Depends(g
     row.reply, row.replied_at = None, None
     db.commit()
     return review_out(row)
+
+
+@router.get('/drivers/me/reviews')
+def driver_reviews(user=Depends(current), db: Session = Depends(get_db)):
+    """What Passengers rated about the Driver's driving (only trips where the Passenger gave a Driver rating)."""
+    require_role(db, user, 'DRIVER')
+    rows = db.scalars(select(TripReview).where(TripReview.driver_user_id == user.id, TripReview.driver_rating.isnot(None), TripReview.hidden_at.is_(None))
+                      .order_by(TripReview.created_at.desc()).limit(300)).all()
+    trips = {t.id: t for t in db.scalars(select(Trip).where(Trip.id.in_({r.trip_id for r in rows})))} if rows else {}
+    people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({r.passenger_user_id for r in rows})))} if rows else {}
+    average = format((Decimal(sum(r.driver_rating for r in rows)) / Decimal(len(rows))).quantize(Decimal('0.1')), '.1f') if rows else None
+    return {'count': len(rows), 'average': average, 'items': [
+        {'id': str(r.id), 'driver_rating': r.driver_rating, 'comment': r.comment, 'created_at': r.created_at.isoformat(),
+         'trip_reference': trips[r.trip_id].trip_reference if r.trip_id in trips else None,
+         'passenger': (people[r.passenger_user_id].display_name or people[r.passenger_user_id].full_name or '').split(' ')[0] or None} for r in rows]}
+
+
+class HideReview(BaseModel):
+    model_config = {'extra': 'forbid'}
+    note: str = Field(min_length=1, max_length=300)
+
+
+@router.get('/admin/reviews')
+def admin_reviews(user=Depends(current), db: Session = Depends(get_db)):
+    require_role(db, user, 'ADMIN')
+    rows = db.scalars(select(TripReview).order_by(TripReview.created_at.desc()).limit(200)).all()
+    vehicles = {v.id: v for v in db.scalars(select(Vehicle).where(Vehicle.id.in_({r.vehicle_id for r in rows})))} if rows else {}
+    trips = {t.id: t for t in db.scalars(select(Trip).where(Trip.id.in_({r.trip_id for r in rows})))} if rows else {}
+    people = {u.id: u for u in db.scalars(select(User).where(User.id.in_({r.passenger_user_id for r in rows})))} if rows else {}
+    items = []
+    for r in rows:
+        out = review_out(r, vehicles[r.vehicle_id], trips.get(r.trip_id), people.get(r.passenger_user_id))
+        out['hidden_at'] = r.hidden_at.isoformat() if r.hidden_at else None
+        out['hidden_note'] = r.hidden_note
+        items.append(out)
+    return {'items': items}
+
+
+def admin_review(db, user, review_id):
+    require_role(db, user, 'ADMIN')
+    row = db.get(TripReview, review_id)
+    if not row:
+        raise ApiError(404, 'REVIEW_NOT_FOUND', 'This review was not found.')
+    return row
+
+
+@router.post('/admin/reviews/{review_id}/hide')
+def hide_review(review_id: UUID, body: HideReview, user=Depends(current), db: Session = Depends(get_db)):
+    row = admin_review(db, user, review_id)
+    note = body.note.strip()
+    if not note:
+        raise ApiError(422, 'VALIDATION_ERROR', 'Write the reason.', [{'field': 'note', 'message': 'This is required.'}])
+    row.hidden_at, row.hidden_note = datetime.now(timezone.utc), note
+    db.commit()
+    return {'id': str(row.id), 'hidden_at': row.hidden_at.isoformat(), 'hidden_note': row.hidden_note}
+
+
+@router.post('/admin/reviews/{review_id}/unhide')
+def unhide_review(review_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
+    row = admin_review(db, user, review_id)
+    row.hidden_at, row.hidden_note = None, None
+    db.commit()
+    return {'id': str(row.id), 'hidden_at': None, 'hidden_note': None}

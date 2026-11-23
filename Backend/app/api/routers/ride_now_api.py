@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.api.routers.api import current, require_role
 from app.api.routers.hire_api import offer, settle_hours, validate_service_itinerary, service_for, catalogue_status
+from app.api.routers.trip_review_api import vehicle_ratings
 from app.api.routers.live_vehicle_api import CITY_SPEED_KMH, can_operate, is_online, not_ready
 from app.api.routers.review_api import locked_authority
 from app.core.errors import ApiError
@@ -169,8 +170,10 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
     request.app.state.rate_locations.verify(body.destination)
     itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip))
     validate_service_itinerary(service, itinerary, db, request)
+    found = nearby_vehicles(db, body.pickup, body.radius_km, now)
+    ratings = vehicle_ratings(db, [vehicle.id for _, vehicle in found])
     items = []
-    for km, vehicle in nearby_vehicles(db, body.pickup, body.radius_km, now):
+    for km, vehicle in found:
         if vehicle.live_online_user_id == user.id or vehicle.owner_user_id == user.id:
             continue
         snapshot = fare_for(request, db, vehicle, service, itinerary, body.passenger_count)
@@ -179,7 +182,7 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
         items.append({'vehicle_id': str(vehicle.id), 'reference': vehicle.public_vehicle_reference, 'name': ' '.join(filter(None, [vehicle.make, vehicle.model])) or None,
                       'colour': vehicle.colour, 'vehicle_type': vehicle.vehicle_type_code, 'seats': vehicle.seat_capacity,
                       'distance_km': round(km, 1), 'minutes_away': max(1, round(km / CITY_SPEED_KMH * 60)),
-                      'fare': snapshot['calculation']['total'], 'currency': 'LKR'}
+                      'fare': snapshot['calculation']['total'], 'currency': 'LKR', 'rating': ratings.get(vehicle.id)}
                      | ({'waiting': {'free_minutes': snapshot['rule']['free_wait_minutes'], 'hour_rate': snapshot['rule']['waiting_hour_rate']}} if body.round_trip else {}))
         if len(items) >= MAX_OPTIONS:
             break
