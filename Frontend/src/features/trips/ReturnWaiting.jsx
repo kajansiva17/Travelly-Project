@@ -35,10 +35,10 @@ export default function ReturnWaiting({ tripId, trip: given, operator = false, o
   const charge = wait.state === 'RETURNING' ? Number(wait.charge) : Math.max(0, minutes - free) / 60 * hourRate
   const running = RUNNING.includes(trip.status)
 
-  async function step(action) {
+  async function step(action, extra = {}) {
     setBusy(true); setError(null)
     try {
-      await api(`/trips/${encodeURIComponent(trip.id)}/${action}`, { method: 'POST', body: JSON.stringify({ expected_version: trip.version }) })
+      await api(`/trips/${encodeURIComponent(trip.id)}/${action}`, { method: 'POST', body: JSON.stringify({ expected_version: trip.version, ...extra }) })
       if (onChanged) await onChanged(); else await read()
     } catch (failure) { setError(failure) }
     finally { setBusy(false) }
@@ -51,12 +51,20 @@ export default function ReturnWaiting({ tripId, trip: given, operator = false, o
       <div>{t('Waiting time: {minutes} min', { minutes: minutes.toFixed(1) })}</div>
       <div>{minutes < free ? t('Still free: {minutes} min', { minutes: (free - minutes).toFixed(1) }) : t('Waiting charge so far: LKR {charge}', { charge: money(charge) })}</div>
     </>}
+    {wait.state === 'MOVED' && <>
+      <div>{t('Waiting time: {minutes} min', { minutes: minutes.toFixed(1) })}</div>
+      <div>{operator ? t('The vehicle moved away from the waiting spot. Is the waiting over?') : t('The vehicle moved away. The Driver is confirming whether the waiting is over. The waiting time stopped when it left.')}</div>
+    </>}
     {wait.state === 'RETURNING' && <div>{t('Waiting finished: {minutes} min · charge LKR {charge}', { minutes: minutes.toFixed(1), charge: money(charge) })}</div>}
     {wait.source === 'GPS' && <div>{t('Ended automatically when the vehicle moved away.')}</div>}
     {wait.source === 'MANUAL' && <div>{t('Added by the Driver without the timer.')}</div>}
     <div>{t('The waiting charge is added to the fare and paid after the trip.')}</div>
     {error && <ErrorNotice error={error}/>}
     {operator && running && wait.state === 'NOT_STARTED' && <div className="flow-actions"><Button disabled={busy} onClick={() => step('wait/start')}>{t('Waiting started')}</Button></div>}
+    {operator && running && wait.state === 'MOVED' && <div className="flow-actions">
+      <Button disabled={busy} onClick={() => step('wait/answer', { still_waiting: false })}>{t('Passenger is back')}</Button>
+      <Button variant="secondary" disabled={busy} onClick={() => step('wait/answer', { still_waiting: true })}>{t('Still waiting')}</Button>
+    </div>}
     {operator && running && wait.state === 'WAITING' && <div className="flow-actions"><Button disabled={busy} onClick={() => step('wait/end')}>{t('Return started')}</Button></div>}
   </section>
 }

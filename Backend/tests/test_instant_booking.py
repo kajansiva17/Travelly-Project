@@ -319,7 +319,7 @@ def finish_with(client, c, accepted, **extra):
         return db.get(Booking, UUID(accepted['booking_id'])).total_amount
 
 
-def test_the_vehicle_driving_away_from_the_waiting_spot_ends_the_waiting_by_itself(client, ride):
+def test_the_vehicle_driving_away_from_the_waiting_spot_asks_the_driver_and_the_clock_stops_there(client, ride):
     c = ride
     item, accepted = ask_trip(client, c, True)
     trip_id = accepted['trip_id']
@@ -334,7 +334,7 @@ def test_the_vehicle_driving_away_from_the_waiting_spot_ends_the_waiting_by_itse
     far = {'latitude': '6.960000', 'longitude': '79.900000'}   # about 1.1 km: the Passenger is back on board
     client.patch(f'/api/v1/trips/{trip_id}/location', headers=bearer(c.owner), json={'expected_version': trip_version(client, c.owner, trip_id), **far})
     wait = client.get(f'/api/v1/trips/{trip_id}', headers=bearer(c.passenger)).json()['wait']
-    assert wait['state'] == 'RETURNING' and wait['source'] == 'GPS'
+    assert wait['state'] == 'MOVED' and wait['moved_at'] and wait['ended_at'] is None   # asked, not ended: the Driver answers (test_waiting_prompt.py)
 
 
 def test_at_finish_the_driver_can_only_lower_the_measured_waiting(client, ride):

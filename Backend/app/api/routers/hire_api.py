@@ -1012,13 +1012,15 @@ def wait_info(row, trip, now=None):
     now = now or datetime.now(timezone.utc)
     rule = (row.price_snapshot.get('current') or {}).get('rule') or {}
     free, rate = Decimal(str(rule.get('free_wait_minutes', '0'))), Decimal(str(rule.get('waiting_hour_rate', '0')))
-    started, ended = trip.wait_started_at, trip.wait_ended_at
-    minutes = Decimal(str(((ended or now) - started).total_seconds())) / Decimal('60') if started else Decimal('0')
+    started, ended, moved = trip.wait_started_at, trip.wait_ended_at, trip.wait_moved_at
+    # The vehicle left the waiting spot and the Driver has not answered yet: the clock stops at the moment it left, so the Passenger is never charged for unanswered time.
+    minutes = Decimal(str(((ended or moved or now) - started).total_seconds())) / Decimal('60') if started else Decimal('0')
     if trip.wait_confirmed_minutes is not None: minutes = Decimal(trip.wait_confirmed_minutes)   # settled at finish
     charge = (max(Decimal('0'), minutes - free) / Decimal('60') * rate).quantize(Decimal('0.01'))
     return {'free_minutes': str(free), 'hour_rate': str(rate), 'minutes': format(minutes, '.1f'), 'charge': format(charge, '.2f'),
             'started_at': started.isoformat() if started else None, 'ended_at': ended.isoformat() if ended else None, 'source': trip.wait_source,
-            'state': 'RETURNING' if ended else 'WAITING' if started else 'NOT_STARTED'}
+            'moved_at': moved.isoformat() if moved and not ended else None,
+            'state': 'RETURNING' if ended else 'MOVED' if started and moved else 'WAITING' if started else 'NOT_STARTED'}
 
 
 MAX_MANUAL_WAIT_MINUTES = Decimal('180')   # most a Driver can add when the timer was never started
@@ -1035,7 +1037,9 @@ def settle_waiting(row, trip, now, confirmed=None):
         confirmed = min(Decimal(confirmed), MAX_MANUAL_WAIT_MINUTES)
         trip.wait_started_at, trip.wait_ended_at, trip.wait_source = now - timedelta(minutes=float(confirmed)), now, 'MANUAL'
     else:
-        if trip.wait_ended_at is None: trip.wait_ended_at = now; trip.wait_source = trip.wait_source or 'DRIVER'
+        if trip.wait_ended_at is None:
+            trip.wait_ended_at = trip.wait_moved_at or now   # a wait left unanswered ends where the vehicle left the spot
+            trip.wait_source = trip.wait_source or ('GPS' if trip.wait_moved_at else 'DRIVER')
         confirmed = min(Decimal(confirmed), Decimal(wait_info(row, trip, now)['minutes'])) if confirmed is not None else None
     if confirmed is not None: trip.wait_confirmed_minutes = confirmed.quantize(Decimal('0.1'))
     info = wait_info(row, trip, now)
@@ -1065,7 +1069,7 @@ def wait_step(trip_id, body, request, user, db, *, start):
             spot = (trip.current_latitude, trip.current_longitude) if trip.location_updated_at and now - trip.location_updated_at <= location_matching.LOCATION_FRESHNESS else (None, None)
             trip.wait_latitude, trip.wait_longitude = spot   # where the vehicle waits: moving away from here ends the waiting by itself
         else:
-            trip.wait_ended_at, trip.wait_source = now, 'DRIVER'
+            trip.wait_ended_at, trip.wait_source = trip.wait_moved_at or now, 'DRIVER'
         touch(trip); trip.updated_by = user.id
         notify(db, row, 'Waiting started' if start else 'Return started',
                'The vehicle is waiting at the destination.' if start else 'The vehicle is on the way back.', user.id)
@@ -1082,6 +1086,35 @@ def wait_start(trip_id: UUID, body: Version, request: Request, user=Depends(curr
 @router.post('/trips/{trip_id}/wait/end')
 def wait_end(trip_id: UUID, body: Version, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     return wait_step(trip_id, body, request, user, db, start=False)
+
+
+class WaitAnswer(Version):
+    still_waiting: bool
+
+
+@router.post('/trips/{trip_id}/wait/answer')
+def wait_answer(trip_id: UUID, body: WaitAnswer, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """The vehicle moved away from the waiting spot and the Driver is asked: the Passenger is back on board (the waiting ended where the vehicle left),
+    or the waiting goes on (the time away still counts, and the spot is measured again from here)."""
+    first = driving_trip(db, trip_id, user)
+    with request.app.state.audit.coordinated():
+        before = db.get(Booking, first.booking_id)
+        row, vehicle = lock_booking(db, request, before.id, user, before.version, driver_id=user.id)
+        trip = locked_trip(db, trip_id, body.expected_version)
+        running(trip)
+        if trip.wait_started_at is None or trip.wait_ended_at is not None or trip.wait_moved_at is None:
+            raise ApiError(409, 'NO_WAITING_QUESTION', 'There is no waiting question to answer.')
+        now = datetime.now(timezone.utc)
+        if body.still_waiting:
+            trip.wait_moved_at = None
+            if trip.location_updated_at and now - trip.location_updated_at <= location_matching.LOCATION_FRESHNESS:
+                trip.wait_latitude, trip.wait_longitude = trip.current_latitude, trip.current_longitude
+        else:
+            trip.wait_ended_at, trip.wait_source = trip.wait_moved_at, 'DRIVER'
+            notify(db, row, 'Return started', 'The vehicle is on the way back.', user.id)
+        touch(trip); trip.updated_by = user.id
+        db.commit()
+    return {'trip': trip_summary(trip), 'wait': wait_info(row, trip, now)}
 
 
 @router.post('/trips/{trip_id}/cancel-ride')
@@ -1213,7 +1246,11 @@ def trip_location(trip_id: UUID, body: TripLocation, user=Depends(current), db: 
     if trip.wait_started_at and not trip.wait_ended_at and trip.wait_latitude is not None and (body.accuracy_m is None or body.accuracy_m <= 100):
         from app.services.odometer_proof import distance_km
         if distance_km(float(trip.wait_latitude), float(trip.wait_longitude), float(body.latitude), float(body.longitude)) > WAIT_MOVE_KM:
-            trip.wait_ended_at, trip.wait_source = trip.location_updated_at, 'GPS'   # the vehicle left the waiting spot: the Passenger is back on board
+            if trip.wait_moved_at is None:   # the vehicle left the waiting spot: ask the Driver once, the waiting clock stops at this moment until answered
+                trip.wait_moved_at = trip.location_updated_at
+                db.add(Notification(recipient_user_id=user.id, booking_id=trip.booking_id, notification_type='RECONFIRMATION', channel='IN_APP',
+                                    title='The vehicle moved away', body='Is the waiting over? Open the trip and answer: waiting ended, or still waiting.',
+                                    action_required=True, action_payload={'booking_id': str(trip.booking_id)}, status='QUEUED'))
     touch(trip); trip.updated_by = user.id
     db.commit()
     return trip_summary(trip)
