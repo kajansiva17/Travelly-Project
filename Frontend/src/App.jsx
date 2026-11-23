@@ -51,6 +51,7 @@ import {useWorkspace} from './context/workspaceContext'
 import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
 import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/DriverPayments'
+import DriverReport from './features/reports/DriverReport'
 // Load global, public, auth and responsive styles in cascade order.
 import './styles/colorTokens.css'
 import './styles/styles.css'
@@ -289,6 +290,7 @@ export default function App() {
             <Route path="/driver/trip-history" element={<WorkspaceBookings kind="history"/>}/>
             <Route path="/driver/availability" element={<Availability/>}/>
             <Route path="/driver/earnings" element={<DriverEarnings/>}/>
+            <Route path="/driver/reports" element={<DriverReport/>}/>
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             {placeholders.DRIVER.map(path=><Route key={path} path={'/driver/'+path} element={<WorkspacePlaceholder/>}/>)}

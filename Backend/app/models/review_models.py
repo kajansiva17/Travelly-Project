@@ -44,6 +44,10 @@ vehicles_table = Table('vehicles', Base.metadata,
     Column('current_location_source', String(12), nullable=True),
     Column('current_location_observed_at', DateTime(timezone=True), nullable=True),
     Column('current_location_accuracy_m', Numeric(10,2), nullable=True),
+    # Live "Go online" (migration 0026): who is sending this vehicle's GPS right now, and the Owner's instant-booking switch.
+    Column('live_online_user_id', UUID(as_uuid=True), ForeignKey('users.id', name='fk_vehicles_live_online_user_id', ondelete='RESTRICT', onupdate='RESTRICT'), nullable=True),
+    Column('live_online_since', DateTime(timezone=True), nullable=True),
+    Column('instant_booking', Boolean, nullable=False, server_default=text('false')),
     Column('verified_eligibility', JSONB, nullable=False, server_default=text("'{}'::jsonb")),
     CheckConstraint("jsonb_typeof(verified_eligibility)='object'", name='ck_vehicles_verified_eligibility_json'),
     Column('approved_by', UUID(as_uuid=True), ForeignKey('users.id', name='fk_vehicles_approved_by', ondelete='RESTRICT', onupdate='RESTRICT', deferrable=False), nullable=True),
@@ -82,6 +86,7 @@ vehicles_table = Table('vehicles', Base.metadata,
     CheckConstraint("current_location_source IS NULL OR current_location_source IN ('GPS','MANUAL')", name='ck_vehicles_31'),
     CheckConstraint('(current_latitude IS NULL) = (current_location_observed_at IS NULL)', name='ck_vehicles_32'),
     CheckConstraint('current_location_accuracy_m IS NULL OR current_location_accuracy_m>=0', name='ck_vehicles_33'),
+    CheckConstraint('(live_online_user_id IS NULL) = (live_online_since IS NULL)', name='ck_vehicles_live_online'),
     UniqueConstraint('public_vehicle_reference', name='uq_vehicles_01'),
     UniqueConstraint('registration_number', name='uq_vehicles_02'),
 )
@@ -91,6 +96,7 @@ Index('ix_vehicles_03', vehicles_table.c.vehicle_type_code)
 Index('ix_vehicles_04', vehicles_table.c.availability_status)
 Index('ix_vehicles_created_by', vehicles_table.c.created_by, postgresql_where=text('created_by IS NOT NULL'))
 Index('ix_vehicles_updated_by', vehicles_table.c.updated_by, postgresql_where=text('updated_by IS NOT NULL'))
+Index('ix_vehicles_live_online', vehicles_table.c.live_online_user_id, postgresql_where=text('live_online_user_id IS NOT NULL'))
 vehicles_table.primary_key.name = 'pk_vehicles'
 
 class Vehicle(Base):

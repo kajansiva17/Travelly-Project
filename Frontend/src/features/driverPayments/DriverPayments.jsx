@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
@@ -120,6 +120,7 @@ export default function DriverEarnings() {
     info={t('Owners record what they paid you for each completed trip. Cash counts only after you confirm it.')}>
     <Compact.Provider value={true}>
       <ErrorNotice error={error}/>
+      <p><Link className="ui-button ui-button-secondary" to="/driver/reports">{t('Monthly report')}</Link></p>
       {totals && <p className="flow-note"><strong>{t('Confirmed')}</strong>: {t('LKR')} {totals.confirmed_total} · <strong>{t('Waiting for you')}</strong>: {t('LKR')} {totals.waiting_total}</p>}
       {data === null && !error && <p role="status">{t('Loading…')}</p>}
       {data && !items.length && <p className="flow-note" role="status">{t('No payments yet.')}</p>}

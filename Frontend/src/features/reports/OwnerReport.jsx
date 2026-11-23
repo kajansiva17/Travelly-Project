@@ -22,17 +22,17 @@ export default function OwnerReport(){
   const sum=d?.summary||{},res=d?.result||{},loss=isLoss(res)
   const strip=d&&<ResultCard compact loss={loss} labels={[t('Income'),t('Expenses'),loss?t('Loss'):t('Profit')]} income={m(res.income)} expenses={m(res.expenses_total)} profit={m(res.profit)}/>
   const empty=t('Nothing in this month')
-  const tabs=['Overview','Trips and km','Earnings','Maintenance','Documents'].map((name,i)=>({label:t(name),icon:['chart','route','wallet','settings','document'][i],active:tab===i,onClick:()=>setTab(i)}))
+  const tabs=['Overview','Trips and km','Earnings','Maintenance','Documents','Driver payments'].map((name,i)=>({label:t(name),icon:['chart','route','wallet','settings','document','user'][i],active:tab===i,onClick:()=>setTab(i)}))
   const view=[
     // 0 overview: the month result card first, then the summary tiles
     d&&<div className="rp-pane" key="o"><ResultCard loss={loss} labels={[t('Income'),t('Expenses'),loss?t('Loss'):t('Profit')]} income={m(res.income)} expenses={m(res.expenses_total)} profit={m(res.profit)}>
-        <p className="rp-note">{t('Service and repair')} {m(res.expenses_service_and_repair)} · {t('Fuel and charging')} {m(res.expenses_fuel_and_charging)}{res.note?` — ${res.note}`:''}</p></ResultCard>
+        <p className="rp-note">{t('Service and repair')} {m(res.expenses_service_and_repair)} · {t('Fuel and charging')} {m(res.expenses_fuel_and_charging)} · {t('Paid to Drivers')} {m(res.expenses_driver_payments)}{res.note?` — ${res.note}`:''}</p></ResultCard>
       <Tiles items={[
         {key:'v',label:t('Vehicles'),value:sum.vehicles},{key:'t',label:t('Completed trips'),value:sum.completed_trips},{key:'k',label:t('Total km'),value:km(sum.total_km)},
         {key:'g',label:t('Gross collected'),value:m(sum.gross_collected)},{key:'c',label:t('Commission'),value:m(sum.commission)},{key:'r',label:t('Refunded'),value:m(sum.refunded)},
         {key:'n',label:t('Owner net'),value:m(sum.owner_net)},{key:'p',label:t('Payouts received'),value:m(sum.payouts_received)},{key:'m',label:t('Maintenance spend'),value:m(sum.maintenance_spend)},
         {key:'f',label:t('Fuel and charging spend'),value:m(sum.fuel_and_charging_spend)},{key:'d',label:t('Documents needing attention'),value:sum.documents_needing_attention,tone:Number(sum.documents_needing_attention)>0?'bad':''},
-        {key:'e',label:t('Expenses'),value:m(sum.expenses_total)}]}/></div>,
+        {key:'dp',label:t('Paid to Drivers'),value:m(sum.driver_payments_paid)},{key:'e',label:t('Expenses'),value:m(sum.expenses_total)}]}/></div>,
     // 1 trips
     d&&<div className="rp-pane" key="t">{strip}
       {(d.trips?.per_vehicle||[]).length>0&&<div className="rp-chips">{d.trips.per_vehicle.map(v=><Chip key={v.vehicle} tone="info">{v.vehicle} · {t('{value0} trips',{value0:v.trips})} · {km(v.km)}</Chip>)}</div>}
@@ -58,6 +58,13 @@ export default function OwnerReport(){
     d&&<div className="rp-pane" key="x">{strip}
       <DataTable label={t('Documents')} empty={empty} rows={d.documents?.items} columns={[
         {key:'expiry_date',label:t('Expiry date'),top:true,render:r=>day(r.expiry_date)},{key:'state',label:t('State'),top:true},{key:'document',label:t('Document')},{key:'for',label:t('For')},{key:'number',label:t('Number')},{key:'status',label:t('Status')}]}/></div>
+    ,
+    // 5 driver payments: what you recorded paying Drivers, by the day paid. Cash counts after the Driver confirms it.
+    d&&<div className="rp-pane" key="dp">{strip}
+      <Tiles items={[{key:'a',label:t('Confirmed'),value:m(d.driver_payments?.paid_total)},{key:'b',label:t('Waiting for the Driver'),value:m(d.driver_payments?.waiting_total)}]}/>
+      <DataTable label={t('Driver payments')} empty={empty} rows={d.driver_payments?.items} columns={[
+        {key:'paid_on',label:t('Paid on'),top:true,render:r=>day(r.paid_on)},{key:'amount',label:t('Amount'),top:true,render:r=>m(r.amount)},{key:'trip',label:t('Trip')},{key:'driver',label:t('Driver')},
+        {key:'method',label:t('Method')},{key:'reference',label:t('Reference')},{key:'status',label:t('Status'),render:r=>r.status==='Confirmed'?t('Confirmed'):t('Waiting for the Driver')}]}/></div>
   ][tab]
   return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period_label||t('Monthly report')} tabs={tabs}
     info={d?.generated_at?`${t('Made on')} ${formatDateTime(d.generated_at)}`:t('Your trips, earnings, maintenance and documents for one month.')}>
