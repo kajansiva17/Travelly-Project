@@ -214,12 +214,7 @@ export function WorkspaceSettings(){const {user,role}=useWorkspace(),[tab,setTab
  <div className="flow-wizard-form" hidden={tab!==5}>{tab===5&&<TwoStepTab/>}</div>
  <div className="flow-wizard-form" hidden={tab!==6}>{tab===6&&<CloseAccountTab/>}</div></FlowShell>}
 const moduleNotes={
- 'Ticket Booking':'Scheduled ticket search and seat checkout are not available yet. Private vehicle hire is available through Search & Hire.',
- 'AI Trip Planner':'AI trip planning is not available yet. You can build and price a private-hire itinerary in trip search.',
- 'Track Trip':'Live location tracking is not available yet. Open My Bookings to review the current status of your journeys.',
  'Saved':'Personal saved places are not available yet. Explore destinations and vehicle hire without creating a saved-place record.',
- 'Availability':'A Driver availability schedule and online-status control are not available yet. Assignment and trip-start checks continue in the existing booking workflow.',
- 'Payments':'A global payment workspace is not available yet. Payment and refund actions have not been added.',
  'Support':'A support-ticket service is not available yet. You can review your journeys and account details through the existing workflows.'
 }
 export function WorkspacePlaceholder(){const {role}=useWorkspace(),{pathname}=useLocation(),item=workspaceMenu(role).find(i=>i.path.split('?')[0]===pathname),title=item?.label||'Page unavailable';return <FlowShell heading={t(title)} title={t('Not available yet')} icon={item?.icon||'help'}><div className="flow-wizard-form"><Empty icon={item?.icon||'help'} title={title} to={workspaceRoles[role].home} action="Back to dashboard">{t(moduleNotes[title])||t("{value0} is not implemented for this workspace yet. No sample records or operational controls are shown.", {value0: title})}</Empty>{['OWNER','DRIVER'].includes(role)&&<p className="flow-note"><Link to={role==='OWNER'?'/owner/bookings':'/driver/assignments'}>{t("Review existing ")}{role==='OWNER'?t('bookings'):t('assignments')}</Link>{t(" for currently supported actions.")}</p>}</div></FlowShell>}

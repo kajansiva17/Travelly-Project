@@ -194,9 +194,9 @@ function OptionalPassengerWorkspace(){return useSession()?<WorkspaceShell role="
 // Booking pages are open to guests: search and quote are public and sign-in is asked only when the request is sent (a guest gets the public header).
 function GuestOrWorkspace({header=false}){return useSession()?<WorkspaceShell/>:header?<><Header/><Outlet/></>:<Outlet/>}
 const placeholders={
- OWNER:['seat-inventory','earnings','reviews','support','reports'],
+ OWNER:['seat-inventory','reviews','support'],
  DRIVER:['reels','feed','earnings','support'],
- ADMIN:['services-routes','bookings','payments','social-reviews','road-alerts','reports']
+ ADMIN:[]
 }
 export default function App() {
   useLanguage()
