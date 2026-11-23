@@ -12,11 +12,11 @@ COLOMBO_FORT = (6.93, 79.86)
 
 
 def online(client, tokens, c):
-    return client.post(f'/api/v1/vehicles/{c.vehicle_id}/live/online', headers=bearer(tokens))
+    return client.post(f'/api/v1/vehicles/{c.vehicle_id}/live/online', headers=bearer(tokens), json={})
 
 
 def offline(client, tokens, c):
-    return client.post(f'/api/v1/vehicles/{c.vehicle_id}/live/offline', headers=bearer(tokens))
+    return client.post(f'/api/v1/vehicles/{c.vehicle_id}/live/offline', headers=bearer(tokens), json={})
 
 
 def send(client, tokens, c, lat=COLOMBO_FORT[0], lng=COLOMBO_FORT[1], **extra):

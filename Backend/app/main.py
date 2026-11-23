@@ -182,6 +182,8 @@ def create_app(settings=None, engine=None, store=None):
                 if (request.method == 'GET' and request.url.path.startswith('/api/v1/social/posts/')
                         and request.url.path.endswith(('/media', '/thumbnail')) and set(request.query_params) <= {'t'}):
                     query_route = True
+                if request.method == 'GET' and request.url.path == '/api/v1/hire/nearby-now' and set(request.query_params) <= {'latitude', 'longitude', 'radius_km'}:
+                    query_route = True   # Passenger: vehicles online near a place
                 if request.query_params and not query_route:
                     raise ApiError(422, 'VALIDATION_ERROR', 'Query parameters are not supported.')
                 if request.method in ('POST', 'PATCH', 'PUT'):
