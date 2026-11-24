@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 from app.api.routers.api import current, require_role
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
@@ -45,6 +45,12 @@ def vehicle_ratings(db, vehicle_ids):
     rows = db.execute(select(TripReview.vehicle_id, func.count(TripReview.id), func.avg(TripReview.rating))
                       .where(TripReview.vehicle_id.in_(list(vehicle_ids)), TripReview.hidden_at.is_(None)).group_by(TripReview.vehicle_id)).all()
     return {vid: {'average': format(Decimal(str(avg)).quantize(Decimal('0.1')), '.1f'), 'count': count} for vid, count, avg in rows}
+
+
+def rating_of(vehicle):
+    """The public rating of one vehicle ({'average': '4.5', 'count': 12}), or None when nobody has reviewed it yet."""
+    session = object_session(vehicle)
+    return vehicle_ratings(session, [vehicle.id]).get(vehicle.id) if session is not None else None
 
 
 def review_out(row, vehicle=None, trip=None, passenger=None):

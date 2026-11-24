@@ -7,6 +7,7 @@ import VehiclePhoto from '../../../components/VehiclePhoto'
 import { Stepper, Tabs, ServiceTile, InfoTip } from '../../../components/ui'
 import { useWorkspace } from '../../../context/workspaceContext'
 import ExtraLines from '../ExtraLines'
+import { PhotoViewer, vehicleImages } from './PhotoViewer'
 
 /* Presentational parts of the Travel & Booking flow. The passenger wizard
    (/travel/book/*) and the owner / driver / admin personal booking page
@@ -109,10 +110,12 @@ export function TripSummary({ title = 'Trip summary', image, rows = [], empty = 
 
 /* Vehicle card used for matching results and the selected vehicle. */
 export function FlowVehicleCard({ vehicle, title, specs = [], chips, action, selected = false }) {
+  const images = vehicleImages(vehicle), [view, setView] = useState(null)
   return <article className={`flow-vehicle ui-card${selected ? ' is-selected' : ''}`}>
-    <div className="flow-vehicle-photo">{vehicle?.profile_image_url ? <img src={vehicle.profile_image_url} alt={title} referrerPolicy="no-referrer"/> : vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{vehicle?.id && <FavouriteHeart vehicleId={vehicle.id}/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
+    <div className="flow-vehicle-photo">{images.length ? <button type="button" className="flow-photo-open" onClick={() => setView(0)} aria-label={t('View photos of {value0}', { value0: title })}><img src={images[0].cover} alt={title} referrerPolicy="no-referrer" loading="lazy"/>{images.length > 1 && <span className="flow-photo-count"><Icon name="grid" size={13} aria-hidden="true"/>{images.length}</span>}</button> : <Icon name="car" size={44} aria-hidden="true"/>}{vehicle?.id && <FavouriteHeart vehicleId={vehicle.id}/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}{view !== null && <PhotoViewer images={images} start={view} title={title} onClose={() => setView(null)}/>}</div>
     <div className="flow-vehicle-info">
       <h3>{title}</h3>
+      {vehicle?.rating && <p className="flow-rating" title={t('Passenger rating')}><span aria-hidden="true">★</span> {vehicle.rating.average} ({vehicle.rating.count})</p>}
       <ul>{specs.filter(Boolean).map(spec => <li key={spec.label}><Icon name={spec.icon || 'check'} size={17} aria-hidden="true"/><span>{spec.label}</span></li>)}</ul>
       {chips}
     </div>
@@ -144,9 +147,13 @@ export function FlowBanner({ tone = 'info', icon = 'clock', title, children, asi
 
 /* How many result cards fit one screen without scrolling (depends on window height). */
 export function useFitCount() {
-  const [height, setHeight] = useState(typeof window === 'undefined' ? 900 : window.innerHeight)
-  useEffect(() => { const resize = () => setHeight(window.innerHeight); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
-  return height < 800 ? 2 : height < 1200 ? 4 : 6
+  const read = () => typeof window === 'undefined' ? [1400, 900] : [window.innerWidth, window.innerHeight]
+  const [size, setSize] = useState(read)
+  useEffect(() => { const resize = () => setSize(read()); window.addEventListener('resize', resize); return () => window.removeEventListener('resize', resize) }, [])
+  const [width, height] = size
+  /* A compact card is about 205px tall; the header, filters, notice and Back row use about 470px. Two cards per row above 960px wide. */
+  const rows = Math.max(1, Math.floor((height - 470) / 205)), columns = width > 960 ? 2 : 1
+  return rows * columns
 }
 
 /* Previous / next page of results, shown in the Back / Next row. */

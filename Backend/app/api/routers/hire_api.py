@@ -27,6 +27,7 @@ from app.services.pickup_codes import MAX_ATTEMPTS, pin_for, same, token_for
 from app.services.pricing_scope import require_supported_private_hire, private_hire_scope
 from app.schemas.vehicle_schemas import VehicleDecision
 from app.services.vehicle_rules import public_photos
+from app.api.routers.trip_review_api import rating_of
 from app.services import commission_overdue, vehicle_whereabouts, location_matching
 from app.services.airports import active_airports, airports_of, min_distance_km, near_airport
 
@@ -173,7 +174,7 @@ def safe_vehicle(vehicle, owner):
         'owner_reference': owner.public_user_reference, 'owner_name': owner.display_name or owner.public_user_reference,
         'vehicle_type_code':vehicle.vehicle_type_code,'manufacture_year':vehicle.manufacture_year,'colour':vehicle.colour,
         'air_conditioned':vehicle.air_conditioned,'description':vehicle.verified_eligibility.get('description_review',{}).get('approved_text'),
-        'photos':public_photos(vehicle)}
+        'photos':public_photos(vehicle),'rating':rating_of(vehicle)}
 
 
 def same_hire_request(row, body, user):
@@ -468,7 +469,7 @@ def confirm_booking_location(booking_id: UUID, body: PositioningConfirmation, re
     if not vehicle or vehicle.version != body.vehicle_expected_version:
         raise ApiError(409, 'VERSION_CONFLICT', 'Vehicle changed. Reload before retrying.')
     request.app.state.rate_locations.verify(body.location)
-    itinerary = Itinerary.model_validate(row.itinerary_snapshot['itinerary'])
+    itinerary = Itinerary.stored(row.itinerary_snapshot['itinerary'])
     if itinerary.start_at > datetime.now(timezone.utc) + location_matching.IMMEDIATE_WINDOW and body.kind != 'PLANNED':
         raise ApiError(422, 'FUTURE_POSITION_REQUIRED',
                        'Confirm the vehicle position planned for the requested future date and time.')
@@ -579,6 +580,8 @@ def hide_booking(booking_id: UUID, user=Depends(current), db: Session = Depends(
 def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     row = visible_booking(db, booking_id, user)
     result = booking_summary(row)
+    service = db.get(ServiceType, row.service_type_id)
+    result['service_name'] = service.name if service else None   # the service the Passenger chose (Local hire, Airport hire, ...)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
     if result['trip']:
@@ -621,7 +624,7 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
         if preview_raw.get('return_start_at'):
             preview_raw['return_start_at'] = (datetime.fromisoformat(preview_raw['return_start_at']) + shift).isoformat()
         preview_raw['start_at'] = body.proposed_start_at.isoformat()
-    preview_itinerary = Itinerary.model_validate(preview_raw)
+    preview_itinerary = Itinerary.stored(preview_raw)
     if preview_manual and preview.pending_change['reason'] == 'DEPARTURE_TIME_CHANGE' and (preview.status != 'CONFIRMED' or preview_itinerary.start_at <= datetime.now(timezone.utc)):
         raise ApiError(409, 'DEPARTURE_CHANGE_UNAVAILABLE', 'Only an unstarted confirmed booking can receive a future departure quote.')
     preview_matching = matching_rules(body.rates.rules, preview_itinerary)
@@ -658,7 +661,7 @@ def quote(booking_id: UUID, body: QuoteBody, request: Request, user=Depends(curr
                     raw_itinerary['return_start_at'] = (datetime.fromisoformat(raw_itinerary['return_start_at']) + shift).isoformat()
                 raw_itinerary['start_at'] = body.proposed_start_at.isoformat()
                 offered_time = {'requested': old_start.isoformat(), 'proposed': body.proposed_start_at.isoformat()}
-        itinerary = Itinerary.model_validate(raw_itinerary)
+        itinerary = Itinerary.stored(raw_itinerary)
         if manual_change and row.pending_change['reason'] == 'DEPARTURE_TIME_CHANGE' and (row.status != 'CONFIRMED' or itinerary.start_at <= datetime.now(timezone.utc)):
             raise ApiError(409, 'DEPARTURE_CHANGE_UNAVAILABLE', 'Only an unstarted confirmed booking can receive a future departure quote.')
         matching = matching_rules(body.rates.rules, itinerary)
@@ -1445,7 +1448,14 @@ def prepare_change(row, body, request, db, vehicle):
         return {'kind': 'CHANGE_REQUEST_UNPRICED', 'reason': body.reason, 'itinerary': body.itinerary.model_dump(mode='json'),
                 'old_total': initial['calculation']['total'], 'manual_review_required': True,
                 'message': 'The fixed fare covers the agreed exact route. The Owner must quote reusable rules for this changed route before any added/new total can be accepted.'}
-    snapshot = price(request, service_for(db, row.service_type_id, False), vehicle, body.itinerary, [rule], agreed_rule=True)
+    service = service_for(db, row.service_type_id, False)
+    changed = body.itinerary
+    if Itinerary.stored(initial['itinerary'])._auto:
+        # The agreed hours were worked out from the route. A longer or shorter trip needs its own worked-out hours (not the old window as a strict limit);
+        # the extra hours then show up in the added charge and the Owner's change limits decide whether manual review is needed.
+        changed = changed.model_copy(); changed._auto = True
+        changed = settle_hours(request, service, changed)
+    snapshot = price(request, service, vehicle, changed, [rule], agreed_rule=True)
     old_total = Decimal(initial['calculation']['total']); new_total = Decimal(snapshot['calculation']['total'])
     old_usage = initial['measurement']['usage']; usage = snapshot['measurement']['usage']
     delta = {'added_km': str(max(Decimal('0'), Decimal(usage['distance_km']) - Decimal(old_usage['distance_km']))),

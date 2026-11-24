@@ -179,9 +179,9 @@ export default function OwnerHire() {
           <PlaceSearch label="To" value={f.to} onChange={place => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, to: place } : x) }))}/>
           <Field label="Trip type"><select value={f.direction || 'ONE_WAY'} onChange={e => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, direction: e.target.value } : x) }))}><option value="ONE_WAY">{t('One way')}</option><option value="RETURN">{t('Return journey')}</option></select></Field>
           <AmountField name="fixed_fare" label="Price" help="One price for this trip from the first place to the second." value={f.fixed_fare} onChange={v => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, fixed_fare: v } : x) }))}/>
-          <button type="button" className="ui-button ui-button-secondary" onClick={() => setState(s => ({ ...s, fixed: s.fixed.filter((_, n) => n !== i) }))}>{t('Remove')}</button>
+          <button type="button" className="ui-button ui-button-secondary ui-button-small" onClick={() => setState(s => ({ ...s, fixed: s.fixed.filter((_, n) => n !== i) }))}>{t('Remove')}</button>
         </div>)}</div>
-        <button type="button" className="ui-button ui-button-secondary" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '', direction: 'ONE_WAY' }] }))}>{t('Add a fixed route')}</button>
+        <button type="button" className="ui-button ui-button-secondary ui-button-small" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '', direction: 'ONE_WAY' }] }))}>{t('Add a fixed route')}</button>
       </div>}
 
       {ready && !isEvent && key === 'terms' && <div className="hire-pane flow-wizard-form">

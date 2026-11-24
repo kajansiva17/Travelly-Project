@@ -60,9 +60,9 @@ export default function AdminRoutes(){
       </div>
       <div className="tk-pane" hidden={w.step!==1}>
         <div className="tk-stop-nav">
-          <button type="button" className="ui-button ui-button-secondary" aria-label="Previous stop" disabled={current===0} onClick={()=>setCurrent(current-1)}>‹</button>
+          <button type="button" className="ui-button ui-button-secondary" aria-label={t("Previous stop")} disabled={current===0} onClick={()=>setCurrent(current-1)}>‹</button>
           <strong>{t('Stop {value0} of {value1}',{value0:current+1,value1:stops.length})}</strong>
-          <button type="button" className="ui-button ui-button-secondary" aria-label="Next stop" disabled={current===stops.length-1} onClick={()=>setCurrent(current+1)}>›</button>
+          <button type="button" className="ui-button ui-button-secondary" aria-label={t("Next stop")} disabled={current===stops.length-1} onClick={()=>setCurrent(current+1)}>›</button>
           <span style={{flex:1}}/>
           {stops.length>2&&<button type="button" className="ui-button ui-button-secondary" onClick={remove}>{t('Remove stop')}</button>}
           <button type="button" className="ui-button ui-button-secondary" disabled={stops.length>=50} onClick={()=>{setStops([...stops,blankStop()]);setCurrent(stops.length)}}>{t('Add stop')}</button>

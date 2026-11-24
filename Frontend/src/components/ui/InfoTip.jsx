@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../components'
+import { t } from '../../i18n/language.js'
 
 /* Small "i" button that shows a longer helper text on hover, tap or keyboard focus.
    Use it to keep forms short instead of printing long hints under every field.
@@ -23,7 +24,7 @@ export default function InfoTip({ children, label = 'More information', classNam
     return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close); window.removeEventListener('keydown', key) }
   }, [open])
   return <span className={`ui-infotip${className ? ' ' + className : ''}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>
-    <button type="button" ref={button} aria-label={label} aria-describedby={open ? id : undefined}><Icon name="help" size={15} aria-hidden="true"/></button>
-    {open && createPortal(<span role="tooltip" id={id} ref={tip} className="ui-infotip-pop" style={{ left: at.left, top: at.top }}>{children}</span>, document.body)}
+    <button type="button" ref={button} aria-label={t(label)} aria-describedby={open ? id : undefined}><Icon name="help" size={15} aria-hidden="true"/></button>
+    {open && createPortal(<span role="tooltip" id={id} ref={tip} className="ui-infotip-pop" style={{ left: at.left, top: at.top }}>{typeof children === 'string' ? t(children) : children}</span>, document.body)}
   </span>
 }

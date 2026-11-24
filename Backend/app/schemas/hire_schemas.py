@@ -24,6 +24,16 @@ class Itinerary(RateModel):
     event_package_id: UUID | None = None   # Event hire only: which of the vehicle's Owner packages is booked
     _auto: bool = PrivateAttr(default=False)   # True only when the caller left service_hours out; never read from input or stored
 
+    @classmethod
+    def stored(cls, raw):
+        """A saved booking's itinerary read back for a new price check. Its hours were worked out when the Passenger searched, from the plain car route.
+        Read them as "worked out" again (not as hours the Passenger fixed), so each vehicle's own route measurement decides the hours and a slower vehicle
+        never fails its own booking. Event packages and overnight-rest journeys have hours that really are fixed, so they stay strict."""
+        itinerary = cls.model_validate(raw)
+        if itinerary.event_package_id is None and not any(stop.overnight_rest for stop in itinerary.stops):
+            itinerary._auto = True
+        return itinerary
+
     @model_validator(mode='after')
     def coherent(self):
         if self.service_hours is None:
