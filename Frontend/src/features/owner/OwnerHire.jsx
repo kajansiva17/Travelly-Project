@@ -1,13 +1,11 @@
 import { t } from '../../i18n/language.js'
 import React, { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { api, hasSession } from '../../services/api'
 import { ErrorNotice, Header } from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import { Checkbox } from '../../components/ui'
 import { Field, AmountField, PlaceSearch, Compact, CashSwitch } from './OwnerRates'
-import EventPackages from './EventPackages'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { validateRateRules } from './rateValidation'
 import { withExtraPolicy } from '../booking/extraPolicy.js'
@@ -20,6 +18,9 @@ import { fieldErrors } from '../../services/fieldErrors.js'
 
 const TYPES = [['LOCAL', 'Local'], ['AIRPORT', 'Airport'], ['LONG_DISTANCE', 'Long distance'], ['EVENT', 'Event']]
 const RADIUS = { LOCAL: '25', AIRPORT: '100', LONG_DISTANCE: '400' }
+/* Which price tabs each hire type shows, in the order the price is looked for. The Owner only sees what applies to the type being set. */
+const TAB_KEYS = { LOCAL: ['fixed', 'km', 'terms'], AIRPORT: ['fixed', 'km', 'terms'], LONG_DISTANCE: ['fixed', 'pkg', 'km', 'terms'], EVENT: ['pkg', 'terms'] }
+const TAB_LABEL = { fixed: ['Fixed routes', 'route'], km: ['Per km', 'chart'], pkg: ['Day package', 'calendar'], terms: ['Extras and terms', 'settings'] }
 const today = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10)
 const zero = '0'
 const num = v => v === '' || v == null ? '' : String(v)
@@ -29,7 +30,7 @@ const emptyTerms = () => ({ waiting: false, free_wait_minutes: '', waiting_hour_
 const emptyKm = () => ({ on: false, base_charge: '', included_km: '', extraKm: false, extra_km_rate: '' })
 const emptyPackage = () => ({ on: false, day_charge: '', included_hours_per_day: '', included_km_per_day: '', extraKm: false, extra_km_rate: '', extraHours: false, extra_hour_rate: '' })
 
-const isMine = r => r.direction === 'ONE_WAY' && ((['DISTANCE', 'DAY_HIRE'].includes(r.method) && ['ANY', 'AREA'].includes(r.coverage.kind)) || (r.method === 'FIXED_ROUTE' && r.coverage.kind === 'ROUTE' && r.coverage.places.length === 2))
+const isMine = r => (r.direction === 'ONE_WAY' && ['DISTANCE', 'DAY_HIRE'].includes(r.method) && ['ANY', 'AREA'].includes(r.coverage.kind)) || (r.method === 'FIXED_ROUTE' && r.coverage.kind === 'ROUTE' && r.coverage.places.length === (r.direction === 'RETURN' ? 3 : 2))
 const charged = (r, key) => (r.extra_policy?.[key] ?? 'CHARGED') === 'CHARGED'
 
 function hydrate(rules) {
@@ -42,7 +43,7 @@ function hydrate(rules) {
   }
   if (km) state.km = { id: km.id, on: true, coverage: km.coverage, pickup_area: km.pickup_area, base_charge: num(km.base_charge), included_km: num(km.included_km), extraKm: (km.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(km.extra_km_rate) }
   if (pkg) state.pkg = { id: pkg.id, on: true, coverage: pkg.coverage, pickup_area: pkg.pickup_area, day_charge: num(pkg.day_charge), included_hours_per_day: num(pkg.included_hours_per_day), included_km_per_day: num(pkg.included_km_per_day), extraKm: (pkg.extra_policy?.EXTRA_KM ?? 'CHARGED') === 'CHARGED', extra_km_rate: num(pkg.extra_km_rate), extraHours: (pkg.extra_policy?.EXTRA_HOURS ?? 'CHARGED') === 'CHARGED', extra_hour_rate: num(pkg.extra_hour_rate) }
-  state.fixed = mine.filter(r => r.method === 'FIXED_ROUTE').map(r => ({ id: r.id, from: r.coverage.places[0], to: r.coverage.places[1], fixed_fare: num(r.fixed_fare), kept: r }))
+  state.fixed = mine.filter(r => r.method === 'FIXED_ROUTE').map(r => ({ id: r.id, from: r.coverage.places[0], to: r.coverage.places[1], fixed_fare: num(r.fixed_fare), direction: r.direction, kept: r }))
   if (base) state.from = base.effective_from
   return state
 }
@@ -70,21 +71,23 @@ function build(state) {
       day_charge: p.day_charge, included_km_per_day: p.included_km_per_day, included_hours_per_day: p.included_hours_per_day, extra_km_rate: p.extraKm ? p.extra_km_rate : zero, extra_hour_rate: p.extraHours ? p.extra_hour_rate : zero, night_km_rate: zero, overnight_driver_cost: zero }))
   }
   for (const f of state.fixed) {
-    out.push(withExtraPolicy({ ...common(f.id, `${String(f.from.label).split(',')[0]} → ${String(f.to.label).split(',')[0]}`, 'FIXED_ROUTE', { kind: 'ROUTE', places: [f.from, f.to] }, null, {}), departure: { kind: 'ANY_TIME' }, fixed_fare: f.fixed_fare }))
+    const back = f.direction === 'RETURN'   // a return fare covers pickup → destination → pickup, priced on its own
+    out.push(withExtraPolicy({ ...common(f.id, `${String(f.from.label).split(',')[0]} → ${String(f.to.label).split(',')[0]}${back ? ' → ' + String(f.from.label).split(',')[0] : ''}`, 'FIXED_ROUTE', { kind: 'ROUTE', places: back ? [f.from, f.to, f.from] : [f.from, f.to] }, null, {}), direction: back ? 'RETURN' : 'ONE_WAY', departure: { kind: 'ANY_TIME' }, fixed_fare: f.fixed_fare }))
   }
   return out
 }
 
 function problems(state, scope) {
   const list = []
-  if (!state.km.on && !state.pkg.on && !state.fixed.length) list.push('Turn on at least one price first: Per km, Day package or Fixed routes.')
+  const shows = TAB_KEYS[scope] || TAB_KEYS.LOCAL
+  if (scope === 'EVENT') { if (!state.pkg.on) list.push('Turn on the day package first.') } else if (!(state.km.on && shows.includes('km')) && !(state.pkg.on && shows.includes('pkg')) && !state.fixed.length) list.push('Turn on at least one price first: Per km, Day package or Fixed routes.')
   const need = (ok, text) => { if (!ok) list.push(text) }
   if (state.terms.waiting) { need(decimal(state.terms.free_wait_minutes), 'Enter the free waiting minutes (0 if none).'); need(decimal(state.terms.waiting_hour_rate), 'Enter the extra waiting rate per hour.') }
   if (state.terms.returnSeparate) need(decimal(state.terms.returnCharge), 'Enter the return-to-base charge.')
   const k = state.km
-  if (k.on) { need(decimal(k.base_charge) && decimal(k.included_km), 'Per km: enter the base charge and the included km.'); if (k.extraKm) need(decimal(k.extra_km_rate), 'Per km: enter the extra km rate.') }
+  if (k.on && shows.includes('km')) { need(decimal(k.base_charge) && decimal(k.included_km), 'Per km: enter the base charge and the included km.'); if (k.extraKm) need(decimal(k.extra_km_rate), 'Per km: enter the extra km rate.') }
   const p = state.pkg
-  if (p.on) {
+  if (p.on && shows.includes('pkg')) {
     need(decimal(p.day_charge) && decimal(p.included_km_per_day) && decimal(p.included_hours_per_day), 'Package: enter the price, the hours and the km.')
     need(Number(p.included_hours_per_day) > 0 && Number(p.included_hours_per_day) <= 24, 'Package: hours must be more than 0 and at most 24.')
     if (p.extraKm) need(decimal(p.extra_km_rate), 'Package: enter the extra km rate.')
@@ -97,18 +100,17 @@ function problems(state, scope) {
 export default function OwnerHire() {
   const location = useLocation(), query = new URLSearchParams(location.search)
   const [vehicles, setVehicles] = useState([]), [services, setServices] = useState([]), [vehicle, setVehicle] = useState(() => query.get('vehicle') || ''), [scope, setScope] = useState(() => query.get('type') || 'LOCAL')
-  const [saved, setSaved] = useState(null), [state, setState] = useState(null), [tab, setTab] = useState(0), [error, setError] = useState(null), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [slot, setSlot] = useState(null), [user, setUser] = useState(null)
+  const [saved, setSaved] = useState(null), [local, setLocal] = useState(null), [state, setState] = useState(null), [tab, setTab] = useState(0), [error, setError] = useState(null), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [user, setUser] = useState(null)
   useEffect(() => { if (!hasSession()) return; Promise.all([api('/users/me'), api('/owners/me/vehicles'), api('/service-types')]).then(([u, v, s]) => { setUser(u); setVehicles(v.items); setServices(s.items); setVehicle(cur => cur || (v.items[0] && v.items[0].id) || '') }).catch(setError) }, [])
-  const service = services.find(s => s.pricing_scope === scope)
+  const service = services.find(s => s.pricing_scope === scope), localService = services.find(s => s.pricing_scope === 'LOCAL')   // Event hire has no price of its own: it uses the Local day package
   useEffect(() => {
-    setSaved(null); setState(null); setNotice(''); setError(null)
-    if (!vehicle || !service) return
+    setSaved(null); setLocal(null); setState(null); setNotice(''); setError(null)
+    if (!vehicle || !service || (scope === 'EVENT' && !localService)) return
     let live = true
-    api(`/vehicles/${vehicle}/services`).then(r => { if (!live) return; const row = (r.items || []).find(x => x.service_type_id === service.id) || { service_type_id: service.id, version: 0, rules: [], event_packages: [], cash_accepted: false }; setSaved(row); setState(scope === 'EVENT' ? null : hydrate(row.rules || [])) }).catch(e => { if (live) setError(e) })
+    api(`/vehicles/${vehicle}/services`).then(r => { if (!live) return; const pick = sv => (r.items || []).find(x => x.service_type_id === sv.id) || { service_type_id: sv.id, version: 0, rules: [], event_packages: [], cash_accepted: false }, row = pick(service); setSaved(row); if (scope === 'EVENT') { const base = pick(localService); setLocal(base); setState(hydrate(base.rules || [])) } else setState(hydrate(row.rules || [])) }).catch(e => { if (live) setError(e) })
     return () => { live = false }
-  }, [vehicle, service?.id, scope])
+  }, [vehicle, service?.id, localService?.id, scope])
   const set = (key, patch) => setState(s => ({ ...s, [key]: { ...s[key], ...patch } }))
-  const Footer = ({ children }) => slot ? createPortal(children, slot) : null
   const issues = useMemo(() => state ? problems(state, scope) : [], [state, scope])
   async function save() {
     setError(null); setNotice('')
@@ -117,18 +119,23 @@ export default function OwnerHire() {
     if (found.length) { setError({ message: found[0].message }); return }
     setBusy(true)
     try {
-      const result = await api(`/vehicles/${vehicle}/services`, { method: 'PUT', body: JSON.stringify({ service_type_id: service.id, expected_version: saved.version, enabled: true, currency: 'LKR', rules }) })
-      setSaved(result); setState(hydrate(result.rules || rules)); setNotice(t('Prices saved. Passengers get a fresh quote for each trip.'))
+      const target = scope === 'EVENT' ? { service: localService, row: local } : { service, row: saved }
+      const result = await api(`/vehicles/${vehicle}/services`, { method: 'PUT', body: JSON.stringify({ service_type_id: target.service.id, expected_version: target.row.version, enabled: true, currency: 'LKR', rules }) })
+      if (scope === 'EVENT') {   // saving the day package also updates this vehicle's Event offer, so reload the Event row
+        setLocal(result); const all = await api(`/vehicles/${vehicle}/services`)
+        setSaved((all.items || []).find(x => x.service_type_id === service.id) || saved)
+      } else setSaved(result)
+      setState(hydrate(result.rules || rules)); setNotice(t('Prices saved. Passengers get a fresh quote for each trip.'))
     } catch (e) { setError(e) } finally { setBusy(false) }
   }
   if (!hasSession()) return <Navigate to="/login" replace/>
   if (user && !user.approved_roles.includes('OWNER')) return <Navigate to="/" replace/>
-  const isEvent = scope === 'EVENT', ready = saved && (isEvent || state)
-  const tabNames = isEvent ? ['Packages', 'Extras and terms'] : ['Per km', 'Day package', 'Fixed routes', 'Extras and terms']
-  const tabs = ready ? (isEvent ? [['Packages', 'calendar'], ['Extras and terms', 'settings']] : [['Per km', 'chart'], ['Day package', 'calendar'], ['Fixed routes', 'route'], ['Extras and terms', 'settings']]).map(([label, icon], i) => ({ label: t(label), icon, active: tab === i, onClick: () => setTab(i) })) : undefined
+  const isEvent = scope === 'EVENT', ready = saved && state
+  const keys = TAB_KEYS[scope] || TAB_KEYS.LOCAL, key = keys[tab] || keys[0]
+  const tabs = ready ? keys.map((k, i) => ({ label: t(TAB_LABEL[k][0]), icon: TAB_LABEL[k][1], active: key === k, onClick: () => setTab(i) })) : undefined
   const fixedList = state?.fixed || []
-  return <><Header/><FlowShell heading={t('Hire prices')} icon="wallet" title={t(TYPES.find(x => x[0] === scope)[1]) + ' · ' + t(tabNames[tab])}
-    info={t('Set prices for one hire type at a time. A fixed route price is used first, then your package, then per km. If nothing matches, the Passenger asks you for a price.')} tabs={tabs}>
+  return <><Header/><FlowShell heading={t('Hire prices')} icon="wallet" title={t(TYPES.find(x => x[0] === scope)[1]) + ' · ' + t(TAB_LABEL[key][0])}
+    info={scope === 'EVENT' ? t('Event hire uses your day package for one day of Local hire. Set the hours, the distance and the price once; it is used for Local day hire and Event hire.') : scope === 'LOCAL' || scope === 'AIRPORT' ? t('Set prices for one hire type at a time. A fixed route price is used first, then per km. If nothing matches, the Passenger asks you for a price.') : t('Set prices for one hire type at a time. A fixed route price is used first, then your package, then per km. If nothing matches, the Passenger asks you for a price.')} tabs={tabs}>
     <Compact.Provider value={true}>
       <ErrorNotice error={error}/>{fieldErrors(error).length > 0 && <ul className="field-error" role="alert">{fieldErrors(error).map((f, i) => <li key={i}>{f.message}</li>)}</ul>}
       {notice && <p className="notice success" role="status">{notice}</p>}
@@ -137,12 +144,11 @@ export default function OwnerHire() {
         <div className="rate-field"><label>{t('Hire type')}</label><div className="status-chips">{TYPES.map(([code, name]) => <Chip key={code} selected={scope === code} onClick={() => { setScope(code); setTab(0) }}>{t(name)}</Chip>)}</div></div>
       </div>
       {!vehicle && !error && <p className="flow-note">{vehicles.length ? t('Choose a vehicle to set its prices.') : <>{t('You have no vehicles yet.')} <Link to="/owner/vehicles">{t('Add a vehicle first')}</Link></>}</p>}
-      {vehicle && isEvent && ready && tab === 0 && <EventPackages key={`${vehicle}-${saved.version}`} vehicle={{ id: vehicle }} Footer={Footer} onServiceLoaded={setSaved}/>}
-      {vehicle && isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
-      {vehicle && !isEvent && !service && services.length > 0 && <p role="status">{t('This hire type is not set up yet. An Admin must activate it first.')}</p>}
-      {vehicle && !isEvent && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
+      {vehicle && !service && services.length > 0 && <p role="status">{t('This hire type is not set up yet. An Admin must activate it first.')}</p>}
+      {vehicle && service && !ready && !error && <p role="status">{t('Loading saved rates…')}</p>}
 
-      {ready && !isEvent && tab === 0 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && key === 'km' && <div className="hire-pane flow-wizard-form">
+        <p className="flow-note">{t('A return trip is priced over the whole round-trip distance with the same rates.')}</p>
         <Checkbox checked={state.km.on} onChange={e => set('km', { on: e.target.checked })}>{t('I price this hire type per km')}</Checkbox>
         {state.km.on && <div className="rate-grid">
           <AmountField name="base_charge" label="Starting price" help="Charged for every trip; it covers the included km." value={state.km.base_charge} onChange={v => set('km', { base_charge: v })}/>
@@ -152,7 +158,7 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && !isEvent && tab === 1 && <div className="hire-pane flow-wizard-form">
+      {ready && key === 'pkg' && <div className="hire-pane flow-wizard-form">
         <Checkbox checked={state.pkg.on} onChange={e => set('pkg', { on: e.target.checked })}>{t('I offer a fixed package (price for set hours and km)')}</Checkbox>
         {state.pkg.on && <div className="rate-grid">
           <AmountField name="day_charge" label="Package price" help="One price for the hours and km below." value={state.pkg.day_charge} onChange={v => set('pkg', { day_charge: v })}/>
@@ -165,18 +171,20 @@ export default function OwnerHire() {
         </div>}
       </div>}
 
-      {ready && !isEvent && tab === 2 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && key === 'fixed' && <div className="hire-pane flow-wizard-form">
         <p className="flow-note">{t('A fixed price from one place to another. It is used before your package or per km rates.')}</p>
+        <p className="flow-note">{t('Choose One way or Return for each route. Set the same places twice to give a separate price for each.')}</p>
         <div className="hire-fixed">{fixedList.map((f, i) => <div className="hire-fixed-row" key={f.id}>
           <PlaceSearch label="From" value={f.from} onChange={place => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, from: place } : x) }))}/>
           <PlaceSearch label="To" value={f.to} onChange={place => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, to: place } : x) }))}/>
+          <Field label="Trip type"><select value={f.direction || 'ONE_WAY'} onChange={e => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, direction: e.target.value } : x) }))}><option value="ONE_WAY">{t('One way')}</option><option value="RETURN">{t('Return journey')}</option></select></Field>
           <AmountField name="fixed_fare" label="Price" help="One price for this trip from the first place to the second." value={f.fixed_fare} onChange={v => setState(s => ({ ...s, fixed: s.fixed.map((x, n) => n === i ? { ...x, fixed_fare: v } : x) }))}/>
           <button type="button" className="ui-button ui-button-secondary" onClick={() => setState(s => ({ ...s, fixed: s.fixed.filter((_, n) => n !== i) }))}>{t('Remove')}</button>
         </div>)}</div>
-        <button type="button" className="ui-button ui-button-secondary" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '' }] }))}>{t('Add a fixed route')}</button>
+        <button type="button" className="ui-button ui-button-secondary" disabled={fixedList.length >= 20} onClick={() => setState(s => ({ ...s, fixed: [...s.fixed, { id: crypto.randomUUID(), from: null, to: null, fixed_fare: '', direction: 'ONE_WAY' }] }))}>{t('Add a fixed route')}</button>
       </div>}
 
-      {ready && !isEvent && tab === 3 && <div className="hire-pane flow-wizard-form">
+      {ready && !isEvent && key === 'terms' && <div className="hire-pane flow-wizard-form">
         <div className="rate-grid">
           <div className="hire-check"><Checkbox checked={state.terms.waiting} onChange={e => set('terms', { waiting: e.target.checked })}>{t('Charge for waiting time')}</Checkbox></div>
           <Field label="Tolls"><select value={state.terms.tolls} onChange={e => set('terms', { tolls: e.target.value })}><option value="INCLUDED">{t('Included in my prices')}</option><option value="SEPARATE_AT_COST">{t('Passenger pays the actual cost')}</option></select></Field>
@@ -188,10 +196,9 @@ export default function OwnerHire() {
         </div>
       </div>}
 
-      {ready && ((isEvent && tab === 1) || (!isEvent && tab === 3)) && <CashSwitch vehicle={vehicle} service={service.id} saved={saved} onSaved={setSaved}/>}
+      {ready && key === 'terms' && <CashSwitch vehicle={vehicle} service={service.id} saved={saved} onSaved={setSaved}/>}
 
-      {ready && !isEvent && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={save}>{busy ? t('Saving…') : t('Save prices')}</button></div>}
-      {isEvent && vehicle && <div className="flow-actions"><span className="footer-slot" ref={setSlot}/></div>}
+      {ready && (!isEvent || key !== 'terms') ? <div className="flow-actions"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={save}>{busy ? t('Saving…') : t('Save prices')}</button></div> : null}
     </Compact.Provider>
   </FlowShell></>
 }

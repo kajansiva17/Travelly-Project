@@ -104,9 +104,16 @@ def no_conflict(db, vehicle_id, start, end, *, exclude=None, driver_id=None):
             raise ApiError(409, 'DRIVER_SCHEDULE_CONFLICT', 'The Driver already has an overlapping accepted trip.')
 
 
+def direction_fits(rule, itinerary):
+    """A fixed route fare is for exactly its own direction (One way and Return are priced separately). A per-km or package rate is
+    measured over every stop, so a one-way rate also prices a return journey over the whole round trip when no return rate exists."""
+    if rule.direction == itinerary.direction: return True
+    return rule.method != 'FIXED_ROUTE' and rule.direction == 'ONE_WAY' and itinerary.direction == 'RETURN'
+
+
 def matches(rule, itinerary, geometry=None):
     day = itinerary.start_at.astimezone(ZONE).date()
-    if (rule.method == 'DAY_HIRE') != (itinerary.method == 'DAY_HIRE') or rule.direction != itinerary.direction or day < rule.effective_from or (rule.effective_until and day > rule.effective_until): return False
+    if (rule.method == 'DAY_HIRE') != (itinerary.method == 'DAY_HIRE') or not direction_fits(rule, itinerary) or day < rule.effective_from or (rule.effective_until and day > rule.effective_until): return False
     if rule.method == 'FIXED_ROUTE' and not departure_applies(rule.departure, itinerary.start_at.astimezone(ZONE)): return False
     if rule.effective_until and (itinerary.requested_end() - timedelta(microseconds=1)).astimezone(ZONE).date() > rule.effective_until: return False
     places = [s.place for s in itinerary.stops]
@@ -154,13 +161,39 @@ def extra_policies(rule):
     return out
 
 
+# Owner decision 24 Nov 2026: which saved rate prices a journey is decided by the service, not by the Passenger's trip type.
+# Local and Airport: a fixed route fare, else the per-km rate. Long distance: a fixed route fare, else the day package, else per km.
+RATE_ORDER = {'LOCAL': ('FIXED_ROUTE', 'DISTANCE'), 'AIRPORT': ('FIXED_ROUTE', 'DISTANCE'), 'LONG_DISTANCE': ('FIXED_ROUTE', 'DAY_HIRE', 'DISTANCE')}
+
+
+def as_method(itinerary, method):
+    """The same journey read as the pricing method of the rate that covers it (the stored booking keeps the Passenger's own request)."""
+    asked = 'DAY_HIRE' if method == 'DAY_HIRE' else 'DISTANCE'
+    return itinerary if itinerary.method == asked else itinerary.model_copy(update={'method': asked})
+
+
+def resolve_rate(rules, itinerary, scope):
+    """The first rate type in this service's order that has a saved rate covering the journey; later types are not looked at."""
+    for method in RATE_ORDER.get(scope, ()):
+        trial = as_method(itinerary, method)
+        found = [r for r in rules if r.method == method and matches(r, trial)]
+        if found: return trial, [r for r in found if r.direction == itinerary.direction] or found
+    return itinerary, []
+
+
 def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
     scope = require_supported_private_hire(service)
-    initial = list(rules) if agreed_rule else matching_rules(rules, itinerary)
+    if agreed_rule:
+        initial = list(rules)
+        trial = as_method(itinerary, initial[0].method) if initial else itinerary
+    elif scope in RATE_ORDER:
+        trial, initial = resolve_rate(rules, itinerary, scope)
+    else:
+        trial, initial = itinerary, matching_rules(rules, itinerary)
     exact_fixed = len(initial) == 1 and initial[0].method == 'FIXED_ROUTE'
     if exact_fixed:
         rule = initial[0]
-        if agreed_rule and not matches(rule, itinerary):
+        if agreed_rule and not matches(rule, trial):
             raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
         for stop in itinerary.stops:
             request.app.state.rate_locations.verify(stop.place)
@@ -174,12 +207,12 @@ def price(request, service, vehicle, itinerary, rules, *, agreed_rule=False):
                        'geometry': [[float(stop.place.longitude), float(stop.place.latitude)] for stop in itinerary.stops]}
         candidates = initial
     else:
-        measurement = request.app.state.hire_routing.measure(itinerary, route_profile(service, vehicle))
-        candidates = list(rules) if agreed_rule else matching_rules(rules, itinerary, measurement['geometry'])
+        measurement = request.app.state.hire_routing.measure(trial, route_profile(service, vehicle))
+        candidates = initial
     if len(candidates) != 1:
         raise ApiError(409, 'QUOTE_REQUIRED', 'Saved rates do not uniquely cover this complete itinerary. Request an Owner quote.')
     rule = candidates[0]
-    if agreed_rule and not matches(rule, itinerary, measurement['geometry']):
+    if agreed_rule and not matches(rule, trial, measurement['geometry']):
         raise ApiError(409, 'MANUAL_REVIEW_REQUIRED', 'This change is outside the agreed price applicability.')
     try: result = calculate(rule, measurement['usage'])
     except ValueError as exc: raise ApiError(422, 'PRICING_UNAVAILABLE', str(exc)) from None

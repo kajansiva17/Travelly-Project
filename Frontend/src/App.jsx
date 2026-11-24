@@ -271,7 +271,7 @@ export default function App() {
             <Route path="/owner/ticket-departures" element={<Navigate to="/owner/ticket?tab=departures" replace/>}/>
             <Route path="/owner/routes" element={<Navigate to="/owner/ticket?tab=routes" replace/>}/>
             <Route path="/owner/maintenance" element={<VehicleServicePage kind="maintenance"/>}/>
-            <Route path="/owner/event-packages" element={<VehicleServicePage kind="event-packages"/>}/>
+            <Route path="/owner/event-packages" element={<Navigate to="/owner/rates?type=EVENT" replace/>}/>
             <Route path="/owner/rental" element={<VehicleServicePage kind="rental"/>}/>
             <Route path="/owner/vehicles" element={<VehicleRoute/>}/>
             <Route path="/owner/vehicle-setup" element={<OwnerVehicleSetup/>}/>

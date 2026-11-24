@@ -152,7 +152,27 @@ def persist_rates(vehicle_id, body, request, user, db):
             is_enabled=body.enabled, pricing_basis=pricing_basis, currency='LKR', owner_terms=terms, created_by=user.id, updated_by=user.id)
         db.add(row)
     db.flush()
+    if scope == 'LOCAL': sync_event_package(db, vehicle_id, user, row)
     return row
+
+
+def sync_event_package(db, vehicle_id, user, local_row):
+    """Owner decision 24 Nov 2026: Event hire has no price of its own. It uses the vehicle's Local one-day package (hours, included km, price),
+    so saving that package keeps the vehicle's Event offer in step. Removing the package switches the Event offer off."""
+    events = [s for s in db.scalars(select(ServiceType).where(ServiceType.category == 'PRIVATE_HIRE', ServiceType.is_active.is_(True)).limit(100)).all()
+              if private_hire_scope(s) == 'EVENT']
+    rule = next((r for r in (local_row.owner_terms or {}).get('rate_rules', []) if r.get('method') == 'DAY_HIRE'), None) if local_row.is_enabled else None
+    package = [{'id': rule['id'], 'name': 'Day package', 'hours': rule['included_hours_per_day'], 'price': rule['day_charge'], 'notes': None}] if rule else []
+    for service in events:
+        row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vehicle_id, VehicleService.service_type_id == service.id).with_for_update())
+        terms = {**(row.owner_terms if row else {}), 'schema_version': 2, 'service_scope': 'EVENT', 'policy': 'TRAVELLY_EVENT_2026_11_14', 'event_packages': package}
+        if row:
+            row.is_enabled, row.owner_terms, row.pricing_basis = bool(package), terms, 'FIXED'
+            row.currency = 'LKR'; row.updated_by = user.id; touch(row)
+        elif package:
+            db.add(VehicleService(vehicle_id=vehicle_id, service_type_id=service.id, is_enabled=True, pricing_basis='FIXED', currency='LKR',
+                                  owner_terms=terms, created_by=user.id, updated_by=user.id))
+    db.flush()
 
 
 @router.put('/vehicles/{vehicle_id}/event-packages')
