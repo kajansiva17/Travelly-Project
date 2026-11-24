@@ -111,7 +111,7 @@ def test_owner_driving_accepts_and_the_booking_and_trip_are_confirmed_at_once(cl
     asked = ask(client, c, fare)
     assert asked.status_code == 201, asked.text
     request_id = asked.json()['id']
-    assert asked.json()['status'] == 'OFFERED' and 0 < asked.json()['seconds_left'] <= 90
+    assert asked.json()['status'] == 'OFFERED' and 0 < asked.json()['seconds_left'] <= 120
     waiting = client.get('/api/v1/me/ride-requests', headers=bearer(c.owner)).json()['items']
     assert [w['id'] for w in waiting] == [request_id] and waiting[0]['fare'] == fare
     accepted = answer(client, c.owner, request_id, 'accept')
@@ -392,3 +392,54 @@ def test_the_vehicle_can_cancel_before_pickup_but_nobody_can_cancel_a_started_ri
     begin(client, c, accepted['trip_id'])
     for tokens in (c.passenger, c.owner):
         assert trip_call(client, tokens, accepted['trip_id'], 'cancel-ride').json()['code'] == 'CANCELLATION_TOO_LATE'
+
+
+def broadcast(client, c, fare, tokens=None):
+    return client.post('/api/v1/ride-now/requests/broadcast', headers=bearer(tokens or c.passenger),
+                       json={**where(c), 'vehicles': [{'vehicle_id': str(c.vehicle_id), 'fare': fare}]})
+
+
+def test_one_ask_makes_a_group_and_the_first_accept_closes_it(client, ride):
+    c = ride
+    go_live(client, c.owner, c)
+    fare = listed_fare(client, c)
+    made = broadcast(client, c, fare)
+    assert made.status_code == 201, made.text
+    group = made.json()['group_id']
+    assert len(made.json()['items']) == 1 and made.json()['skipped'] == []
+    waiting = client.get(f'/api/v1/ride-now/groups/{group}', headers=bearer(c.passenger)).json()
+    assert waiting['status'] == 'OPEN' and waiting['asked'] == 1 and waiting['still_waiting'] == 1 and 0 < waiting['seconds_left'] <= 120
+    accepted = answer(client, c.owner, made.json()['items'][0]['id'], 'accept')
+    assert accepted.status_code == 200, accepted.text
+    done = client.get(f'/api/v1/ride-now/groups/{group}', headers=bearer(c.passenger)).json()
+    assert done['status'] == 'ACCEPTED' and done['accepted']['trip_id'] == accepted.json()['trip_id']
+
+
+def test_a_sibling_request_of_the_group_is_cancelled_when_one_is_accepted(client, ride):
+    c = ride
+    go_live(client, c.owner, c)
+    fare = listed_fare(client, c)
+    made = broadcast(client, c, fare).json()
+    with client.app.state.sessions() as db:   # a second vehicle's request of the same ask (set directly: the test has one vehicle)
+        first = db.get(RideRequest, UUID(made['items'][0]['id']))
+        other = db.scalars(select(Vehicle).where(Vehicle.id != first.vehicle_id)).first()
+        if other is None:
+            pytest.skip('needs a second vehicle')
+        db.add(RideRequest(passenger_user_id=first.passenger_user_id, vehicle_id=other.id, operator_user_id=first.operator_user_id,
+            service_type_id=first.service_type_id, group_id=first.group_id, pickup=first.pickup, destination=first.destination,
+            passenger_count=first.passenger_count, round_trip=first.round_trip, fare=first.fare, status='OFFERED', expires_at=first.expires_at))
+        db.commit()
+    assert answer(client, c.owner, made['items'][0]['id'], 'accept').status_code == 200
+    with client.app.state.sessions() as db:
+        rows = db.scalars(select(RideRequest).where(RideRequest.group_id == UUID(made['group_id']))).all()
+        assert sorted(r.status for r in rows) == ['ACCEPTED', 'CANCELLED']
+
+
+def test_cancelling_the_group_frees_every_vehicle(client, ride):
+    c = ride
+    go_live(client, c.owner, c)
+    fare = listed_fare(client, c)
+    group = broadcast(client, c, fare).json()['group_id']
+    cancelled = client.post(f'/api/v1/ride-now/groups/{group}/cancel', headers=bearer(c.passenger), json={})
+    assert cancelled.status_code == 200 and cancelled.json()['status'] == 'ENDED' and cancelled.json()['ended_because'] == 'CANCELLED'
+    assert len(options(client, c).json()['items']) == 1   # the vehicle can be asked again

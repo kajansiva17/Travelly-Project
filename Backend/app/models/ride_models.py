@@ -1,4 +1,4 @@
-# Book now requests (migration 0027): one Passenger asks one online vehicle; the operator accepts within the time limit.
+# Book now requests (migration 0027): one Passenger asks one or more online vehicles at once (one group, migration 0038); the first operator to accept gets the trip.
 from sqlalchemy import Table, Column, CheckConstraint, ForeignKey, Index, text
 from sqlalchemy import String, DateTime, Numeric, CHAR, SmallInteger, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -19,13 +19,15 @@ ride_requests_table = Table('ride_requests', Base.metadata,
     Column('status', String(10), nullable=False, server_default=text("'OFFERED'")),
     Column('expires_at', DateTime(timezone=True), nullable=False),
     Column('responded_at', DateTime(timezone=True), nullable=True),
+    Column('group_id', UUID(as_uuid=True), nullable=True),
     Column('booking_id', UUID(as_uuid=True), ForeignKey('bookings.id', name='fk_ride_requests_booking', ondelete='RESTRICT'), nullable=True),
     Column('round_trip', Boolean, nullable=False, server_default=text('false')),
     CheckConstraint("status IN ('OFFERED','ACCEPTED','DECLINED','EXPIRED','CANCELLED')", name='ck_ride_requests_status'),
     CheckConstraint('fare>0', name='ck_ride_requests_fare'),
     CheckConstraint('passenger_count>0', name='ck_ride_requests_passengers'),
     CheckConstraint("status<>'ACCEPTED' OR booking_id IS NOT NULL", name='ck_ride_requests_booking'),
-    Index('uq_ride_requests_passenger_open', 'passenger_user_id', unique=True, postgresql_where=text("status='OFFERED'")),
+    Index('ix_ride_requests_group', 'group_id'),
+    Index('ix_ride_requests_passenger_open', 'passenger_user_id', postgresql_where=text("status='OFFERED'")),
     Index('uq_ride_requests_vehicle_open', 'vehicle_id', unique=True, postgresql_where=text("status='OFFERED'")),
     Index('ix_ride_requests_operator', 'operator_user_id', 'created_at'))
 
