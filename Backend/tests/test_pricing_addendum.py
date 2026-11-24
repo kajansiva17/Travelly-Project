@@ -67,8 +67,8 @@ def test_fixed_first_then_distance_then_quote_and_no_duration_switch(client, hir
 def test_reverse_direction_requires_explicit_rule_with_equal_or_different_fare(client, hire_setup, reverse_fare):
     c = hire_setup
     save(client, c, [fixed(c), fixed(c, reverse_fare, ('B', 'A'))])
-    assert c.create()['proposal']['quote']['calculation']['total'] == '1500.00'
-    assert c.create(c.itinerary(('B', 'A')))['proposal']['quote']['calculation']['total'] == reverse_fare + '.00'
+    assert c.confirm_position(c.create())['proposal']['quote']['calculation']['total'] == '1500.00'
+    assert c.confirm_position(c.create(c.itinerary(('B', 'A'))))['proposal']['quote']['calculation']['total'] == reverse_fare + '.00'
 
 
 def test_fixed_inclusions_extras_disclosed_and_rate_edit_preserves_acceptance(client, hire_setup):
@@ -82,7 +82,7 @@ def test_fixed_inclusions_extras_disclosed_and_rate_edit_preserves_acceptance(cl
     cfg['expected_version'] = 2; cfg['rules'][0]['fixed_fare'] = '1700'
     assert client.put(f'/api/v1/vehicles/{c.vehicle_id}/services', headers=bearer(c.owner), json=cfg).status_code == 200
     assert client.get(f"/api/v1/bookings/{row['id']}", headers=bearer(c.passenger)).json()['price'] == snapshot
-    assert c.create()['proposal']['quote']['calculation']['total'] == '1700.00'
+    assert c.confirm_position(c.create())['proposal']['quote']['calculation']['total'] == '1700.00'
 
 
 @pytest.mark.parametrize('scope', [None, 'UNSPECIFIED'])   # EVENT is now approved: see test_event_hire.py
@@ -122,7 +122,7 @@ def test_departure_applicability_required_and_same_priority_overlap_rejected(cli
 
 def test_old_unaccepted_fixed_quote_needs_applicability_but_accepted_snapshots_stay_unchanged(client, hire_setup):
     c = hire_setup; save(client, c, [fixed(c)])
-    row = c.create()
+    row = c.confirm_position(c.create())   # the Owner confirms the vehicle position first; the quote follows
     with client.app.state.sessions() as db:
         booking = db.get(Booking, UUID(row['id']))
         pending = deepcopy(booking.pending_change); pending['quote']['rule'].pop('departure')

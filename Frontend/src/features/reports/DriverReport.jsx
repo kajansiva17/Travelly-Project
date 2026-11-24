@@ -35,7 +35,7 @@ export default function DriverReport(){
         {key:'date',label:t('Date'),top:true,render:r=>day(r.date)},{key:'distance_km',label:t('km'),top:true,render:r=>km(r.distance_km)},{key:'trip',label:t('Trip')},{key:'route',label:t('Route')},
         {key:'vehicle',label:t('Vehicle')},{key:'owner',label:t('Owner')},{key:'payment',label:t('Payment'),render:r=>r.payment==='Recorded'?t('Recorded'):t('Not recorded yet')}]}/></div>
   ][tab]
-  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period_label||t('Monthly report')} tabs={tabs}
+  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period?formatDate(`${d.period}-01`,{day:undefined,month:'long'}):(d?.period_label||t('Monthly report'))} tabs={tabs}
     info={d?.generated_at?`${t('Made on')} ${formatDateTime(d.generated_at)}`:t('Your trips and the payments your Owners recorded for one month.')}>
     <div className="rp-page">
       <div className="rp-bar"><MonthPicker value={period} onChange={setPeriod}/>{report.loading&&ok&&<span role="status">{t('Loading…')}</span>}</div>

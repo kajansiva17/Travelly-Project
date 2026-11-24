@@ -59,7 +59,7 @@ def masked(number):
 
 
 def vehicle_name(v):
-    extra = ' '.join(filter(None, [v.make, v.model]))
+    extra = v.display_name or ' '.join(filter(None, [v.make, v.model]))
     return f'{v.registration_number}' + (f' ({extra})' if extra else '')
 
 

@@ -51,7 +51,10 @@ def test_admin_updates_own_profile_without_changing_security_or_roles(client, re
 def test_profile_rejects_stale_privilege_contact_and_image_mutations(client,review_case):
     headers=review_case['admin'];before=current(client,headers)
     assert client.patch('/api/v1/users/me',json=payload(before)).status_code==401
-    assert client.patch('/api/v1/users/me',headers=review_case['owner'],json=payload(before)).status_code==403
+    owner_before=current(client,review_case['owner'])
+    owner_saved=client.patch('/api/v1/users/me',headers=review_case['owner'],json=payload(owner_before,full_name='Owner Renamed',profile_image_url=picture()))
+    assert owner_saved.status_code==200,owner_saved.text
+    assert owner_saved.json()['full_name']=='Owner Renamed' and owner_saved.json()['approved_roles']==owner_before['approved_roles']
     for changes,status in [({'approved_roles':['ADMIN']},422),({'email':'other@example.com'},422),({'version':before['version']+1},409),({'full_name':'   '},422),({'phone_e164':'0771234567'},422),({'profile_image_url':'https://example.com/private.jpg'},422),({'profile_image_url':'data:image/png;base64,aGVsbG8='},422),({'profile_image_url':'data:image/svg+xml;base64,PHN2Zy8+'},422),({'phone_e164':review_case['person']['phone_e164']},409)]:
         response=client.patch('/api/v1/users/me',headers=headers,json=payload(before,**changes))
         assert response.status_code==status,(changes.keys(),response.text)

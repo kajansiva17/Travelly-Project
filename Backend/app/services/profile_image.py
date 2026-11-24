@@ -6,7 +6,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from app.core.errors import ApiError
 
 
-def normalize_avatar(value):
+def normalize_avatar(value, size=256):
     """Persist only a bounded, metadata-free raster data URL in the existing column."""
     if value is None:
         return None
@@ -24,7 +24,7 @@ def normalize_avatar(value):
                     raise ValueError()
                 source.load()
                 image = ImageOps.exif_transpose(source)
-                image.thumbnail((256, 256))
+                image.thumbnail((size, size))
                 # A fresh image strips EXIF, comments, ICC and other embedded metadata.
                 clean = Image.new('RGB', image.size, 'white')
                 rgba = image.convert('RGBA')

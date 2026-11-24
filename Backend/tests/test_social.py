@@ -172,3 +172,18 @@ def test_a_reel_can_show_only_the_posters_own_vehicle_and_the_profile_lists_vehi
     me = client.get('/api/v1/users/me', headers=bearer(c.owner)).json()
     seen = client.get(f"/api/v1/social/users/{me['public_user_reference']}")
     assert seen.status_code == 200 and [v['id'] for v in seen.json()['vehicles']] == [str(c.vehicle_id)]
+
+
+def test_people_search_finds_only_people_with_a_visible_post(client):
+    author, quiet = person(client), person(client)
+    assert post(client, author, files={'file': ('p.jpg', jpeg(), 'image/jpeg')}, post_type='PHOTO', caption='Sunset').status_code == 201
+    mine, silent = reference(client, author), reference(client, quiet)
+    name = client.get(f'/api/v1/social/users/{mine}').json()['name']
+    found = client.get('/api/v1/social/users', params={'q': name[:4]})
+    assert found.status_code == 200, found.text
+    refs = [item['reference'] for item in found.json()['items']]
+    assert mine in refs and silent not in refs                         # no post, no search result
+    assert set(found.json()['items'][0]) == {'reference', 'name', 'profile_image_url'}   # no email, phone or id
+    assert client.get('/api/v1/social/users', params={'q': 'a'}).status_code == 422
+    assert client.get('/api/v1/social/users', params={'q': 'ab', 'x': '1'}).status_code == 422
+    assert client.get('/api/v1/social/users', params={'q': '%%'}).json() == {'items': []}   # wildcards are plain text

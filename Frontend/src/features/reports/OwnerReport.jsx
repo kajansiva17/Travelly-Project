@@ -26,7 +26,7 @@ export default function OwnerReport(){
   const view=[
     // 0 overview: the month result card first, then the summary tiles
     d&&<div className="rp-pane" key="o"><ResultCard loss={loss} labels={[t('Income'),t('Expenses'),loss?t('Loss'):t('Profit')]} income={m(res.income)} expenses={m(res.expenses_total)} profit={m(res.profit)}>
-        <p className="rp-note">{t('Service and repair')} {m(res.expenses_service_and_repair)} · {t('Fuel and charging')} {m(res.expenses_fuel_and_charging)} · {t('Paid to Drivers')} {m(res.expenses_driver_payments)}{res.note?` — ${res.note}`:''}</p></ResultCard>
+        <p className="rp-note">{t('Service and repair')} {m(res.expenses_service_and_repair)} · {t('Fuel and charging')} {m(res.expenses_fuel_and_charging)} · {t('Paid to Drivers')} {m(res.expenses_driver_payments)}{res.note?` — ${t(res.note)}`:''}</p></ResultCard>
       <Tiles items={[
         {key:'v',label:t('Vehicles'),value:sum.vehicles},{key:'t',label:t('Completed trips'),value:sum.completed_trips},{key:'k',label:t('Total km'),value:km(sum.total_km)},
         {key:'g',label:t('Gross collected'),value:m(sum.gross_collected)},{key:'c',label:t('Commission'),value:m(sum.commission)},{key:'r',label:t('Refunded'),value:m(sum.refunded)},
@@ -66,7 +66,7 @@ export default function OwnerReport(){
         {key:'paid_on',label:t('Paid on'),top:true,render:r=>day(r.paid_on)},{key:'amount',label:t('Amount'),top:true,render:r=>m(r.amount)},{key:'trip',label:t('Trip')},{key:'driver',label:t('Driver')},
         {key:'method',label:t('Method')},{key:'reference',label:t('Reference')},{key:'status',label:t('Status'),render:r=>r.status==='Confirmed'?t('Confirmed'):t('Waiting for the Driver')}]}/></div>
   ][tab]
-  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period_label||t('Monthly report')} tabs={tabs}
+  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period?formatDate(`${d.period}-01`,{day:undefined,month:'long'}):(d?.period_label||t('Monthly report'))} tabs={tabs}
     info={d?.generated_at?`${t('Made on')} ${formatDateTime(d.generated_at)}`:t('Your trips, earnings, maintenance and documents for one month.')}>
     <div className="rp-page">
       <div className="rp-bar"><MonthPicker value={period} onChange={setPeriod}/>{report.loading&&ok&&<span role="status">{t('Loading…')}</span>}</div>

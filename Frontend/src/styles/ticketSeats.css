@@ -13,11 +13,11 @@
 .seat-art .s-stitch{fill:none;stroke:var(--ss);stroke-width:1;stroke-dasharray:2 2;opacity:.7}
 .seat-art .s-cushion{fill:var(--sc);stroke:var(--ss);stroke-width:1.9}
 .seat-num{position:absolute;left:0;right:0;top:10px;font-weight:700;font-size:.8rem;line-height:1;text-align:center;pointer-events:none}
-.seat-map .seat:hover:not(:disabled){--ss:#1e66f5}
-.seat-map .seat:focus-visible{outline:2px solid #1e66f5;outline-offset:1px;border-radius:8px}
+.seat-map .seat:hover:not(:disabled){--ss:#16a34a}
+.seat-map .seat:focus-visible{outline:2px solid #16a34a;outline-offset:1px;border-radius:8px}
 .seat-map .seat:disabled{cursor:not-allowed}
-.seat-map .seat.selected{--sf:#0a35e8;--sc:#0725b0;--ss:#041660;color:#fff}
-.seat-map .seat.selected .seat-art{filter:drop-shadow(0 0 5px rgba(10,53,232,1)) drop-shadow(0 1.5px 1px rgba(0,0,0,.35))}
+.seat-map .seat.selected{--sf:#16a34a;--sc:#128a3e;--ss:#0b4f25;color:#fff}
+.seat-map .seat.selected .seat-art{filter:drop-shadow(0 0 5px rgba(22,163,74,1)) drop-shadow(0 1.5px 1px rgba(0,0,0,.35))}
 .seat-map .seat.selected .seat-art rect{stroke-width:2}
 .seat-map .seat.selected .seat-num{font-size:.9rem}
 .seat-map .seat.booked{--sf:var(--brand-red);--sc:var(--brand-red);--ss:var(--brand-red);color:#fff}
@@ -29,18 +29,17 @@
 .seat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;font-size:13px;margin:0;padding:0;list-style:none;flex:none}
 .seat-legend li{display:flex;align-items:center;gap:6px}
 .seat-legend .swatch{display:inline-flex;width:20px;height:20px;border-radius:6px 6px 4px 4px;border:2px solid #27303d;border-bottom-width:4px;background:#fff;align-items:center;justify-content:center}
-.seat-legend .swatch.selected{background:#0a35e8;border-color:#041660}
+.seat-legend .swatch.selected{background:#16a34a;border-color:#0b4f25}
 .seat-legend .swatch.booked{background:var(--brand-red);border-color:var(--brand-red)}
 .seat-legend .swatch.not-sold{background:#6f7684;border-color:#2b3039}
 .seat-legend .swatch.crew{background:#eceef1}
 .seat-legend .swatch svg{width:14px;height:14px}
 
-/* Phones retain full-size seats. Wide vehicle layouts scroll only inside this
-   canvas; the document itself never gains horizontal overflow. */
+/* Phones: the picture is scaled to the card width by SeatMap.jsx (no sideways scrolling). While the Owner edits the layout the
+   picture is pinned at the top so the size buttons below can be used while watching the result. */
 @media (max-width:767px){
   .seat-map{height:auto;min-width:0}
-  .seat-stage{flex:none;height:auto;min-height:0;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch}
-  .seat-canvas{width:var(--seat-mobile-canvas-width);height:var(--seat-mobile-canvas-height);min-width:var(--seat-mobile-canvas-width);min-height:var(--seat-mobile-canvas-height)}
-  .seat-scaler{left:0;top:0;visibility:visible!important;transform:scale(1.1)!important;transform-origin:top left}
-  .seat-legend{justify-content:flex-start;padding-inline:4px}
+  .seat-stage{flex:none;height:auto;min-height:0;overflow:hidden}
+  .seat-canvas{width:100%;min-width:0;min-height:0}
+  .seat-legend{justify-content:center;padding-inline:4px}
 }

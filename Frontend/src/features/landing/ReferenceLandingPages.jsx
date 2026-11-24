@@ -89,7 +89,7 @@ function JourneySearch({ unavailable }) {
       <div className="lr-field lr-date"><span id="lr-date-label">{t('Journey date')}</span><div className="lr-date-trigger"><LandingIcon name="calendar" size={21}/><span id="lr-date-value" className={departure ? '' : 'lr-placeholder'}><span>{departure ? `${new Date(departure).toLocaleDateString(getLanguage() === 'en' ? 'en-GB' : `${getLanguage()}-LK`, { day: 'numeric', month: 'short', year: 'numeric' })} · ${departure.slice(11, 16)}` : t('Select date & time')}</span><LandingIcon name="chevron" size={18}/></span>
         <input ref={dateRef} className="lr-date-native" form="lr-date-selection" name="departure" type="datetime-local" min={earliestDeparture} required value={departure} aria-labelledby="lr-date-label lr-date-value" disabled={!!active}
           onClick={event => { try { event.currentTarget.showPicker?.() } catch { /* the native picker is optional */ } }}
-          onChange={event => { setDeparture(event.target.value); const input = event.currentTarget; if (event.target.value) requestAnimationFrame(() => input.blur()) }}/></div></div>
+          onChange={event => setDeparture(event.target.value)}/></div></div>
       <button type="submit" className="lr-pill lr-red lr-glass-red lr-search-submit"><LandingIcon name="search"/>{t('Search')}<LandingIcon name="arrow"/></button>
     </form>
   </section>

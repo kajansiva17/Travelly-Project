@@ -73,7 +73,7 @@ def settle_hours(request, service, itinerary):
     return itinerary.model_copy(update={'service_hours': [hours] * len(itinerary.service_hours), 'trip_days': None})
 
 
-def validate_service_itinerary(service, itinerary, db=None, request=None):
+def validate_service_itinerary(service, itinerary, db=None, request=None, check_distance=True):
     scope = private_hire_scope(service)
     # Airport hire (owner decision 15 Nov 2026): the pickup or the destination is an airport of the Admin's list (a place next to it counts).
     if scope == 'AIRPORT' and db is not None:
@@ -81,12 +81,27 @@ def validate_service_itinerary(service, itinerary, db=None, request=None):
         if airports and not any(near_airport(airports, stop.place) for stop in itinerary.stops):
             raise ApiError(422, 'AIRPORT_LOCATION_REQUIRED', 'Airport hire is for trips to or from an airport. Choose an airport as the pickup or the destination, or choose Local hire.',
                 [{'field': 'itinerary.stops', 'message': 'Choose an airport as the pickup or the destination.'}])
-    # Long distance: the road distance of the whole trip (all stops, every service day) reaches the Admin's minimum (default 100 km).
-    if scope == 'LONG_DISTANCE' and request is not None:
-        minimum = min_distance_km(service)
-        km = request.app.state.hire_routing.road_km(itinerary.stops) if minimum else None
+    # Long distance: the road distance of the whole trip (all stops, every service day) reaches the Admin's line (default 100 km one way).
+    # A return trip drives there and back, so its line is twice as long (100 km one way = 200 km return).
+    # Book now passes check_distance=False: it picks Local or Long distance itself from the same line.
+    factor = 2 if itinerary.direction == 'RETURN' else 1
+    if scope == 'LONG_DISTANCE' and request is not None and check_distance:
+        base = min_distance_km(service)
+        minimum = base * factor
+        km = request.app.state.hire_routing.road_km(itinerary.stops) if base else None
         if km is not None and km < minimum:
             raise ApiError(422, 'TRIP_TOO_SHORT_FOR_LONG_DISTANCE', f'This trip is about {km:.0f} km. Long distance is for trips of {minimum} km or more. Choose Local hire.',
+                [{'field': 'distance_km', 'message': f'{km:.0f}'}, {'field': 'min_distance_km', 'message': str(minimum)}])
+    # Local hire is the other side of that line: a trip that reaches the Long-distance minimum belongs to Long distance. Without this a Passenger who
+    # picks Local for Jaffna to Colombo would be charged the Local per-km rate for every extra kilometre.
+    if scope == 'LOCAL' and request is not None and db is not None and check_distance:
+        limits = [min_distance_km(row) for row in db.scalars(select(ServiceType).where(ServiceType.category == 'PRIVATE_HIRE', ServiceType.is_active.is_(True)).limit(100)).all()
+                  if private_hire_scope(row) == 'LONG_DISTANCE']
+        base = min([value for value in limits if value], default=0)
+        minimum = base * factor
+        km = request.app.state.hire_routing.road_km(itinerary.stops) if base else None
+        if km is not None and km >= minimum:
+            raise ApiError(422, 'TRIP_TOO_LONG_FOR_LOCAL', f'This trip is about {km:.0f} km. Local hire is for trips under {minimum} km. Choose Long distance for the right price.',
                 [{'field': 'distance_km', 'message': f'{km:.0f}'}, {'field': 'min_distance_km', 'message': str(minimum)}])
     if scope == 'AIRPORT' and itinerary.direction == 'RETURN' and itinerary.return_start_at is None:
         raise ApiError(422, 'RETURN_INTERVAL_REQUIRED', 'Airport return journeys require a verified return pickup date and time.')
@@ -152,6 +167,7 @@ def offer(request, db, vehicle, service, itinerary, *, rules=None, gate=True):
 
 def safe_vehicle(vehicle, owner):
     return {'id': str(vehicle.id), 'reference': vehicle.public_vehicle_reference, 'make': vehicle.make, 'model': vehicle.model,
+        'display_name': vehicle.display_name, 'profile_image_url': vehicle.profile_image_url,
         'category': vehicle.verified_eligibility.get('category'), 'passenger_seats': vehicle.seat_capacity,
         'large_luggage': vehicle.large_luggage_capacity, 'small_luggage': vehicle.small_luggage_capacity,
         'owner_reference': owner.public_user_reference, 'owner_name': owner.display_name or owner.public_user_reference,

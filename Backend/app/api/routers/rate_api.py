@@ -103,7 +103,7 @@ def owner_service_readiness(request: Request, user=Depends(current), db: Session
             entries.append({'service_type_id': str(service.id), 'name': service.name, 'pricing_scope': private_hire_scope(service),
                 'admin_status': catalogue_status(service), 'enabled': bool(row and row.is_enabled), 'rate_version': row.version if row else None,
                 'rate_rule_count': len((row.owner_terms.get('event_packages') if private_hire_scope(service) == 'EVENT' else row.owner_terms.get('rate_rules', []))) if row else 0, 'missing': missing, 'ready': not missing})
-        items.append({'vehicle_id': str(vehicle.id), 'vehicle_label': vehicle.public_vehicle_reference, 'vehicle_status': vehicle.verification_status,
+        items.append({'vehicle_id': str(vehicle.id), 'vehicle_label': vehicle.display_name or vehicle.public_vehicle_reference, 'vehicle_status': vehicle.verification_status,
             'availability_status': vehicle.availability_status, 'published': vehicle.is_published, 'services': entries})
     return {'items': items}
 

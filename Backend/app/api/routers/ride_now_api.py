@@ -34,6 +34,7 @@ from app.schemas.rate_schemas import Place
 from app.services.hire_services import booking_summary, notify
 from app.services.location_matching import LOCATION_FRESHNESS
 from app.services.odometer_proof import distance_km
+from app.services.airports import min_distance_km
 from app.services.pricing_scope import private_hire_scope
 
 router = APIRouter(prefix='/api/v1', tags=['Book now'])
@@ -74,17 +75,34 @@ def expire_stale(db, now):
     db.flush()
 
 
-def book_now_service(db):
+def book_now_service(db, request=None, itinerary=None, round_trip=False):
+    """Book now has no distance limit: the route decides the service. Under the Admin's line (one way; a return counts double) the vehicle's Local
+    rates apply, at or above it the Long distance rates. Without an active Long distance service every trip is priced as Local."""
+    local = long = None
     for service in db.scalars(select(ServiceType).where(ServiceType.category == 'PRIVATE_HIRE', ServiceType.is_active.is_(True)).order_by(ServiceType.created_at)):
-        if private_hire_scope(service) == 'LOCAL' and catalogue_status(service) == 'ACTIVE':
-            return service
-    raise ApiError(409, 'BOOK_NOW_UNAVAILABLE', 'Book now is not available right now.')
+        if catalogue_status(service) != 'ACTIVE':
+            continue
+        scope = private_hire_scope(service)
+        if scope == 'LOCAL' and local is None: local = service
+        if scope == 'LONG_DISTANCE' and long is None: long = service
+    if local is None:
+        raise ApiError(409, 'BOOK_NOW_UNAVAILABLE', 'Book now is not available right now.')
+    if long is not None and request is not None and itinerary is not None:
+        base = min_distance_km(long)
+        km = request.app.state.hire_routing.road_km(itinerary.stops) if base else None
+        if km is not None and km >= base * (2 if round_trip else 1):
+            return long
+    return local
 
 
-def itinerary_of(request, pickup, destination, start, round_trip=False):
+def method_of(service):
+    return 'DAY_HIRE' if private_hire_scope(service) == 'LONG_DISTANCE' else 'DISTANCE'
+
+
+def itinerary_of(request, pickup, destination, start, round_trip=False, method='DISTANCE'):
     """A return is priced as one chain pickup -> destination -> pickup with no planned wait; the real wait is charged when the trip ends."""
     stops = [pickup, destination] + ([pickup] if round_trip else [])
-    return Itinerary.model_validate({'start_at': start.isoformat(), 'direction': 'ONE_WAY', 'method': 'DISTANCE',
+    return Itinerary.model_validate({'start_at': start.isoformat(), 'direction': 'ONE_WAY', 'method': method,
         'stops': [{'place': place, 'wait_minutes': '0', 'overnight_rest': False} for place in stops]})
 
 
@@ -145,7 +163,7 @@ def view(db, row, now):
             'expires_at': row.expires_at.isoformat(), 'seconds_left': max(0, int((row.expires_at - now).total_seconds())) if row.status == 'OFFERED' else 0,
             'booking_id': str(row.booking_id) if row.booking_id else None,
             'trip_id': str(db.scalar(select(Trip.id).where(Trip.booking_id == row.booking_id))) if row.booking_id else None,
-            'vehicle': {'name': ' '.join(filter(None, [vehicle.make, vehicle.model])) or None, 'colour': vehicle.colour,
+            'vehicle': {'name': vehicle.display_name or ' '.join(filter(None, [vehicle.make, vehicle.model])) or None, 'colour': vehicle.colour,
                         'registration_number': vehicle.registration_number, 'vehicle_type': vehicle.vehicle_type_code, 'seats': vehicle.seat_capacity}}
 
 
@@ -165,11 +183,11 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
     request.app.state.store.rate(f'ride-options:{user.id}', 20, 60)
     now = now_utc()
     expire_stale(db, now)
-    service = book_now_service(db)
     pickup, destination = place_dicts(request, body)
     request.app.state.rate_locations.verify(body.destination)
-    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip))
-    validate_service_itinerary(service, itinerary, db, request)
+    service = book_now_service(db, request, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip), body.round_trip)
+    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip, method_of(service)))
+    validate_service_itinerary(service, itinerary, db, request, check_distance=False)
     found = nearby_vehicles(db, body.pickup, body.radius_km, now)
     ratings = vehicle_ratings(db, [vehicle.id for _, vehicle in found])
     items = []
@@ -179,7 +197,7 @@ def options(body: Options, request: Request, user=Depends(current), db: Session 
         snapshot = fare_for(request, db, vehicle, service, itinerary, body.passenger_count)
         if snapshot is None:
             continue
-        items.append({'vehicle_id': str(vehicle.id), 'reference': vehicle.public_vehicle_reference, 'name': ' '.join(filter(None, [vehicle.make, vehicle.model])) or None,
+        items.append({'vehicle_id': str(vehicle.id), 'reference': vehicle.public_vehicle_reference, 'name': vehicle.display_name or ' '.join(filter(None, [vehicle.make, vehicle.model])) or None,
                       'colour': vehicle.colour, 'vehicle_type': vehicle.vehicle_type_code, 'seats': vehicle.seat_capacity,
                       'distance_km': round(km, 1), 'minutes_away': max(1, round(km / CITY_SPEED_KMH * 60)),
                       'fare': snapshot['calculation']['total'], 'currency': 'LKR', 'rating': ratings.get(vehicle.id)}
@@ -198,7 +216,6 @@ def ask(body: Ask, request: Request, user=Depends(current), db: Session = Depend
     now = now_utc()
     expire_stale(db, now)
     db.commit()
-    service = book_now_service(db)
     vehicle = db.get(Vehicle, body.vehicle_id)
     if not vehicle or not bookable(vehicle, now):
         raise ApiError(409, 'VEHICLE_NOT_AVAILABLE', 'This vehicle is not available right now. Choose another one.')
@@ -208,8 +225,9 @@ def ask(body: Ask, request: Request, user=Depends(current), db: Session = Depend
         raise ApiError(409, 'VEHICLE_TOO_FAR', 'This vehicle is too far from your pickup. Choose another one.')
     pickup, destination = place_dicts(request, body)
     request.app.state.rate_locations.verify(body.destination)
-    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip))
-    validate_service_itinerary(service, itinerary, db, request)
+    service = book_now_service(db, request, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip), body.round_trip)
+    itinerary = settle_hours(request, service, itinerary_of(request, pickup, destination, now + START_DELAY, body.round_trip, method_of(service)))
+    validate_service_itinerary(service, itinerary, db, request, check_distance=False)
     snapshot = fare_for(request, db, vehicle, service, itinerary, body.passenger_count)
     if snapshot is None:
         raise ApiError(409, 'VEHICLE_NOT_AVAILABLE', 'This vehicle cannot take this trip right now. Choose another one.')
@@ -281,7 +299,7 @@ def accept_request(request_id: UUID, request: Request, user=Depends(current), db
         raise ApiError(409, 'REQUEST_NOT_OPEN', 'This request is no longer open.' if preview.status != 'EXPIRED' else 'This request was not answered in time.')
     service = service_for(db, preview.service_type_id, new_offer=False)
     start = now + START_DELAY
-    itinerary = settle_hours(request, service, itinerary_of(request, preview.pickup, preview.destination, start, preview.round_trip))   # routing before any lock
+    itinerary = settle_hours(request, service, itinerary_of(request, preview.pickup, preview.destination, start, preview.round_trip, method_of(service)))   # routing before any lock
     vehicle = db.get(Vehicle, preview.vehicle_id)
     snapshot = fare_for(request, db, vehicle, service, itinerary, preview.passenger_count)
     if snapshot is None or Decimal(snapshot['calculation']['total']) != preview.fare:

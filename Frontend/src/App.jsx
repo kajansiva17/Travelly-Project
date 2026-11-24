@@ -172,6 +172,7 @@ const travelRoutes=prefix=>[
  <Route key="hire" path={prefix+'/travel/hire'} element={<HireSearchPage/>}/>,
  <Route key="owners" path={prefix+'/travel/owners/:ownerReference'} element={<HireSearchPage/>}/>,
  <Route key="vehicle" path={prefix+'/travel/vehicles/:vehicleId'} element={<PublicVehicle/>}/>,
+ <Route key="nearby" path={prefix+'/travel/nearby-now'} element={<NearbyNow/>}/>,
  <Route key="trips" path={prefix+'/travel/bookings'} element={<WorkspaceBookings personal/>}/>,
  <Route key="trip" path={prefix+'/travel/bookings/:bookingId'} element={<BookingPage/>}/>,
  <Route key="service" path={prefix+'/travel/book/service'} element={<PassengerServiceSelection/>}/>,

@@ -337,7 +337,7 @@ def cannot_fulfil(trip_id: UUID, body: DepartureProblem, request: Request, user=
 
 def summary(vehicle, owner=None):
     out = {'public_vehicle_reference': vehicle.public_vehicle_reference, 'vehicle_type_code': vehicle.vehicle_type_code,
-           'make': vehicle.make, 'model': vehicle.model, 'colour': vehicle.colour, 'air_conditioned': vehicle.air_conditioned,
+           'make': vehicle.make, 'model': vehicle.model, 'display_name': vehicle.display_name, 'colour': vehicle.colour, 'air_conditioned': vehicle.air_conditioned,
            'seat_capacity': vehicle.seat_capacity}
     if owner is not None:
         out['operator_name'] = owner.display_name or owner.full_name
@@ -465,7 +465,7 @@ def move_passengers(db, actor, source, target, vehicle, moment):
         if operator is not None:
             reallocate(db, booking, target.owner_user_id, target, actor)
         notify(db, booking.passenger_user_id, target, 'REPLACEMENT', 'Your journey has a replacement vehicle',
-               f'Your departure will run with a different vehicle ({vehicle.vehicle_type_code.title()}, {vehicle.make} {vehicle.model})'
+               f'Your departure will run with a different vehicle ({vehicle.vehicle_type_code.title()}, {vehicle.display_name or str(vehicle.make) + " " + str(vehicle.model)})'
                + (f' operated by {operator.display_name or operator.full_name}' if operator else '')
                + '. Check your new seat. If you do not want to travel in it, reject the change for a full refund.', booking, action=True)
     return len(booked)

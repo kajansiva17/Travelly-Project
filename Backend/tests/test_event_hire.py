@@ -30,7 +30,8 @@ def test_event_search_lists_each_package_with_the_owner_price(client, hire_setup
             'large_luggage_count': 0, 'small_luggage_count': 0}
     found = client.post('/api/v1/search/vehicles', json=body)
     assert found.status_code == 200, found.text
-    item = found.json()['items'][0]
+    data = found.json()
+    item = (data['items'] + data['quote_on_request'])[0]   # a vehicle whose position the Owner must confirm is listed under quote_on_request
     assert item['price'] is None
     assert {p['name'] for p in item['packages']} == {'Wedding car 3 hours', 'Wedding car 6 hours'}
     selected = client.post(f"/api/v1/search/vehicles/{item['id']}/quote", json={**body, 'itinerary': event_itinerary(c, packages[1])})
@@ -42,7 +43,7 @@ def test_event_search_lists_each_package_with_the_owner_price(client, hire_setup
 
 def test_event_booking_uses_the_package_price_and_cannot_be_changed(client, hire_setup):
     c = hire_setup; packages = as_event(client, c); big = packages[0]
-    row = c.create(event_itinerary(c, big))
+    row = c.confirm_position(c.create(event_itinerary(c, big)))
     assert row['proposal']['quote']['calculation']['total'] == '25000.00'
     accepted = accept(client, c, row)
     assert accepted['total_amount'] == '25000.00'

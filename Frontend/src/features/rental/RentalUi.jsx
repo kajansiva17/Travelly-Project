@@ -17,7 +17,7 @@ import {RENTAL_LIMITS,extraAmount,previewTotal,validDays,validLicence} from './r
 // A guest can search, choose a vehicle and extras and type the licence number; sign-in is asked at "Request this rental" and the choice waits in session storage.
 const PENDING='travelly.rental.pending.v1'
 const steps=['When and how long','Choose a vehicle','Licence and request','Request sent']
-const vehicleName=v=>[v?.make,v?.model].filter(Boolean).join(' ')||v?.reference||t('Vehicle')
+const vehicleName=v=>v?.display_name||[v?.make,v?.model].filter(Boolean).join(' ')||v?.reference||t('Vehicle')
 const startIso=(date,time)=>new Date(`${date}T${time||'00:00'}:00`).toISOString()
 
 export function PassengerRental(){

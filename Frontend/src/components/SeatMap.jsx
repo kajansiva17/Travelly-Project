@@ -1,6 +1,6 @@
 import { BRAND_RED } from './brandColor.js'
 import { t } from '../i18n/language.js'
-import {useLayoutEffect,useRef,useState} from 'react'
+import {useEffect,useLayoutEffect,useRef,useState} from 'react'
 import '../styles/ticketSeats.css'
 
 // Top-down picture of the vehicle, drawn entirely with code (SVG + CSS, no image files).
@@ -94,8 +94,20 @@ function useBox(ref){
   return box
 }
 
+// On a phone the picture is fitted to the card WIDTH (never scrolls sideways); the card grows to the picture's height.
+function useNarrow(){
+  const query='(max-width: 767px)'
+  const [narrow,setNarrow]=useState(()=>typeof window!=='undefined'&&!!window.matchMedia&&window.matchMedia(query).matches)
+  useEffect(()=>{
+    if(!window.matchMedia)return
+    const mq=window.matchMedia(query),read=()=>setNarrow(mq.matches)
+    read();mq.addEventListener('change',read);return ()=>mq.removeEventListener('change',read)
+  },[])
+  return narrow
+}
+
 export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=false,label}){
-  const stage=useRef(null),box=useBox(stage)
+  const stage=useRef(null),box=useBox(stage),narrow=useNarrow()
   const decks=[...new Set(seats.map(s=>s.deck||1))].sort((a,b)=>a-b)
   const sized=decks.map(deck=>{
     const own=seats.filter(s=>(s.deck||1)===deck)
@@ -108,11 +120,17 @@ export default function SeatMap({seats,selected=[],onToggle,isDisabled,editable=
   const title=decks.length>1?TITLE:0
   const totalW=sized.reduce((sum,d)=>sum+d.W,0)+DECK_GAP*(sized.length-1)
   const totalH=Math.max(0,...sized.map(d=>d.H+14))+title
-  const scale=box.w&&box.h?Math.min(box.w/totalW,box.h/totalH,MAX_SCALE):0
-  return <div className="seat-map" role="group" aria-label={label||t('Seat layout')}>
+  // When the Owner edits the layout the picture stays pinned at the top of the phone, so it is capped to about 42% of the screen height.
+  const capH=narrow&&editable&&typeof window!=='undefined'?Math.max(220,Math.round(window.innerHeight*.42)):Infinity
+  const scale=narrow
+    ?(box.w?Math.min(box.w/totalW,capH/totalH,1.15):0)
+    :(box.w&&box.h?Math.min(box.w/totalW,box.h/totalH,MAX_SCALE):0)
+  const phoneCanvas=narrow?{height:Math.ceil(totalH*(scale||0.01))}:null
+  const phoneScaler=narrow?{left:0,top:0,transformOrigin:'top left',transform:`translate(${Math.max(0,(box.w-totalW*(scale||0.01))/2)}px,0) scale(${scale||0.01})`}:null
+  return <div className={'seat-map'+(editable?' is-editable':'')} role="group" aria-label={label||t('Seat layout')}>
     <div className="seat-stage" ref={stage}>
-      <div className="seat-canvas" style={{'--seat-canvas-width':`${totalW}px`,'--seat-canvas-height':`${totalH}px`,'--seat-mobile-canvas-width':`${totalW*1.1}px`,'--seat-mobile-canvas-height':`${totalH*1.1}px`}}>
-      <div className="seat-scaler" style={{width:totalW,height:totalH,transform:`translate(-50%,-50%) scale(${scale||0.01})`,visibility:scale?'visible':'hidden'}}>
+      <div className="seat-canvas" style={{'--seat-canvas-width':`${totalW}px`,'--seat-canvas-height':`${totalH}px`,'--seat-mobile-canvas-width':`${totalW*1.1}px`,'--seat-mobile-canvas-height':`${totalH*1.1}px`,...phoneCanvas}}>
+      <div className="seat-scaler" style={{width:totalW,height:totalH,transform:`translate(-50%,-50%) scale(${scale||0.01})`,visibility:scale?'visible':'hidden',...phoneScaler}}>
         {sized.map(({deck,own,rows,columns,W,H})=>{
           const firstPassengerRow=rows.find(r=>r>0)
           const dc=Math.max(0,...own.filter(x=>x.type==='CREW').map(x=>x.column))

@@ -22,6 +22,7 @@ Endpoints (base /api/v1):
     POST /social/comments/{id}/remove          the commenter, the post author or the Admin
     POST /social/posts/{id}/report             {"reason"}
     POST /social/users/{reference}/follow      {"active": true|false}
+    GET  /social/users?q=                      find people by name (only people with a visible post)
     GET  /social/users/{reference}             profile: counts and visible posts
     GET  /social/me/saved                      my saved posts
     GET  /social/me/reviewable-vehicles        vehicles I may review
@@ -157,7 +158,7 @@ def vehicle_cards(db, vehicle_ids):
     for vehicle in db.scalars(select(Vehicle).where(Vehicle.id.in_(list(vehicle_ids)))) if vehicle_ids else []:
         if vehicle.archived_at is not None:
             continue
-        cards[vehicle.id] = {'id': str(vehicle.id), 'name': ' '.join(x for x in (vehicle.make, vehicle.model) if x) or 'Vehicle',
+        cards[vehicle.id] = {'id': str(vehicle.id), 'name': vehicle.display_name or ' '.join(x for x in (vehicle.make, vehicle.model) if x) or 'Vehicle',
                              'seats': vehicle.seat_capacity, 'hireable': hireable(db, vehicle)}
     return cards
 
@@ -672,8 +673,28 @@ def profile_vehicles(db, target):
     from app.api.routers.favourite_api import hireable
     rows = db.scalars(select(Vehicle).where(Vehicle.owner_user_id == target.id, Vehicle.archived_at.is_(None),
                                             Vehicle.verification_status == 'APPROVED').order_by(Vehicle.created_at).limit(12)).all()
-    return [{'id': str(v.id), 'name': ' '.join(x for x in (v.make, v.model) if x) or 'Vehicle', 'seats': v.seat_capacity,
+    return [{'id': str(v.id), 'name': v.display_name or ' '.join(x for x in (v.make, v.model) if x) or 'Vehicle', 'seats': v.seat_capacity,
              'year': v.manufacture_year, 'colour': v.colour} for v in rows if hireable(db, v)]
+
+
+@router.get('/social/users')
+def find_people(request: Request, db: Session = Depends(get_db)):
+    """The Reels search box: people whose name contains the text and who have at least one post this viewer may see."""
+    viewer = maybe_user(request, db)
+    params = dict(request.query_params)
+    if not set(params) <= {'q'}:
+        raise ApiError(422, 'VALIDATION_ERROR', 'Unknown filter.')
+    text = (params.get('q') or '').strip()
+    if not 2 <= len(text) <= 50:
+        raise ApiError(422, 'VALIDATION_ERROR', 'Type 2 to 50 characters to search.')
+    who = f'user:{viewer.id}' if viewer else 'ip:' + (request.client.host if request.client else 'unknown')
+    request.app.state.store.rate(f'social-search:{who}', 60, 60)
+    pattern = '%' + text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+    has_post = select(SocialPost.id).where(SocialPost.author_user_id == User.id, visible_clause(viewer)).exists()
+    rows = db.scalars(select(User).where(User.account_status.in_(('ACTIVE', 'PENDING_VERIFICATION')), has_post,
+                                         or_(User.display_name.ilike(pattern, escape='\\'), User.full_name.ilike(pattern, escape='\\')))
+                      .order_by(User.full_name).limit(20)).all()
+    return {'items': [author_out(u) for u in rows]}
 
 
 @router.get('/social/users/{reference}')
@@ -707,7 +728,7 @@ def reviewable(user=Depends(current), db: Session = Depends(get_db)):
     items = []
     for vehicle_id in vehicle_ids:
         vehicle = db.get(Vehicle, vehicle_id)
-        items.append({'vehicle_id': str(vehicle_id), 'name': ' '.join(filter(None, [getattr(vehicle, 'make', None), getattr(vehicle, 'model', None)])) or None,
+        items.append({'vehicle_id': str(vehicle_id), 'name': getattr(vehicle, 'display_name', None) or ' '.join(filter(None, [getattr(vehicle, 'make', None), getattr(vehicle, 'model', None)])) or None,
                       'already_reviewed': reviewed(db, user.id, vehicle_id)})
     return {'items': items}
 

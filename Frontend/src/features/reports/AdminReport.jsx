@@ -34,7 +34,7 @@ export default function AdminReport(){
         {key:'c',label:t('Collected'),value:m(sum.collected_total)},{key:'i',label:t('Travelly income'),value:m(sum.travelly_commission),tone:'good'},{key:'p',label:t('Paid to Owners'),value:m(sum.payouts_paid)},
         {key:'a',label:t('Needs attention'),value:attentionCount,tone:attentionTone(attentionCount)==='danger'?'bad':'',onClick:()=>setTab(3)}]}/>
       <p className="rp-note">{t('Private hire (includes Event hire)')} {sum.private_hire_bookings??0} · {t('Ticket')} {sum.ticket_bookings??0} · {t('Rental')} {sum.rental_bookings??0} · {t('Cancelled')} {sum.cancelled_bookings??0}</p>
-      <p className="rp-note">{t('Of which still to collect from Owners')}: {m(res.cash_commission_still_due)}{res.note?` — ${res.note}`:''}</p></div>,
+      <p className="rp-note">{t('Of which still to collect from Owners')}: {m(res.cash_commission_still_due)}{res.note?` — ${t(res.note)}`:''}</p></div>,
     d&&<div className="rp-pane" key="m"><Tiles items={[
         {key:'o',label:t('Collected online'),value:m(sum.collected_online)},{key:'h',label:t('Collected in cash'),value:m(sum.collected_cash)},{key:'r',label:t('Refunds paid'),value:m(sum.refunds_paid)},
         {key:'ow',label:t('Owed to Owners'),value:m(bal.owed_to_owners)},{key:'cd',label:t('Commission due from Owners'),value:m(bal.commission_due_from_owners)},{key:'rw',label:t('Refunds waiting'),value:`${bal.refunds_waiting??0} · ${m(bal.refunds_waiting_amount)}`}]}/>
@@ -51,7 +51,7 @@ export default function AdminReport(){
       {list('documents',t('Documents'),[{key:'expiry_date',label:t('Expiry date'),top:true,render:r=>day(r.expiry_date)},{key:'state',label:t('State'),top:true},{key:'document',label:t('Document')},{key:'holder',label:t('Holder')},{key:'vehicle',label:t('Vehicle')},{key:'number',label:t('Number')}])}
       {list('applications',t('Applications'),[{key:'waiting_days',label:t('Waiting days'),top:true},{key:'name',label:t('Name'),top:true},{key:'reference',label:t('Reference')},{key:'role',label:t('Role')}])}</div>
   ][tab]
-  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period_label||t('Monthly report')} tabs={tabs}
+  return <><Header/><FlowShell heading={t('Reports')} icon="chart" title={d?.period?formatDate(`${d.period}-01`,{day:undefined,month:'long'}):(d?.period_label||t('Monthly report'))} tabs={tabs}
     info={d?.generated_at?`${t('Made on')} ${formatDateTime(d.generated_at)}`:t('The whole platform for one month.')}>
     <div className="rp-page">
       <div className="rp-bar"><MonthPicker value={period} onChange={setPeriod}/>{report.loading&&ok&&<span role="status">{t('Loading…')}</span>}</div>

@@ -22,7 +22,7 @@ from app.services.private_documents import document_summary
 from app.schemas.hire_schemas import Version
 from app.services.hire_services import eligible_vehicle, vehicle_evidence, compatible_driver, approved
 from app.schemas.vehicle_schemas import (VehicleCreate,VehiclePatch,VehicleFacts,VehicleDecision,RegistrationCorrection,
-    Availability,HireLocationSettings,VehicleLocationUpdate,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision)
+    Availability,HireLocationSettings,VehicleLocationUpdate,DriverLookup,PreferredDriver,PhotoDecision,DescriptionDecision,VehicleProfileImage,ProfileImageRemoval)
 from app.services.review_audit import canonical
 from app.services.vehicle_rules import FACTS,MATERIAL,facts,require_complete,has_exterior,commitments,no_commitments,photo_summary,public_photos,validate_public_facts
 
@@ -34,7 +34,7 @@ def version(row,body):
 
 
 def summary(row):
-    return {'id':str(row.id),'reference':row.public_vehicle_reference,'label':' '.join(str(x) for x in (row.make,row.model,row.registration_number) if x),
+    return {'id':str(row.id),'reference':row.public_vehicle_reference,'label':row.display_name or ' '.join(str(x) for x in (row.make,row.model,row.registration_number) if x),
         'registration_number':str(row.registration_number),'verification_status':row.verification_status,'availability_status':row.availability_status,
         'published':row.is_published,'removed':row.archived_at is not None,'version':row.version,**facts(row),
         'preferred_driver_id':str(row.default_driver_user_id) if row.default_driver_user_id else None,
@@ -45,6 +45,7 @@ def summary(row):
             'current_observed_at':row.current_location_observed_at.isoformat() if row.current_location_observed_at else None,
             'current_accuracy_m':str(row.current_location_accuracy_m) if row.current_location_accuracy_m is not None else None},
         'photos':[photo_summary(row.id,p) for p in row.media],
+        'profile_image_url':row.profile_image_url,'profile_image_note':row.profile_image_note,
         'description_review':{k:v for k,v in row.verified_eligibility.get('description_review',{}).items() if k in ('status','approved_text','reason','reviewed_at')}}
 
 
@@ -160,7 +161,7 @@ def driver_vehicles(user=Depends(current),db:Session=Depends(get_db)):
     require_role(db,user,'DRIVER')
     rows=db.scalars(select(Vehicle).where(Vehicle.default_driver_user_id==user.id).order_by(Vehicle.created_at)).all()
     return {'items':[{'id':str(r.id),'reference':r.public_vehicle_reference,'registration_number':str(r.registration_number),
-        'label':' '.join(str(x) for x in (r.make,r.model,r.registration_number) if x)} for r in rows]}
+        'label':r.display_name or ' '.join(str(x) for x in (r.make,r.model,r.registration_number) if x)} for r in rows]}
 
 
 @router.get('/owners/me/vehicles/{vehicle_id}')
@@ -492,6 +493,28 @@ def review_photo(vehicle_id:UUID,photo_id:UUID,body:PhotoDecision,request:Reques
         row.media=[replacement if item['id']==str(photo_id) else item for item in row.media]
         if not has_exterior(row):row.is_published=False
         commit(db,request,user,row,old,body.reason,purpose='VEHICLE_PHOTO_REVIEW')
+    return summary(row)
+
+
+@router.put('/vehicles/{vehicle_id}/profile-image')
+def set_profile_image(vehicle_id:UUID,body:VehicleProfileImage,request:Request,user=Depends(current),db:Session=Depends(get_db)):
+    # Like a user's profile picture: the Owner may change or remove it at any time; it needs no Admin approval and never affects publication.
+    from app.services.profile_image import normalize_avatar
+    with request.app.state.audit.coordinated():
+        row=owned(db,request,user,vehicle_id,lock=True);old=before(row)
+        row.profile_image_url=normalize_avatar(body.profile_image_url,480);row.profile_image_note=None
+        commit(db,request,user,row,old,purpose='VEHICLE_PROFILE_IMAGE')
+    return summary(row)
+
+
+@router.patch('/admin/vehicles/{vehicle_id}/profile-image')
+def remove_profile_image(vehicle_id:UUID,body:ProfileImageRemoval,request:Request,user=Depends(admin),db:Session=Depends(get_db)):
+    # Admin can only take an unclear picture down and say why; the Owner uploads a new one whenever they like.
+    with request.app.state.audit.coordinated():
+        row=admin_locked(db,request,user,vehicle_id,body);old=before(row)
+        if not row.profile_image_url:raise ApiError(409,'NO_PROFILE_IMAGE','This vehicle has no profile picture.')
+        row.profile_image_url=None;row.profile_image_note=body.reason
+        commit(db,request,user,row,old,body.reason,purpose='VEHICLE_PROFILE_IMAGE_REVIEW')
     return summary(row)
 
 

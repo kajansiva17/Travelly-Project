@@ -46,7 +46,7 @@ export function FlowShell({ title, subtitle, icon = 'calendar', info, tabs, step
       </section>
     : children
   return <main className="flow-page" id="main">
-    <div className="flow-top"><h1 className="flow-heading">{heading}</h1>{tabs && <Tabs label={heading} items={tabs}/>}</div>
+    <div className="flow-top"><h1 className="flow-heading">{t(heading)}</h1>{tabs && <Tabs label={heading} items={tabs}/>}</div>
     {steps && <div className="flow-stepper ui-card"><Stepper steps={steps} current={current + 1} label={stepperLabel} onSelect={onStepSelect}/></div>}
     <div className={`flow-body${summary ? ' has-summary' : ''}`}>
       <div className="flow-main">{body}</div>
@@ -110,7 +110,7 @@ export function TripSummary({ title = 'Trip summary', image, rows = [], empty = 
 /* Vehicle card used for matching results and the selected vehicle. */
 export function FlowVehicleCard({ vehicle, title, specs = [], chips, action, selected = false }) {
   return <article className={`flow-vehicle ui-card${selected ? ' is-selected' : ''}`}>
-    <div className="flow-vehicle-photo">{vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{vehicle?.id && <FavouriteHeart vehicleId={vehicle.id}/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
+    <div className="flow-vehicle-photo">{vehicle?.profile_image_url ? <img src={vehicle.profile_image_url} alt={title} referrerPolicy="no-referrer"/> : vehicle?.photos?.[0] ? <VehiclePhoto photo={vehicle.photos[0]} alt={`${title} exterior`}/> : <Icon name="car" size={44} aria-hidden="true"/>}{vehicle?.id && <FavouriteHeart vehicleId={vehicle.id}/>}{selected && <span className="flow-vehicle-badge"><Icon name="check" size={14} aria-hidden="true"/>{t("Selected")}</span>}</div>
     <div className="flow-vehicle-info">
       <h3>{title}</h3>
       <ul>{specs.filter(Boolean).map(spec => <li key={spec.label}><Icon name={spec.icon || 'check'} size={17} aria-hidden="true"/><span>{spec.label}</span></li>)}</ul>

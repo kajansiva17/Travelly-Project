@@ -19,7 +19,7 @@ export function DistanceRuleForm({row,onSaved}){
   }
   return <RateErrors.Provider value={errors}><form className="flow-wizard-form tk-pane" onSubmit={save} noValidate>
     <div className="tk-grid" style={{'--cols':2}}>
-      <Field label="Minimum trip distance (km)" help="A trip shorter than this cannot be booked as Long distance; the Passenger is asked to choose Local hire. The road distance of the whole trip counts, all days together. 0 means no minimum."><input required name="min_distance_km" type="number" min="0" max="2000" step="1" inputMode="numeric" value={km} onChange={event=>setKm(event.target.value)}/></Field>
+      <Field label="Long distance starts at (km)" help="Trips of this distance or more must be booked as Long distance, shorter trips as Local hire. A one-way trip counts its road distance; a return trip counts double (100 km one way = 200 km return). For Long distance all days together count. 0 turns this rule off."><input required name="min_distance_km" type="number" min="0" max="2000" step="1" inputMode="numeric" value={km} onChange={event=>setKm(event.target.value)}/></Field>
       <div className="flow-actions"><span/><button type="submit" className="ui-button ui-button-primary" disabled={busy}>{busy?t('Saving…'):t('Save distance rule')}</button></div>
     </div>
     {message&&<p className="tk-line" role="status">{message}</p>}

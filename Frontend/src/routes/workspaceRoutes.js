@@ -26,7 +26,7 @@ export function personalVehiclePath(role,vehicleId){return personalPrefix(role)+
 export function personalOwnerPath(role,reference){return personalPrefix(role)+'/owners/'+reference}
 export const isPersonalPath=(role,pathname)=>role!=='PASSENGER'&&workspaceRoles[role]&&(pathname.startsWith(personalPrefix(role)+'/')||pathname===personalPrefix(role))
 /* The Passenger pages link to each other with Passenger paths. Inside the Owner or Driver workspace the same page lives under <prefix>/travel. */
-const PASSENGER_PATHS=['/bookings','/trips/','/hire','/vehicles/','/owners/','/reels','/social/']
+const PASSENGER_PATHS=['/bookings','/trips/','/hire','/vehicles/','/owners/','/reels','/social/','/nearby-now']
 export function travelPath(role,path){
  if(!hasTravel(role)||typeof path!=='string'||!path.startsWith('/'))return path
  const prefix=workspaceRoles[role].prefix

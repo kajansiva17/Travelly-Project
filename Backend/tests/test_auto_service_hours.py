@@ -73,7 +73,8 @@ def test_booking_without_hours_stores_the_worked_out_hours_and_a_retry_returns_t
     first = client.post('/api/v1/bookings/private-hires', headers=bearer(c.passenger), json=body); assert first.status_code == 201, first.text
     again = client.post('/api/v1/bookings/private-hires', headers=bearer(c.passenger), json=body); assert again.status_code == 201, again.text
     assert again.json()['id'] == first.json()['id']
-    assert first.json()['proposal']['quote']['itinerary']['service_hours'] == ['9.25']
+    priced = c.confirm_position(first.json())   # the Owner confirms the vehicle position first; only then is the quote shown
+    assert priced['proposal']['quote']['itinerary']['service_hours'] == ['9.25']
 
 
 def test_a_caller_cannot_switch_the_automatic_hours_on_with_a_field(client, hire_setup):

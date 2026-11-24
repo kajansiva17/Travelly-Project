@@ -162,7 +162,7 @@ def my_live_vehicles(user=Depends(current), db: Session = Depends(get_db)):
         reason = not_ready(v)
         online = is_online(v, now)
         owner = owners.get(v.owner_user_id)
-        items.append({**state(v, user, now), 'registration_number': v.registration_number, 'name': ' '.join(filter(None, [v.make, v.model])) or None,
+        items.append({**state(v, user, now), 'registration_number': v.registration_number, 'name': v.display_name or ' '.join(filter(None, [v.make, v.model])) or None,
                       'owner_name': (owner.display_name or owner.full_name) if owner and v.owner_user_id != user.id else None,
                       'ready': reason is None, 'not_ready_reason': reason, 'taken_by_someone_else': bool(online and v.live_online_user_id != user.id),
                       'instant_booking': bool(v.instant_booking)})
@@ -186,7 +186,7 @@ def nearby_now(request: Request, latitude: float = Query(ge=-90, le=90), longitu
         if km > radius_km or (v.pickup_distance_km is not None and km > float(v.pickup_distance_km)):
             continue
         items.append({'vehicle_id': str(v.id), 'reference': v.public_vehicle_reference, 'vehicle_type': v.vehicle_type_code, 'seats': v.seat_capacity,
-                      'name': ' '.join(filter(None, [v.make, v.model])) or None, 'colour': v.colour, 'distance_km': round(km, 1),
+                      'name': v.display_name or ' '.join(filter(None, [v.make, v.model])) or None, 'colour': v.colour, 'distance_km': round(km, 1),
                       'minutes_away': max(1, round(km / CITY_SPEED_KMH * 60)), 'instant_booking': bool(v.instant_booking),
                       'updated_seconds_ago': int((now - v.current_location_observed_at).total_seconds())})
     items.sort(key=lambda i: i['distance_km'])

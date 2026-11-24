@@ -25,6 +25,7 @@ from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
 from app.schemas.scheduled_trip_schemas import BoardingMark, DepartureCreate, DeparturePatch, DriverLookup, PublishRequest, RepeatBody, SeatLayoutIn
 from app.services.availability import no_vehicle_conflict
+from app.services.vehicle_rules import public_photos
 
 router = APIRouter(prefix='/api/v1', tags=['Ticket departures'])
 ZONE = ZoneInfo('Asia/Colombo')
@@ -65,8 +66,8 @@ def ticket_service(db):
 
 def vehicle_summary(vehicle):
     return {'public_vehicle_reference': vehicle.public_vehicle_reference, 'vehicle_type_code': vehicle.vehicle_type_code,
-            'make': vehicle.make, 'model': vehicle.model, 'air_conditioned': vehicle.air_conditioned,
-            'seat_capacity': vehicle.seat_capacity}
+            'make': vehicle.make, 'model': vehicle.model, 'display_name': vehicle.display_name, 'profile_image_url': vehicle.profile_image_url, 'air_conditioned': vehicle.air_conditioned,
+            'seat_capacity': vehicle.seat_capacity, 'photos': public_photos(vehicle)[:1]}
 
 
 def available_count(db, trip_id):

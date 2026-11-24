@@ -38,6 +38,14 @@ def postgres_engine():
         control.dispose()
 
 
+@pytest.fixture(autouse=True)
+def isolated_from_the_env_file(monkeypatch):
+    """Tests must not depend on the developer's .env: no real payment or AI credentials leak in. A test that needs one sets it itself."""
+    for name in ('PAYHERE_MERCHANT_ID', 'PAYHERE_MERCHANT_SECRET', 'PAYHERE_APP_ID', 'PAYHERE_APP_SECRET', 'PUBLIC_API_URL',
+                 'GROQ_API_KEY', 'OPENROUTER_API_KEY', 'GEMINI_API_KEY'):
+        monkeypatch.setenv(name, '')
+
+
 @pytest.fixture
 def client(postgres_engine, tmp_path):
     from app.services.review_operator import initialize

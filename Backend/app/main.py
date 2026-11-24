@@ -189,6 +189,8 @@ def create_app(settings=None, engine=None, store=None):
                     query_route = True
                 if request.method == 'GET' and request.url.path in ('/api/v1/social/feed', '/api/v1/admin/social/posts'):
                     query_route = True   # each endpoint checks its own filters
+                if request.method == 'GET' and request.url.path == '/api/v1/social/users' and set(request.query_params) <= {'q'}:
+                    query_route = True   # Travel Reels people search
                 if (request.method == 'GET' and request.url.path.startswith('/api/v1/social/posts/')
                         and request.url.path.endswith(('/media', '/thumbnail')) and set(request.query_params) <= {'t'}):
                     query_route = True

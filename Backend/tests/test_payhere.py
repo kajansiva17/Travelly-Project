@@ -31,11 +31,18 @@ def use_provider(client, t, name):
                {'expected_version': row['version'], 'payment_provider': name, 'commission_percent': '0', 'gateway_fee_percent': '3.3'})
 
 
-@pytest.fixture
-def payhere(client, ticket, monkeypatch):
+def connect(client, monkeypatch, public=PUBLIC, **more):
+    """PayHere credentials for a test: the process environment (code that reads it) and the app's own settings (the Admin screens read those)."""
     monkeypatch.setenv('PAYHERE_MERCHANT_ID', MERCHANT)
     monkeypatch.setenv('PAYHERE_MERCHANT_SECRET', SECRET)
-    monkeypatch.setenv('PUBLIC_API_URL', PUBLIC)
+    monkeypatch.setenv('PUBLIC_API_URL', public)
+    client.app.state.settings = client.app.state.settings.model_copy(
+        update={'payhere_merchant_id': MERCHANT, 'payhere_merchant_secret': SECRET, 'public_api_url': public, **more})
+
+
+@pytest.fixture
+def payhere(client, ticket, monkeypatch):
+    connect(client, monkeypatch)
     configure_hold(client, ticket)
     assert use_provider(client, ticket, 'PAYHERE').status_code == 200
     passenger = person(client)
@@ -62,11 +69,9 @@ def test_payhere_is_offered_only_when_its_credentials_are_set(client, ticket, mo
     assert settings_row(client, ticket)['available_providers'] == ['SANDBOX']
     refused = use_provider(client, ticket, 'PAYHERE')
     assert refused.status_code == 422 and refused.json()['code'] == 'PAYMENT_PROVIDER_UNAVAILABLE'
-    monkeypatch.setenv('PAYHERE_MERCHANT_ID', MERCHANT)
-    monkeypatch.setenv('PAYHERE_MERCHANT_SECRET', SECRET)
-    monkeypatch.setenv('PUBLIC_API_URL', 'http://not-https.test')
+    connect(client, monkeypatch, public='http://not-https.test')
     assert settings_row(client, ticket)['available_providers'] == ['SANDBOX']  # PayHere must reach us over HTTPS
-    monkeypatch.setenv('PUBLIC_API_URL', PUBLIC)
+    connect(client, monkeypatch)
     assert settings_row(client, ticket)['available_providers'] == ['PAYHERE', 'SANDBOX']
 
 

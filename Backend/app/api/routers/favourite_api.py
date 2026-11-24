@@ -36,7 +36,7 @@ def list_favourites(user=Depends(current), db: Session = Depends(get_db)):
         if hireable(db, vehicle):
             items.append({**safe_vehicle(vehicle, db.get(User, vehicle.owner_user_id)), 'available': True})
         else:   # kept as a bookmark, but not hireable now (for example switched off by its Owner)
-            items.append({'id': str(vehicle.id), 'make': vehicle.make, 'model': vehicle.model, 'available': False, 'photos': []})
+            items.append({'id': str(vehicle.id), 'make': vehicle.make, 'model': vehicle.model, 'display_name': vehicle.display_name, 'available': False, 'photos': []})
     return {'items': items, 'ids': [i['id'] for i in items]}
 
 

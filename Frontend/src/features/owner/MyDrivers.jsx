@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
@@ -13,6 +13,7 @@ const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(bo
 /* Owner: sidebar > My drivers. Drivers ask the Owner by the Owner's Travelly reference (they find it here), or the Owner invites a Driver by reference.
    The other side accepts. Only accepted Drivers can be offered a trip, and every trip still needs the licence check and the Driver's own acceptance. */
 export default function MyDrivers() {
+  const navigate = useNavigate()
   const [findable, setFindable] = useState(true), [items, setItems] = useState(null), [mine, setMine] = useState(''), [error, setError] = useState(null), [tab, setTab] = useState(0), [busy, setBusy] = useState(false)
   const [reference, setReference] = useState(''), [nickname, setNickname] = useState(''), [notice, setNotice] = useState('')
   const rows = useRowCount(66)
@@ -34,12 +35,12 @@ export default function MyDrivers() {
     info={t('Drivers ask you with your Travelly reference, or you invite a Driver with theirs. Only accepted Drivers appear when you accept a hire. Every trip still needs the licence check and the Driver’s own acceptance.')}
     tabs={[{ label: t('My drivers'), icon: 'user', active: tab === 0, onClick: () => setTab(0) },
       { label: asking.length ? `${t('Requests')} (${asking.length})` : t('Requests'), icon: 'mail', active: tab === 1, onClick: () => setTab(1) },
-      { label: t('Invite a Driver'), icon: 'plus', active: tab === 2, onClick: () => setTab(2) }]}>
+      { label: t('Invite a Driver'), icon: 'plus', active: tab === 2, onClick: () => setTab(2) },
+      { label: t('Pay Drivers'), icon: 'wallet', active: false, onClick: () => navigate('/owner/driver-payments') }]}>
     <Compact.Provider value={true}>
       {notice && <p className="flow-note" role="status">{notice}</p>}
       <ErrorNotice error={error}/>
       {tab < 2 && <>
-        <p><Link className="ui-button ui-button-secondary" to="/owner/driver-payments">{t('Pay Drivers')}</Link></p>
         {mine && <p className="flow-note">{t('Your Travelly reference')}: <strong>{mine}</strong> · {t('Share it with a Driver so they can ask you.')}</p>}
         <label className="terms-check"><input type="checkbox" checked={findable} disabled={busy} onChange={e => toggleFindable(e.target.checked)}/><span>{t('Drivers can find me by name or number plate')}</span></label>
         {items === null && !error && <p role="status">{t('Loading…')}</p>}

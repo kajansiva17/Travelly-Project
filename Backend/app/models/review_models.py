@@ -18,6 +18,11 @@ vehicles_table = Table('vehicles', Base.metadata,
     Column('vehicle_type_code', String(60), nullable=True),
     Column('make', String(80), nullable=True),
     Column('model', String(80), nullable=True),
+    # Name the Owner gives the vehicle (migration 0036); shown to Owners and Passengers instead of make/model.
+    Column('display_name', String(80), nullable=True),
+    # Picture the Owner sets and changes at will (migration 0037); Admin can only take it down with a reason.
+    Column('profile_image_url', Text, nullable=True),
+    Column('profile_image_note', String(500), nullable=True),
     Column('manufacture_year', SmallInteger, nullable=True),
     Column('colour', String(40), nullable=True),
     Column('power_type', String(4), nullable=True),

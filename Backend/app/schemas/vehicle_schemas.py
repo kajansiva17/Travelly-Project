@@ -30,6 +30,7 @@ class VehicleFacts(RateModel):
     vehicle_type_code: Literal['CAR', 'VAN', 'BUS', 'THREE_WHEELER'] | None = None
     make: str | None = Field(default=None, min_length=1, max_length=80)
     model: str | None = Field(default=None, min_length=1, max_length=80)
+    display_name: str | None = Field(default=None, min_length=1, max_length=80)
     manufacture_year: int | None = Field(default=None, strict=True, ge=1, le=datetime.now().year)
     colour: str | None = Field(default=None, min_length=1, max_length=40)
     power_type: Literal['ICE', 'MHEV', 'HEV', 'PHEV', 'BEV'] | None = None
@@ -43,7 +44,7 @@ class VehicleFacts(RateModel):
     description: str | None = Field(default=None, max_length=4000)
     registered_owner_case: Literal['SELF', 'OTHER_PERSON', 'COMPANY'] | None = None
 
-    @field_validator('make', 'model', 'colour', 'transmission_type', 'description', mode='before')
+    @field_validator('make', 'model', 'display_name', 'colour', 'transmission_type', 'description', mode='before')
     @classmethod
     def strings(cls, value):
         if isinstance(value, str):
@@ -128,6 +129,14 @@ class PreferredDriver(Version):
     @model_validator(mode='after')
     def service(self):
         return self   # service_type_id is optional: without it the Driver may match any active private-hire service
+
+
+class VehicleProfileImage(RateModel):
+    profile_image_url: str | None = Field(max_length=1_400_000)
+
+
+class ProfileImageRemoval(Version):
+    reason: str = Field(min_length=1, max_length=500)
 
 
 class PhotoDecision(Version):

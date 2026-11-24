@@ -208,3 +208,15 @@ html body .ui-tabs .ui-tab.is-active > svg { color: #fff; }
 .ui-chip-danger { background: var(--brand-red-tint); border-color: var(--brand-red-border); color: var(--brand-red); }
 .ui-chip-danger > svg { color: var(--brand-red); }
 .ui-chip-muted { background: #eef1f5; border-color: #d8dee8; color: #5b6f8f; }
+
+/* InfoTip text is shown on the page (portal), inside the screen, above every card. */
+.ui-infotip-pop { position: fixed; z-index: 2000; width: max-content; max-width: min(300px, calc(100vw - 16px)); padding: 10px 12px; border-radius: 12px; background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-input-border); box-shadow: 0 8px 22px rgb(40 80 120 / .25); font-size: 12.5px; font-weight: 500; line-height: 1.45; white-space: normal; overflow-wrap: break-word; pointer-events: none; }
+
+html body .tk-vehicle-thumb{flex:none;width:48px;height:48px;border-radius:12px;overflow:hidden;background:rgb(255 255 255 / .6)}
+html body .tk-vehicle-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+html body .vehicle-profile-pic{display:flex;gap:14px;align-items:center;margin:0 0 14px}
+html body .vehicle-profile-pic[hidden]{display:none}
+html body .vehicle-profile-pic p{margin:2px 0 8px;font-size:13px}
+html body .vehicle-profile-thumb{flex:none;display:grid;place-items:center;width:96px;height:72px;border-radius:14px;overflow:hidden;background:rgb(255 255 255 / .6)}
+html body .vehicle-profile-thumb img,html body .vehicle-profile-img{display:block;width:100%;height:100%;object-fit:cover}
+html body .vehicle-profile-img{max-width:360px;height:auto;aspect-ratio:4/3;border-radius:16px}

@@ -230,9 +230,11 @@ def me(user: User = Depends(current), db: Session = Depends(get_db)):
 @router.patch('/users/me', response_model=UserResponse, tags=['Users'])
 def update_profile(body: ProfileUpdate, request: Request, user: User = Depends(current), db: Session = Depends(get_db)):
     from app.services.profile_image import normalize_avatar
-    # This delivery enables personal editing only for the existing approved Admin.
+    # Any user with at least one approved role may edit their own profile (name, mobile, photo).
     user = db.scalar(select(User).where(User.id == user.id).with_for_update().execution_options(populate_existing=True))
-    require_role(db, user, 'ADMIN')
+    allowed_account(user)
+    if not db.scalar(select(UserRole.id).where(UserRole.user_id == user.id, UserRole.approval_status == 'APPROVED')):
+        raise ApiError(403, 'ROLE_NOT_APPROVED', 'An approved role is required.')
     if request.state.auth_claims.get('av', 0) != user.auth_version:
         raise unauthorized()
     request.app.state.store.get(request.state.auth_claims['sid'], str(user.id))

@@ -100,7 +100,7 @@ export function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onN
   if(open){
     const {item,kind}=open
     return <RateErrors.Provider value={errors}><div className="tk-pane">
-      <p className="tk-line"><strong>{item.original_departure_reference} · {route(item)}</strong> · {formatDateTime(item.departure_at)} · {item.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:item.booked_seats})}</p>
+      <p className="tk-line"><strong>{item.original_departure_reference} · {route(item)}</strong> · {formatDateTime(item.departure_at)} · {item.vehicle?.display_name||item.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:item.booked_seats})}</p>
       {message&&<p className="tk-line is-warn" role="status">{message}</p>}
       {kind==='accept'
         ?<div className="tk-driver-split">
@@ -119,7 +119,7 @@ export function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onN
     {items===null&&!error?<p role="status">{t('Loading requests…')}</p>:items&&items.length
       ?<div className="tk-rows">{list.slice.map(r=><article className="tk-row" key={r.id}>
         <div className="tk-row-main"><strong>{r.original_departure_reference} · {route(r)}</strong>
-          <span>{formatDateTime(r.departure_at)} · {r.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:r.booked_seats})} · {t('LKR {value0} per seat',{value0:r.fare_per_seat})}{r.requested_by?` · ${t('Asked by')} ${r.requested_by}`:''}</span></div>
+          <span>{formatDateTime(r.departure_at)} · {r.vehicle?.display_name||r.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:r.booked_seats})} · {t('LKR {value0} per seat',{value0:r.fare_per_seat})}{r.requested_by?` · ${t('Asked by')} ${r.requested_by}`:''}</span></div>
         <div className="tk-row-actions">{r.answer_pending
           ?<><Chip tone="info" icon="clock">{t('Waiting for your answer')}</Chip><button type="button" className="ui-button ui-button-primary" onClick={()=>{setChoice('later');setOpen({item:r,kind:'accept'})}}>{t('Accept')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen({item:r,kind:'decline'})}>{t('Decline')}</button></>
           :<Chip tone={statusChip(r.status).tone}>{statusChip(r.status).label}</Chip>}</div></article>)}</div>
@@ -466,7 +466,7 @@ export default function OwnerTicketDepartures(){
       {items===null?<p role="status">{t('Loading departures…')}</p>:items.length
         ?<div className="tk-rows">{departureList.slice.map(x=><article className="tk-row" key={x.id}>
           <div className="tk-row-main"><strong>{x.route?.origin_name} → {x.route?.destination_name}</strong>
-            <span>{nice(x.departure_at)} · {x.vehicle?.make} {x.vehicle?.model} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{seatsText(x)&&` · ${seatsText(x)}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
+            <span>{nice(x.departure_at)} · {x.vehicle?.display_name||`${x.vehicle?.make} ${x.vehicle?.model}`} · {t('LKR {value0} per seat',{value0:x.fare_per_seat})}{seatsText(x)&&` · ${seatsText(x)}`}{x.status==='DRAFT'&&(driverName(x)?` · ${t('Driver')}: ${driverName(x)}`:` · ${t('No Driver yet')}`)}</span></div>
           <div className="tk-row-actions">
             {isOlder(x)&&<><Chip tone="danger" icon="alert">{t('Older seat layout')}</Chip><InfoTip>{t('This departure uses an older seat layout than the one now saved for its vehicle. Passengers see the layout it was published with.')}</InfoTip></>}
             <Chip tone={statusChip(x.status).tone}>{statusChip(x.status).label}</Chip>

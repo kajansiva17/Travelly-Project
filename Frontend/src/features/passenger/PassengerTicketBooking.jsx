@@ -14,6 +14,7 @@ import TicketCancel,{CancelledTicket} from './TicketCancel'
 import FulfilmentNotice from './FulfilmentNotice'
 import ReplacementCard,{isPending,vehicleLine} from './ReplacementCard'
 import NotAvailableNotice from '../../components/NotAvailableNotice'
+import VehiclePhoto from '../../components/VehiclePhoto'
 
 /* A guest can search, pick a departure and seats and type names; sign-in is asked at "hold seats". The choice waits in session storage across the sign-in and is checked again against the live seat map. */
 const PENDING='travelly.ticket.pending.v1'
@@ -162,8 +163,9 @@ export default function PassengerTicketBooking(){
       </div>
       {items?.items?.length===0&&<Empty>{t('No matching departures. No published departure matches these requirements.')}</Empty>}
       <div className="tk-rows">{results.slice.map(d=><article className="tk-row" key={d.id}>
+        {(d.vehicle?.profile_image_url||d.vehicle?.photos?.[0])&&<div className="tk-vehicle-thumb">{d.vehicle.profile_image_url?<img src={d.vehicle.profile_image_url} alt={d.vehicle.display_name||t('Vehicle')} referrerPolicy="no-referrer"/>:<VehiclePhoto photo={d.vehicle.photos[0]} alt={d.vehicle.display_name||t('Vehicle')}/>}</div>}
         <div className="tk-row-main"><strong>{d.route?.route_name}</strong>
-          <span>{formatDateTime(d.departure_at)} · {d.vehicle?.make} {d.vehicle?.model}{d.vehicle?.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
+          <span>{formatDateTime(d.departure_at)} · {d.vehicle?.display_name||`${d.vehicle?.make} ${d.vehicle?.model}`}{d.vehicle?.air_conditioned?' · AC':''} · {t('{value0} seats available',{value0:d.available_seats})}</span></div>
         <div className="tk-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>choose(d)}>{t('Select departure')}</button></div></article>)}</div>
       <div className="flow-actions">{results.pages>1?results.pager:<span/>}<button className="ui-button ui-button-primary">{t('Search departures')}</button></div>
     </form>

@@ -9,7 +9,7 @@ import Chip from '../../components/ui/Chip'
 import { startFavouriteHire } from '../passenger/PassengerBookingFlow'
 import { reloadFavourites } from './favourites.jsx'
 
-const name = v => [v.make, v.model].filter(Boolean).join(' ') || v.reference || t('Vehicle')
+const name = v => v.display_name || [v.make, v.model].filter(Boolean).join(' ') || v.reference || t('Vehicle')
 
 /* Sidebar > Favourite vehicles. Pick a favourite, give only the trip details, and see that vehicle's price: no searching through every vehicle again. */
 export default function FavouriteVehicles() {
@@ -27,7 +27,7 @@ export default function FavouriteVehicles() {
     {items === null && !error && <p role="status">{t('Loading…')}</p>}
     {items && !items.length && <p className="flow-note" role="status">{t('No favourite vehicles yet. Tap the heart on any vehicle to save it here.')} <Link to="/hire">{t('Browse vehicles')}</Link></p>}
     {items && items.length > 0 && <><div className="fav-list">{slice.map(v => <article key={v.id} className="fav-row ui-card">
-      <div className="fav-photo">{v.photos?.[0] ? <VehiclePhoto photo={v.photos[0]} alt={name(v)}/> : <Icon name="car" size={32}/>}</div>
+      <div className="fav-photo">{v.profile_image_url ? <img src={v.profile_image_url} alt={name(v)} referrerPolicy="no-referrer"/> : v.photos?.[0] ? <VehiclePhoto photo={v.photos[0]} alt={name(v)}/> : <Icon name="car" size={32}/>}</div>
       <div className="fav-info"><h3>{name(v)}</h3>
         <p>{[v.manufacture_year, v.colour].filter(Boolean).join(' · ')}</p>
         <div className="status-chips">{v.available ? <><Chip tone="muted" icon="seat">{t('{value0} seats', { value0: v.passenger_seats })}</Chip>{v.owner_name && <Chip tone="muted" icon="user">{v.owner_name}</Chip>}</> : <Chip tone="warning">{t('Not available to hire now')}</Chip>}</div></div>

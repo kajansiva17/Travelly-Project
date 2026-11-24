@@ -5,6 +5,7 @@ import { api } from '../../services/api'
 import { ErrorNotice } from '../../components/components'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { PlaceSearch } from '../owner/OwnerRates'
+import { TravellyField } from '../../components/TravellyVisualFoundation'
 import { travelPath } from '../../routes/workspaceRoutes'
 
 const POLL_MS = 3000
@@ -96,16 +97,18 @@ export default function NearbyNow() {
           {saved.map(item => <button key={item.id} type="button" className="ui-button ui-button-secondary" onClick={() => { setDestination(item.place); setItems(null) }}>{item.name}</button>)}
         </div>}
         <PlaceSearch label="Destination" value={destination} onChange={value => { setDestination(value); setItems(null) }}/>
-        <label>{t('Passengers')}
-          <select value={passengers} onChange={event => { setPassengers(event.target.value); setItems(null) }}>{[1, 2, 3, 4, 5, 6].map(count => <option key={count} value={count}>{count}</option>)}</select>
-        </label>
-        <label>{t('Journey')}
-          <select value={journey} onChange={event => { setJourney(event.target.value); setItems(null) }}>
-            <option value="ONE_WAY">{t('One way')}</option>
-            <option value="RETURN">{t('Return')}</option>
-          </select>
-        </label>
-        <div className="flow-actions"><button type="button" disabled={busy || !here || !destination} onClick={find}>{busy ? t('Searching…') : t('Find vehicles')}</button></div>
+        <div className="flow-grid-2">
+          <TravellyField label={t('Passengers')}>
+            <select value={passengers} onChange={event => { setPassengers(event.target.value); setItems(null) }}>{Array.from({ length: 20 }, (_, index) => index + 1).map(count => <option key={count} value={count}>{count}</option>)}</select>
+          </TravellyField>
+          <TravellyField label={t('Journey')}>
+            <select value={journey} onChange={event => { setJourney(event.target.value); setItems(null) }}>
+              <option value="ONE_WAY">{t('One way')}</option>
+              <option value="RETURN">{t('Return')}</option>
+            </select>
+          </TravellyField>
+        </div>
+        <div className="flow-actions"><button type="button" className="ui-button ui-button-primary" disabled={busy || !here || !destination} onClick={find}>{busy ? t('Searching…') : t('Find vehicles')}</button></div>
         {items && (items.length === 0 ? <p>{t('No vehicle is online near you right now.')}</p> : items.map(item => <section key={item.vehicle_id} className="dash-row" style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', padding: '12px 0' }}>
           <div>
             <strong>{item.name || item.reference}</strong>

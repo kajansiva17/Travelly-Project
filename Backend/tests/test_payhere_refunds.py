@@ -33,10 +33,16 @@ class FakePayHere:
         return [kwargs['json'] for url, kwargs in self.calls if url.endswith('/payment/refund')]
 
 
-@pytest.fixture
-def paid_card(client, payhere, monkeypatch):
+def app_credentials(client, monkeypatch):
+    """The PayHere Refund API keys, in the process environment and in the app's own settings."""
     monkeypatch.setenv('PAYHERE_APP_ID', 'test-app-id')
     monkeypatch.setenv('PAYHERE_APP_SECRET', 'test-app-secret')
+    client.app.state.settings = client.app.state.settings.model_copy(update={'payhere_app_id': 'test-app-id', 'payhere_app_secret': 'test-app-secret'})
+
+
+@pytest.fixture
+def paid_card(client, payhere, monkeypatch):
+    app_credentials(client, monkeypatch)
     payhere_refunds._token.update(value=None)
     payment = intent(client, payhere).json()
     assert notify(client, payment['payment_reference'], method='VISA').json()['status'] == 'PAID'
@@ -111,8 +117,7 @@ def test_no_answer_is_never_sent_twice(client, paid_card, monkeypatch):
 
 
 def test_wallet_payments_need_a_manual_refund(client, payhere, monkeypatch):
-    monkeypatch.setenv('PAYHERE_APP_ID', 'test-app-id')
-    monkeypatch.setenv('PAYHERE_APP_SECRET', 'test-app-secret')
+    app_credentials(client, monkeypatch)
     fake = FakePayHere()
     monkeypatch.setattr(payhere_refunds, 'post', fake)
     payment = intent(client, payhere).json()

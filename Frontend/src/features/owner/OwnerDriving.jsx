@@ -46,7 +46,7 @@ export default function OwnerDriving(){
             :<Link className="ui-button ui-button-secondary" to={withWorkspace('/bookings/'+b.id,'OWNER')}>{t('Open trip')}</Link>}</div></article>
     }
     const d=item.departure,chip=statusChip(d.status)
-    return <article className="tk-row" key={'d'+d.id}><div className="tk-row-main"><strong>{d.route?.origin_name} → {d.route?.destination_name}</strong><span>{d.reference||''}{d.reference?' · ':''}{formatDateTime(d.departure_at)} · {d.vehicle?.public_vehicle_reference||''} · {t('Ticket departure')}</span></div>
+    return <article className="tk-row" key={'d'+d.id}><div className="tk-row-main"><strong>{d.route?.origin_name} → {d.route?.destination_name}</strong><span>{d.reference||''}{d.reference?' · ':''}{formatDateTime(d.departure_at)} · {d.vehicle?.display_name||d.vehicle?.public_vehicle_reference||''} · {t('Ticket departure')}</span></div>
       <div className="tk-row-actions"><Chip tone={chip.tone}>{chip.label}</Chip></div></article>
   }
   return <><Header/><FlowShell heading={t('My driving')} title={tab===0?t('Trips I drive'):t('Driving history')} icon="watch" tabs={tabs}

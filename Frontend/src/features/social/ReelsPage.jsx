@@ -13,15 +13,25 @@ import {useFeed} from './socialHooks'
 import {TABS,ratingOf,replaceItem,sharePath,viewsOf,withFollow} from './socialModel'
 import {src} from './mediaSrc'
 import {CommentsPanel,EditPanel,MenuPanel,RemovePanel,ReportPanel} from './ReelPanels'
+import {PhoneBottom,PhoneSearch,PhoneTop,ShareSheet,usePhone} from './ReelsPhone'
 
 /* Travel Reels viewing page (contract 03SO, Screens): a vertical full-height player. Only the visible reel plays (it autoplays muted,
    tap for sound) and only the next one is preloaded. Swipe, wheel or arrow keys move to the next reel; a view is counted once
    per reel per visit when playback starts. Side buttons: like, comments, save, share, the author (follow) and ⋯. */
+const onPhone=()=>typeof window!=='undefined'&&Boolean(window.matchMedia?.('(max-width: 767px)').matches)
 const stars=n=>'★'.repeat(n)+'☆'.repeat(5-n)
 
-function Media({post,muted,onSound,onPlaying}){
-  const video=useRef(null),manualPause=useRef(false)
-  const [paused,setPaused]=useState(false)
+function Media({post,muted,onSound,onPlaying,onDouble}){
+  const video=useRef(null),manualPause=useRef(false),tapTimer=useRef(null)
+  const [paused,setPaused]=useState(false),[burst,setBurst]=useState(null)
+  useEffect(()=>()=>clearTimeout(tapTimer.current),[post.id])
+  // One tap pauses or plays a reel; two quick taps toggle the like (a heart pops where you tapped).
+  const tap=(e,single)=>{
+    const box=e.currentTarget.getBoundingClientRect(),at={x:e.clientX-box.left,y:e.clientY-box.top}
+    if(tapTimer.current){clearTimeout(tapTimer.current);tapTimer.current=null;if(!post.liked_by_me)setBurst({...at,key:Date.now()});onDouble?.();return}
+    tapTimer.current=setTimeout(()=>{tapTimer.current=null;single?.()},260)
+  }
+  const heart=burst&&<span key={burst.key} className="rl-burst" style={{left:burst.x,top:burst.y}} onAnimationEnd={()=>setBurst(null)} aria-hidden="true"><Icon name="heart" size={96}/></span>
   useEffect(()=>{const v=video.current;if(v){v.muted=muted}},[muted,post.id])
   useEffect(()=>{
     const v=video.current;if(!v)return undefined
@@ -34,13 +44,14 @@ function Media({post,muted,onSound,onPlaying}){
   if(post.post_type==='REEL')return <div className="rl-media">
     <video ref={video} key={post.id} src={src(post.media_url)} poster={src(post.thumbnail_url)||undefined} autoPlay muted loop playsInline preload="auto"
       onPlaying={()=>{setPaused(false);onPlaying()}} onPause={()=>{if(!document.hidden)setPaused(true)}}/>
-    <button type="button" className="rl-media-toggle" onClick={toggle} aria-label={paused?t('Play reel'):t('Pause reel')} aria-pressed={paused}>
+    <button type="button" className="rl-media-toggle" onClick={e=>tap(e,toggle)} aria-label={paused?t('Play reel'):t('Pause reel')} aria-pressed={paused}>
       <span className={'rl-play-state'+(paused?' is-paused':'')}><Icon name={paused?'play':'pause'} size={38}/></span>
     </button>
     <button type="button" className="rl-sound" onClick={onSound} aria-label={muted?t('Turn sound on'):t('Mute reel')} title={muted?t('Turn sound on'):t('Mute reel')}><Icon name={muted?'mute':'volume'} size={20}/></button>
+    {heart}
   </div>
-  if(post.media_url)return <div className="rl-media"><img src={src(post.media_url)} alt={post.caption||t('Photo')}/></div>
-  return <div className="rl-media rl-text"/>
+  if(post.media_url)return <div className="rl-media" onClick={e=>tap(e)}><img src={src(post.media_url)} alt={post.caption||t('Photo')}/>{heart}</div>
+  return <div className="rl-media rl-text" onClick={e=>tap(e)}>{heart}</div>
 }
 
 function Overlay({post,onTag}){
@@ -70,8 +81,9 @@ function Rail({post,busy,full,onFull,onLike,onSave,onComments,onShare,onFollow,o
 }
 
 export default function ReelsPage(){
-  const {postId}=useParams(),[tab,setTab]=useState('REEL'),[hashtag,setHashtag]=useState(''),[index,setIndex]=useState(0)
+  const {postId}=useParams(),[tab,setTab]=useState(()=>onPhone()?'':'REEL'),[hashtag,setHashtag]=useState(''),[index,setIndex]=useState(0)
   const [panel,setPanel]=useState(null),[muted,setMuted]=useState(true),[busy,setBusy]=useState(false),[note,setNote]=useState({text:'',warn:false})
+  const phone=usePhone(),[searching,setSearching]=useState(false),[shareUrl,setShareUrl]=useState('')
   const feed=useFeed({tab,hashtag,enabled:!postId})
   const [single,setSingle]=useState({post:null,error:'',loaded:false})
   const stage=useRef(null),[full,setFull]=useState(false)
@@ -125,6 +137,11 @@ export default function ReelsPage(){
     if(navigator.share){try{await navigator.share({title:post.caption||t('Travel Reels'),url})}catch(e){if(e?.name!=='AbortError')throw e}}
     else{try{await navigator.clipboard.writeText(url);say(t('Link copied'))}catch{say(url)}}
   })
+  // Phone: the Share button opens a sheet (WhatsApp, Facebook, Telegram, X, SMS, e-mail, copy link, the phone's own share sheet).
+  const shareSheet=()=>act(async()=>{
+    const r=await api(`/social/posts/${post.id}/share`,{method:'POST',body:JSON.stringify({})});patch({id:post.id,share_count:r.share_count})
+    setShareUrl(sharePath(window.location.origin,r.share_path));setPanel('share')
+  })
   async function conflict(){try{patch(await api(`/social/posts/${post.id}`,{cache:'no-store'}))}catch{/* the message is already shown */}}
 
   const tabs=<div className="rl-top" role="tablist" aria-label={t('Travel Reels')}>
@@ -139,12 +156,14 @@ export default function ReelsPage(){
   else if(!post)body=<EmptyState icon="video" title={t(tab==='FOLLOWING'?'Nothing from people you follow yet.':'Nothing to watch yet.')}>{hashtag?t('Nothing has this tag yet.'):t('New posts will show here.')}</EmptyState>
   else body=<div className={'rl-wrap'+(panel?' has-panel':'')}>
     <div className="rl-frame" key={post.id}>
-      <Media post={post} muted={muted} onSound={()=>setMuted(m=>!m)} onPlaying={countView}/>
+      <Media post={post} muted={muted} onSound={()=>setMuted(m=>!m)} onPlaying={countView} onDouble={like}/>
       <Overlay post={post} onTag={setHashtag}/>
     </div>
-    <Rail post={post} busy={busy} full={full} onFull={toggleFull} onLike={like} onSave={save} onComments={()=>setPanel('comments')} onShare={share} onFollow={follow} onMenu={()=>setPanel('menu')}/>
+    <Rail post={post} busy={busy} full={full} onFull={toggleFull} onLike={like} onSave={save} onComments={()=>setPanel('comments')} onShare={phone?shareSheet:share} onFollow={follow} onMenu={()=>setPanel('menu')}/>
     {items.length>1&&<div className="rl-nav"><button type="button" className="rl-x is-prev" aria-label={t('Previous reel')} disabled={index<=0} onClick={()=>go(-1)}><Icon name="chevron" size={22}/></button><button type="button" className="rl-x is-next" aria-label={t('Next reel')} disabled={index>=items.length-1&&!feed.hasMore} onClick={()=>go(1)}><Icon name="chevron" size={22}/></button></div>}
     {panel==='comments'&&<CommentsPanel post={post} onClose={()=>setPanel(null)} onCount={n=>typeof n==='number'&&n!==post.comment_count&&patch({id:post.id,comment_count:n})}/>}
+    {panel==='share'&&<ShareSheet post={post} url={shareUrl} onClose={()=>setPanel(null)} onNote={say}/>}
+    {panel&&phone&&<button type="button" className="rl-tt-backdrop" aria-label={t('Close')} onClick={()=>setPanel(null)}/>}
     {panel==='menu'&&<MenuPanel post={post} onClose={()=>setPanel(null)} onChoose={setPanel}/>}
     {panel==='report'&&<ReportPanel post={post} onClose={()=>setPanel(null)}/>}
     {panel==='edit'&&<EditPanel post={post} onClose={()=>setPanel(null)} onSaved={saved=>{patch(saved);setPanel(null);say(t('Saved'))}} onConflict={conflict}/>}
@@ -152,6 +171,15 @@ export default function ReelsPage(){
     {next?.post_type==='REEL'&&<video className="rl-preload" src={src(next.media_url)} preload="auto" muted tabIndex={-1} aria-hidden="true"/>}
     {next&&next.post_type!=='REEL'&&next.media_url&&<img className="rl-preload" src={src(next.media_url)} alt="" aria-hidden="true"/>}
   </div>
+  if(phone)return <main className="rl-page rl-tt" id="main">
+    <PhoneTop tab={tab} onTab={setTab} onSearch={()=>setSearching(true)} hashtag={hashtag} onClearTag={()=>setHashtag('')} single={Boolean(postId)}/>
+    <div className="rl-stage" ref={stage} onWheel={e=>{if(panel||Math.abs(e.deltaY)<20)return;go(e.deltaY>0?1:-1)}} onTouchStart={e=>{touchY.current=e.touches[0].clientY}} onTouchEnd={e=>{if(touchY.current==null||panel)return;const dy=touchY.current-e.changedTouches[0].clientY;touchY.current=null;if(Math.abs(dy)>50)go(dy>0?1:-1)}}>
+      {body}
+      {note.text&&<p className={'rl-note'+(note.warn?' is-warn':'')} role="status">{note.text}</p>}
+    </div>
+    <PhoneBottom author={post?.author?.reference||''}/>
+    {searching&&<PhoneSearch onClose={()=>setSearching(false)}/>}
+  </main>
   return <><Header/><main className="rl-page" id="main">
     {tabs}
     <div className="rl-stage" ref={stage} onWheel={e=>{if(panel||Math.abs(e.deltaY)<20)return;go(e.deltaY>0?1:-1)}}

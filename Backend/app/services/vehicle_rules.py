@@ -31,7 +31,7 @@ def validate_public_facts(data,registration):
     # Obvious private identifiers are not valid make/model/colour facts.
     # Free-text descriptions use the separately approved Admin content review.
     plate=''.join(re.findall('[a-z0-9]',registration.lower()))
-    for name in ('make','model','colour','transmission_type'):
+    for name in ('make','model','display_name','colour','transmission_type'):
         value=data.get(name) or ''
         normalized=''.join(re.findall('[a-z0-9]',value.lower()))
         if re.search(r'\S+@\S+\.[A-Za-z]{2,}',value) or re.search(r'(?:\+?[0-9][\s().-]*){7,}',value) or (len(plate)>=4 and plate in normalized):
@@ -64,5 +64,7 @@ def photo_summary(vid, photo):
 
 
 def public_photos(row):
-    return [{'id':p['id'],'category':p['category'],'variants':photo_summary(row.id,p)['variants']}
+    # Approved exterior photos come before interior ones.
+    shown=[{'id':p['id'],'category':p['category'],'variants':photo_summary(row.id,p)['variants']}
         for p in row.media if p.get('status')=='APPROVED' and p.get('privacy_confirmed') is True and p.get('genuine_vehicle_confirmed') is True]
+    return sorted(shown,key=lambda p:p['category']!='EXTERIOR')
