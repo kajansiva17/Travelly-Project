@@ -72,7 +72,7 @@ def test_wrong_or_past_answers_are_asked_again_and_edits_are_kept(client):
 
 
 def test_ai_services_answer_one_after_another_and_rules_take_over(client, monkeypatch):
-    """Groq first; when it fails, OpenRouter; when every service fails, the built-in rules (owner decision 13 Nov 2026)."""
+    """OpenRouter first; when it fails, Groq; when every service fails, the built-in rules (owner decision 13 Nov 2026)."""
     monkeypatch.setenv('GROQ_API_KEY', 'test-groq')
     monkeypatch.setenv('OPENROUTER_API_KEY', 'test-or')
     sent = []
@@ -87,14 +87,14 @@ def test_ai_services_answer_one_after_another_and_rules_take_over(client, monkey
         return {'service': 'local', 'pickup': 'Wellawatte', 'destination': 'Colombo Fort', 'passengers': 99999, 'journey': 'unknown'}
     monkeypatch.setattr(ai_assist, 'call', fake)
     reply = turn(client, 'wellawatte to fort, call me on +94 77 123 4567 or me@example.com')
-    assert reply['engine'] == 'groq' and [n for n, _ in sent] == ['groq']   # the first service answered: no second call
+    assert reply['engine'] == 'openrouter' and [n for n, _ in sent] == ['openrouter']   # the first service answered: no second call
     assert reply['filters'] == {'service': 'local', 'pickup': 'Wellawatte', 'destination': 'Colombo Fort', 'journey': 'ONE_WAY'}  # bad count dropped
     assert '+94' not in sent[0][1] and 'example.com' not in sent[0][1] and '[phone]' in sent[0][1]
-    down.add('groq')
+    down.add('openrouter')
     sent.clear()
     helped = client.post('/api/v1/ai/help', json={'question': 'ticket eppadi cancel pannurathu', 'language': 'ta'}).json()
-    assert helped['engine'] == 'openrouter' and [n for n, _ in sent] == ['groq', 'openrouter'] and helped['path'] == '/bookings'
-    down.add('openrouter')
+    assert helped['engine'] == 'groq' and [n for n, _ in sent] == ['openrouter', 'groq'] and helped['path'] == '/bookings'
+    down.add('groq')
     fallback = turn(client, 'from Galle to Matara tomorrow 9am, 2 people')
     assert fallback['engine'] == 'rules' and fallback['filters']['pickup'] == 'Galle' and fallback['filters']['passengers'] == 2
     monkeypatch.setenv('AI_DAILY_LIMIT', '0')

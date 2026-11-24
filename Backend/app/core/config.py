@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     # Travelly AI (PRD matrix 90-91 smart search; help assistant owner decision 12 Nov 2026).
     # Owner decision 13 Nov 2026: several free AI services, tried one after another. A service is used only when its key
     # is set; when it fails or hits its limit, the next one answers, and after all of them the built-in rules answer.
-    ai_providers: str = 'groq,openrouter,gemini'          # chat, search and help, in this order
+    ai_providers: str = 'openrouter,groq,gemini'          # chat, search and help, in this order
     ai_vision_providers: str = 'openrouter,gemini'         # odometer photo (Groq's free models do not read images)
     ai_daily_limit: int = Field(default=1000, ge=0, le=100000)       # AI answers per day for the whole site
     ai_user_daily_limit: int = Field(default=40, ge=0, le=10000)     # per signed-in person per day
