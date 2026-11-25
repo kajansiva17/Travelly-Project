@@ -7,6 +7,7 @@ import Chip from '../../components/ui/Chip'
 import EmptyState from '../../components/ui/EmptyState'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { formatDateTime } from '../../i18n/dateTime.js'
+import CallContact from '../trips/CallContact'
 
 const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body) })
 const canScan = () => typeof window !== 'undefined' && 'BarcodeDetector' in window && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -106,7 +107,7 @@ export default function DriverTicketBoarding() {
           <div className="flow-actions"><Button type="submit" disabled={busy || pin.length !== 6}>{t('Check')}</Button></div>
         </form>
         {found && found.map(match => <div key={match.booking_reference} className="rate-preview">
-          <strong>{match.booking_reference}</strong>
+          <strong>{match.booking_reference}</strong>{match.booking_id && <CallContact lazy bookingId={match.booking_id}/>}
           {match.travellers.map(traveller => <div key={traveller.traveller_id} className="tk-row">
             <div className="tk-row-main"><strong>{traveller.full_name}</strong><span>{t('Seat')}{' '}{traveller.seat_code}</span></div>
             <div className="tk-row-actions">{done(traveller.status) ? <Chip tone="success">{t('Boarded')}</Chip> : traveller.can_board ? <Button type="button" disabled={busy} onClick={() => board([traveller.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
@@ -119,7 +120,7 @@ export default function DriverTicketBoarding() {
         <div className="tk-rows">
           {list.items.map(item => <article className="tk-row" key={item.traveller_id}>
             <div className="tk-row-main"><strong>{item.full_name}</strong><span>{t('Seat')}{' '}{item.seat_code}{item.gets_on ? ' · ' + item.gets_on + ' → ' + (item.gets_off || '') : ''}</span></div>
-            <div className="tk-row-actions">{done(item.status) ? <Chip tone="success">{t('Boarded')}</Chip> : item.can_board ? <Button type="button" variant="secondary" disabled={busy} onClick={() => board([item.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
+            <div className="tk-row-actions">{item.is_primary && item.booking_id && <CallContact lazy bookingId={item.booking_id}/>}{done(item.status) ? <Chip tone="success">{t('Boarded')}</Chip> : item.can_board ? <Button type="button" variant="secondary" disabled={busy} onClick={() => board([item.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
           </article>)}
           {!list.items.length && <p className="flow-note">{t('No travellers on this departure yet.')}</p>}
         </div>

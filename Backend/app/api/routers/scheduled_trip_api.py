@@ -590,7 +590,7 @@ def departure_travellers(trip_id: UUID, user=Depends(current), db: Session = Dep
                       .where(ScheduledTripSeat.scheduled_trip_id == departure.id,
                              BookingTraveller.traveller_status.notin_(('CANCELLED', 'MOVED')))
                       .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
-    items = [{'traveller_id': str(traveller.id), 'full_name': traveller.full_name, 'seat_code': seat.seat_code,
+    items = [{'traveller_id': str(traveller.id), 'booking_id': str(traveller.booking_id), 'full_name': traveller.full_name, 'seat_code': seat.seat_code,
               'status': traveller.traveller_status, 'is_primary': traveller.is_primary,
               'seat_status': inventory.seat_status, 'can_board': inventory.seat_status == 'BOOKED',
               'gets_on': stops.get(traveller.boarding_stop_id), 'gets_off': stops.get(traveller.dropoff_stop_id)}

@@ -1356,3 +1356,98 @@ html:not(#a) body .flow-page .vehicle-detail-pane { min-width: 0; }
   html:not(#a) body .flow-page .facts-grid .rate-field > label { font-size: 13.5px; }
   html:not(#a) body .flow-page .vehicle-detail-pane .pane-head { margin: 0; }
 }
+
+/* Call buttons (CallContact): the phone's own dialer opens; the number is shown beside the label */
+html:not(#a) body .call-contacts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; max-width: 100%; }
+html:not(#a) body .call-contact { display: inline-flex; align-items: center; gap: 6px; min-height: 36px !important; width: auto !important; padding: 4px 14px !important; font-size: 13.5px !important; white-space: nowrap; text-decoration: none; }
+html:not(#a) body .call-contact small { font-size: 12px; font-weight: 500; opacity: .8; }
+
+/* Booking chat + contact bar (Call / Chat). Dialog is centred on desktop and a bottom sheet on phones; only the message list scrolls. */
+html:not(#a) body .call-contact span { font-weight: 700; }
+html:not(#a) body .call-soon { flex-basis: 100%; font-size: 12.5px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .chat-backdrop { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgb(15 23 42 / .45); }
+html:not(#a) body .chat-panel { display: flex; flex-direction: column; width: min(480px, 100%); height: min(620px, 100%); overflow: hidden; border: 1px solid var(--ui-glass-border, #dfe3ea); border-radius: 16px; background: var(--ui-glass-strong, #fff); box-shadow: 0 24px 60px rgb(15 23 42 / .28); }
+html:not(#a) body .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--ui-glass-border, #dfe3ea); }
+html:not(#a) body .chat-title { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--ui-ink, #14213d); }
+html:not(#a) body .chat-close { min-height: 34px !important; width: 34px !important; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+html:not(#a) body .chat-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 8px; }
+html:not(#a) body .chat-empty, html:not(#a) body .chat-closed { margin: auto; padding: 8px 14px; text-align: center; font-size: 13.5px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .chat-row { display: flex; justify-content: flex-start; }
+html:not(#a) body .chat-row.is-mine { justify-content: flex-end; }
+html:not(#a) body .chat-bubble { max-width: 82%; padding: 8px 12px 6px; border-radius: 14px 14px 14px 4px; background: #eef1f6; color: var(--ui-ink, #14213d); overflow-wrap: anywhere; }
+html:not(#a) body .chat-row.is-mine .chat-bubble { border-radius: 14px 14px 4px 14px; background: var(--ui-blue-deep, #1f4fa3); color: #fff; }
+html:not(#a) body .chat-bubble p { margin: 0; font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+html:not(#a) body .chat-who { display: block; margin-bottom: 2px; font-size: 11.5px; font-weight: 800; opacity: .75; }
+html:not(#a) body .chat-bubble small { display: block; margin-top: 2px; text-align: right; font-size: 10.5px; opacity: .7; }
+html:not(#a) body .chat-problem { margin: 0; padding: 6px 16px; font-size: 12.5px; color: var(--ui-red-text, #b42318); }
+html:not(#a) body .chat-form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--ui-glass-border, #dfe3ea); }
+html:not(#a) body .chat-form textarea { flex: 1 1 auto; min-width: 0; min-height: 40px; max-height: 96px; resize: none; padding: 9px 12px; border: 1px solid var(--ui-input-border, #c9d0db); border-radius: 12px; font: inherit; font-size: 14px; background: var(--ui-input-bg, #fff); }
+html:not(#a) body .chat-form .ui-button { min-height: 40px !important; width: auto !important; padding: 0 18px !important; }
+html:not(#a) body .chat-closed { padding: 12px 16px; border-top: 1px solid var(--ui-glass-border, #dfe3ea); }
+@media (max-width: 767px) {
+  html:not(#a) body .chat-backdrop { align-items: flex-end; padding: 0; }
+  html:not(#a) body .chat-panel { width: 100%; height: min(86vh, 100%); border-radius: 16px 16px 0 0; }
+}
+
+/* Go online page + Live tab of a vehicle: neat cards, 2 columns on desktop, only the list scrolls inside when there are many vehicles. */
+html:not(#a) body .live-page { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+html:not(#a) body .live-alert { display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 14px; border: 1px solid #f1c0bb; border-radius: 12px; background: #fdf1f0; color: var(--ui-red-text, #b42318); font-size: 13.5px; font-weight: 600; }
+html:not(#a) body .live-empty { margin: 0; padding: 10px 14px; border: 1px dashed var(--ui-glass-border, #cfd6e2); border-radius: 12px; font-size: 13.5px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .live-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; min-height: 0; max-height: calc(100vh - 330px); overflow-y: auto; padding: 2px; }
+html:not(#a) body .live-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px 16px; border: 1px solid var(--ui-glass-border, #dfe3ea); border-radius: 16px; background: rgb(255 255 255 / .78); box-shadow: 0 6px 18px rgb(15 23 42 / .06); }
+html:not(#a) body .live-card.is-online { border-color: #7bcf9b; background: rgb(240 251 245 / .85); }
+html:not(#a) body .live-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+html:not(#a) body .live-id { display: flex; flex-direction: column; min-width: 0; }
+html:not(#a) body .live-id strong { font-size: 15.5px; font-weight: 800; color: var(--ui-ink, #14213d); overflow-wrap: anywhere; }
+html:not(#a) body .live-id span { font-size: 12.5px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .live-facts { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+html:not(#a) body .live-facts li { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; line-height: 1.4; color: var(--ui-text, #243044); }
+html:not(#a) body .live-facts li svg { flex: 0 0 auto; margin-top: 2px; color: var(--ui-blue-deep, #1f4fa3); }
+html:not(#a) body .live-facts li.is-warn { color: var(--ui-red-text, #b42318); }
+html:not(#a) body .live-facts li.is-warn svg { color: inherit; }
+html:not(#a) body .live-facts a { font-weight: 700; color: var(--ui-blue-deep, #1f4fa3); }
+html:not(#a) body .live-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: auto; }
+html:not(#a) body .live-actions .ui-button { min-height: 38px !important; width: auto !important; padding: 0 18px !important; font-size: 13.5px !important; white-space: nowrap; }
+html:not(#a) body .live-switch { display: inline-flex; align-items: center; gap: 10px; }
+html:not(#a) body .live-knob { position: relative; width: 30px; height: 17px; flex: 0 0 auto; border-radius: 999px; background: #c3cad6; transition: background .15s; }
+html:not(#a) body .live-knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform .15s; }
+html:not(#a) body .live-switch.is-on .live-knob { background: #1f9d55; }
+html:not(#a) body .live-switch.is-on .live-knob::after { transform: translateX(13px); }
+html:not(#a) body .live-requests { display: flex; flex-direction: column; gap: 8px; }
+html:not(#a) body .live-requests h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ui-ink, #14213d); }
+html:not(#a) body .live-request { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1px solid #f0c987; border-radius: 14px; background: #fff8ea; }
+html:not(#a) body .live-request-main { min-width: 0; }
+html:not(#a) body .live-route { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14.5px; }
+html:not(#a) body .live-request p { margin: 2px 0 0; font-size: 13px; color: var(--ui-muted, #5b6472); }
+@media (max-width: 767px) {
+  html:not(#a) body .live-list { grid-template-columns: minmax(0, 1fr); max-height: none; overflow: visible; }
+  html:not(#a) body .live-actions { justify-content: stretch; }
+  html:not(#a) body .live-actions .ui-button { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Book now request banner: on every workspace page while a vehicle is online. */
+html:not(#a) body .ride-banner { position: fixed; top: 84px; left: 50%; z-index: 1900; display: flex; flex-direction: column; gap: 8px; width: min(560px, calc(100% - 24px)); transform: translateX(-50%); }
+html:not(#a) body .ride-banner-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border: 1px solid #f0c987; border-radius: 16px; background: #fff8ea; box-shadow: 0 14px 36px rgb(15 23 42 / .22); }
+html:not(#a) body .ride-banner-main { min-width: 0; }
+html:not(#a) body .ride-banner-title { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 2px; font-size: 13px; color: #8a5a00; }
+html:not(#a) body .ride-banner-card p { margin: 2px 0 0; font-size: 13px; color: var(--ui-muted, #5b6472); }
+@media (max-width: 767px) { html:not(#a) body .ride-banner { top: 70px; } }
+
+/* Call / Chat row above a trip map: its own row, never over the map. */
+html:not(#a) body .tm-contact { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+html:not(#a) body .tm-contact:empty { display: none; }
+/* Driver pickup page: the map fills the panel, so the Call / Chat row floats on it, to the right of the zoom buttons. */
+html:not(#a) body .tm-contact-over { position: absolute; top: 12px; left: 68px; z-index: 6; max-width: calc(100% - 84px); }
+html:not(#a) body .ride-banner-chat { top: 84px; }
+html:not(#a) body button.bk-card.nt-card, html:not(#a) body button.dash-row { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+
+/* Picture cropper (vehicle profile picture): 4:3 frame, drag to move, slider to zoom. */
+html:not(#a) body .crop-panel { width: min(520px, 100%); height: auto; max-height: 100%; }
+html:not(#a) body .crop-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; min-height: 0; overflow-y: auto; }
+html:not(#a) body .crop-help { margin: 0; font-size: 13px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .crop-frame { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 2px solid var(--ui-blue-deep, #1f4fa3); border-radius: 12px; background: #e9edf3; cursor: grab; touch-action: none; user-select: none; }
+html:not(#a) body .crop-frame:active { cursor: grabbing; }
+html:not(#a) body .crop-frame img { position: absolute; top: 0; left: 0; max-width: none; pointer-events: none; }
+html:not(#a) body .crop-zoom { display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 700; }
+html:not(#a) body .crop-zoom input { flex: 1 1 auto; }
+html:not(#a) body .crop-actions { justify-content: flex-end; }

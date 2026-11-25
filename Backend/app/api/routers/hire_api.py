@@ -1214,7 +1214,7 @@ def trip_map(trip_id: UUID, request: Request, user=Depends(current), db: Session
     booking = db.get(Booking, trip.booking_id) if trip.booking_id else None
     if ride_now_booking(booking) and trip.status == 'READY':
         position = vehicle_live_position(db.get(Vehicle, trip.vehicle_id))   # on the way to the pickup
-    return {'trip_id': str(trip.id), 'status': trip.status, 'points': points, 'line': road_line(request, trip.id, points), 'position': position,
+    return {'trip_id': str(trip.id), 'status': trip.status, 'booking_id': str(trip.booking_id) if trip.booking_id else None, 'points': points, 'line': road_line(request, trip.id, points), 'position': position,
             'book_now': ride_now_booking(booking), 'viewer_is_passenger': bool(booking and booking.passenger_user_id == user.id)}
 
 

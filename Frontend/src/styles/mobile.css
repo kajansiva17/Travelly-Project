@@ -338,7 +338,7 @@
 }
 
 /* Travel Reels, phone: a short-video app layout (Following / For you, search, bottom bar with Home, Add and Profile). */
-@media (max-width: 767px) {
+@media all {
   html body .rl-page.rl-tt, html body .workspace-shell[data-workspace] .rl-page.rl-tt { position: fixed !important; inset: 0 !important; z-index: 1000; width: 100% !important; height: 100dvh !important; margin: 0 !important; background: #000; overflow: hidden; }
   html body .rl-tt .rl-stage { position: absolute; inset: 0 0 calc(56px + env(safe-area-inset-bottom)) 0; height: auto; background: #000; border: 0; border-radius: 0; }
   html body .rl-tt .rl-sound { top: 64px !important; }
@@ -388,7 +388,7 @@ html body .pc-done { display: grid; gap: 12px; max-width: 420px; margin: 0 auto;
 html body .rl-burst { position: absolute; z-index: 3; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; color: #fe2c55; animation: rl-burst .8s ease-out forwards; }
 html body .rl-burst svg { width: 100%; height: 100%; fill: currentColor; filter: drop-shadow(0 2px 8px rgb(0 0 0 / .45)); }
 @keyframes rl-burst { 0% { opacity: 0; transform: scale(.4) rotate(-12deg); } 25% { opacity: 1; transform: scale(1.1) rotate(-6deg); } 70% { opacity: 1; transform: scale(1) rotate(-6deg); } 100% { opacity: 0; transform: scale(1.25) rotate(-6deg) translateY(-20px); } }
-@media (max-width: 767px) {
+@media all {
   html body .rl-tt .rl-btn span { font-size: 13px; font-weight: 700; line-height: 1.1; letter-spacing: 0; }
   html body .rl-tt .rl-wrap.has-panel .rl-rail { display: none; }
   html body .rl-tt .rl-tt-backdrop { position: absolute; inset: 0; z-index: 4; border: 0; padding: 0; background: rgb(0 0 0 / .35); }
@@ -500,3 +500,12 @@ html body *:not(svg):not(svg *) { overflow-wrap: break-word !important; word-bre
 }
 
 @media (max-width: 350px) { html body .lr-page.lr-home .lr-tabs button { flex: 1 1 100% !important; } }
+
+/* Travel Reels on a computer: the same short-video layout as the phone, as a centred phone-sized column on black. */
+@media (min-width: 768px) {
+  html:not(#a) body .rl-page.rl-tt, html:not(#a) body .workspace-shell[data-workspace] .rl-page.rl-tt { left: 0 !important; right: 0 !important; width: min(100%, 460px) !important; max-width: none !important; margin: 0 auto !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: #000 !important; box-shadow: 0 0 0 100vmax #000 !important; }
+  html:not(#a) body .rl-tt .rl-nav { display: flex !important; position: fixed !important; inset: auto !important; left: calc(50% + 250px) !important; top: 50% !important; transform: translateY(-50%) !important; flex-direction: column; gap: 12px; }
+  html:not(#a) body .rl-tt .rl-nav .rl-x { position: static !important; }
+  html:not(#a) body .rl-tt .rl-nav .rl-x.is-prev { transform: rotate(90deg); }
+  html:not(#a) body .rl-tt .rl-nav .rl-x.is-next { transform: rotate(-90deg); }
+}

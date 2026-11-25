@@ -165,7 +165,9 @@ def my_live_vehicles(user=Depends(current), db: Session = Depends(get_db)):
         items.append({**state(v, user, now), 'registration_number': v.registration_number, 'name': v.display_name or ' '.join(filter(None, [v.make, v.model])) or None,
                       'owner_name': (owner.display_name or owner.full_name) if owner and v.owner_user_id != user.id else None,
                       'ready': reason is None, 'not_ready_reason': reason, 'taken_by_someone_else': bool(online and v.live_online_user_id != user.id),
-                      'instant_booking': bool(v.instant_booking)})
+                      'instant_booking': bool(v.instant_booking), 'base_location_label': v.base_location_label,
+                      'latitude': float(v.current_latitude) if v.current_latitude is not None else None,
+                      'longitude': float(v.current_longitude) if v.current_longitude is not None else None})
     return {'items': items}
 
 

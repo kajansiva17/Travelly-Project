@@ -58,6 +58,8 @@ from app.api.routers.owner_expense_api import router as owner_expense_router
 from app.api.routers.trip_review_api import router as trip_review_router
 from app.api.routers.seat_inventory_api import router as seat_inventory_router
 from app.api.routers.charge_report_api import router as charge_report_router
+from app.api.routers.contact_api import router as contact_router
+from app.api.routers.chat_api import router as chat_router
 from app.api.routers.trip_km_api import router as trip_km_router
 from app.api.routers.ticket_boarding_api import router as ticket_boarding_router
 from app.api.routers.admin_summary_api import router as admin_summary_router
@@ -170,7 +172,9 @@ def create_app(settings=None, engine=None, store=None):
                 multipart = multipart or social_upload
                 if review_path:
                     group, limit, seconds = ('files', 100, 60) if name == 'file' else ('review', 100, 60) if request.method == 'PATCH' else ('upload', 30, 900) if multipart else ('metadata', 300, 60)
-                app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
+                from app.services.poll_paths import is_poll
+                if not is_poll(request.method, request.url.path):
+                    app.state.store.rate(f'ip:{group}:{ip}', limit, seconds)
                 query_route = request.method == 'GET' and request.url.path in ('/api/v1/documents', '/api/v1/admin/role-requests', '/api/v1/locations', '/api/v1/vehicles','/api/v1/admin/vehicles','/api/v1/owners/me/vehicles','/api/v1/routes','/api/v1/scheduled-trips')
                 if request.method == 'GET' and request.url.path.startswith(('/api/v1/vehicles/', '/api/v1/admin/vehicles/')) and request.url.path.endswith('/calendar'):
                     query_route = True
@@ -208,7 +212,7 @@ def create_app(settings=None, engine=None, store=None):
                     async for chunk in request.stream():
                         length += len(chunk)
                         rate_body = ('/vehicles/' in request.url.path and request.url.path.endswith(('/services', '/services/preview', '/event-packages'))) or request.url.path.startswith(('/api/v1/bookings/', '/api/v1/search/'))
-                        profile_body = request.method == 'PATCH' and request.url.path == '/api/v1/users/me'
+                        profile_body = (request.method == 'PATCH' and request.url.path == '/api/v1/users/me') or (request.method == 'PUT' and request.url.path.startswith('/api/v1/vehicles/') and request.url.path.endswith('/profile-image'))   # a picture travels as a data URL (up to about 1.4 MB)
                         if length > ((app.state.settings.social_reel_max_mb + 11) * 1024 * 1024 if social_upload else MAX_MULTIPART if multipart else 1_410_000 if profile_body else 65536 if rate_body else 8192):
                             raise ApiError(413, 'REQUEST_TOO_LARGE', 'Request exceeds the permitted size.')
                         chunks.append(chunk)
@@ -284,6 +288,8 @@ def create_app(settings=None, engine=None, store=None):
     app.include_router(trip_review_router)
     app.include_router(seat_inventory_router)
     app.include_router(charge_report_router)
+    app.include_router(contact_router)
+    app.include_router(chat_router)
     app.include_router(trip_km_router)
     app.include_router(ticket_boarding_router)
     app.include_router(admin_summary_router)

@@ -10,6 +10,7 @@ import {money} from '../passenger/TicketCancel'
 import {formatDateTime} from '../../i18n/dateTime.js'
 import {fieldErrorMap,fieldErrorText} from '../../services/fieldErrors.js'
 import HirePayment from '../booking/HirePayment'
+import CallContact from '../trips/CallContact'
 import OdometerStep from '../odometer/OdometerStep'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {STATUS_CHIP,ownerSteps,renterConfirms,rentalOf} from './rentalModel'
@@ -75,7 +76,7 @@ export default function RentalBooking({booking,user,personal=false,reload,backTo
     <RateErrors.Provider value={errors}><div className="rb-pane">
       {message.text&&<p className={'tk-line'+(message.warn?' is-warn':'')} role={message.warn?'alert':'status'}>{message.text}</p>}
       {active==='Rental'&&<div className="tk-pane">
-        <div className="tk-bar"><Chip tone="info" icon="key">{t('Self-drive rental')}</Chip>{chip(booking.status)}</div>
+        <div className="tk-bar"><Chip tone="info" icon="key">{t('Self-drive rental')}</Chip>{chip(booking.status)}<CallContact bookingId={booking.id} refreshKey={booking.status}/></div>
         <dl className="flow-review">
           <div><dt>{t('Pickup')}</dt><dd>{formatDateTime(booking.start_at)}</dd></div><div><dt>{t('Return by')}</dt><dd>{formatDateTime(booking.end_at)}</dd></div>
           <div><dt>{t('Rental days')}</dt><dd>{rental.days}</dd></div>

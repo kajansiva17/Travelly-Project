@@ -7,6 +7,7 @@ import { Chip } from '../../components/ui'
 import { FlowShell } from './flow/FlowParts'
 import { displayTime } from '../../hooks/workspaceData'
 import { codeLabel } from '../../i18n/codeLabels.js'
+import CallContact from '../trips/CallContact'
 
 /* A seat-ticket booking (TICKET_HIRE). It has no quote or itinerary of its own: the person sees what was booked,
    who travels in which seat, and the payment, with one clear way back to the list. */
@@ -33,6 +34,7 @@ export default function TicketBookingView({ booking, owner, passenger, backTo, b
         <div><span>{t('Total')}</span><strong>{booking.total_amount ? `${booking.currency || 'LKR'} ${booking.total_amount}` : '—'}</strong></div>
         <div><span>{t('Your part')}</span><strong>{owner ? t('Vehicle owner') : passenger ? t('Passenger') : t('Driver')}</strong></div>
       </div>
+      <CallContact bookingId={booking.id} refreshKey={booking.status}/>
       <div className="tb-people">
         <h3>{t('Travellers')}</h3>
         {people.length ? <ul>{people.map((p, i) => <li key={i}><Icon name="user" size={16}/><span>{p.full_name}{p.is_primary && <em> · {t('Booked by')}</em>}</span><Chip>{t('Seat')} {p.seat_code}</Chip><span className="tb-state">{codeLabel(p.traveller_status)}</span></li>)}</ul>

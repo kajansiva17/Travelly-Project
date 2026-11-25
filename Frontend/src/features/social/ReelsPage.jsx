@@ -13,7 +13,7 @@ import {useFeed} from './socialHooks'
 import {TABS,ratingOf,replaceItem,sharePath,viewsOf,withFollow} from './socialModel'
 import {src} from './mediaSrc'
 import {CommentsPanel,EditPanel,MenuPanel,RemovePanel,ReportPanel} from './ReelPanels'
-import {PhoneBottom,PhoneSearch,PhoneTop,ShareSheet,usePhone} from './ReelsPhone'
+import {PhoneBottom,PhoneSearch,PhoneTop,ShareSheet} from './ReelsPhone'
 
 /* Travel Reels viewing page (contract 03SO, Screens): a vertical full-height player. Only the visible reel plays (it autoplays muted,
    tap for sound) and only the next one is preloaded. Swipe, wheel or arrow keys move to the next reel; a view is counted once
@@ -81,9 +81,9 @@ function Rail({post,busy,full,onFull,onLike,onSave,onComments,onShare,onFollow,o
 }
 
 export default function ReelsPage(){
-  const {postId}=useParams(),[tab,setTab]=useState(()=>onPhone()?'':'REEL'),[hashtag,setHashtag]=useState(''),[index,setIndex]=useState(0)
+  const {postId}=useParams(),[tab,setTab]=useState(''),[hashtag,setHashtag]=useState(''),[index,setIndex]=useState(0)
   const [panel,setPanel]=useState(null),[muted,setMuted]=useState(true),[busy,setBusy]=useState(false),[note,setNote]=useState({text:'',warn:false})
-  const phone=usePhone(),[searching,setSearching]=useState(false),[shareUrl,setShareUrl]=useState('')
+  const phone=true,[searching,setSearching]=useState(false),[shareUrl,setShareUrl]=useState('')
   const feed=useFeed({tab,hashtag,enabled:!postId})
   const [single,setSingle]=useState({post:null,error:'',loaded:false})
   const stage=useRef(null),[full,setFull]=useState(false)

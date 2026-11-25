@@ -5,8 +5,8 @@ import { api, hasSession } from '../../services/api'
 import { fieldErrorMap } from '../../services/fieldErrors.js'
 import { Header, ErrorNotice } from '../../components/components'
 import { FlowShell } from '../booking/flow/FlowParts'
-import { PlaceSearch } from '../owner/OwnerRates'
-import { Button, FormField, Input } from '../../components/ui'
+import { Field, PlaceSearch } from '../owner/OwnerRates'
+import { Button } from '../../components/ui'
 
 const place = value => value && ({ label: value.label, latitude: value.latitude, longitude: value.longitude, token: value.token })
 
@@ -53,9 +53,7 @@ export default function SavedPlaces() {
     </section>)}
     {full ? <p className="flow-note" role="status">{t('You can keep up to {limit} saved places. Remove one to add another.', { limit })}</p>
       : <form className="flow-fields" onSubmit={add}>
-        <FormField label={t('Name')} error={fieldMsg.name}>
-          {({ id }) => <Input id={id} maxLength={30} value={name} onChange={event => setName(event.target.value)} placeholder={t('Home')}/>}
-        </FormField>
+        <Field label="Name"><input name="name" maxLength={30} value={name} onChange={event => setName(event.target.value)} placeholder={t('Home')} aria-invalid={Boolean(fieldMsg.name)}/>{fieldMsg.name && <small className="field-error" role="alert">{fieldMsg.name}</small>}</Field>
         <PlaceSearch label="Place" value={found} onChange={setFound}/>
         <div className="flow-actions"><Button type="submit" disabled={busy || !name.trim() || !found}>{busy ? t('Saving…') : t('Save place')}</Button></div>
       </form>}

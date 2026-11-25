@@ -11,6 +11,9 @@ import {journeyLink} from '../features/auth/onboardingJourney'
 import {StateCard} from '../features/booking/flow/FlowParts'
 import {NOTIFICATION_POLL_MS} from '../features/notifications/unread.js'
 import LiveLocationSender from '../features/live/LiveLocationSender'
+import IncomingRides from '../features/live/IncomingRides'
+import ChatHost from '../features/trips/ChatHost'
+import {bellOpened} from '../features/trips/chatEvents'
 
 export default function WorkspaceShell({role:fixedRole}){
  const location=useLocation(),navigate=useNavigate(),signedIn=useSession()
@@ -69,6 +72,7 @@ export default function WorkspaceShell({role:fixedRole}){
  }
  function openSidebar(){dialog.current?.showModal()}
  function openNotifications(){
+  bellOpened()
   setUnreadCount(0)
   api('/notifications/read-all',{method:'POST',body:'{}'}).catch(()=>api('/notifications/unread-count').then(result=>setUnreadCount(Number(result.unread_count)||0)).catch(()=>{}))
  }
@@ -81,6 +85,8 @@ export default function WorkspaceShell({role:fixedRole}){
  return <WorkspaceContext.Provider value={value}>
   <div className="workspace-shell" data-workspace={role.toLowerCase()} style={{'--workspace-nav-count':workspaceMenu(role).length+(role==='OWNER'?0:2)+(role==='PASSENGER'?0:1)}} ref={shell}>
    <LiveLocationSender enabled={Boolean(access.user)&&authorized&&(allowed.includes('OWNER')||allowed.includes('DRIVER'))}/>
+   <IncomingRides role={role}/>
+   <ChatHost enabled={Boolean(access.user)&&authorized}/>
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>

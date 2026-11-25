@@ -299,7 +299,7 @@ def test_migration_grandfathers_existing_accounts_without_changing_identity_or_r
             connection.execute(text("INSERT INTO users (public_user_reference, full_name, email, password_hash) VALUES (:ref, 'New Passenger', 'new@example.com', :password)"), {'ref': 'USR-' + uuid4().hex[:16].upper(), 'password': encoded})
             assert connection.scalar(text("SELECT email_login_required FROM users WHERE email = 'new@example.com'")) is True
             tables = set(connection.scalars(text('SELECT tablename FROM pg_tables WHERE schemaname = :schema'), {'schema': schema}))
-            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'road_alerts', 'social_posts', 'social_interactions', 'favourite_vehicles', 'owner_drivers', 'driver_payments', 'ride_requests', 'saved_places', 'support_tickets', 'support_messages', 'trip_reviews', 'waiting_charge_reports', 'alembic_version'}
+            assert tables == {'users', 'user_roles', 'vehicles', 'documents', 'service_types', 'vehicle_services', 'routes', 'route_stops', 'scheduled_trips', 'bookings', 'trips', 'vehicle_records', 'notifications', 'vehicle_seats', 'scheduled_trip_seats', 'booking_travellers', 'payments', 'road_alerts', 'social_posts', 'social_interactions', 'favourite_vehicles', 'owner_drivers', 'driver_payments', 'ride_requests', 'saved_places', 'support_tickets', 'support_messages', 'booking_messages', 'trip_reviews', 'waiting_charge_reports', 'alembic_version'}
     finally:
         engine.dispose()
         with control.begin() as connection:

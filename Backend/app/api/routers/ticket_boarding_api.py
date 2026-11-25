@@ -83,7 +83,7 @@ def boarding_check(trip_id: UUID, body: Check, request: Request, user=Depends(cu
     out = []
     for booking_id in matches:
         booking = db.get(Booking, booking_id)
-        out.append({'booking_reference': booking.booking_reference,
+        out.append({'booking_reference': booking.booking_reference, 'booking_id': str(booking.id),
                     'travellers': [{'traveller_id': str(traveller.id), 'full_name': traveller.full_name, 'seat_code': seat.seat_code,
                                     'status': traveller.traveller_status, 'can_board': inventory.seat_status == 'BOOKED' and traveller.traveller_status == 'ACTIVE'}
                                    for traveller, inventory, seat in traveller_rows(db, booking_id)]})

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 // What the live-location sender reports to pages (Go online shows it): when each vehicle's position was last sent and any location problem.
-let state = { sentAt: {}, problem: '' }
+let state = { sentAt: {}, problem: '', sendingIds: [] }
 const listeners = new Set()
 
 export const LIVE_CHANGED = 'travelly:live-changed'

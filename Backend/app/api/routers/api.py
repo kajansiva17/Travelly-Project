@@ -2,6 +2,7 @@ import logging
 import secrets
 import time
 from datetime import datetime, timezone, timedelta
+from app.services.poll_paths import is_poll
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select, func
@@ -61,8 +62,8 @@ def current(request: Request, db: Session = Depends(get_db)):
     if path.startswith(('/api/v1/admin/', '/api/v1/documents')):
         group, limit, seconds = ('files', 30, 60) if path.endswith('/file') else ('review', 30, 60) if request.method == 'PATCH' else ('upload', 10, 900) if request.method == 'POST' else ('metadata', 120, 60)
         store.rate(group + '-session:' + claims['sid'], limit, seconds)
-    else:
-        store.rate('profile-session:' + claims['sid'], 120, 60)
+    elif not is_poll(request.method, path):
+        store.rate('profile-session:' + claims['sid'], 300, 60)   # one signed-in session: every page's reads and the live polls together
     user = db.get(User, UUID(claims['sub']))
     allowed_account(user)
     if claims.get('av', 0) != user.auth_version:

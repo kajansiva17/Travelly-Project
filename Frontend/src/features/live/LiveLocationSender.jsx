@@ -31,6 +31,7 @@ export default function LiveLocationSender({ enabled }) {
         if (!alive) return
         const before = sending.join(',')
         sending = (result?.items || []).filter(item => item.sending).map(item => item.vehicle_id)
+        if (sending.join(',') !== before) setLive({ sendingIds: sending })   // the ride-request banner polls only while a vehicle is online
         if (sending.length) startWatch(); else stopWatch()
         if (sending.length && sending.join(',') !== before) push()   // just went online: the first position goes at once
       } catch { /* the next read tries again */ }

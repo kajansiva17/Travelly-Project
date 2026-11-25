@@ -9,6 +9,7 @@ import {useWorkspace} from '../../context/workspaceContext'
 import {RoadAlertsPanel,useRoadAlertNotifications,useRoadAlerts,useScreenWakeLock,useSpeaker} from '../driver/RoadAlerts'
 import TripMap from './TripMap'
 import {useTripMap} from './tripHooks'
+import CallContact from './CallContact'
 import {routeText} from './tripMapModel'
 import {drivesTrip,tripLink} from './tripLinks'
 import PickupCode from '../passenger/PickupCode'
@@ -38,6 +39,7 @@ export default function TripMapPage(){
     {map.error&&<p className="tk-line is-warn" role="alert">{map.error}</p>}
     {!map.loaded&&!map.error?<p role="status">{t('Loading…')}</p>
       :map.data&&<div className="flow-fields tm-view">
+        <div className="tm-contact"><CallContact bookingId={map.data.booking_id} refreshKey={map.data.status}/></div>
         {onTheWay&&map.data.viewer_is_passenger&&<PickupCode tripId={tripId}/>}
         {onTheWay&&map.data.viewer_is_passenger&&<CancelRide tripId={tripId} onDone={()=>navigate(travelPath('PASSENGER','/nearby-now'))}/>}
         {map.data.book_now&&<ReturnWaiting tripId={tripId}/>}

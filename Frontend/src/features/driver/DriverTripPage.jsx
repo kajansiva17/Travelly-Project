@@ -6,6 +6,7 @@ import {fieldErrorMap} from '../../services/fieldErrors.js'
 import OdometerStep from '../odometer/OdometerStep'
 import TripMap from '../trips/TripMap'
 import ReturnWaiting from '../trips/ReturnWaiting'
+import CallContact from '../trips/CallContact'
 import CancelRide from '../trips/CancelRide'
 import {useTripMap} from '../trips/tripHooks'
 import OdometerProofCard from '../odometer/OdometerProofCard'
@@ -159,6 +160,7 @@ export default function DriverTripPage(){
     {open==='pickup'&&<div className="flow-fields tm-view">
       <FlowBanner tone="info" icon="pin" title={t('Go to the pickup')}>
         {t('Your Passenger is waiting at {value0}. Drive to the pickup, then check the Passenger.',{value0:pickupPoint?.label||''})}</FlowBanner>
+      <div className="tm-contact tm-contact-over"><CallContact bookingId={trip.booking_id} refreshKey={trip.status}/></div>
       {map.data&&<TripMap data={map.data} position={trip.location||map.data?.position} alerts={[]} selectedId={null} onSelect={()=>{}} follow={follow} onFollow={setFollow}/>}
       {map.error&&<p className="tk-line is-warn" role="status">{map.error}</p>}
       <div className="flow-actions">
