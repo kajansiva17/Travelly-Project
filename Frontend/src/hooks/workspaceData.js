@@ -22,7 +22,9 @@ export const pendingBooking=booking=>!['COMPLETED','CANCELLED','REJECTED'].inclu
 // which list a booking belongs to (My trips, Bookings for my vehicles, My driving).
 export async function loadBookings(userId,role,hidden=false){
  if(role==='ADMIN')throw new Error('Global Admin bookings are not available. Use My Trips for your personal journeys.')
- const result=await api('/bookings?as='+role.toLowerCase()+(hidden?'&hidden=true':'')),items=result.items||[]
+ const result=await api('/bookings?as='+role.toLowerCase()+(hidden?'&hidden=true':'')),vehicles=result.vehicles||{},passengers=result.passengers||{}
+ // Each card shows its vehicle (photo, name) and its Passenger; the server sends each one once.
+ const items=(result.items||[]).map(b=>({...b,vehicle:vehicles[b.vehicle_id]||null,passenger:passengers[b.passenger_user_id]||null}))
  if(role==='OWNER'||role==='PASSENGER')return items
  // The Driver list needs each booking's trip record (assignment and trip ids). Bound concurrency.
  const details=new Array(items.length);let next=0

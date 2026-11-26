@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
-import { FlowShell, usePaged, useRowCount } from '../booking/flow/FlowParts'
+import { FlowShell, usePaged } from '../booking/flow/FlowParts'
 import { Field, Compact } from './OwnerRates'
 import Chip from '../../components/ui/Chip'
 import '../../styles/rates.css'
@@ -16,10 +16,11 @@ export default function MyDrivers() {
   const navigate = useNavigate()
   const [findable, setFindable] = useState(true), [items, setItems] = useState(null), [mine, setMine] = useState(''), [error, setError] = useState(null), [tab, setTab] = useState(0), [busy, setBusy] = useState(false)
   const [reference, setReference] = useState(''), [nickname, setNickname] = useState(''), [notice, setNotice] = useState('')
-  const rows = useRowCount(66)
   const active = (items || []).filter(d => d.status === 'ACTIVE'), asking = (items || []).filter(d => d.status === 'DRIVER_REQUESTED'), invited = (items || []).filter(d => d.status === 'OWNER_INVITED')
   const list = tab === 0 ? [...active, ...invited] : asking
-  const { slice, pager } = usePaged(list, Math.max(2, Math.min(rows, 5)))
+  const { slice, pager } = usePaged(list, 6)
+  const [photo, setPhoto] = useState(null)
+  useEffect(() => { if (!photo) return undefined; const onKey = e => { if (e.key === 'Escape') setPhoto(null) }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [photo])
   const load = () => api('/owners/me/saved-drivers').then(r => { setItems(r.items); setMine(r.my_reference || ''); setFindable(r.findable !== false) }).catch(setError)
   useEffect(() => { if (hasSession()) load() }, [])
   async function run(fn, message) {
@@ -45,14 +46,23 @@ export default function MyDrivers() {
         <label className="terms-check"><input type="checkbox" checked={findable} disabled={busy} onChange={e => toggleFindable(e.target.checked)}/><span>{t('Drivers can find me by name or number plate')}</span></label>
         {items === null && !error && <p role="status">{t('Loading…')}</p>}
         {items && !list.length && <p className="flow-note" role="status">{tab === 0 ? t('No Drivers yet. Ask a Driver to send you a request with your reference, or invite one.') : t('No requests waiting.')}</p>}
-        <div className="vehicle-rows">{slice.map(d => <article className="trip-vehicle-card" key={d.id}>
-          <h2>{d.nickname ? `${d.nickname} · ${d.name}` : d.name}</h2>
-          <p>{d.reference} {d.status === 'OWNER_INVITED' && <Chip tone="muted">{t('Waiting for the Driver')}</Chip>}{!d.is_driver && <Chip tone="warning">{t('Not an approved Driver now')}</Chip>}</p>
-          <span className="vehicle-row-actions">{d.status === 'DRIVER_REQUESTED' ? <>
+        <div className="md-grid">{slice.map(d => { const label = d.nickname ? `${d.nickname} · ${d.name}` : d.name; const live = d.status === 'ACTIVE' && d.online; return <article className={'md-card' + (live ? ' is-online' : '')} key={d.id}>
+          <button type="button" className="md-photo" disabled={!d.profile_image_url} aria-label={t('View photo of {value0}', { value0: label })} onClick={() => setPhoto({ url: d.profile_image_url, name: label })}>
+            {d.profile_image_url ? <img src={d.profile_image_url} alt="" referrerPolicy="no-referrer"/> : <span aria-hidden="true">{(d.nickname || d.name || '?').trim().charAt(0).toUpperCase()}</span>}</button>
+          <h2 className="md-name">{label}</h2>
+          <p className="md-ref">{d.reference}</p>
+          <div className="md-chips">
+            {d.status === 'OWNER_INVITED' && <span className="md-chip wait">{t('Waiting for the Driver')}</span>}
+            {d.status === 'DRIVER_REQUESTED' && <span className="md-chip wait">{t('Asked to join')}</span>}
+            {d.status === 'ACTIVE' && <span className={'md-chip ' + (d.online ? 'good' : '')}>{d.online ? t('Online') : t('Offline')}</span>}
+            {d.status === 'ACTIVE' && d.is_driver && (d.on_trip ? <span className="md-chip busy">{t('On a trip')}</span> : d.online && <span className="md-chip good">{t('Available')}</span>)}
+            {d.status === 'ACTIVE' && <span className="md-chip good">{t('Active')}</span>}
+            {!d.is_driver && <span className="md-chip busy">{t('Not an approved Driver now')}</span>}</div>
+          <span className="md-actions">{d.status === 'DRIVER_REQUESTED' ? <>
             <button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={() => decide(d, true)}>{t('Accept')}</button>
             <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => decide(d, false)}>{t('Decline')}</button></>
             : <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => remove(d)}>{d.status === 'OWNER_INVITED' ? t('Cancel invitation') : t('Remove')}</button>}</span>
-        </article>)}</div>{list.length > 0 && pager}
+        </article> })}</div>{list.length > 0 && pager}
       </>}
       {tab === 2 && <form className="flow-wizard-form" onSubmit={invite}><fieldset disabled={busy}>
         <Field label="Driver public reference" help="Ask the Driver for their exact Travelly public reference (USR-…). The Driver gets an invitation and must accept. Private phone and licence details are never shown."><input required pattern="USR-[0-9A-Fa-f]{16}" value={reference} onChange={e => setReference(e.target.value)}/></Field>
@@ -60,5 +70,6 @@ export default function MyDrivers() {
         <button className="ui-button ui-button-primary">{t('Send invitation')}</button>
       </fieldset></form>}
     </Compact.Provider>
+  {photo && <div className="md-lightbox" role="dialog" aria-modal="true" aria-label={photo.name} onClick={() => setPhoto(null)}><figure><img src={photo.url} alt={photo.name} referrerPolicy="no-referrer"/><figcaption>{photo.name}</figcaption><button type="button" className="ui-button ui-button-secondary" onClick={() => setPhoto(null)}>{t('Close')}</button></figure></div>}
   </FlowShell></>
 }

@@ -399,9 +399,9 @@ def vehicle_fits(db, vehicle, departure, needed, *, other_owner):
     """None when the vehicle can take this departure, otherwise (code, message)."""
     if (not vehicle or vehicle.verification_status != 'APPROVED' or vehicle.availability_status != 'ACTIVE'
             or vehicle.id == departure.current_vehicle_id
-            or (vehicle.owner_user_id == departure.owner_user_id) == other_owner
-            or (other_owner and not vehicle.is_published)):
-        return ('REPLACEMENT_VEHICLE_UNAVAILABLE', 'Choose another approved, active vehicle.' if other_owner
+            or (other_owner is not None and (vehicle.owner_user_id == departure.owner_user_id) == other_owner)
+            or (vehicle.owner_user_id != departure.owner_user_id and not vehicle.is_published)):
+        return ('REPLACEMENT_VEHICLE_UNAVAILABLE', 'Choose another approved, active vehicle.' if other_owner is not False
                 else 'Choose another approved, active vehicle that you own.')
     original = db.get(Vehicle, departure.current_vehicle_id)
     if original is not None and original.air_conditioned is True and vehicle.air_conditioned is not True:
@@ -616,25 +616,25 @@ def vehicle_distance(vehicle, pickup):
 
 
 def candidate_list(db, departure):
-    """Vehicles of other Owners that can take this departure: approved, active, published, enough seats, air-conditioned
-    when the booked vehicle is, and free at that time. Nearest to the pickup first; vehicles without a location last."""
+    """Vehicles that can take this departure: the same Owner's other vehicles and other Owners' published ones; approved,
+    active, enough seats, air-conditioned when the booked vehicle is, and free at that time. Nearest to the pickup first;
+    vehicles without a location last."""
     needed = booked_count(db, departure)
     pickup = pickup_of(db, departure)
     asked = set(db.scalars(select(ScheduledTrip.current_vehicle_id).where(ScheduledTrip.offer_for_scheduled_trip_id == departure.id,
                                                                           ScheduledTrip.status == 'DRAFT')).all())
     found = []
     query = select(Vehicle).where(Vehicle.verification_status == 'APPROVED', Vehicle.availability_status == 'ACTIVE',
-                                  Vehicle.is_published.is_(True), Vehicle.owner_user_id != departure.owner_user_id,
                                   Vehicle.id != departure.current_vehicle_id).order_by(Vehicle.public_vehicle_reference).limit(300)
     for vehicle in db.scalars(query):
-        if vehicle_fits(db, vehicle, departure, needed, other_owner=True):
+        if vehicle_fits(db, vehicle, departure, needed, other_owner=None):
             continue
         owner = db.get(User, vehicle.owner_user_id)
         km = vehicle_distance(vehicle, pickup)
         found.append({'vehicle_id': str(vehicle.id), **summary(vehicle), 'bookable_seats': len(bookable_seats(db, vehicle.id)),
                       'owner_name': (owner.display_name or owner.full_name) if owner else None,
                       'location_label': vehicle.base_location_label, 'distance_km': None if km is None else round(km, 1),
-                      'already_asked': vehicle.id in asked})
+                      'same_owner': vehicle.owner_user_id == departure.owner_user_id, 'already_asked': vehicle.id in asked})
     found.sort(key=lambda item: (item['distance_km'] is None, item['distance_km'] or 0, item['public_vehicle_reference']))
     return found, needed
 
@@ -677,7 +677,7 @@ def ask_replacement_owners(trip_id: UUID, body: AdminReplacementAsk, request: Re
         before_version, before_status = departure.version, departure.status
         for item in chosen:
             vehicle = db.scalar(select(Vehicle).where(Vehicle.id == UUID(item['vehicle_id'])).with_for_update())
-            require_fit(db, vehicle, departure, needed, other_owner=True)
+            require_fit(db, vehicle, departure, needed, other_owner=None)
             offer = make_offer(db, departure, vehicle, user.id, needed)
             notify(db, vehicle.owner_user_id, offer, 'REPLACEMENT', 'Can you run a departure?',
                    f'Travelly asks you to run departure {departure.departure_reference} with {vehicle.public_vehicle_reference} '
@@ -835,7 +835,7 @@ def replacement_answer(trip_id: UUID, body: ReplacementAnswer, request: Request,
         if original.status not in ATTENTION or (run and run.status != 'READY') or original.departure_at <= moment:
             raise ApiError(409, 'REPLACEMENT_NOT_ALLOWED', 'This departure can no longer be replaced.')
         vehicle = db.scalar(select(Vehicle).where(Vehicle.id == offer.current_vehicle_id).with_for_update())
-        require_fit(db, vehicle, original, booked_count(db, original), other_owner=True)
+        require_fit(db, vehicle, original, booked_count(db, original), other_owner=None)
         driver_id = eligible_driver(db, user.id, body.operator_driver_user_id)
         moved = move_passengers(db, user.id, original, offer, vehicle, moment)
         if run:

@@ -9,10 +9,10 @@ import { displayTime } from '../../hooks/workspaceData'
 import { codeLabel } from '../../i18n/codeLabels.js'
 import CallContact from '../trips/CallContact'
 import TicketBoardingCode from '../passenger/TicketBoardingCode'
+import { PassengerCard, VehicleTripCard } from './BookingCardParts'
 
 /* A seat-ticket booking (TICKET_HIRE). It has no quote or itinerary of its own: the person sees what was booked,
    who travels in which seat, and the payment, with one clear way back to the list. */
-const TONE = { CONFIRMED: 'success', COMPLETED: 'success', REQUESTED: 'warning' }
 
 export default function TicketBookingView({ booking, owner, passenger, backTo, backLabel, reload }) {
   const [cancelOpen, setCancelOpen] = useState(false), [result, setResult] = useState(null)
@@ -27,11 +27,8 @@ export default function TicketBookingView({ booking, owner, passenger, backTo, b
   return <><Header/><FlowShell heading={t('Ticket booking')} title={booking.reference} icon="ticket"
     info={t('A seat booking on a scheduled departure. The vehicle, route and price were fixed when the departure was published.')}>
     <div className="tb-view">
-      <div className="tb-hero">
-        <div><strong className="tb-route">{route}</strong>
-          <span className="tb-when"><Icon name="clock" size={15}/>{displayTime(booking.start_at)}{t(' to ')}{displayTime(booking.end_at)}</span></div>
-        <Chip tone={TONE[booking.status] || 'default'}>{codeLabel(booking.status)}</Chip>
-      </div>
+      <VehicleTripCard booking={booking} route={route}/>
+      {!passenger && <PassengerCard booking={booking}/>}
       <div className="tb-facts">
         <div><span>{t('Seats')}</span><strong>{booking.passenger_count}</strong></div>
         <div><span>{t('Total')}</span><strong>{booking.total_amount ? `${booking.currency || 'LKR'} ${booking.total_amount}` : '—'}</strong></div>

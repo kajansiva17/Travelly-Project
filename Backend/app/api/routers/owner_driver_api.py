@@ -16,7 +16,7 @@ from app.api.routers.api import current, require_role
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models import User
-from app.models.hire_models import OwnerDriver, Notification
+from app.models.hire_models import OwnerDriver, Notification, Trip
 from app.models.review_models import Vehicle
 from app.services.hire_services import approved
 
@@ -39,10 +39,23 @@ def tell(db, user_id, title, body):
                         action_required=False, action_payload={'kind': 'OWNER_DRIVER_LINK'}, status='QUEUED'))
 
 
+def live_state(db, driver):
+    """Is the Driver sending a vehicle's position right now (online), and are they on a trip that has started."""
+    from datetime import datetime, timezone
+    from app.api.routers.live_vehicle_api import is_online
+    now = datetime.now(timezone.utc)
+    online = any(is_online(v, now) for v in db.scalars(select(Vehicle).where(Vehicle.live_online_user_id == driver.id)))
+    on_trip = bool(db.scalar(select(func.count()).select_from(Trip).where(
+        Trip.driver_user_id == driver.id, Trip.status.in_(('IN_PROGRESS', 'BREAKDOWN', 'ASSISTANCE_REQUIRED')))))
+    return online, on_trip
+
+
 def owner_row(db, row, driver):
+    online, on_trip = live_state(db, driver)
     return {'id': str(row.id), 'driver_user_id': str(driver.id), 'reference': driver.public_user_reference,
             'name': driver.display_name or driver.public_user_reference, 'nickname': row.nickname, 'status': row.status,
             'initiated_by': row.initiated_by, 'is_driver': bool(approved(db, driver.id, 'DRIVER')),
+            'profile_image_url': driver.profile_image_url, 'online': online, 'on_trip': on_trip,
             'added_at': row.created_at.isoformat() if row.created_at else None}
 
 

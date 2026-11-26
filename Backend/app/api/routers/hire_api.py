@@ -518,6 +518,18 @@ def confirm_booking_location(booking_id: UUID, body: PositioningConfirmation, re
     return booking_summary(locked)
 
 
+def card_people(db, rows):
+    """The vehicle (name, photo) and the Passenger (name, photo) each booking card shows, sent once per vehicle or person."""
+    vehicle_ids = {r.vehicle_id for r in rows}
+    people_ids = {r.passenger_user_id for r in rows}
+    vehicles = {str(v.id): {'name': v.display_name or ' '.join(x for x in (v.make, v.model) if x) or v.public_vehicle_reference,
+                            'registration': v.registration_number, 'profile_image_url': v.profile_image_url}
+                for v in (db.scalars(select(Vehicle).where(Vehicle.id.in_(vehicle_ids))).all() if vehicle_ids else [])}
+    people = {str(u.id): {'name': u.display_name or u.full_name, 'profile_image_url': u.profile_image_url}
+              for u in (db.scalars(select(User).where(User.id.in_(people_ids))).all() if people_ids else [])}
+    return vehicles, people
+
+
 @router.get('/bookings')
 def bookings(request: Request, user=Depends(current), db: Session = Depends(get_db)):
     """Every booking the caller takes part in. Each item says how (`viewer_roles`: PASSENGER = booked it, OWNER = runs it,
@@ -547,12 +559,14 @@ def bookings(request: Request, user=Depends(current), db: Session = Depends(get_
         mark = None
     if mark is not None:
         where = where & (or_(mark.is_not(None), stale) if hidden else and_(mark.is_(None), not_(stale)))
-    rows = db.scalars(select(Booking).where(where).order_by(Booking.created_at.desc()).limit(100)).all()
+    rows = db.scalars(select(Booking).where(where).order_by(func.coalesce(Booking.updated_at, Booking.created_at).desc()).limit(100)).all()
 
     def roles(r):
         return [name for name, yes in (('PASSENGER', r.passenger_user_id == user.id), ('OWNER', r.owner_user_id == user.id),
                                         ('DRIVER', r.id in driven)) if yes]
-    return {'items': [{**booking_summary(r), 'viewer_roles': roles(r)} for r in rows]}
+    vehicles, people = card_people(db, rows)
+    return {'items': [{**booking_summary(r), 'viewer_roles': roles(r), 'updated_at': r.updated_at.isoformat() if r.updated_at else None} for r in rows],
+            'vehicles': vehicles, 'passengers': people}
 
 
 FINISHED_BOOKING = ('COMPLETED', 'CANCELLED', 'REJECTED')
@@ -584,6 +598,10 @@ def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depend
     result['service_name'] = service.name if service else None   # the service the Passenger chose (Local hire, Airport hire, ...)
     trip = db.scalar(select(Trip).where(Trip.booking_id == row.id, Trip.status != 'CANCELLED').order_by(Trip.created_at.desc()).limit(1))
     result['trip'] = trip_summary(trip) if trip else None
+    vehicles, people = card_people(db, [row])
+    result['vehicle'] = vehicles.get(str(row.vehicle_id))
+    result['passenger'] = people.get(str(row.passenger_user_id))
+    result['updated_at'] = row.updated_at.isoformat() if row.updated_at else None
     if result['trip']:
         result['trip']['pickup'] = {**result['trip']['pickup'], 'required': row.passenger_user_id != trip.driver_user_id}
     if row.booking_type == 'TICKET_HIRE':

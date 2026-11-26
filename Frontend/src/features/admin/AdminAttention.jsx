@@ -70,11 +70,11 @@ function FindReplacement({item,onSent,onProblem}){
     {item.pending_offers>0&&<p className="tk-line" role="status"><Chip tone="info" icon="clock">{t('Waiting')}</Chip> {t('{value0} request(s) are waiting for an answer. The first Owner to accept runs the departure.',{value0:item.pending_offers})}</p>}
     {message&&<p className="tk-line is-warn" role="status">{message}</p>}
     {list===null&&<p className="tk-line" role="status">{t('Loading vehicles…')}</p>}
-    {list&&list.length===0&&<p className="tk-line">{t('No other vehicle is free for this departure right now.')}</p>}
+    {list&&list.length===0&&<><p className="tk-line">{t('No other vehicle is free for this departure right now.')}</p><p className="tk-line">{t('A vehicle is listed when it is approved and active, seats everyone who booked, is air-conditioned if the booked one is, and is free at that time. Other Owners\' vehicles must also be published.')}</p></>}
     {list&&list.length>0&&<div style={{maxHeight:260,overflowY:'auto'}}>{list.map(v=><label key={v.vehicle_id} className="tk-line" style={{display:'flex',gap:8,alignItems:'flex-start'}}>
       <input type="checkbox" name={`candidate-${v.vehicle_id}`} disabled={v.already_asked||Boolean(mode)} checked={v.already_asked||picked.includes(v.vehicle_id)} onChange={()=>toggle(v.vehicle_id)}/>
       <span><strong>{v.public_vehicle_reference}</strong> · {codeLabel(v.vehicle_type_code)} · {t('{value0} bookable seats',{value0:v.bookable_seats})}{v.air_conditioned?` · ${t('Air-conditioned')}`:''}<br/>
-        {v.owner_name||'—'} · {v.distance_km==null?t('Location unknown'):t('{value0} km from pickup',{value0:v.distance_km})}{v.already_asked&&<> <Chip tone="info">{t('Asked')}</Chip></>}</span></label>)}</div>}
+        {v.owner_name||'—'} · {v.distance_km==null?t('Location unknown'):t('{value0} km from pickup',{value0:v.distance_km})}{v.same_owner&&<> <Chip tone="muted">{t('Same Owner')}</Chip></>}{v.already_asked&&<> <Chip tone="info">{t('Asked')}</Chip></>}</span></label>)}</div>}
     {!mode&&open.length>0&&<div className="tk-bar">
       <button type="button" className="ui-button ui-button-primary" disabled={!picked.some(id=>open.some(v=>v.vehicle_id===id))} onClick={()=>{setMessage('');setMode('selected')}}>{t('Ask selected ({value0})',{value0:open.filter(v=>picked.includes(v.vehicle_id)).length})}</button>
       <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMessage('');setMode('all')}}>{t('Ask all listed ({value0})',{value0:open.length})}</button></div>}

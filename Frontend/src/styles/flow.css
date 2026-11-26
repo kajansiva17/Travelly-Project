@@ -1566,3 +1566,27 @@ html:not(#a) body .flow-page .pickup-qr svg { display: block; width: 100%; heigh
 
 /* Admin tab bars with many tabs wrap instead of hiding the last one (Call & chat). */
 html:not(#a) body .flow-tabs, html:not(#a) body .ui-tabs { flex-wrap: wrap; overflow: visible; height: auto; }
+
+/* An Admin details view is taller than the screen when it holds a list and a form: it scrolls inside, never over the buttons below. */
+html:not(#a) body .flow-page .tk-pane.tk-detail { overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+html:not(#a) body .flow-page .tk-detail .tk-pane { flex: 0 0 auto; }
+
+/* Booking cards: vehicle photo, name, route, time and price (Owner / Passenger / Driver bookings and the booking pages). */
+.bc-thumb{flex:none;display:grid;place-items:center;overflow:hidden;border-radius:14px;background:linear-gradient(#fff,#e7efef);color:var(--ui-red,#e10b17);box-shadow:0 2px 8px rgb(45 71 76 / .16)}
+.bc-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.bc-thumb.is-round{border-radius:50%}.bc-thumb b{font-size:22px;color:#2d474c}
+html body .bk-card .bk-icon.bk-photo{width:auto;height:auto;background:none;box-shadow:none;border-radius:0}
+html body .bk-card .bk-route,html body .bk-card .bk-when{display:flex;align-items:center;gap:6px;font-size:13px;color:#4a5f64;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .bk-card .bk-price{font-size:16px;color:#1d3a40;white-space:nowrap}
+html body .bk-groups{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.bc-card{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(#ffffffe6,#ffffffb3);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12);margin:0 0 10px}
+.bc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bc-name{font-size:16px;line-height:1.25;overflow-wrap:anywhere}
+.bc-sub{font-size:12.5px;color:#5a6e72}
+.bc-line{display:flex;align-items:center;gap:6px;font-size:13.5px;color:#34494e;overflow-wrap:anywhere}
+.bc-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.bc-price{font-size:17px;white-space:nowrap}
+html[lang="ta"] .bc-name,html[lang="si"] .bc-name{font-size:15px}
+@media (max-width:767px){
+  .bc-vehicle{flex-wrap:wrap}.bc-vehicle .bc-side{flex-direction:row;width:100%;justify-content:space-between;align-items:center}
+}

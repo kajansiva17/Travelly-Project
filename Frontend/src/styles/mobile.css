@@ -509,3 +509,8 @@ html body *:not(svg):not(svg *) { overflow-wrap: break-word !important; word-bre
   html:not(#a) body .rl-tt .rl-nav .rl-x.is-prev { transform: rotate(90deg); }
   html:not(#a) body .rl-tt .rl-nav .rl-x.is-next { transform: rotate(-90deg); }
 }
+
+@media (max-width:767px){
+  html body .flow-page .bk-card { grid-template-columns: 64px minmax(0, 1fr); }
+  html body .flow-page .bk-card .bk-route, html body .flow-page .bk-card .bk-when { white-space: normal; }
+}

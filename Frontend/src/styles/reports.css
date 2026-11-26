@@ -57,3 +57,7 @@ html body .rp-table td { padding: 6px 8px; border-bottom: 1px solid var(--ui-gla
   html body .rp-pdf { width: 100%; }
   html body .rp-actions { display: block; } html body .rp-actions > span { display: none; }
 }
+
+/* Buttons inside a report section (Open) are as small as the buttons in the other lists. */
+html body .rp-page .rp-attn .ui-button, html body .rp-page .rp-view .ui-button { min-height: 34px; height: auto; padding: 2px 14px; font-size: 14px; flex: none; width: auto; }
+html body .rp-attn > header { align-items: center; }

@@ -22,7 +22,7 @@ export default function AdminList({heading,title,icon='document',info,tabs,notic
     <Notice>{notice}</Notice><ErrorNotice error={error}/>
     {custom?custom
       :showDetail
-        ?<><div className="tk-pane">{detail(current)}</div><div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(null)}>{t('Back to list')}</button></div></>
+        ?<><div className="tk-pane tk-detail">{detail(current)}</div><div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(null)}>{t('Back to list')}</button></div></>
         :<>
           {filters&&<div className="tk-grid" style={{'--cols':filterCols}}>{filters}</div>}
           <div className="tk-pane">

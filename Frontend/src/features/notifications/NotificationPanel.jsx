@@ -5,6 +5,7 @@ import { api } from '../../services/api'
 import { Icon } from '../../components/components'
 import { openChat } from '../trips/chatEvents'
 import { isExpired, isRoadAlertNotice, noticeBookingId } from './notices'
+import { withWorkspace } from '../../routes/workspaceRoutes.js'
 
 // The bell opens this list: the latest notifications, newest first. A road alert is worded in the language of the page, a chat message opens the chat.
 const SHOWN = 15
@@ -44,6 +45,8 @@ export default function NotificationPanel({ role, seeAll, onClose }) {
     if (isRoadAlertNotice(note)) return note.trip_id && role === 'DRIVER' ? '/driver/trips/' + note.trip_id + '/live' : note.trip_id && role === 'OWNER' ? '/owner/driving/trips/' + note.trip_id : null
     // An Admin notice about a departure (an Owner cannot run it) opens the Needs attention list where the Admin decides.
     if (role === 'ADMIN' && note.notification_type === 'ADMIN_ACTION' && note.action_payload?.scheduled_trip_id) return '/admin/services-routes?tab=attention'
+    // A notice about one booking opens that booking, not the whole list.
+    if (role !== 'ADMIN' && noticeBookingId(note)) return withWorkspace('/bookings/' + noticeBookingId(note), role)
     return seeAll
   }
   const row = note => {

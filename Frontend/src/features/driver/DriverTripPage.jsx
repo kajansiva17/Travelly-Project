@@ -211,7 +211,7 @@ export default function DriverTripPage(){
       {trip.wait&&<ReturnWaiting trip={trip} operator onChanged={load}/>}
       <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} onMenu={workspace?.openSidebar} keepScreenOn={wake.unavailable}
         strip={!alertsOpen&&<div className="tm-strip">
-          <Chip tone={trip.location?'success':'info'} icon="pin">{trip.location?t('Your position is shared'):t('Position not shared yet')}</Chip>
+          <Chip tone={sharing?'success':'info'} icon="pin">{sharing?t('Your position is shared'):trip.location?t('Position sharing is off'):t('Position not shared yet')}</Chip>
           <span className="ra-position">{trip.location
             ?t('Last sent at ')+clock(sentAt||trip.location.updated_at)+t(' Sri Lanka time.')+' · '+t('Map position')+': '+trip.location.latitude+', '+trip.location.longitude+(trip.location.accuracy_m?` · ${t('Accuracy')} ${Math.round(Number(trip.location.accuracy_m))} m`:'')+(trip.location.speed_kph?` · ${t('Speed')} ${Math.round(Number(trip.location.speed_kph))} ${t('km/h')}`:'')
             :t('Only the Passenger, the Owner and Travelly Admin can see it.')}<InfoTip>{t('Sharing stops by itself when the trip is completed.')}</InfoTip></span>
