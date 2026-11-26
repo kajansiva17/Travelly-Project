@@ -48,3 +48,20 @@ class RateLocations:
             return {'items': items, 'attribution': 'openrouteservice / OpenStreetMap contributors'}
         except (httpx.HTTPError, ValueError, KeyError, TypeError, ArithmeticError):
             raise ApiError(503, 'ROUTING_UNAVAILABLE', 'Location search is temporarily unavailable. Please try again.') from None
+
+    def reverse(self, latitude, longitude):
+        """A pin on the map or the phone's position becomes a signed place. The label is the nearest named place the provider knows."""
+        if not (5.5 <= latitude <= 10.2 and 79.3 <= longitude <= 82.2):
+            raise ApiError(422, 'VALIDATION_ERROR', 'Choose a place inside Sri Lanka.')
+        if not self.settings.routing_api_key:
+            raise ApiError(503, 'ROUTING_NOT_CONFIGURED', 'Location search is not available yet. Please try again later.')
+        try:
+            response = httpx.get(self.settings.routing_base_url.rstrip('/') + '/pelias/v1/reverse',
+                headers={'Authorization': self.settings.routing_api_key},
+                params={'point.lat': latitude, 'point.lon': longitude, 'boundary.country': 'LK', 'size': 1}, timeout=10)
+            response.raise_for_status()
+            features = response.json()['features']
+            label = features[0]['properties']['label'][:200] if features else ''
+        except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError):
+            raise ApiError(503, 'ROUTING_UNAVAILABLE', 'Location search is temporarily unavailable. Please try again.') from None
+        return {'items': [self.signed(label or f'Pinned place ({latitude:.5f}, {longitude:.5f})', round(latitude, 6), round(longitude, 6))], 'attribution': 'openrouteservice / OpenStreetMap contributors'}

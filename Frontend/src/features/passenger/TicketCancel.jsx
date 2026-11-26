@@ -24,6 +24,7 @@ export const REFUND_STATUS={PENDING:['info','Waiting for Admin approval'],PROCES
 
 export default function TicketCancel({booking,departureAt,refresh,onDone,onClose}){
   const [phase,setPhase]=useState('review'),[reason,setReason]=useState('Plans changed'),[other,setOther]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(null),[errors,setErrors]=useState({})
+  const unpaidCash=booking.payment_status==='CASH_AWAITING_CONFIRMATION'   // a seat to be paid on the bus: nothing was paid, so nothing is refunded
   const band=refundBand(departureAt||booking.itinerary?.departure_at,booking.total_amount)
   const seats=(booking.travellers||[]).map(x=>x.seat_code).join(', ')
   const finalReason=reason==='Other'?other.trim():reason
@@ -51,8 +52,9 @@ export default function TicketCancel({booking,departureAt,refresh,onDone,onClose
   const confirm=phase==='confirm'
   return <RateErrors.Provider value={errors}><div className="tk-hold">
     <h3>{confirm?t('Cancel this ticket?'):t('Cancel ticket')}</h3>
-    <p className="tk-line">{t('Booking {value0} · Seats {value1} · Paid {value2}',{value0:booking.booking_reference,value1:seats,value2:money(booking.currency,booking.total_amount)})}</p>
-    <p className="tk-line"><Chip tone={band.percent>0?'info':'muted'}>{band.percent>0?t('{value0}% refund',{value0:band.percent}):t('No refund')}</Chip> <strong>{refundText}</strong> <InfoTip>{t('More than 72 hours before departure: 100%. 24 to 72 hours: 50%. Under 24 hours: no refund. Travelly works out the final amount when you confirm.')}</InfoTip></p>
+    <p className="tk-line">{unpaidCash?t('Booking {value0} · Seats {value1} · To pay on the bus {value2}',{value0:booking.booking_reference,value1:seats,value2:money(booking.currency,booking.total_amount)}):t('Booking {value0} · Seats {value1} · Paid {value2}',{value0:booking.booking_reference,value1:seats,value2:money(booking.currency,booking.total_amount)})}</p>
+    {unpaidCash?<p className="tk-line"><Chip tone="success">{t('Free to cancel')}</Chip> <strong>{t('You have not paid yet, so there is nothing to refund. Cancelling is free.')}</strong></p>
+    :<p className="tk-line"><Chip tone={band.percent>0?'info':'muted'}>{band.percent>0?t('{value0}% refund',{value0:band.percent}):t('No refund')}</Chip> <strong>{refundText}</strong> <InfoTip>{t('More than 72 hours before departure: 100%. 24 to 72 hours: 50%. Under 24 hours: no refund. Travelly works out the final amount when you confirm.')}</InfoTip></p>}
     {message&&<p className="tk-line is-warn" role="status">{message}</p>}
     {confirm
       ?<><p className="tk-line is-warn">{t('Your seats will be released at once and this cannot be undone.')} {t('Reason')}: {finalReason}</p>

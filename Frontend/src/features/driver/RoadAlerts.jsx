@@ -1,9 +1,10 @@
 import { t, getLanguage } from '../../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
+import {createPortal} from 'react-dom'
 import {api} from '../../services/api'
 import {Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
-import {CONFIRM_SECONDS,answerOf,readSetting,recognitionConstructor,saveSetting,speak,speechLang} from './roadAlertSpeech'
+import {CONFIRM_SECONDS,alertName,alertText,answerOf,hasVoice,readSetting,recognitionConstructor,saveSetting,speak,speechLang,warmVoices} from './roadAlertSpeech'
 import {acquireWakeLock,releaseWakeLock} from './screenWakeLock'
 import {usePoll as usePollEvery} from '../trips/usePoll'
 import {codeEnglish} from '../../i18n/codeLabels.js'
@@ -80,21 +81,27 @@ export function useRoadAlertNotifications({running,onNew}){
 }
 
 /* "Speak road alerts": on or off, kept on this device. Each alert is spoken once, in the language the server sent it. */
-export function useSpeaker(){
+/* `onPopup({key,name,text})` is called for an alert that was not spoken aloud (speaker off, or no voice for the language): the Driver's screen is on, so it is shown as a popup. */
+export function useSpeaker({onPopup}={}){
   const [enabled,setEnabledState]=useState(()=>readSetting()),[textOnly,setTextOnly]=useState(false),spoken=useRef(new Set())
   const setEnabled=on=>{setEnabledState(on);saveSetting(on);if(!on){setTextOnly(false);globalThis.speechSynthesis?.cancel?.()}}
   const enabledRef=useRef(enabled);useEffect(()=>{enabledRef.current=enabled},[enabled])
-  // One alert is spoken once, whether it arrives in the nearby list (id = the alert) or as a notification (action_payload.road_alert_id).
-  const sayText=useCallback((key,text,language)=>{
-    if(!enabledRef.current||!text||spoken.current.has(key))return
+  useEffect(()=>{warmVoices()},[])
+  const popupRef=useRef(onPopup);useEffect(()=>{popupRef.current=onPopup},[onPopup])
+  // One alert is announced once, whether it arrives in the nearby list (id = the alert) or as a notification (action_payload.road_alert_id).
+  // Speaker on: it is spoken aloud. Otherwise (or with no voice for the language) the page shows it as a popup. Always in the page language.
+  const sayText=useCallback((key,text,name)=>{
+    if(!text||spoken.current.has(key))return
     spoken.current.add(key)
-    if(!speak(text,speechLang(language||getLanguage())))setTextOnly(true)   // no voice for this language: the text stays on screen
+    if(enabledRef.current){if(speak(text,speechLang(getLanguage())))return;setTextOnly(true)}   // no voice for this language: the text stays on screen
+    if(popupRef.current)popupRef.current({key,name,text})
   },[])
-  const say=useCallback(item=>{if(item)sayText('alert:'+item.id,item.action_payload?.speak||item.message,item.language)},[sayText])
+  // Never announced to the Driver who reported it (or to anyone on that trip): they were there.
+  const say=useCallback(item=>{if(item&&!item.reported_by_me&&!item.own_trip)sayText('alert:'+item.id,alertText(item,getLanguage()),alertName(item,getLanguage()))},[sayText])
   const sayNotification=useCallback(note=>{
     if(!note||note.notification_type!=='ROAD_ALERT'||(note.expires_at&&new Date(note.expires_at)<new Date()))return
-    const payload=note.action_payload||{}
-    sayText(payload.road_alert_id?'alert:'+payload.road_alert_id:'note:'+note.id,payload.speak||note.message||note.body,payload.language)
+    const payload=note.action_payload||{},language=getLanguage()
+    sayText(payload.road_alert_id?'alert:'+payload.road_alert_id:'note:'+note.id,payload.speak_all?.[language]||payload.speak||note.message||note.body,payload.names?.[language]||payload.titles?.[language]||note.title)
   },[sayText])
   return {enabled,setEnabled,say,sayNotification,textOnly}
 }
@@ -134,7 +141,8 @@ function useVoice({trip,onSent,onUnclear,onProblem}){
   const stopAll=()=>{stopMic();clearTimeout(timer.current);timer.current=null;globalThis.speechSynthesis?.cancel?.()}
   const reset=useCallback(()=>{session.current++;stopAll();job.current=null;finished.current=true;setPhase('idle');setHeard(null)},[])
   useEffect(()=>reset,[reset])
-  const configure=recognition=>{recognition.lang=speechLang(getLanguage());recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false}
+  // Phase one (describing the alert) and phase two (the yes or no) both keep the microphone open and read words as they come.
+  const configure=recognition=>{recognition.lang=speechLang(getLanguage());recognition.interimResults=true;recognition.maxAlternatives=3;recognition.continuous=true}
   const micProblem=event=>{
     if(event.error==='not-allowed'||event.error==='service-not-allowed'){setBlocked(true);setMessage(t('The microphone is not allowed. Use the five buttons.'));return true}
     return false
@@ -151,21 +159,23 @@ function useVoice({trip,onSent,onUnclear,onProblem}){
     try{
       const place=await placeOfAlert(trip)
       const body={trip_id:trip.id,alert_type:current.alert_type,...place,source_input:'VOICE',confidence_score:current.confidence.toFixed(2),driver_confirmed:true}
-      if(current.transcript)body.description=current.transcript.slice(0,500)
+      if(current.summary)body.summaries=current.summary   // what was understood, in every language: each listener hears their own
       const result=await api('/road-alerts',{method:'POST',body:JSON.stringify(body)})
       if(id!==session.current)return
       setHeard(null);setPhase('idle');job.current=null
       onSent(result,current.sent);say(current.sent)
     }catch(error){if(id===session.current){setHeard(null);setPhase('idle');job.current=null;onProblem(errorText(error))}}
   },[trip,onSent,onProblem])
-  // While the confirmation window is open, listen again and again (each recognition ends after a phrase or a pause) until a yes or no word is heard.
+  const wordsHeard=event=>{let all=''
+    for(let i=0;i<(event.results?.length||0);i++)for(let j=0;j<(event.results[i]?.length||0);j++)all+=' '+(event.results[i][j]?.transcript||'')
+    return all}
+  // While the confirmation window is open, the microphone stays open (it is restarted if the browser ends it). A yes or no word, even half said, answers at once.
   const listenWindow=useCallback(id=>{
     const again=()=>{
       if(id!==session.current||finished.current)return
       const recognition=new Recognition();configure(recognition)
       recognition.onresult=event=>{
-        const said=event.results?.[0]?.[0]?.transcript||''
-        const answer=answerOf(said,job.current?.yes,job.current?.no)
+        const answer=answerOf(wordsHeard(event),job.current?.yes,job.current?.no)
         if(answer)finish(answer)
       }
       recognition.onerror=event=>{if(micProblem(event)){recognizer.current=null}}
@@ -175,46 +185,59 @@ function useVoice({trip,onSent,onUnclear,onProblem}){
     }
     again()
   },[Recognition,finish])
+  const understand=useCallback(async(id,transcript,recognised)=>{
+    setPhase('classifying')
+    try{
+      const result=await api('/road-alerts/voice-classify',{method:'POST',body:JSON.stringify({transcript:transcript.slice(0,300),language:getLanguage()})})
+      if(id!==session.current)return
+      if(!result.alert_type){setPhase('idle');setMessage(result.message||'');speak(result.message,'en-US');onUnclear();return}
+      // The window is at least 15 seconds: the app has just spoken a whole sentence, and the answer is one word.
+      const seconds=Math.max(15,Number(result.confirm_seconds)>0?Number(result.confirm_seconds):CONFIRM_SECONDS)
+      job.current={alert_type:result.alert_type,summary:result.summary||null,confidence:recognised??(Number(result.confidence)||0),yes:result.yes_words||[],no:result.no_words||[],sent:result.sent_text||t('Alert sent.'),notSent:result.not_sent_text||t('Alert not sent.')}
+      finished.current=false
+      setHeard({prompt:result.confirm_prompt,seconds,listening:false});setPhase('confirm')
+      let begun=false
+      const begin=()=>{
+        if(begun||id!==session.current||finished.current)return
+        begun=true;setHeard(h=>h&&({...h,listening:true}))
+        timer.current=setTimeout(()=>finish('timeout'),seconds*1000)
+        listenWindow(id)
+      }
+      // The app says what it understood and asks; it listens as soon as the speech ends (or at once when this device has no voice for the language).
+      if(!speak(result.confirm_prompt,speechLang(getLanguage()),{onEnd:begin}))begin()
+    }catch(error){if(id===session.current){setPhase('idle');onProblem(errorText(error))}}
+  },[finish,listenWindow,onUnclear,onProblem])
+  // One press: the Driver speaks as long as needed (the app waits for a short pause), hears what was understood, says yes. No second press.
   const start=useCallback(()=>{
     if(!Recognition||phase!=='idle'||blocked)return
     const id=++session.current
     setMessage('');setOutcome('');setPhase('listening')
     const recognition=new Recognition();configure(recognition)
-    let got=false
-    recognition.onresult=async event=>{
-      const best=event.results?.[0]?.[0]
-      if(!best||got||id!==session.current)return
-      got=true;recognizer.current=null;setPhase('classifying')
-      const transcript=best.transcript||'',recognised=Number.isFinite(best.confidence)?best.confidence:null
-      try{
-        const result=await api('/road-alerts/voice-classify',{method:'POST',body:JSON.stringify({transcript,language:getLanguage()})})
-        if(id!==session.current)return
-        if(!result.alert_type){setPhase('idle');setMessage(result.message||'');speak(result.message,'en-US');onUnclear();return}
-        const seconds=Number(result.confirm_seconds)>0?Number(result.confirm_seconds):CONFIRM_SECONDS
-        job.current={alert_type:result.alert_type,transcript,confidence:recognised??(Number(result.confidence)||0),yes:result.yes_words||[],no:result.no_words||[],sent:result.sent_text||t('Alert sent.'),notSent:result.not_sent_text||t('Alert not sent.')}
-        finished.current=false
-        setHeard({prompt:result.confirm_prompt,seconds,listening:false});setPhase('confirm')
-        let begun=false
-        const begin=()=>{
-          if(begun||id!==session.current||finished.current)return
-          begun=true;setHeard(h=>h&&({...h,listening:true}))
-          timer.current=setTimeout(()=>finish('timeout'),seconds*1000)
-          listenWindow(id)
-        }
-        // Ask aloud first and listen only when the speech has ended; with no voice for this language the prompt is on screen and listening starts at once.
-        if(!speak(result.confirm_prompt,speechLang(getLanguage()),{onEnd:begin}))begin()
-      }catch(error){if(id===session.current){setPhase('idle');onProblem(errorText(error))}}
+    let got=false,text='',confidence=null,quiet=null,limit=null
+    const settle=()=>{
+      if(got||id!==session.current)return
+      got=true;clearTimeout(quiet);clearTimeout(limit);recognizer.current=null;try{recognition.abort()}catch{/* Already stopped. */}
+      if(!text.trim()){setPhase('idle');setMessage(t('We did not hear anything. Try again or use the buttons.'));return}
+      understand(id,text.trim(),confidence)
+    }
+    recognition.onresult=event=>{
+      if(got||id!==session.current)return
+      let all='',best=null
+      for(let i=0;i<event.results.length;i++){const first=event.results[i][0];all+=' '+(first?.transcript||'');if(event.results[i].isFinal&&Number.isFinite(first?.confidence))best=first.confidence}
+      text=all;confidence=best
+      clearTimeout(quiet);quiet=setTimeout(settle,1700)   // a pause of about two seconds after words means the Driver has finished
     }
     recognition.onerror=event=>{
-      recognizer.current=null
-      if(micProblem(event)){setPhase('idle');return}
-      if(event.error==='no-speech'){setPhase('idle');setMessage(t('We did not hear anything. Try again or use the buttons.'))}
-      else if(event.error!=='aborted'){setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
+      if(micProblem(event)){recognizer.current=null;clearTimeout(quiet);clearTimeout(limit);setPhase('idle');return}
+      if(event.error==='aborted')return
+      if(event.error==='no-speech'){return}   // keep waiting: the limit below ends it
+      recognizer.current=null;clearTimeout(quiet);clearTimeout(limit);setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))
     }
-    recognition.onend=()=>{if(recognizer.current===recognition){recognizer.current=null;if(!got)setPhase(p=>p==='listening'?'idle':p)}}
+    recognition.onend=()=>{if(recognizer.current===recognition&&!got){if(text.trim())settle();else{recognizer.current=null;clearTimeout(limit);setPhase('idle');setMessage(t('We did not hear anything. Try again or use the buttons.'))}}}
+    limit=setTimeout(settle,20000)   // never listen for more than twenty seconds
     recognizer.current=recognition
-    try{recognition.start()}catch{recognizer.current=null;setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
-  },[Recognition,phase,blocked,finish,listenWindow,onUnclear,onProblem])
+    try{recognition.start()}catch{recognizer.current=null;clearTimeout(limit);setPhase('idle');setMessage(t('Voice did not work. Use the five buttons.'))}
+  },[Recognition,phase,blocked,understand])
   return {supported:Boolean(Recognition),blocked,phase,heard,message,outcome,start,cancel:reset,send:()=>finish('yes'),decline:()=>finish('no')}
 }
 
@@ -231,10 +254,38 @@ function Countdown({seconds,live}){
     <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle className="ra-ring-track" cx="28" cy="28" r="24"/><circle className="ra-ring-run" cx="28" cy="28" r="24"/></svg><b>{left}</b></span>
 }
 
+function useMatchMedia(query){
+  const get=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia(query).matches
+  const [value,setValue]=useState(get)
+  useEffect(()=>{
+    if(typeof window==='undefined'||typeof window.matchMedia!=='function')return undefined
+    const media=window.matchMedia(query),on=()=>setValue(media.matches)
+    on();media.addEventListener?.('change',on)
+    return()=>media.removeEventListener?.('change',on)
+  },[query])
+  return value
+}
+
+/* An alert from another vehicle, shown on the Driver's screen like a Book now request: it stays for a short time; the Driver can have it
+   read aloud or dismiss it. (With the speaker on it is spoken instead and this does not appear.) */
+export function AlertPopup({alert,onClose,seconds=20}){
+  const [left,setLeft]=useState(seconds),voice=hasVoice(speechLang(getLanguage()))
+  useEffect(()=>{const timerId=setInterval(()=>setLeft(n=>n-1),1000);return()=>clearInterval(timerId)},[])
+  useEffect(()=>{if(left<=0)onClose()},[left,onClose])
+  return createPortal(<div className="ra-popup" role="alertdialog" aria-live="assertive" aria-label={alert.name||t('Road alerts')}>
+    <div className="ra-popup-main"><strong><Icon name="alert" size={18}/>{alert.name||t('Road alerts')}</strong><p>{alert.text}</p></div>
+    <div className="ra-popup-actions">
+      {voice&&<button type="button" className="ui-button ui-button-primary" onClick={()=>speak(alert.text,speechLang(getLanguage()))}>{t('Read aloud')}</button>}
+      <button type="button" className="ui-button ui-button-secondary" onClick={onClose}>{t('Cancel')}</button></div>
+    <span className="ra-popup-bar" style={{'--ra-seconds':seconds+'s'}} aria-hidden="true"/>
+  </div>,document.body)
+}
+
 /* The Driver's side column and alert strip around the live trip map (contract 03A and 03O, C). `renderMap` draws the map in the middle;
    `strip` sits above it; `extras` are more buttons for the side column (problem on the road, finish). `readOnly` is the Passenger's
    version: no alert buttons and no microphone, only the speaker switch. */
-export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepScreenOn=false,strip=null,renderMap=null,extras=null,readOnly=false}){
+export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,onMenu=null,keepScreenOn=false,strip=null,renderMap=null,extras=null,readOnly=false}){
+  const phone=useMatchMedia('(max-width: 767px)'),fullscreen=phone&&!readOnly&&Boolean(renderMap)
   const [selectedId,setSelectedId]=useState(null)
   const [open,setOpenState]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[problem,setProblem]=useState(''),[votes,setVotes]=useState({})
   const setOpen=useCallback(value=>{setOpenState(value);onOpenChange&&onOpenChange(value)},[onOpenChange])
@@ -259,11 +310,16 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
     catch(error){setProblem(errorText(error));alerts.reload()}
     finally{setVotes(current=>({...current,[item.id]:false}))}
   }
+  useEffect(()=>{
+    if(!fullscreen)return undefined
+    const before=document.body.style.overflow;document.body.style.overflow='hidden'
+    return()=>{document.body.style.overflow=before}
+  },[fullscreen])
   const voiceBusy=voice.phase!=='idle'
   // The alert shown under the map: the one tapped on the map, otherwise the nearest one a Driver can still answer.
   const selected=alerts.items.find(item=>item.id===selectedId)||alerts.items.find(item=>item.can_vote)||null
   const voiceText=voice.phase==='listening'||(voice.phase==='confirm'&&voice.heard?.listening)?t('Listening…'):voice.phase==='classifying'?t('Checking what you said…'):voice.phase==='sending'?t('Sending…'):''
-  return <div className="ra-layout">
+  const layout=<div className="ra-layout">
     <div className="ra-main">
       {strip}
       {!readOnly&&!voice.supported&&<p className="tk-line" role="status">{t('Voice is not available on this device. Use the five buttons.')}</p>}
@@ -281,7 +337,7 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
       {renderMap&&alerts.error&&<p className="tk-line is-warn" role="status">{alerts.error.message}</p>}
       {renderMap&&selected&&(()=>{const item=selected,[tone,label]=STATUS[item.status]||['muted',codeEnglish(item.status)]
         return <article className="tk-row ra-item ra-info" aria-label={t('Road alerts near you')}>
-          <div className="tk-row-main"><strong>{item.name}</strong><span title={item.message}>{item.message}</span></div>
+          <div className="tk-row-main"><strong>{alertName(item,getLanguage())}</strong><span title={alertText(item,getLanguage())}>{alertText(item,getLanguage())}</span></div>
           <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>
             {item.can_vote&&!readOnly&&<><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'CONFIRM')}>{t('Still there')}</button><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'DENY')}>{t('Not there')}</button></>}</div></article>})()}
       {!renderMap&&<div className="ra-list" aria-label={t('Road alerts near you')}>
@@ -289,14 +345,14 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
         {alerts.items.length
           ?alerts.items.map(item=>{const [tone,label]=STATUS[item.status]||['muted',codeEnglish(item.status)]
             return <article className="tk-row ra-item" key={item.id}>
-              <div className="tk-row-main"><strong>{item.name}</strong><span title={item.message}>{item.message}</span></div>
+              <div className="tk-row-main"><strong>{alertName(item,getLanguage())}</strong><span title={alertText(item,getLanguage())}>{alertText(item,getLanguage())}</span></div>
               <div className="tk-row-actions">{typeof item.distance_km==='number'&&<span className="tk-line">{t('{value0} km',{value0:item.distance_km})}</span>}<Chip tone={tone}>{t(label)}</Chip>
                 {item.can_vote&&<><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'CONFIRM')}>{t('Still there')}</button><button type="button" className="ui-button ui-button-secondary" disabled={votes[item.id]} onClick={()=>vote(item,'DENY')}>{t('Not there')}</button></>}</div></article>})
           :alerts.loaded&&!alerts.error&&<p className="tk-line">{alerts.note||t('No road alerts near you.')}</p>}
       </div>}
     </div>
     <aside className={'ra-rail'+(open?' is-open':'')+(readOnly?' is-readonly':'')} aria-label={t('Road alert controls')}>
-      {readOnly?<label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Speak road alerts')}</span></label>:open
+      {readOnly?<label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span className="ra-speak-text">{t('Speak road alerts')}</span><Icon name={speaker.enabled?'volume':'mute'} size={22} className="ra-speak-icon" aria-hidden="true"/></label>:open
         ?<>
           <button type="button" className="ra-round ra-close" aria-label={t('Close')} onClick={()=>setOpen(false)}><Icon name="close" size={22}/></button>
           {ALERT_TYPES.map(([type,label,icon])=><button type="button" key={type} className="ra-type" disabled={busy||disabled} onClick={()=>report(type)}><Icon name={icon} size={26}/><span>{t(label)}</span></button>)}
@@ -305,11 +361,15 @@ export function RoadAlertsPanel({trip,alerts,speaker,disabled,onOpenChange,keepS
           <button type="button" className="ra-round ra-alert" aria-label={t('Report a road alert')} title={t('Report a road alert')} disabled={disabled||voiceBusy} onClick={()=>{setNotice('');setProblem('');setOpen(true)}}><Icon name="alert" size={30}/></button>
           {voice.supported&&!voice.blocked&&<button type="button" className={'ra-round ra-mic'+(voiceBusy?' is-live':'')} aria-label={voiceBusy?t('Stop listening'):t('Speak an alert')} title={voiceBusy?t('Stop listening'):t('Speak an alert')}
             disabled={disabled||busy} onClick={voiceBusy?voice.cancel:voice.start}><Icon name="mic" size={28}/></button>}
-          <label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Speak road alerts')}</span></label>
+          <label className="ui-switch ra-speak" title={t('Speak road alerts')}><input type="checkbox" role="switch" checked={speaker.enabled} onChange={e=>speaker.setEnabled(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span className="ra-speak-text">{t('Speak road alerts')}</span><Icon name={speaker.enabled?'volume':'mute'} size={22} className="ra-speak-icon" aria-hidden="true"/></label>
           {extras}
         </>}
     </aside>
   </div>
+  // On a phone the live map takes the whole screen, like a navigation app; the controls sit over it. (Portal: nothing above it may clip or move it.)
+  return fullscreen?createPortal(<div className="flow-page ra-fullscreen">
+    {onMenu&&<button type="button" className="ra-menu" aria-label={t('Open workspace navigation')} onClick={onMenu}><Icon name="menu" size={24}/></button>}
+    {layout}</div>,document.body):layout
 }
 
 export default function RoadAlerts(){

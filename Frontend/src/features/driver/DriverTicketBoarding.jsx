@@ -72,6 +72,20 @@ export default function DriverTicketBoarding() {
     return () => { stopped = true; clearTimeout(timer); stream?.getTracks().forEach(track => track.stop()) }
   }, [scanning, check])
 
+  // Cash for a Ticket booking that is paid on the bus: the Driver has the money in hand, one tap marks it received.
+  async function cashReceived(bookingId) {
+    setBusy(true); setError(null)
+    try {
+      await post(`/scheduled-trips/${encodeURIComponent(selected)}/bookings/${encodeURIComponent(bookingId)}/cash-received`, {})
+      setFound(current => current && current.map(match => match.booking_id === bookingId ? { ...match, cash_due: false, payment_status: 'PAID' } : match))
+      setNotice(t('Cash received.')); await reload()
+    } catch (failure) { setError(failure); await reload() }
+    finally { setBusy(false) }
+  }
+  const cashParts = (bookingId, due, status, amount, currency) => due
+    ? <><Chip tone="warning" icon="clock">{t('Cash due {value0}', { value0: `${currency || 'LKR'} ${amount}` })}</Chip> <Button type="button" disabled={busy} onClick={() => cashReceived(bookingId)}>{t('Cash received')}</Button></>
+    : status === 'PAID' ? <Chip tone="success">{t('Paid')}</Chip> : null
+
   async function board(ids) {
     setBusy(true); setError(null)
     try {
@@ -108,6 +122,7 @@ export default function DriverTicketBoarding() {
         </form>
         {found && found.map(match => <div key={match.booking_reference} className="rate-preview">
           <strong>{match.booking_reference}</strong>{match.booking_id && <CallContact lazy bookingId={match.booking_id}/>}
+          <div className="tk-row-actions">{cashParts(match.booking_id, match.cash_due, match.payment_status, match.amount, match.currency)}</div>
           {match.travellers.map(traveller => <div key={traveller.traveller_id} className="tk-row">
             <div className="tk-row-main"><strong>{traveller.full_name}</strong><span>{t('Seat')}{' '}{traveller.seat_code}</span></div>
             <div className="tk-row-actions">{done(traveller.status) ? <Chip tone="success">{t('Boarded')}</Chip> : traveller.can_board ? <Button type="button" disabled={busy} onClick={() => board([traveller.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
@@ -120,7 +135,7 @@ export default function DriverTicketBoarding() {
         <div className="tk-rows">
           {list.items.map(item => <article className="tk-row" key={item.traveller_id}>
             <div className="tk-row-main"><strong>{item.full_name}</strong><span>{t('Seat')}{' '}{item.seat_code}{item.gets_on ? ' · ' + item.gets_on + ' → ' + (item.gets_off || '') : ''}</span></div>
-            <div className="tk-row-actions">{item.is_primary && item.booking_id && <CallContact lazy bookingId={item.booking_id}/>}{done(item.status) ? <Chip tone="success">{t('Boarded')}</Chip> : item.can_board ? <Button type="button" variant="secondary" disabled={busy} onClick={() => board([item.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
+            <div className="tk-row-actions">{item.is_primary && cashParts(item.booking_id, item.cash_due, item.payment_status, item.amount, item.currency)}{item.is_primary && item.booking_id && <CallContact lazy bookingId={item.booking_id}/>}{done(item.status) ? <Chip tone="success">{t('Boarded')}</Chip> : item.can_board ? <Button type="button" variant="secondary" disabled={busy} onClick={() => board([item.traveller_id])}>{t('Board')}</Button> : <Chip tone="muted">{t('Not paid')}</Chip>}</div>
           </article>)}
           {!list.items.length && <p className="flow-note">{t('No travellers on this departure yet.')}</p>}
         </div>

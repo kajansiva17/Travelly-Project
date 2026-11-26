@@ -91,13 +91,15 @@ export default function HirePayment({bookingId,passengerUserId,userId,returned,a
     return <div className="tk-pane">{head}<p className="tk-line">{isCollector&&summary.cash_accepted?t('Waiting for cash payment…'):isCollector?t('The Passenger pays online. Nothing is needed from you.'):t('The Passenger pays after the trip.')}</p><ErrorNotice error={error}/>
       {isCollector&&summary.cash_accepted&&<CashConfirm summary={summary} side="collector" onDone={reload}/>}</div>
   }
+  // The Owner may take online only, cash only, or both (owner decision, 25 Nov 2026).
+  const onlineOk=summary.online_accepted!==false,cashOk=Boolean(summary.cash_accepted),choose=onlineOk&&cashOk,payMode=!onlineOk?'cash':mode
   // hand the summary to the shared Pay flow as a booking-shaped object
   const asBooking={id:summary.booking_id,status:summary.booking_status,currency:summary.currency,total_amount:summary.amount_due,payment_status:summary.payment_status,latest_payment:summary.latest_payment,payment_provider:summary.payment_provider,payment_method:summary.payment_method,payer_details_required:summary.payer_details_required}
   return <div className="tk-pane"><p className="tk-line"><strong>{t('Trip completed. Total: LKR {value0}',{value0:summary.amount_due})}</strong></p>{head}
-    {summary.cash_accepted&&<div className="tk-bar" role="group" aria-label={t('How do you want to pay?')}><strong className="tk-line">{t('How do you want to pay?')}</strong>
+    {choose&&<div className="tk-bar" role="group" aria-label={t('How do you want to pay?')}><strong className="tk-line">{t('How do you want to pay?')}</strong>
       <Chip tone="info" selected={mode==='online'} onClick={()=>setMode('online')}>{t('Pay online')}</Chip>
       <Chip tone="info" selected={mode==='cash'} onClick={()=>setMode('cash')}>{t('Pay in cash')}</Chip></div>}
-    {mode==='cash'&&summary.cash_accepted
+    {payMode==='cash'&&cashOk
       ?<><p className="tk-line">{t('Pay the Driver in cash at the end of the trip. Then both of you confirm here and the booking is marked paid.')} <InfoTip>{t('The booking is paid only after you and the Driver both confirm.')}</InfoTip></p>
         <CashConfirm summary={summary} side="passenger" onDone={reload}/></>
       :<TicketPayment hire booking={asBooking} refresh={read} returned={returned}/>}

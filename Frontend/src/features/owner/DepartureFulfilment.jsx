@@ -47,12 +47,24 @@ function explain(error,action){
 
 export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack}){
   const [mode,setMode]=useState(null),[reason,setReason]=useState(''),[busy,setBusy]=useState(false),[errors,setErrors]=useState({}),[message,setMessage]=useState(''),[pick,setPick]=useState(''),[options,setOptions]=useState(null),[query,setQuery]=useState(''),[looking,setLooking]=useState(false),[lookMessage,setLookMessage]=useState('')
+  const [reporting,setReporting]=useState(false)
   const {tone,label}=statusChip(x.status)
   const text=reason.trim(),reasonOk=text.length>=5&&text.length<=1000
   async function send(action){
     setBusy(true);setMessage('');setErrors({})
     try{
-      const body=action==='commit'?{expected_version:x.version}:action==='replace'?{expected_version:x.version,vehicle_id:pick}:{expected_version:x.version,reason:text}
+      // Reporting and choosing a vehicle in one go: the problem is reported only now, after the Owner confirmed the vehicle.
+      if(action==='replace'&&reporting){
+        const reported=await api(`/scheduled-trips/${x.id}/problem`,{method:'POST',body:JSON.stringify({expected_version:x.version,reason:text,arrangement:'OWNER'})})
+        if(reported.status!=='DISRUPTED'){await onDone('report',reported);return}
+        try{
+          const done=await api(`/scheduled-trips/${x.id}/${chosen?.own?'replacement-vehicle':'replacement-request'}`,{method:'POST',body:JSON.stringify({expected_version:reported.version,vehicle_id:pick})})
+          await onDone(chosen?.own?'replace':'request',done)
+        }catch(second){onProblem(explain(second,'replace').text)}
+        return
+      }
+      if(action==='ask'){const asked=await api(`/scheduled-trips/${x.id}/ask-travelly`,{method:'POST',body:JSON.stringify({expected_version:x.version})});await onDone('ask',asked);return}
+      const body=action==='commit'?{expected_version:x.version}:action==='replace'?{expected_version:x.version,vehicle_id:pick}:{expected_version:x.version,reason:text,arrangement:'TRAVELLY'}
       // Section 5 for my own vehicle, section 8 for another Owner vehicle.
       const path=action==='commit'?'commit':action==='replace'?(chosen?.own?'replacement-vehicle':'replacement-request'):'problem'
       const result=await api(`/scheduled-trips/${x.id}/${path}`,{method:'POST',body:JSON.stringify(body)})
@@ -82,15 +94,16 @@ export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack
       {x.committed_at&&<span> · {t('Committed')} {formatDateTime(x.committed_at)}</span>}
       {x.fulfilment?.decision_deadline&&!x.committed_at&&<span> · {t('Decide by')} {formatDateTime(x.fulfilment.decision_deadline)}</span>}</p>
     {!mode&&x.status==='DECISION_REQUIRED'&&<p className="tk-line is-warn">{t('The decision deadline has passed. Commit to run this departure, or tell us you cannot run it. Nothing is cancelled or refunded until then.')}</p>}
-    {!mode&&x.status==='DISRUPTED'&&<p className="tk-line is-warn">{t('You reported a problem. Travelly is arranging the journey for the passengers who paid. You can still commit to run it if the problem is solved.')}</p>}
+    {!mode&&x.status==='DISRUPTED'&&<p className="tk-line is-warn">{x.arrangement==='OWNER'?t('You reported a problem. Choose another vehicle for the passengers who paid, or let Travelly arrange the journey.'):t('You reported a problem. Travelly is arranging the journey for the passengers who paid.')}</p>}
     {waitingForOther(x)&&<p className="tk-line" role="status"><Chip tone="info" icon="clock">{t('Waiting for the other Owner')}</Chip> {t('You asked another Owner to run this departure with their vehicle. Nothing moves until they answer.')}</p>}
     {x.status==='CANCELLED'&&<p className="tk-line">{t('This departure is cancelled.')} {x.cancellation_reason&&<span>{x.cancellation_reason}</span>}</p>}
     {x.status==='COMMITTED'&&<p className="tk-line">{t('You committed to run this departure. Passengers can keep booking until the booking cut-off.')}</p>}
     {message&&<p className="tk-line is-warn" role="status">{message}</p>}
 
     {!mode&&<div className="tk-bar">
-      {canCommit(x)&&<button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>setMode('commit')}>{t('Commit to run')}</button>}
+      {canCommit(x)&&x.status!=='DISRUPTED'&&<button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>setMode('commit')}>{t('Commit to run')}</button>}
       {canReplace(x)&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setPick('');setOptions(null);setQuery('');setMode('vehicle')}}>{t('Find a replacement vehicle')}</button>}
+      {x.status==='DISRUPTED'&&x.arrangement==='OWNER'&&!waitingForOther(x)&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('ask')}>{t('Let Travelly arrange')}</button>}
       {canReport(x)&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setReason('');setMode('report-form')}}>{t('I can’t run this departure')}</button>}
       <InfoTip>{t('Committing tells passengers who paid that the departure will run. If you cannot run it, report it before the journey starts so Travelly can arrange the passengers’ journey.')}</InfoTip></div>}
 
@@ -108,16 +121,28 @@ export default function DepartureFulfilment({departure:x,onDone,onProblem,onBack
         :<p className="tk-line is-warn"><strong>{t('Ask {value0} to run this departure with {value1}?',{value0:chosen.owner_name||t('the other Owner'),value1:chosen.public_vehicle_reference})}</strong> {t('Nothing moves until they accept. While you wait you cannot commit or use your own vehicle.')}</p>)}
       <div className="tk-bar">{mode==='vehicle-confirm'
         ?<><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('replace')}>{busy?t('Please wait…'):chosen?.own?t('Yes, use this vehicle'):t('Yes, send the request')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('vehicle')}>{t('Back')}</button></>
-        :<><button type="button" className="ui-button ui-button-primary" disabled={!pick} onClick={()=>{setMessage('');setMode('vehicle-confirm')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(null);setMessage('')}}>{t('Not yet')}</button></>}</div></div>}
+        :<><button type="button" className="ui-button ui-button-primary" disabled={!pick} onClick={()=>{setMessage('');setMode('vehicle-confirm')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(reporting?'arrange':null);setReporting(false);setMessage('')}}>{reporting?t('Back'):t('Not yet')}</button></>}</div></div>}
     {mode==='commit'&&<div className="tk-hold"><p className="tk-line"><strong>{t('Commit to run this departure?')}</strong> {t('Passengers who paid are told it will run.')}{x.status==='DECISION_REQUIRED'||x.status==='DISRUPTED'?` ${t('The Admin is told it is resolved.')}`:''}</p>
       <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('commit')}>{busy?t('Please wait…'):t('Yes, commit')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode(null)}>{t('Not yet')}</button></div></div>}
 
-    {(mode==='report-form'||mode==='report')&&<div className="tk-hold">
-      <Field label="Why can’t you run it?" help="Between 5 and 1000 characters. The Admin sees this reason."><input name="reason" maxLength="1000" value={reason} disabled={mode==='report'} onChange={e=>setReason(e.target.value)}/></Field>
+    {(mode==='report-form'||mode==='arrange'||mode==='report')&&<div className="tk-hold">
+      <Field label="Why can’t you run it?" help="Between 5 and 1000 characters. The Admin sees this reason."><input name="reason" maxLength="1000" value={reason} disabled={mode!=='report-form'} onChange={e=>setReason(e.target.value)}/></Field>
       {mode==='report'&&<p className="tk-line is-warn"><strong>{t('Report that you cannot run this departure?')}</strong> {t('Selling stops and open seat holds end. Passengers who paid stay booked while Travelly arranges their journey, and they are told. If nobody has paid, the departure is withdrawn.')}</p>}
       <div className="tk-bar">{mode==='report'
-        ?<><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('report')}>{busy?t('Please wait…'):t('Yes, I can’t run it')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('report-form')}>{t('Back')}</button></>
-        :<><button type="button" className="ui-button ui-button-primary" disabled={!reasonOk} onClick={()=>{setErrors({});setMessage('');setMode('report')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(null);setReason('');setErrors({})}}>{t('Not yet')}</button></>}</div></div>}
+        ?<><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('report')}>{busy?t('Please wait…'):t('Yes, I can’t run it')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('arrange')}>{t('Back')}</button></>
+        :mode==='arrange'?<button type="button" className="ui-button ui-button-secondary" onClick={()=>setMode('report-form')}>{t('Back')}</button>
+        :<><button type="button" className="ui-button ui-button-primary" disabled={!reasonOk} onClick={()=>{setErrors({});setMessage('');setMode('arrange')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(null);setReason('');setErrors({})}}>{t('Not yet')}</button></>}</div></div>}
+
+    {mode==='arrange'&&<div className="tk-hold">
+      <p className="tk-line"><strong>{t('How should the passengers who paid get to their destination?')}</strong></p>
+      <div className="tk-grid" style={{'--cols':2}}>
+        <div><button type="button" className="ui-button ui-button-primary" onClick={()=>{setReporting(true);setPick('');setOptions(null);setQuery('');setMessage('');setMode('vehicle')}}>{t('I will arrange another vehicle')}</button>
+          <p className="tk-line">{t('Choose your own vehicle or ask another Owner. The departure is cancelled for you only after you confirm.')}</p></div>
+        <div><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMessage('');setMode('report')}}>{t('Let Travelly arrange')}</button>
+          <p className="tk-line">{t('Travelly finds a vehicle for the passengers who paid and the Admin is told. The departure is cancelled for you only after you confirm.')}</p></div>
+      </div></div>}
+    {mode==='ask'&&<div className="tk-hold"><p className="tk-line is-warn"><strong>{t('Ask Travelly to arrange the journey?')}</strong> {t('The Admin is told and arranges another vehicle for the passengers who paid.')}</p>
+      <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={()=>send('ask')}>{busy?t('Please wait…'):t('Yes, ask Travelly')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode(null)}>{t('Not yet')}</button></div></div>}
 
     <div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={onBack}>{t('Back to list')}</button><span/></div>
   </div></RateErrors.Provider>

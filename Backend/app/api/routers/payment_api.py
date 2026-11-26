@@ -40,7 +40,8 @@ from app.models.payment_models import Payment
 from app.models.rate_models import ServiceType, VehicleService
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat
-from app.schemas.payment_schemas import CashReceipt, CheckoutRequest, PaymentIntentRequest, PaymentOptions, PaymentSettings, SandboxOutcome
+from app.schemas.payment_schemas import CashReceipt, CheckoutRequest, PaymentIntentRequest, PaymentOptions, PaymentSettings, SandboxOutcome, TicketCash
+from app.services.payment_mode import cash_ok, mode_of, online_ok, payment_mode
 from app.services.pricing_scope import long_distance
 from app.services.payment_providers import PAYHERE, SANDBOX, payment_settings, provider_for, providers, service_days, split
 from app.services.refunds import queue_refund
@@ -121,9 +122,7 @@ def payer_for(provider, user, details):
 
 
 def cash_accepted(db, booking):
-    row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == booking.vehicle_id,
-                                                 VehicleService.service_type_id == booking.service_type_id))
-    return bool(row and (row.owner_terms or {}).get('cash', {}).get('accepted') is True)
+    return cash_ok(payment_mode(db, booking.vehicle_id, booking.service_type_id))
 
 
 def finished_trip(db, booking):
@@ -153,6 +152,8 @@ def payment_view(db, booking, viewer):
             'currency': booking.currency, 'payment_due': due,
             'payment_provider': provider.name if provider else None, 'payment_method': provider.methods[0] if provider else None,
             'payer_details_required': provider.payer_required(passenger) if provider else [],
+            'payment_mode': payment_mode(db, booking.vehicle_id, booking.service_type_id),
+            'online_accepted': online_ok(payment_mode(db, booking.vehicle_id, booking.service_type_id)),
             'cash_accepted': cash_accepted(db, booking), 'cash_collection_stage': 'END',
             'collector_user_id': str(trip.driver_user_id) if trip and trip.driver_user_id else None,
             'cash': cash, 'latest_payment': None if latest is None else {
@@ -200,6 +201,9 @@ def create_intent(booking_id: UUID, body: PaymentIntentRequest, user=Depends(cur
     if Decimal(body.amount) != booking.total_amount or body.currency != booking.currency:
         raise ApiError(422, 'PAYMENT_AMOUNT_MISMATCH', 'Pay the full amount shown.',
                        [{'field': 'amount', 'message': f'{format(booking.total_amount, ".2f")} {booking.currency}'}])
+    if not online_ok(payment_mode(db, booking.vehicle_id, booking.service_type_id)):
+        db.commit()
+        raise ApiError(409, 'ONLINE_NOT_ACCEPTED', 'The Owner accepts cash only for this vehicle. Pay in cash.')
     service = db.get(ServiceType, booking.service_type_id)
     provider = provider_for(service)
     if provider is None:
@@ -394,6 +398,75 @@ def booking_payments(booking_id: UUID, user=Depends(current), db: Session = Depe
             'items': [payment_out(p, full) for p in rows]}
 
 
+# --------------------------------------------------------------------------- Ticket seats paid in cash on the bus (owner decision, 25 Nov 2026)
+
+@router.post('/bookings/{booking_id}/ticket-cash')
+def ticket_cash(booking_id: UUID, body: TicketCash, user=Depends(current), db: Session = Depends(get_db)):
+    """The Passenger books the held seats and will pay the Driver in cash when getting on. The seats are booked at once; the Driver marks the
+    cash received at boarding (`POST /scheduled-trips/{id}/bookings/{id}/cash-received`). Cancelling before then costs nothing."""
+    booking = db.get(Booking, booking_id)
+    if not booking or booking.booking_type != 'TICKET_HIRE' or booking.passenger_user_id != user.id:
+        raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
+    stored_key = f'{user.id.hex}:{body.idempotency_key}'
+    moment = now()
+    lock_trip(db, booking.current_scheduled_trip_id)
+    release_expired(db, booking.current_scheduled_trip_id, moment)
+    booking = lock_booking(db, booking.id)
+    replay = db.scalar(select(Payment).where(Payment.idempotency_key == stored_key))
+    if replay:
+        db.commit()
+        if replay.booking_id != booking.id:
+            raise ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'This request key was already used for another payment.')
+        return JSONResponse(status_code=200, content={**payment_out(replay), 'booking_status': booking.status})
+    if booking.payment_status_snapshot in ('PAID', 'CASH_AWAITING_CONFIRMATION') or booking.status == 'CONFIRMED':
+        db.commit()
+        raise ApiError(409, 'BOOKING_ALREADY_PAID', 'This booking is already confirmed.')
+    if not cash_accepted(db, booking):
+        db.commit()
+        raise ApiError(409, 'CASH_NOT_ACCEPTED', 'The Owner does not take cash for this vehicle. Pay online instead.')
+    seats = hold_is_active(db, booking)
+    if not seats:
+        db.commit()
+        if booking.status == 'CANCELLED':
+            raise ApiError(410, 'HOLD_EXPIRED', 'The seat hold has ended. Choose your seats again.')
+        raise ApiError(409, 'HOLD_NOT_ACTIVE', 'This booking has no active seat hold.')
+    if Decimal(body.amount) != booking.total_amount or body.currency != booking.currency:
+        db.commit()
+        raise ApiError(422, 'PAYMENT_AMOUNT_MISMATCH', 'Confirm the full amount shown.',
+                       [{'field': 'amount', 'message': f'{format(booking.total_amount, ".2f")} {booking.currency}'}])
+    waiting = db.scalar(select(Payment.id).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT', Payment.status.in_(OPEN)))
+    if waiting:
+        db.commit()
+        raise ApiError(409, 'PAYMENT_IN_PROGRESS', 'An online payment for this booking is already in progress.',
+                       [{'field': 'payment_id', 'message': str(waiting)}])
+    payment = Payment(payment_reference='PAY-' + uuid4().hex[:20].upper(), booking_id=booking.id, payee_owner_user_id=booking.owner_user_id,
+                      transaction_type='PAYMENT', payment_method='CASH', idempotency_key=stored_key, amount=booking.total_amount,
+                      currency=booking.currency, status='CASH_AWAITING_CONFIRMATION', created_by=user.id, updated_by=user.id)
+    db.add(payment)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'This request key was already used.') from None
+    for seat in seats:
+        seat.seat_status = 'BOOKED'
+        seat.booked_booking_id = booking.id
+        seat.held_by_booking_id = None
+        seat.hold_expires_at = None
+        touch(seat); seat.updated_by = user.id
+    booking.status = 'CONFIRMED'
+    booking.confirmed_at = moment
+    booking.payment_status_snapshot = 'CASH_AWAITING_CONFIRMATION'
+    touch(booking); booking.updated_by = user.id
+    tell(db, booking.passenger_user_id, booking, 'BOOKING_CONFIRMED', 'Seats confirmed',
+         f'Your seats are booked. Pay {format(payment.amount, ".2f")} {payment.currency} in cash to the Driver when you get on.')
+    if booking.owner_user_id:
+        tell(db, booking.owner_user_id, booking, 'PAYMENT', 'Seat booked, cash on the bus',
+             f'{format(payment.amount, ".2f")} {payment.currency} will be paid in cash for booking {booking.booking_reference}.')
+    db.commit()
+    return JSONResponse(status_code=201, content={**payment_out(payment), 'booking_status': booking.status})
+
+
 # --------------------------------------------------------------------------- 70 cash receipts (private hire, END only)
 
 @router.post('/bookings/{booking_id}/cash-receipts')
@@ -499,6 +572,15 @@ def payment_summary(booking_id: UUID, user=Depends(current), db: Session = Depen
 
 # --------------------------------------------------------------------------- Owner: accept cash per vehicle service
 
+@router.get('/owners/me/ticket-service')
+def ticket_service(user=Depends(current), db: Session = Depends(get_db)):
+    require_role(db, user, 'OWNER')
+    row = db.scalar(select(ServiceType).where(ServiceType.category == 'TICKET_HIRE', ServiceType.is_active.is_(True)).order_by(ServiceType.display_order, ServiceType.id).limit(1))
+    if not row:
+        raise ApiError(404, 'SERVICE_NOT_FOUND', 'Ticket service is not available.')
+    return {'id': str(row.id), 'code': row.code, 'name': row.name}
+
+
 @router.patch('/vehicles/{vehicle_id}/services/{service_type_id}/payment-options')
 def update_payment_options(vehicle_id: UUID, service_type_id: UUID, body: PaymentOptions, user=Depends(current),
                            db: Session = Depends(get_db)):
@@ -509,18 +591,25 @@ def update_payment_options(vehicle_id: UUID, service_type_id: UUID, body: Paymen
     service = db.get(ServiceType, service_type_id)
     row = db.scalar(select(VehicleService).where(VehicleService.vehicle_id == vehicle.id, VehicleService.service_type_id == service_type_id)
                     .with_for_update().execution_options(populate_existing=True))
-    if not service or not row:
+    if not service:
         raise ApiError(404, 'VEHICLE_SERVICE_NOT_FOUND', 'Save this service and its prices first.')
-    if service.category == 'TICKET_HIRE' and body.cash_accepted:
-        raise ApiError(422, 'CASH_NOT_ALLOWED', 'Ticket seats are paid online only.',
-                       [{'field': 'cash_accepted', 'message': 'Not available for ticket departures.'}])
+    if not row and service.category == 'TICKET_HIRE':
+        # A vehicle has no Ticket service row until the Owner chooses how seats are paid: the row only carries the payment terms (prices sit on each departure).
+        row = VehicleService(vehicle_id=vehicle.id, service_type_id=service_type_id, is_enabled=True, pricing_basis='PER_SEAT', currency='LKR',
+                             owner_terms={}, created_by=user.id, updated_by=user.id)
+        db.add(row)
+        db.flush()
+    if not row:
+        raise ApiError(404, 'VEHICLE_SERVICE_NOT_FOUND', 'Save this service and its prices first.')
     if row.version != body.expected_version:
         raise ApiError(409, 'VERSION_CONFLICT', 'This service changed. Reload before saving.')
-    row.owner_terms = {**(row.owner_terms or {}), 'cash': {'accepted': body.cash_accepted, 'collection_stage': 'END'}}
+    mode = body.payment_mode or ('ONLINE_AND_CASH' if body.cash_accepted else 'ONLINE_ONLY')
+    stage = 'BOARDING' if service.category == 'TICKET_HIRE' else 'END'   # a Ticket seat is paid to the Driver when the Passenger gets on
+    row.owner_terms = {**(row.owner_terms or {}), 'payment_mode': mode, 'cash': {'accepted': cash_ok(mode), 'collection_stage': stage}}
     touch(row); row.updated_by = user.id
     db.commit()
     return {'vehicle_id': str(vehicle.id), 'service_type_id': str(service_type_id), 'version': row.version,
-            'cash_accepted': body.cash_accepted, 'cash_collection_stage': 'END'}
+            'payment_mode': mode, 'online_accepted': online_ok(mode), 'cash_accepted': cash_ok(mode), 'cash_collection_stage': stage}
 
 
 # --------------------------------------------------------------------------- Admin payment settings (service_types.settings)

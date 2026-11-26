@@ -127,7 +127,14 @@ export function ButtonLink({ to, children, outline = false, arrow = false, class
 }
 
 export function ErrorNotice({ error }) {
-  return error ? <div className="notice error" role="alert">{t(error.message)}{error.retryAfter && <span>{t(" Try again in ")}{error.retryAfter}{t(" seconds.")}</span>}</div> : null
+  const [gone, setGone] = useState(false)
+  useEffect(() => {
+    setGone(false)
+    if (!error) return undefined
+    const timer = setTimeout(() => setGone(true), 6000)
+    return () => clearTimeout(timer)
+  }, [error])
+  return error && !gone ? <div className="notice error" role="alert">{t(error.message)}{error.retryAfter && <span>{t(" Try again in ")}{error.retryAfter}{t(" seconds.")}</span>}</div> : null
 }
 
 export function ScrollToPage() {

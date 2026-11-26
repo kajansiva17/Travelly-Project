@@ -268,7 +268,7 @@
   html body .flow-page .bk-facts > span > strong { font-weight: 600; }
 
   /* Favourite vehicles: the whole photo, full-width buttons */
-  html body .flow-page .fav-row .fav-photo { height: auto !important; max-height: none !important; aspect-ratio: 3 / 2; width: 100%; border-radius: 12px; overflow: hidden; }
+  html body .flow-page .fav-row .fav-photo { height: auto !important; max-height: none !important; aspect-ratio: 4 / 3; width: 100%; border-radius: 12px; overflow: hidden; }
   html body .flow-page .fav-row .fav-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
   html body .flow-page .fav-row .fav-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
   html body .flow-page .fav-row .fav-actions .ui-button { width: 100%; min-height: 46px; }

@@ -25,14 +25,32 @@ export function hasVoice(lang,synth=globalThis.speechSynthesis){
 }
 export function readSetting(storage=globalThis.localStorage){try{return storage?.getItem(SPEAK_KEY)==='on'}catch{return false}}
 export function saveSetting(on,storage=globalThis.localStorage){try{storage?.setItem(SPEAK_KEY,on?'on':'off')}catch{/* The choice still works until the page closes. */}}
-// Says the text when this device has a voice for the language. Returns true when it started speaking.
+// The clearest voice this device has for the language: the exact region first, then a network or "natural" voice.
+export function pickVoice(lang,synth=globalThis.speechSynthesis){
+  if(!synth||typeof synth.getVoices!=='function')return null
+  const base=String(lang).slice(0,2).toLowerCase(),want=String(lang).toLowerCase().replace('_','-')
+  const same=synth.getVoices().filter(voice=>String(voice.lang||'').slice(0,2).toLowerCase()===base)
+  const score=voice=>(String(voice.lang||'').toLowerCase().replace('_','-')===want?4:0)+(/google|natural|neural|online/i.test(voice.name||'')?2:0)+(voice.localService===false?1:0)
+  return same.length?[...same].sort((a,b)=>score(b)-score(a))[0]:null
+}
+// Says the text, slowly and clearly, when this device has a voice for the language. Returns true when it started speaking.
 export function speak(text,lang,{onEnd,synth=globalThis.speechSynthesis,Utterance=globalThis.SpeechSynthesisUtterance}={}){
   if(!text||!synth||!Utterance||!hasVoice(lang,synth))return false
+  try{synth.cancel&&synth.cancel()}catch{/* Nothing was speaking. */}
   const utterance=new Utterance(text)
   utterance.lang=lang
-  const voice=synth.getVoices().find(v=>String(v.lang||'').slice(0,2).toLowerCase()===lang.slice(0,2).toLowerCase())
+  utterance.rate=String(lang).slice(0,2).toLowerCase()==='en'?1:0.9   // Tamil and Sinhala are easier to follow a little slower
+  utterance.pitch=1;utterance.volume=1
+  const voice=pickVoice(lang,synth)
   if(voice)utterance.voice=voice
   if(onEnd){utterance.onend=onEnd;utterance.onerror=onEnd}
   synth.speak(utterance)
   return true
 }
+// Browsers load their voices late; asking once (and again when they arrive) makes the first alert speak too.
+export function warmVoices(synth=globalThis.speechSynthesis){
+  try{synth?.getVoices?.();synth?.addEventListener?.('voiceschanged',()=>synth.getVoices())}catch{/* No speech on this device. */}
+}
+// One alert, in the page language: the sentence written for that language, otherwise what the server worded for the person.
+export const alertText=(item,language)=>item?.messages?.[language]||item?.message||''
+export const alertName=(item,language)=>item?.names?.[language]||item?.name||''

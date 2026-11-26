@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Dict, Literal, Optional
 from uuid import UUID
 from pydantic import Field, field_validator
 from app.schemas.scheduled_trip_schemas import Strict
@@ -18,6 +18,17 @@ class RoadAlertIn(Strict):
     confidence_score: Optional[Decimal] = Field(default=None, ge=0, le=1)
     # PRD: voice classification never creates an alert by itself; the Driver confirms what was understood.
     driver_confirmed: bool = False
+    # Voice: what the Driver said, understood and written once per language, so each listener hears it in their own language.
+    summaries: Optional[Dict[str, str]] = None
+
+    @field_validator('summaries')
+    @classmethod
+    def every_language(cls, value):
+        if value is None:
+            return None
+        if set(value) != {'en', 'ta', 'si'} or any(not 1 <= len(text.strip()) <= 200 for text in value.values()):
+            raise ValueError('Give one sentence of at most 200 characters in en, ta and si.')
+        return {key: text.strip() for key, text in value.items()}
 
     @field_validator('latitude', 'longitude')
     @classmethod

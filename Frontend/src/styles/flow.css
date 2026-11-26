@@ -1442,7 +1442,8 @@ html:not(#a) body .ride-banner-chat { top: 84px; }
 html:not(#a) body button.bk-card.nt-card, html:not(#a) body button.dash-row { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 
 /* Picture cropper (vehicle profile picture): 4:3 frame, drag to move, slider to zoom. */
-html:not(#a) body .crop-panel { width: min(520px, 100%); height: auto; max-height: 100%; }
+html:not(#a) body .crop-panel { width: min(520px, 100%); height: auto; max-height: 100%; background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 18px 48px rgba(15, 23, 42, .35); }
+html:not(#a) body .crop-panel .chat-head, html:not(#a) body .crop-panel .chat-form { background: #fff; }
 html:not(#a) body .crop-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; min-height: 0; overflow-y: auto; }
 html:not(#a) body .crop-help { margin: 0; font-size: 13px; color: var(--ui-muted, #5b6472); }
 html:not(#a) body .crop-frame { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border: 2px solid var(--ui-blue-deep, #1f4fa3); border-radius: 12px; background: #e9edf3; cursor: grab; touch-action: none; user-select: none; }
@@ -1451,3 +1452,117 @@ html:not(#a) body .crop-frame img { position: absolute; top: 0; left: 0; max-wid
 html:not(#a) body .crop-zoom { display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 700; }
 html:not(#a) body .crop-zoom input { flex: 1 1 auto; }
 html:not(#a) body .crop-actions { justify-content: flex-end; }
+
+/* Favourite vehicle card: the picture frame is 4:3, the same as the Owner's crop, so the vehicle is never cut. */
+@media (min-width: 768px) {
+  html:not(#a) body .flow-page .fav-row { grid-template-columns: 144px minmax(0, 1fr) auto; }
+  html:not(#a) body .flow-page .fav-row .fav-photo { width: 144px; height: 108px; aspect-ratio: 4 / 3; }
+}
+
+/* Saved Places: current location, map pin and recent places. */
+html:not(#a) body .sp-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+html:not(#a) body .place-map { display: grid; gap: 6px; }
+html:not(#a) body .place-map-help { margin: 0; font-size: 13px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .place-map-box { width: 100%; height: 240px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(15, 23, 42, .15); }
+html:not(#a) body .sp-suggest { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+html:not(#a) body .sp-suggest > div { display: flex; flex-wrap: wrap; gap: 6px; }
+html:not(#a) body .sp-chip { max-width: 100%; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(15, 23, 42, .18); background: #fff; font: inherit; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* One border only: a field built with the UI kit draws its frame on .ui-control, never again on the input or select inside it. */
+html:not(#a) body .ui-control > :is(input, select) { border: 0; background: transparent; box-shadow: none; border-radius: 0; height: 44px; min-height: 0; padding: 0; }
+html:not(#a) body .ui-control-select > select { padding-right: 26px; }
+
+/* Notification list opened by the bell. */
+html:not(#a) body .np-backdrop { position: fixed; inset: 0; z-index: 1300; background: rgba(15, 23, 42, .18); }
+html:not(#a) body .np-panel { position: fixed; top: 84px; right: 20px; width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: flex; flex-direction: column; background: #fff; border-radius: 16px; box-shadow: 0 18px 48px rgba(15, 23, 42, .35); overflow: hidden; }
+html:not(#a) body .np-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(15, 23, 42, .1); font-size: 16px; }
+html:not(#a) body .np-close { border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 8px; display: grid; place-items: center; }
+html:not(#a) body .np-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+html:not(#a) body .np-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 10px 16px; border: 0; background: transparent; font: inherit; text-align: left; color: inherit; text-decoration: none; cursor: pointer; }
+html:not(#a) body .np-item:hover { background: rgba(47, 111, 228, .07); }
+html:not(#a) body .np-item.is-expired { opacity: .55; }
+html:not(#a) body .np-icon { flex: none; width: 36px; height: 36px; border-radius: 50%; background: rgba(47, 111, 228, .12); display: grid; place-items: center; }
+html:not(#a) body .np-text { display: grid; gap: 2px; min-width: 0; }
+html:not(#a) body .np-text > strong { font-size: 14.5px; }
+html:not(#a) body .np-text > span { font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
+html:not(#a) body .np-text > small { font-size: 12px; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .np-empty { padding: 20px 16px; text-align: center; color: var(--ui-muted, #5b6472); }
+html:not(#a) body .np-foot { padding: 10px 16px; border-top: 1px solid rgba(15, 23, 42, .1); display: flex; justify-content: flex-end; }
+@media (max-width: 767px) {
+  html:not(#a) body .np-panel { top: auto; right: 0; left: 0; bottom: 0; width: 100%; max-height: 80vh; border-radius: 18px 18px 0 0; }
+}
+
+/* Alert from another vehicle, shown as a popup on the Driver's screen (like a Book now request). */
+html:not(#a) body .ra-popup { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 1950; width: min(520px, calc(100% - 24px)); display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 16px; background: #fff; border-radius: 16px; box-shadow: 0 12px 36px rgba(15, 23, 42, .4); overflow: hidden; }
+html:not(#a) body .ra-popup-main strong { display: flex; align-items: center; gap: 6px; color: var(--brand-red, #e11d2e); font-size: 15px; }
+html:not(#a) body .ra-popup-main p { margin: 4px 0 0; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+html:not(#a) body .ra-popup-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+html:not(#a) body .ra-popup-bar { position: absolute; left: 0; bottom: 0; width: 100%; height: 4px; background: var(--brand-red, #e11d2e); transform-origin: left; animation: ra-popup-run var(--ra-seconds, 20s) linear forwards; }
+@keyframes ra-popup-run { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* Icons that only the phone's full-screen map uses. */
+html:not(#a) body :is(.tm-follow-icon, .ra-speak-icon, .ra-side-icon, .ra-menu) { display: none; }
+
+/* PHONE: the live trip map takes the whole screen like a navigation app; the controls sit over it (alert buttons on the right, the two sharing buttons along the bottom). */
+@media (max-width: 767px) {
+  html:not(#a) body .ra-popup { top: calc(env(safe-area-inset-top, 0px) + 12px); }
+  html:not(#a) body .ra-fullscreen { position: fixed; inset: 0; z-index: 900; margin: 0; padding: 0; background: #e8eef7; overflow: hidden; }
+  html:not(#a) body .ra-fullscreen .ra-layout { position: absolute; inset: 0; display: block; margin: 0; padding: 0; }
+  html:not(#a) body .ra-fullscreen .ra-main { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 6px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px 0 68px; pointer-events: none; }
+  html:not(#a) body .ra-fullscreen .ra-map { position: absolute; inset: 0; z-index: 0; min-height: 0; margin: 0; border: 0; border-radius: 0; pointer-events: auto; }
+  html:not(#a) body .ra-fullscreen .ra-main > :not(.ra-map) { position: relative; z-index: 6; pointer-events: auto; }
+  html:not(#a) body .ra-fullscreen .ra-main > :is(.tk-line, .tk-hold, .tm-strip) { padding: 8px 12px; border-radius: 14px; background: rgb(255 255 255 / .96); box-shadow: 0 3px 12px rgba(15, 23, 42, .25); font-size: 13px; line-height: 1.3; }
+  html:not(#a) body .ra-fullscreen .ra-main > .tk-line.is-warn { background: #fff1f1; }
+  html:not(#a) body .ra-fullscreen .tm-strip { gap: 4px 8px; }
+  html:not(#a) body .ra-fullscreen .tm-strip .ra-position { flex: 1 1 100%; white-space: normal; max-height: 4em; overflow: hidden; font-size: 12px; }
+  html:not(#a) body .ra-fullscreen .tm-strip-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, rgb(255 255 255 / .97) 75%, rgb(255 255 255 / 0)); }
+  html:not(#a) body .ra-fullscreen .tm-strip-actions .ui-button { width: 100%; min-height: 56px; padding: 6px 10px; font-size: 16px; font-weight: 700; line-height: 1.15; white-space: normal; }
+  html:not(#a) body .ra-fullscreen .ra-info { position: fixed; left: 12px; right: 78px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 8; margin: 0; padding: 8px 12px; border-radius: 14px; background: rgb(255 255 255 / .97); box-shadow: 0 3px 12px rgba(15, 23, 42, .25); }
+  html:not(#a) body .ra-fullscreen .ra-menu { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 10px; z-index: 9; width: 48px; height: 48px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #fff; color: var(--ui-ink, #14213d); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); cursor: pointer; }
+  /* the right-hand column: alert, microphone, speaker, problem, finish. One size, icon only (the words stay for screen readers and the tooltip). */
+  html:not(#a) body .ra-fullscreen .ra-rail { position: absolute; right: 10px; bottom: calc(156px + env(safe-area-inset-bottom, 0px)); top: auto; z-index: 7; width: auto; max-height: calc(100% - 240px); display: flex; flex-direction: column; align-items: flex-end; gap: 10px; overflow-y: auto; overflow-x: hidden; padding: 2px; }
+  html:not(#a) body .ra-fullscreen .ra-rail > * { flex: none; }
+  html:not(#a) body .ra-fullscreen :is(.ra-round, .ra-speak, .ra-side-btn) { position: relative; width: 52px; height: 52px; min-height: 52px; padding: 0; margin: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: #fff; color: var(--ui-ink, #14213d); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); cursor: pointer; }
+  html:not(#a) body .ra-fullscreen .ra-alert, html:not(#a) body .ra-fullscreen .ra-side-btn.ui-button-primary { background: var(--brand-red, #e11d2e); color: #fff; }
+  html:not(#a) body .ra-fullscreen .ra-mic.is-live { background: var(--brand-red, #e11d2e); color: #fff; }
+  html:not(#a) body .ra-fullscreen .ra-side-icon, html:not(#a) body .ra-fullscreen .ra-speak-icon { display: block; }
+  html:not(#a) body .ra-fullscreen .ra-side-label, html:not(#a) body .ra-fullscreen .ra-speak-text, html:not(#a) body .ra-fullscreen .ra-speak .ui-switch-track { display: none; }
+  html:not(#a) body .ra-fullscreen .ra-speak input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  html:not(#a) body .ra-fullscreen .ra-speak:has(input:checked) { background: var(--brand-red, #e11d2e); color: #fff; }
+  /* the alert types opened from the red button: a column of labelled buttons */
+  html:not(#a) body .ra-fullscreen .ra-rail.is-open { width: min(220px, 62vw); align-items: stretch; }
+  html:not(#a) body .ra-fullscreen .ra-rail.is-open .ra-type { width: 100%; min-height: 56px; padding: 6px 12px; border-radius: 16px; display: flex; flex-direction: row; align-items: center; gap: 10px; justify-content: flex-start; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); font-size: 15px; line-height: 1.15; white-space: normal; text-align: left; }
+  html:not(#a) body .ra-fullscreen .ra-rail.is-open .ra-close { align-self: flex-end; }
+  /* Follow me: a round icon over the map, like the locate button of a map app */
+  html:not(#a) body .ra-fullscreen .tm-follow { left: auto; right: 10px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 52px; min-height: 52px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 0; background: #fff; color: var(--ui-ink, #14213d); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+  html:not(#a) body .ra-fullscreen .tm-follow.is-on { background: var(--brand-red, #e11d2e); color: #fff; }
+  html:not(#a) body .ra-fullscreen .tm-follow-icon { display: block; }
+  html:not(#a) body .ra-fullscreen .tm-follow-label { display: none; }
+  html:not(#a) body .ra-fullscreen .leaflet-bottom.leaflet-left { margin-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Desktop rail: long Tamil / Sinhala labels wrap and the button grows, never clipped. */
+@media (min-width: 768px) {
+  html:not(#a) body .ra-rail .ra-side-btn { height: auto; min-height: 52px; padding: 8px 6px; overflow: visible; white-space: normal; overflow-wrap: anywhere; word-break: normal; line-height: 1.25; font-size: 12.5px; text-align: center; }
+  html:not(#a) body .ra-rail .ra-speak-text { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; font-size: 12.5px; text-align: center; }
+  html:not(#a) body .ra-rail.is-readonly { width: 120px; }
+  html:not(#a) body .ra-layout:has(.ra-rail:not(.is-open)) { grid-template-columns: minmax(0, 1fr) 120px; }
+}
+html:not(#a) body .tm-arrow { background: none; border: 0; }
+html:not(#a) body .tm-arrow svg { display: block; transition: transform .4s ease; }
+
+/* Payment mode (Online only / Cash only / Online and cash): three equal buttons, the same in English, Tamil and Sinhala. */
+html:not(#a) body .pay-mode-row { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+html:not(#a) body .pay-mode-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+html:not(#a) body .pay-mode { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+html:not(#a) body .pay-mode-btn { min-height: 44px; padding: 6px 10px; border: 1.5px solid var(--ui-line, #cfd6e4); border-radius: 12px; background: #fff; color: var(--ui-ink, #14213d); font: inherit; font-size: 14px; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; cursor: pointer; }
+html:not(#a) body .pay-mode-btn.is-on { border-color: var(--brand-red, #e11d2e); background: #fff1f1; color: var(--brand-red, #e11d2e); font-weight: 700; }
+html:not(#a) body .pay-mode-btn:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 767px) { html:not(#a) body .pay-mode { grid-template-columns: 1fr; } }
+html:not(#a) body .flow-page .pickup-code-display { display: flex; align-items: center; gap: 16px; text-align: left; padding: 4px 0; min-width: 0; }
+html:not(#a) body .flow-page .pickup-qr { flex: none; width: clamp(112px, 22vh, 168px); height: clamp(112px, 22vh, 168px); padding: 6px; box-sizing: border-box; border-radius: 12px; background: #fff; margin: 0; }
+html:not(#a) body .flow-page .pickup-qr svg { display: block; width: 100%; height: 100%; border: 0; border-radius: 0; }
+@media (max-width: 767px) { html:not(#a) body .flow-page .pickup-qr { width: 150px; height: 150px; } }
+
+/* Admin tab bars with many tabs wrap instead of hiding the last one (Call & chat). */
+html:not(#a) body .flow-tabs, html:not(#a) body .ui-tabs { flex-wrap: wrap; overflow: visible; height: auto; }

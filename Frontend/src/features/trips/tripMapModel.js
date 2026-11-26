@@ -41,3 +41,9 @@ export function routeText(data){
   const first=points[0].label,last=points[points.length-1].label
   return first&&last&&points.length>1?`${first} → ${last}`:(first||last||'')
 }
+/* Direction of travel in degrees from north between two [lat, lng] spots; null when they are less than ~5 m apart (GPS jitter). */
+export function bearing(from,to){
+  const rad=Math.PI/180,dy=(to[0]-from[0])*111320,dx=(to[1]-from[1])*111320*Math.cos(from[0]*rad)
+  if(Math.hypot(dx,dy)<5)return null
+  return (Math.atan2(dx,dy)/rad+360)%360
+}

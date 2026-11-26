@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.api.routers.api import current, require_role, touch
 from app.dependencies.database import get_db
+from app.services.payment_mode import mode_of
 from app.core.errors import ApiError
 from app.api.routers.review_api import locked_authority, query_values, pagination, page_result
 from app.models.review_models import Vehicle
@@ -33,7 +34,7 @@ def owned(db, request, user, vehicle_id, lock=False):
 def summary(row):
     return {'service_type_id': str(row.service_type_id), 'version': row.version, 'enabled': row.is_enabled,
             'currency': row.currency, 'rules': row.owner_terms.get('rate_rules', []), 'event_packages': row.owner_terms.get('event_packages', []),
-            'cash_accepted': (row.owner_terms.get('cash') or {}).get('accepted') is True}
+            'cash_accepted': (row.owner_terms.get('cash') or {}).get('accepted') is True, 'payment_mode': mode_of(row.owner_terms)}
 
 
 def catalogue_status(service):

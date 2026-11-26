@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.routers.api import current
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
+from app.models.ride_models import ride_requests_table
 from app.models.saved_place_models import SavedPlace
 from app.schemas.rate_schemas import Place
 
@@ -30,6 +31,28 @@ def out(request, row):
 def list_places(request: Request, user=Depends(current), db: Session = Depends(get_db)):
     rows = db.scalars(select(SavedPlace).where(SavedPlace.user_id == user.id).order_by(SavedPlace.created_at)).all()
     return {'items': [out(request, row) for row in rows], 'limit': MAX_PLACES}
+
+
+@router.get('/me/saved-places/suggestions')
+def suggest_places(request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """Places this Passenger recently went to by Book now and has not saved yet; one tap saves one (the Passenger names it)."""
+    saved = {row.place_label for row in db.scalars(select(SavedPlace).where(SavedPlace.user_id == user.id)).all()}
+    rows = db.execute(select(ride_requests_table.c.destination).where(ride_requests_table.c.passenger_user_id == user.id)
+                      .order_by(ride_requests_table.c.created_at.desc()).limit(60)).all()
+    items, seen = [], set()
+    for (destination,) in rows:
+        try:
+            label = str(destination['label'])[:200]
+            latitude, longitude = float(destination['latitude']), float(destination['longitude'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not label or label in saved or label in seen:
+            continue
+        seen.add(label)
+        items.append(request.app.state.rate_locations.signed(label, latitude, longitude))
+        if len(items) == 5:
+            break
+    return {'items': items}
 
 
 @router.post('/me/saved-places', status_code=201)

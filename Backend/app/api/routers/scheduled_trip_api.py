@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import Session, aliased
 from app.api.routers.api import current, require_role, touch
+from app.services.payment_mode import booking_payments
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models import User, UserRole
@@ -590,10 +591,12 @@ def departure_travellers(trip_id: UUID, user=Depends(current), db: Session = Dep
                       .where(ScheduledTripSeat.scheduled_trip_id == departure.id,
                              BookingTraveller.traveller_status.notin_(('CANCELLED', 'MOVED')))
                       .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()
+    owed = booking_payments(db, {traveller.booking_id for traveller, _, _ in rows})   # cash still to collect, per booking
     items = [{'traveller_id': str(traveller.id), 'booking_id': str(traveller.booking_id), 'full_name': traveller.full_name, 'seat_code': seat.seat_code,
               'status': traveller.traveller_status, 'is_primary': traveller.is_primary,
               'seat_status': inventory.seat_status, 'can_board': inventory.seat_status == 'BOOKED',
-              'gets_on': stops.get(traveller.boarding_stop_id), 'gets_off': stops.get(traveller.dropoff_stop_id)}
+              'gets_on': stops.get(traveller.boarding_stop_id), 'gets_off': stops.get(traveller.dropoff_stop_id),
+              **(owed.get(traveller.booking_id) or {})}
              for traveller, inventory, seat in rows]
     return {'scheduled_trip_id': str(departure.id), 'trip_id': str(run.id) if run else None,
             'departure_at': departure.departure_at.isoformat(), 'status': departure.status, 'items': items,

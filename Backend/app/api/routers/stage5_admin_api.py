@@ -9,13 +9,16 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from app.api.routers.review_api import admin
 from app.api.routers.settlement_api import row_out
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
-from app.models.hire_models import Booking, Trip
+from app.models.admin_note_models import AdminNote
+from app.models.hire_models import Booking, Route, ScheduledTrip, Trip
+from app.models import User
 from app.models.payment_models import Payment
 from app.models.review_models import Vehicle
 from app.services.refunds import REFUNDS
@@ -142,17 +145,97 @@ def vehicle_type_review(type_id: str, user=Depends(admin)):
     raise ApiError(409, 'FEATURE_NOT_AVAILABLE', 'Vehicle types are chosen on the vehicle form; there is nothing to review.')
 
 
+# --------------------------------------------------------------------------- Admin notes (Manual fulfilment page)
+# The Admin's notebook: write down an exceptional case so nothing important is forgotten. A note can be tied to one booking or one
+# departure by its reference, so the Admin always sees what it is about. Notes never change a booking, fare, payment or settlement.
+
+class NoteBody(BaseModel):
+    summary: str = Field(min_length=1, max_length=300)
+    details: str = Field(min_length=1, max_length=5000)
+    reference: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode='after')
+    def clean(self):
+        self.summary, self.details = self.summary.strip(), self.details.strip()
+        self.reference = (self.reference or '').strip().upper() or None
+        if not self.summary or not self.details:
+            raise ValueError('Write a summary and the details.')
+        return self
+
+
+def note_target(db, reference):
+    """(booking_id, scheduled_trip_id) for a booking or departure reference; nothing when no reference was given."""
+    if not reference:
+        return None, None
+    booking = db.scalar(select(Booking).where(Booking.booking_reference == reference))
+    if booking:
+        return booking.id, None
+    trip = db.scalar(select(ScheduledTrip).where(ScheduledTrip.departure_reference == reference))
+    if trip:
+        return None, trip.id
+    raise ApiError(404, 'REFERENCE_NOT_FOUND', 'No booking or departure has this reference. Check it and try again.')
+
+
+def note_out(db, note):
+    link = None
+    if note.booking_id:
+        booking = db.get(Booking, note.booking_id)
+        link = {'type': 'BOOKING', 'reference': booking.booking_reference, 'kind': booking.booking_type, 'status': booking.status,
+                'route': f'{booking.origin_text} \u2192 {booking.destination_text}' if booking.origin_text and booking.destination_text else None,
+                'when': booking.start_at.isoformat() if booking.start_at else None,
+                'amount': f'{booking.currency} {money(booking.total_amount)}' if booking.total_amount is not None else None}
+    elif note.scheduled_trip_id:
+        trip = db.get(ScheduledTrip, note.scheduled_trip_id)
+        route = db.get(Route, trip.route_id)
+        link = {'type': 'DEPARTURE', 'reference': trip.departure_reference, 'kind': 'TICKET_HIRE', 'status': trip.status,
+                'route': route.route_name if route else None, 'when': trip.departure_at.isoformat(), 'amount': None}
+    author = db.get(User, note.created_by)
+    editor = db.get(User, note.updated_by) if note.updated_by else None
+    name = lambda user: ((user.display_name or user.full_name or '').strip() if user else '')
+    return {'id': str(note.id), 'summary': note.summary, 'details': note.details, 'created_at': note.created_at.isoformat(),
+            'created_by_name': name(author), 'updated_at': note.updated_at.isoformat() if note.updated_at else None,
+            'updated_by_name': name(editor) if editor else None, 'reference': link['reference'] if link else None, 'link': link}
+
+
+def own_note(db, note_id):
+    note = db.get(AdminNote, note_id)
+    if not note or note.deleted_at is not None:
+        raise ApiError(404, 'NOTE_NOT_FOUND', 'This note no longer exists.')
+    return note
+
+
 @router.get('/admin/manual-fulfilment-events')
-def manual_events(user=Depends(admin), db: Session = Depends(get_db)):
-    """Protected-fulfilment escalations (PRD 54-58) are not built yet; nothing is recorded here so far."""
-    return {'items': [], 'message': 'Protected-fulfilment escalations will appear here once that module is built.'}
+def manual_events(request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    page, size = pages(request)
+    live = AdminNote.deleted_at.is_(None)
+    total = db.scalar(select(func.count()).select_from(AdminNote).where(live))
+    rows = db.scalars(select(AdminNote).where(live).order_by(AdminNote.created_at.desc(), AdminNote.id.desc())
+                      .offset((page - 1) * size).limit(size)).all()
+    return {'items': [note_out(db, row) for row in rows], 'page': page, 'page_size': size, 'total': total}
 
 
 @router.post('/admin/manual-fulfilment-events', status_code=201)
-def create_manual_event(user=Depends(admin)):
-    raise ApiError(409, 'FEATURE_NOT_AVAILABLE', 'Manual fulfilment events arrive with the protected-fulfilment module.')
+def create_manual_event(body: NoteBody, user=Depends(admin), db: Session = Depends(get_db)):
+    booking_id, trip_id = note_target(db, body.reference)
+    note = AdminNote(created_by=user.id, summary=body.summary, details=body.details, booking_id=booking_id, scheduled_trip_id=trip_id)
+    db.add(note)
+    db.commit()
+    return note_out(db, note)
 
 
-@router.patch('/admin/manual-fulfilment-events/{event_id}/close')
-def close_manual_event(event_id: str, user=Depends(admin)):
-    raise ApiError(409, 'FEATURE_NOT_AVAILABLE', 'Manual fulfilment events arrive with the protected-fulfilment module.')
+@router.patch('/admin/manual-fulfilment-events/{note_id}')
+def edit_manual_event(note_id: UUID, body: NoteBody, user=Depends(admin), db: Session = Depends(get_db)):
+    note = own_note(db, note_id)
+    note.booking_id, note.scheduled_trip_id = note_target(db, body.reference)
+    note.summary, note.details = body.summary, body.details
+    note.updated_at, note.updated_by = datetime.now(timezone.utc), user.id
+    db.commit()
+    return note_out(db, note)
+
+
+@router.delete('/admin/manual-fulfilment-events/{note_id}')
+def delete_manual_event(note_id: UUID, user=Depends(admin), db: Session = Depends(get_db)):
+    note = own_note(db, note_id)
+    note.deleted_at, note.deleted_by = datetime.now(timezone.utc), user.id
+    db.commit()
+    return {'deleted': True}

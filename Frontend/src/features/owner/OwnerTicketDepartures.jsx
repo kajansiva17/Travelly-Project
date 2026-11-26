@@ -6,7 +6,7 @@ import {Header,ErrorNotice,Icon} from '../../components/components'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import SeatMap from '../../components/SeatMap'
-import {Field,Compact,RateErrors} from './OwnerRates'
+import {Field,Compact,RateErrors,CashSwitch} from './OwnerRates'
 import {RoutesPanel} from './OwnerRoutes'
 import {FlowShell,useWizard,checkPane,usePaged,useRowCount} from '../booking/flow/FlowParts'
 import {Notice,Empty,DateTimeFields,Counter} from '../ticketing/TicketParts'
@@ -185,6 +185,16 @@ export default function OwnerTicketDepartures(){
   const [drivers,setDrivers]=useState(null),[assigning,setAssigning]=useState(null),[retiming,setRetiming]=useState(null),[managing,setManaging]=useState(null),[newStart,setNewStart]=useState(''),[repeatMode,setRepeatMode]=useState(false),[history,setHistory]=useState(false),[draftSeats,setDraftSeats]=useState({}),[driverPick,setPickDriver]=useState('later'),[form,setForm]=useState(emptyDeparture),[notice,setNotice]=useState(''),[me,setMe]=useState({id:'',driver:false})
   const location=useLocation(),[tab,setTab]=useState(()=>({routes:3,departure:1,departures:2})[new URLSearchParams(location.search).get('tab')]??0),[routeMode,setRouteMode]=useState('list'),[routeStep,setRouteStep]=useState(0),lw=useWizard(2),dw=useWizard(3),panes=[useRef(null),useRef(null),useRef(null)]
   const [tripLayout,setTripLayout]=useState({}),[vehicleLayout,setVehicleLayout]=useState({})
+  // How Passengers may pay for seats on this vehicle (online only, cash on the bus only, or both): saved at once, next to the price.
+  const [ticketService,setTicketService]=useState(''),[ticketTerms,setTicketTerms]=useState(null)
+  useEffect(()=>{api('/owners/me/ticket-service').then(r=>{if(r&&r.id)setTicketService(r.id)}).catch(()=>{})},[])
+  useEffect(()=>{
+    setTicketTerms(null)
+    if(!form.vehicle_id||!ticketService)return undefined
+    let alive=true
+    api(`/vehicles/${form.vehicle_id}/services`).then(r=>{if(alive)setTicketTerms((r.items||[]).find(x=>x.service_type_id===ticketService)||{service_type_id:ticketService,version:1,payment_mode:'ONLINE_ONLY'})}).catch(()=>{})
+    return ()=>{alive=false}
+  },[form.vehicle_id,ticketService])
   const loadDepartures=(h=history)=>api('/scheduled-trips?mine=true&limit=100'+(h?'&archived=true':'')).then(x=>setItems(x.items||[])).catch(setError)
   useEffect(()=>{
     api('/owners/me/vehicles').then(x=>setVehicles((x.items||[]).filter(v=>v.verification_status==='APPROVED'))).catch(setError).finally(()=>setVehiclesLoaded(true))
@@ -409,6 +419,7 @@ export default function OwnerTicketDepartures(){
           <Field label="Price for the whole trip, per seat (LKR)" help={routeWhole!=null?'This route has a price for each stop, so the whole-trip price comes from the route. Passengers who travel part of the way pay less.':'What each passenger pays for the whole trip.'}>
             <input required name="fare" min="0" step="0.01" type="number" value={form.fare_per_seat} disabled={routeWhole!=null} onChange={set('fare_per_seat')}/></Field>
         </div>
+        {form.vehicle_id&&ticketService&&<CashSwitch vehicle={form.vehicle_id} service={ticketService} saved={ticketTerms} onSaved={setTicketTerms} allowNew/>}
       </div>
       <div ref={panes[2]} className="tk-pane" hidden={dw.step!==2}>
         <div className="tk-driver-split">

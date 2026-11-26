@@ -11,12 +11,12 @@ import CancelRide from '../trips/CancelRide'
 import {useTripMap} from '../trips/tripHooks'
 import OdometerProofCard from '../odometer/OdometerProofCard'
 import {api,hasSession} from '../../services/api'
-import {Header,ErrorNotice} from '../../components/components'
+import {Header,ErrorNotice,Icon} from '../../components/components'
 import {FlowShell,StateCard,FlowBanner} from '../booking/flow/FlowParts'
 import {Button,Checkbox,Chip,FormField,Input,Select,InfoCallout} from '../../components/ui'
 import HirePayment from '../booking/HirePayment'
 import InfoTip from '../../components/ui/InfoTip'
-import {RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useScreenWakeLock,useSpeaker} from './RoadAlerts'
+import {AlertPopup,RoadAlertsPanel,useRoadAlerts,useRoadAlertNotifications,useScreenWakeLock,useSpeaker} from './RoadAlerts'
 import {codeLabel} from '../../i18n/codeLabels.js'
 
 /* Trip operations for the assigned operator: check the Passenger, start, share the position,
@@ -31,7 +31,8 @@ const canScan=()=>typeof window!=='undefined'&&'BarcodeDetector'in window&&navig
 
 export default function DriverTripPage(){
   const {tripId}=useParams(),workspace=useWorkspace(),navigate=useNavigate()
-  const [trip,setTrip]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false)
+  const [trip,setTrip]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(false),tripRef=useRef(null)
+  tripRef.current=trip
   const [notice,setNotice]=useState(''),[tab,setTab]=useState(null)
   // The readings come from the odometer step (typed number + live photo checked by the server); Start and Finish use exactly that number.
   const [startKm,setStartKm]=useState(null),[ready,setReady]=useState(false),[stepKey,setStepKey]=useState(0),[showProof,setShowProof]=useState(false)
@@ -41,7 +42,7 @@ export default function DriverTripPage(){
   const [scanning,setScanning]=useState(false),[pin,setPin]=useState('')
   const latest=useRef(null),video=useRef(null)
   // Road alerts (contract 03A): nearby alerts are polled while the trip runs, and spoken once when the Driver switched the speaker on.
-  const [alertsOpen,setAlertsOpen]=useState(false),speaker=useSpeaker(),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
+  const [alertsOpen,setAlertsOpen]=useState(false),[popup,setPopup]=useState(null),speaker=useSpeaker({onPopup:setPopup}),alerts=useRoadAlerts({tripId,running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.say})
   useRoadAlertNotifications({running:Boolean(trip&&RUNNING.includes(trip.status)),onNew:speaker.sayNotification})
   const wake=useScreenWakeLock(Boolean(trip&&RUNNING.includes(trip.status)))
   // The live trip map (contract 03O, C) is the main view while the trip runs: route, road line and position from GET /trips/{id}/map, the vehicle from our own location updates.
@@ -63,7 +64,15 @@ export default function DriverTripPage(){
       const body={expected_version:latest.current.version,latitude:latitude.toFixed(6),longitude:longitude.toFixed(6)}
       if(Number.isFinite(accuracy))body.accuracy_m=Math.min(accuracy,99999999).toFixed(2)
       if(Number.isFinite(speed)&&speed!==null)body.speed_kph=Math.min(speed*3.6,999999).toFixed(2)
-      try{setTrip(await api(`/trips/${tripId}/location`,{method:'PATCH',body:JSON.stringify(body)}));setSentAt(new Date().toISOString());setError(null);done(true)}
+      try{
+        let result
+        try{result=await api(`/trips/${tripId}/location`,{method:'PATCH',body:JSON.stringify(body)})}
+        catch(first){
+          if(first.code!=='VERSION_CONFLICT')throw first
+          const fresh=await api('/trips/'+tripId);latest.current=fresh   // the trip moved on meanwhile: send again with the latest version, never show the Driver a reload message
+          result=await api(`/trips/${tripId}/location`,{method:'PATCH',body:JSON.stringify({...body,expected_version:fresh.version})})
+        }
+        setTrip(result);setSentAt(new Date().toISOString());setError(null);done(true)}
       catch(e){setError(e);done(false)}
     },()=>{setError(new Error('Allow this page to use your location so the Passenger and the Owner can follow the trip.'));done(false)},
     {enableHighAccuracy:true,timeout:15000,maximumAge:0})
@@ -116,14 +125,15 @@ export default function DriverTripPage(){
 
   async function act(run,message){
     setBusy(true);setError(null)
-    try{await run();setNotice(message)}catch(e){setError(e);if(e.code==='PICKUP_NOT_VERIFIED'){setTab('verify');load()}if(['ODOMETER_PROOF_REQUIRED','CAPTURE_CODE_INVALID'].includes(e.code)){setStepKey(k=>k+1);setStartKm(null);setEndKm(null)}}finally{setBusy(false)}
+    try{try{await run()}catch(first){if(first.code!=='VERSION_CONFLICT')throw first;const fresh=await api('/trips/'+tripId);tripRef.current=fresh;setTrip(fresh);await run()}   // the trip moved on meanwhile (a shared position, an update): try once more with the latest, never ask the Driver to reload
+    setNotice(message)}catch(e){setError(e);if(e.code==='PICKUP_NOT_VERIFIED'){setTab('verify');load()}if(['ODOMETER_PROOF_REQUIRED','CAPTURE_CODE_INVALID'].includes(e.code)){setStepKey(k=>k+1);setStartKm(null);setEndKm(null)}}finally{setBusy(false)}
   }
   const start=event=>{event.preventDefault();act(async()=>{
-    await request(`/trips/${tripId}/start`,{expected_version:trip.version,start_odometer_km:startKm,checklist_confirmed:true})
+    await request(`/trips/${tripId}/start`,{expected_version:tripRef.current.version,start_odometer_km:startKm,checklist_confirmed:true})
     await load();setTab(null)
   },'Trip started. Share your position so the Passenger can follow.')}
   const report=event=>{event.preventDefault();act(async()=>{
-    const result=await request(`/trips/${tripId}/breakdown`,{expected_version:trip.version,kind,details})
+    const result=await request(`/trips/${tripId}/breakdown`,{expected_version:tripRef.current.version,kind,details})
     setTrip(result.trip);setDetails('')
   },'The Owner and the Passenger were told.')}
   // Book now return: the minutes the timer measured, and the minutes the Driver confirms at finish (only lower; with no timer, up to 180 added by hand).
@@ -131,7 +141,7 @@ export default function DriverTripPage(){
   const typed=waitMin===''?measured:Number(waitMin)
   const waitedNow=trip&&trip.wait?Math.max(0,Math.min(Number.isFinite(typed)?typed:0,trip.wait.started_at?measured:180)):0
   const finish=event=>{event.preventDefault();act(async()=>{
-    const result=await request(`/trips/${tripId}/complete`,{expected_version:trip.version,end_odometer_km:endKm,completion_notes:notes||null,waiting_minutes:trip.wait?waitedNow.toFixed(1):undefined})
+    const result=await request(`/trips/${tripId}/complete`,{expected_version:tripRef.current.version,end_odometer_km:endKm,completion_notes:notes||null,waiting_minutes:trip.wait?waitedNow.toFixed(1):undefined})
     setTrip(result.trip)
   },'Trip completed.')}
 
@@ -156,6 +166,7 @@ export default function DriverTripPage(){
     subtitle={t('Planned ')+clock(trip.scheduled_start_at)+t(' to ')+clock(trip.scheduled_end_at)+t(' Sri Lanka time')} tabs={tabs}>
     {notice&&<p role="status" style={NOTICE_STYLE}>{'✓ '}{notice}</p>}
     <ErrorNotice error={error}/>
+    {popup&&<AlertPopup key={popup.key} alert={popup} onClose={()=>setPopup(null)}/>}
 
     {open==='pickup'&&<div className="flow-fields tm-view">
       <FlowBanner tone="info" icon="pin" title={t('Go to the pickup')}>
@@ -198,7 +209,7 @@ export default function DriverTripPage(){
 
     {open==='map'&&<div className="flow-fields tm-view">
       {trip.wait&&<ReturnWaiting trip={trip} operator onChanged={load}/>}
-      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} keepScreenOn={wake.unavailable}
+      <RoadAlertsPanel trip={trip} alerts={alerts} speaker={speaker} disabled={!running} onOpenChange={setAlertsOpen} onMenu={workspace?.openSidebar} keepScreenOn={wake.unavailable}
         strip={!alertsOpen&&<div className="tm-strip">
           <Chip tone={trip.location?'success':'info'} icon="pin">{trip.location?t('Your position is shared'):t('Position not shared yet')}</Chip>
           <span className="ra-position">{trip.location
@@ -208,9 +219,9 @@ export default function DriverTripPage(){
             <Button variant="secondary" disabled={busy} onClick={()=>sendPosition()}>{t('Send my position now')}</Button></span></div>}
         renderMap={({selectedId,onSelect})=><TripMap data={map.data} position={trip.location||map.data?.position} alerts={alerts.items} selectedId={selectedId} onSelect={onSelect} follow={follow} onFollow={setFollow}/>}
         extras={<>
-          {!checked&&<button type="button" className="ui-button ui-button-secondary ra-side-btn" onClick={()=>setTab('verify')}>{t('Check the Passenger')}</button>}
-          <button type="button" className="ui-button ui-button-secondary ra-side-btn" onClick={()=>setTab('problem')}>{t('Problem on the road')}</button>
-          <button type="button" className="ui-button ui-button-primary ra-side-btn" onClick={()=>setTab('finish')}>{t('Finish trip')}</button></>}/>
+          {!checked&&<button type="button" className="ui-button ui-button-secondary ra-side-btn" aria-label={t('Check the Passenger')} title={t('Check the Passenger')} onClick={()=>setTab('verify')}><Icon name="user" size={24} className="ra-side-icon"/><span className="ra-side-label">{t('Check the Passenger')}</span></button>}
+          <button type="button" className="ui-button ui-button-secondary ra-side-btn" aria-label={t('Problem on the road')} title={t('Problem on the road')} onClick={()=>setTab('problem')}><Icon name="headset" size={24} className="ra-side-icon"/><span className="ra-side-label">{t('Problem on the road')}</span></button>
+          <button type="button" className="ui-button ui-button-primary ra-side-btn" aria-label={t('Finish trip')} title={t('Finish trip')} onClick={()=>setTab('finish')}><Icon name="check" size={24} className="ra-side-icon"/><span className="ra-side-label">{t('Finish trip')}</span></button></>}/>
       {map.error&&<p className="tk-line is-warn" role="status">{map.error}</p>}
     </div>}
 

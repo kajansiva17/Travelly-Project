@@ -22,7 +22,7 @@ function submitCheckout(checkout){
 
 // hire=true: the same Pay flow for a private-hire booking after the trip (amount comes from the payment summary).
 export default function TicketPayment({booking,refresh,returned,onChooseSeats,hire=false}){
-  const [busy,setBusy]=useState(false),[message,setMessage]=useState(null)
+  const [busy,setBusy]=useState(false),[message,setMessage]=useState(null),[cashOnly,setCashOnly]=useState(false)
   const [payer,setPayer]=useState({address:'',city:'',phone:'',email:''}),[payerFor,setPayerFor]=useState(null),[sandbox,setSandbox]=useState(null)
   const [unavailable,setUnavailable]=useState(false),[waitedOut,setWaitedOut]=useState(false),[cancelledSeen,setCancelledSeen]=useState(returned==='cancelled')
   const lastNetwork=useRef(null),startedAt=useRef(Date.now())
@@ -32,6 +32,9 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
   const pendingSandbox=latest&&latest.status==='PENDING'&&latest.provider_name==='SANDBOX'?latest.id:null
   const pendingPayHere=latest&&latest.status==='PENDING'&&latest.provider_name!=='SANDBOX'
   const sandboxId=sandbox?.id||pendingSandbox
+  // How the Owner lets Passengers pay (Ticket seats too): online only, cash on the bus only, or both.
+  const cashOk=!hire&&(Boolean(booking.cash_accepted)||cashOnly),onlineOk=hire||(booking.online_accepted!==false&&!cashOnly)
+  const cashWaiting=!hire&&booking.status==='CONFIRMED'&&booking.payment_status==='CASH_AWAITING_CONFIRMATION'
 
   // After PayHere sends the passenger back, only the server's own record counts: read it again until it settles.
   const watching=returned==='returned'&&!paid&&pendingPayHere&&!waitedOut
@@ -53,6 +56,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     if(code==='BOOKING_ALREADY_PAID'||code==='HOLD_NOT_ACTIVE'){refresh().catch(()=>{});return {tone:'info',text:code==='BOOKING_ALREADY_PAID'?t('This booking is already paid.'):t('This hold is no longer active.')}}
     if(code==='PAYMENT_NOT_DUE'){refresh().catch(()=>{});return {tone:'info',text:t('Payment opens when the trip is completed.')}}
     if(code==='PAYMENT_IN_PROGRESS'){if(provider==='SANDBOX'&&waitingPaymentId(error))setSandbox({id:waitingPaymentId(error)});refresh().catch(()=>{});return {tone:'info',text:hire?t('A payment for this booking is already waiting. Finish or wait for it first.'):t('A payment for this booking is already waiting. Finish it below.')}}
+    if(code==='ONLINE_NOT_ACCEPTED'){setCashOnly(true);refresh().catch(()=>{});return {tone:'warn',text:t('The Owner accepts cash only for this vehicle. Pay in cash.')}}
     if(code==='PAYMENT_PROVIDER_UNAVAILABLE'){return {tone:'warn',text:t('Online payment is not available right now.')}}
     if(code==='PAYMENT_NOT_AVAILABLE'){setUnavailable(true);return null}
     return {tone:'warn',text:error.message||t('The payment could not be started. Please try again.')}
@@ -74,6 +78,18 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     }catch(error){
       if(error.code==='PAYER_DETAILS_REQUIRED'){setPayerFor(payerFieldNames(error));setMessage({tone:'info',text:t('Needed by PayHere for this payment. Travelly does not keep it.')})}   // safety net
       else if(error.code==='IDEMPOTENCY_KEY_REUSED'){lastNetwork.current=null;setMessage({tone:'info',text:t('Please press Pay again.')})}
+      else setMessage(problem(error,signature,key))
+    }finally{setBusy(false)}
+  }
+  // Cash on the bus: the seats are booked now and the Driver takes the money when the Passenger gets on.
+  async function payCash(){
+    setBusy(true);setMessage(null);setCancelledSeen(false)
+    const body={amount:booking.total_amount,currency:booking.currency||'LKR'}
+    const signature='cash:'+JSON.stringify(body),key=keyFor(signature)
+    try{await api(`/bookings/${booking.id}/ticket-cash`,{method:'POST',body:JSON.stringify({...body,idempotency_key:key})});await refresh()}
+    catch(error){
+      if(error.code==='IDEMPOTENCY_KEY_REUSED'){lastNetwork.current=null;setMessage({tone:'info',text:t('Please press the button again.')})}
+      else if(error.code==='CASH_NOT_ACCEPTED'){refresh().catch(()=>{});setMessage({tone:'warn',text:t('The Owner does not take cash for this vehicle. Pay online instead.')})}
       else setMessage(problem(error,signature,key))
     }finally{setBusy(false)}
   }
@@ -101,13 +117,18 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
   const need=name=>asked.includes(name),missing=asked.some(name=>!payer[name].trim())
   const statusChip=booking.payment_status==='PAID'?<Chip tone="success">{t('Paid')}</Chip>:booking.payment_status==='PENDING'?<Chip tone="info" icon="clock">{t('Payment pending')}</Chip>:booking.payment_status==='FAILED'?<Chip tone="danger" icon="alert">{t('Payment failed')}</Chip>:null
 
+  if(cashWaiting)return <div className="tk-pay">
+    <p className="tk-line"><Chip tone="success">{t('Seats confirmed')}</Chip> <Chip tone="info" icon="clock">{t('Cash on the bus')}</Chip></p>
+    <p className="tk-line" role="status">{t('Pay {value0} in cash to the Driver when you get on.',{value0:`${booking.currency||'LKR'} ${booking.total_amount}`})}</p>
+    <TicketBoardingCode bookingId={booking.id}/>
+  </div>
   if(paid)return <div className="tk-pay">
     <p className="tk-line"><Chip tone="success">{hire?t('Paid'):t('Seats confirmed')}</Chip> {latest?.payment_reference&&<strong>{latest.payment_reference}</strong>}</p>
     {!hire&&booking.status!=='CANCELLED'&&<TicketBoardingCode bookingId={booking.id}/>}
   </div>
   if(booking.status==='CANCELLED')return <div className="tk-pay"><p className="tk-line is-warn" role="status">{t('Hold ended — choose seats again')}</p>{onChooseSeats&&<button type="button" className="ui-button ui-button-secondary" onClick={onChooseSeats}>{t('Choose seats again')}</button>}</div>
   if(unavailable)return <p className="tk-line">{t('Online payment is not available for this booking.')}</p>
-  if(!provider&&!pendingSandbox&&!pendingPayHere&&!sandbox)return <p className="tk-line" role="status">{t('Online payment is not available right now.')}</p>
+  if(!provider&&!cashOk&&!pendingSandbox&&!pendingPayHere&&!sandbox)return <p className="tk-line" role="status">{t('Online payment is not available right now.')}</p>
 
   return <div className="tk-pay">
     {message&&<p className={`tk-line${message.tone==='warn'?' is-warn':''}`} role="status">{message.text} {message.seats&&onChooseSeats&&<button type="button" className="tk-link" onClick={onChooseSeats}>{t('Choose seats again')}</button>}</p>}
@@ -122,7 +143,7 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
       </>}
     {pendingPayHere&&!sandboxId&&<p className="tk-line" role="status">{watching?t('Waiting for PayHere to confirm your payment...'):waitedOut?t('Still pending. We will update it as soon as PayHere confirms.'):t('Waiting for PayHere…')}</p>}
     {pendingPayHere&&!sandboxId&&waitedOut&&<div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>{setBusy(true);refresh().catch(()=>{}).finally(()=>setBusy(false))}}>{t('Refresh')}</button></div>}
-    {!sandboxId&&asked.length>0&&<div className="tk-grid" style={{'--cols':Math.min(asked.length,4)}}>
+    {!sandboxId&&onlineOk&&asked.length>0&&<div className="tk-grid" style={{'--cols':Math.min(asked.length,4)}}>
       {need('address')&&<Field label="Address"><input name="payer-address" maxLength="150" value={payer.address} onChange={e=>setPayer({...payer,address:e.target.value})} autoComplete="street-address"/></Field>}
       {need('city')&&<Field label="City"><input name="payer-city" maxLength="80" value={payer.city} onChange={e=>setPayer({...payer,city:e.target.value})} autoComplete="address-level2"/></Field>}
       {need('phone')&&<Field label="Phone"><input name="payer-phone" type="tel" placeholder="+94771234567" value={payer.phone} onChange={e=>setPayer({...payer,phone:e.target.value})}/></Field>}
@@ -130,10 +151,12 @@ export default function TicketPayment({booking,refresh,returned,onChooseSeats,hi
     </div>}
     {!sandboxId&&<div className="tk-bar">
       {statusChip}
-      {pendingPayHere
+      {!onlineOk?null:pendingPayHere
         ?<button type="button" className="ui-button ui-button-primary" disabled={busy||missing} onClick={continuePayHere}>{t('Continue to PayHere')}</button>
         :<button type="button" className="ui-button ui-button-primary" disabled={busy||!method||missing} onClick={pay}>{busy?t('Please wait…'):t('Pay {value0} {value1}',{value0:booking.currency||'LKR',value1:booking.total_amount})}</button>}
+      {cashOk&&!pendingPayHere&&<button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={payCash}>{busy?t('Please wait…'):t('Pay cash on the bus')}</button>}
       <InfoTip>{hire?t('Your booking is marked paid only after the payment is received.'):t('Your seats are confirmed only after the payment is received.')}</InfoTip>
+      {cashOk&&<InfoTip>{t('Pay cash on the bus: your seats are booked now and you pay the Driver when you get on. Cancel before then at no cost.')}</InfoTip>}
     </div>}
   </div>
 }

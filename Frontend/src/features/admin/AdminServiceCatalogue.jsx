@@ -17,7 +17,7 @@ const codeFor=scope=>scope+'_HIRE'
 const plain=value=>codeEnglish(value)
 
 export default function AdminServiceCatalogue(){
- const [items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(''),[form,setForm]=useState({scope:'AIRPORT',name:'Airport Hire',status:'DRAFT'}),[tab,setTab]=useState(0)
+ const [items,setItems]=useState(null),[error,setError]=useState(null),[busy,setBusy]=useState(''),[form,setForm]=useState({scope:'AIRPORT',name:'Airport Hire',status:'DRAFT'}),[tab,setTab]=useState(()=>new URLSearchParams(window.location.search).get('tab')==='attention'?4:0)
  const load=()=>api('/admin/service-types').then(result=>setItems(result.items||[])).catch(setError)
  useEffect(()=>{load()},[])
  async function create(event){event.preventDefault();setBusy('create');setError(null);try{const row=await api('/admin/service-types',{method:'POST',body:JSON.stringify({code:codeFor(form.scope),name:form.name,default_pricing_basis:'DISTANCE',is_active:false,pricing_scope:form.scope})});await api(`/admin/service-types/${row.id}/catalogue`,{method:'PATCH',body:JSON.stringify({expected_version:row.version,pricing_scope:form.scope,status:form.status})});await load();setTab(0)}catch(problem){setError(problem)}finally{setBusy('')}}

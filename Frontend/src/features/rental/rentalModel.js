@@ -29,16 +29,16 @@ export function checkRates(r){
 export const newExtraId=()=>globalThis.crypto?.randomUUID?globalThis.crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)})
 const two=value=>Number(value).toFixed(2)
 // The PUT body: money as strings with two decimals, free km as typed, max_days a whole number, extras with the ids kept.
-export function toRatesBody({version,enabled,rates,extras,cashAccepted}){
+export function toRatesBody({version,enabled,rates,extras,cashAccepted,paymentMode}){
   const notes=String(rates.notes||'').trim()
   return {expected_version:version,enabled:Boolean(enabled),day_rate:two(rates.day_rate),free_km_per_day:String(rates.free_km_per_day).trim(),extra_km_rate:two(rates.extra_km_rate),late_hour_rate:two(rates.late_hour_rate),
-    max_days:Number(rates.max_days),...(notes?{notes}:{}),...(typeof cashAccepted==='boolean'?{cash_accepted:cashAccepted}:{}),
+    max_days:Number(rates.max_days),...(notes?{notes}:{}),...(typeof cashAccepted==='boolean'?{cash_accepted:cashAccepted}:{}),...(paymentMode?{payment_mode:paymentMode}:{}),
     extras:extras.map(x=>({id:x.id,name:String(x.name).trim(),price:two(x.price),per:x.per}))}
 }
 // GET /vehicles/{id}/rental, or the first-time answer { version: 0, enabled: false }.
 export function readRates(data){
   const d=data||{}
-  return {version:d.version??0,enabled:(d.version??0)===0?true:Boolean(d.enabled),cashAccepted:Boolean(d.cash_accepted),
+  return {version:d.version??0,enabled:(d.version??0)===0?true:Boolean(d.enabled),cashAccepted:Boolean(d.cash_accepted),paymentMode:d.payment_mode||(d.cash_accepted?'ONLINE_AND_CASH':'ONLINE_ONLY'),
     rates:{day_rate:d.day_rate??'',free_km_per_day:d.free_km_per_day??'',extra_km_rate:d.extra_km_rate??'',late_hour_rate:d.late_hour_rate??'',max_days:d.max_days??7,notes:d.notes||''},
     extras:(d.extras||[]).map(x=>({id:x.id,name:x.name,price:String(x.price),per:x.per}))}
 }

@@ -13,6 +13,7 @@ import {NOTIFICATION_POLL_MS} from '../features/notifications/unread.js'
 import LiveLocationSender from '../features/live/LiveLocationSender'
 import IncomingRides from '../features/live/IncomingRides'
 import ChatHost from '../features/trips/ChatHost'
+import NotificationPanel from '../features/notifications/NotificationPanel'
 import {bellOpened} from '../features/trips/chatEvents'
 
 export default function WorkspaceShell({role:fixedRole}){
@@ -20,7 +21,7 @@ export default function WorkspaceShell({role:fixedRole}){
  const role=fixedRole||requestedWorkspace(location.search)
  const [access,setAccess]=useState({loading:true,user:null,roles:[],error:null})
  const [busy,setBusy]=useState(false),[logoutError,setLogoutError]=useState(null)
- const [unreadCount,setUnreadCount]=useState(0)
+ const [unreadCount,setUnreadCount]=useState(0),[panelOpen,setPanelOpen]=useState(false)
  const stamp=useRef(0),dialog=useRef(null),trigger=useRef(null),header=useRef(null),shell=useRef(null)
  const refreshAccess=useCallback(async({quiet=false}={})=>{
   const id=++stamp.current
@@ -71,8 +72,11 @@ export default function WorkspaceShell({role:fixedRole}){
   try{await logout();navigate('/login',{replace:true})}catch(error){setLogoutError(error)}finally{setBusy(false)}
  }
  function openSidebar(){dialog.current?.showModal()}
- function openNotifications(){
-  bellOpened()
+ function openNotifications(event){
+  // The bell opens the list of notifications right here (it no longer leaves the page); a waiting chat message opens its chat instead.
+  if(event&&event.preventDefault)event.preventDefault()
+  const chatOpened=bellOpened()
+  if(!chatOpened)setPanelOpen(open=>!open)
   setUnreadCount(0)
   api('/notifications/read-all',{method:'POST',body:'{}'}).catch(()=>api('/notifications/unread-count').then(result=>setUnreadCount(Number(result.unread_count)||0)).catch(()=>{}))
  }
@@ -87,6 +91,7 @@ export default function WorkspaceShell({role:fixedRole}){
    <LiveLocationSender enabled={Boolean(access.user)&&authorized&&(allowed.includes('OWNER')||allowed.includes('DRIVER'))}/>
    <IncomingRides role={role}/>
    <ChatHost enabled={Boolean(access.user)&&authorized}/>
+   {panelOpen&&<NotificationPanel role={role} seeAll={notificationPath} onClose={()=>setPanelOpen(false)}/>}
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>
      {authorized? <>

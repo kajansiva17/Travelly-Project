@@ -60,8 +60,8 @@ def cancel_ticket(booking_id: UUID, body: TicketCancellation, user=Depends(curre
         raise ApiError(404, 'BOOKING_NOT_FOUND', 'Booking not found.')
     departure = lock_trip(db, booking.current_scheduled_trip_id)
     booking = db.scalar(select(Booking).where(Booking.id == booking.id).with_for_update().execution_options(populate_existing=True))
-    if booking.status != 'CONFIRMED' or booking.payment_status_snapshot != 'PAID':
-        raise ApiError(409, 'TICKET_NOT_CANCELLABLE', 'Only a paid, confirmed ticket can be cancelled here. '
+    if booking.status != 'CONFIRMED' or booking.payment_status_snapshot not in ('PAID', 'CASH_AWAITING_CONFIRMATION'):
+        raise ApiError(409, 'TICKET_NOT_CANCELLABLE', 'Only a paid or cash-on-the-bus confirmed ticket can be cancelled here. '
                        'An unpaid seat hold is released from the hold page.')
     if body.expected_version is not None and booking.version != body.expected_version:
         raise ApiError(409, 'VERSION_CONFLICT', 'The booking changed. Refresh before cancelling.')
@@ -74,7 +74,19 @@ def cancel_ticket(booking_id: UUID, body: TicketCancellation, user=Depends(curre
     paid = db.scalar(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
                                            Payment.status == 'PAID').order_by(Payment.created_at.desc()).limit(1)
                      .with_for_update().execution_options(populate_existing=True))
-    percent, hours = refund_percent(departure.departure_at, moment)
+    # A seat to be paid in cash on the bus has taken no money: cancelling it is free and nothing is refunded (owner decision, 25 Nov 2026).
+    owed_cash = db.scalar(select(Payment).where(Payment.booking_id == booking.id, Payment.transaction_type == 'PAYMENT',
+                                                Payment.status == 'CASH_AWAITING_CONFIRMATION').limit(1)
+                          .with_for_update().execution_options(populate_existing=True))
+    if owed_cash:
+        owed_cash.status = 'FAILED'
+        owed_cash.failure_code = 'CANCELLED_BEFORE_CASH'
+        owed_cash.failure_message = 'The Passenger cancelled before paying the cash. No money was taken.'
+        touch(owed_cash); owed_cash.updated_by = user.id
+        booking.payment_status_snapshot = 'FAILED'
+    percent, hours = (0, None) if owed_cash else refund_percent(departure.departure_at, moment)
+    if owed_cash:
+        hours = round((departure.departure_at - moment).total_seconds() / 3600, 1)
     for seat in seats:
         seat.seat_status = 'AVAILABLE'
         seat.booked_booking_id = None

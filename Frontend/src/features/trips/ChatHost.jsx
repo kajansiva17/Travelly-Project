@@ -38,7 +38,7 @@ export default function ChatHost({ enabled }) {
   }, [enabled, openId])
 
   useEffect(() => {
-    const bell = () => { const first = unread[0]; if (first) setOpenId(first.booking_id || first.action_payload?.booking_id) }
+    const bell = event => { const first = unread[0]; if (first) { setOpenId(first.booking_id || first.action_payload?.booking_id); if (event.detail) event.detail.handled = true } }
     window.addEventListener(BELL_OPENED, bell)
     return () => window.removeEventListener(BELL_OPENED, bell)
   }, [unread])

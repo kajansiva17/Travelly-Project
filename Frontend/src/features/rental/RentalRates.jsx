@@ -3,7 +3,7 @@ import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
 import {Checkbox} from '../../components/ui'
-import {Field,RateErrors} from '../owner/OwnerRates'
+import {Field,RateErrors,PaymentModePicker} from '../owner/OwnerRates'
 import {Notice} from '../ticketing/TicketParts'
 import {money} from '../passenger/TicketCancel'
 import {fieldErrorMap,fieldErrorText} from '../../services/fieldErrors.js'
@@ -36,7 +36,7 @@ export default function RentalRates({vehicle,Footer}){
     if(sending.current)return
     sending.current=true;setBusy(true);setMessage({text:'',warn:false});setErrors({})
     try{
-      const result=await api(`/vehicles/${vehicle.id}/rental`,{method:'PUT',body:JSON.stringify(toRatesBody({version:state.version,enabled:state.enabled,rates:state.rates,extras:state.extras,cashAccepted:state.cashAccepted}))})
+      const result=await api(`/vehicles/${vehicle.id}/rental`,{method:'PUT',body:JSON.stringify(toRatesBody({version:state.version,enabled:state.enabled,rates:state.rates,extras:state.extras,paymentMode:state.paymentMode}))})
       setMessage({text:result?.message||t('Rental rates saved.'),warn:false});await load(true)
     }catch(error){
       setMessage({text:fieldErrorText(error),warn:true});setErrors(fieldErrorMap(error))
@@ -57,7 +57,8 @@ export default function RentalRates({vehicle,Footer}){
           <Chip tone="info" selected={view==='rates'} onClick={()=>setView('rates')}>{t('Rates')}</Chip>
           <Chip tone="info" selected={view==='extras'} onClick={()=>setView('extras')}>{t('Extras')} ({state.extras.length})</Chip>
           <Checkbox checked={state.enabled} onChange={e=>setState(c=>({...c,enabled:e.target.checked}))}>{t('Enabled')}</Checkbox>
-          <Checkbox checked={state.cashAccepted} onChange={e=>setState(c=>({...c,cashAccepted:e.target.checked}))}>{t('Cash accepted')}</Checkbox></div>
+          </div>
+        <div className="tk-cash-row pay-mode-row"><span className="pay-mode-title">{t('How can Passengers pay?')}</span><PaymentModePicker value={state.paymentMode||'ONLINE_ONLY'} onChange={mode=>setState(c=>({...c,paymentMode:mode}))}/></div>
         {view==='rates'
           ?<><div className="tk-grid" style={{'--cols':3}}>
               {rate('day_rate','Day rate (LKR)','Price for one booked day.')}

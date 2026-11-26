@@ -3,7 +3,7 @@ import re
 from decimal import Decimal
 from typing import Literal, Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from app.schemas import email_address
 
 
@@ -90,7 +90,27 @@ class CashReceipt(Strict):
 class PaymentOptions(Strict):
     """The Owner's choice per vehicle service: accept cash at the end of the trip or not (owner decision, 11 Nov 2026)."""
     expected_version: int = Field(ge=1)
-    cash_accepted: bool
+    cash_accepted: Optional[bool] = None   # older callers: true = online and cash
+    payment_mode: Optional[Literal['ONLINE_ONLY', 'CASH_ONLY', 'ONLINE_AND_CASH']] = None
+
+    @model_validator(mode='after')
+    def one_choice(self):
+        if self.cash_accepted is None and self.payment_mode is None:
+            raise ValueError('Choose how Passengers can pay.')
+        return self
+
+
+class TicketCash(Strict):
+    """A Passenger books held seats and will pay the Driver in cash on the bus."""
+    amount: str
+    currency: str = Field(pattern=r'^[A-Z]{3}$')
+    idempotency_key: str = Field(min_length=8, max_length=40, pattern=r'^[A-Za-z0-9_-]+$')
+
+    @field_validator('amount')
+    @classmethod
+    def money(cls, value):
+        amount_text(value, 'the amount')
+        return value
 
 
 class TicketCancellation(Strict):

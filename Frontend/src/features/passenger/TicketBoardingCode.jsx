@@ -40,7 +40,6 @@ export default function TicketBoardingCode({ bookingId }) {
         <p className="pickup-pin" aria-label={t('Six digit PIN')}>{data.pin}</p>
         <p className="flow-note">{t('Show the QR code to the Driver. If it will not scan, read out the six digits.')}</p>
         <p className="flow-note">{t('Boarded: {value0} of {value1}', { value0: data.boarded, value1: data.travellers })}</p>
-        <Button type="button" variant="secondary" onClick={show} disabled={busy}>{t('Refresh code')}</Button>
       </div>
     </div>}
   </section>

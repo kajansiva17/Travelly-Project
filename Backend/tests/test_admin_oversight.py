@@ -19,6 +19,4 @@ def test_every_admin_oversight_page_answers_from_prd_tables(client, held):
     assert types and all(t['vehicles'] >= 1 and t['status'] == 'ACTIVE' for t in types)
     manual = api(client, boss, 'get', '/admin/manual-fulfilment-events').json()
     assert manual['items'] == []
-    refused = api(client, boss, 'post', '/admin/manual-fulfilment-events', {'event_type': 'EXCEPTION_REVIEW', 'summary': 'x', 'details': 'y'})
-    assert refused.status_code == 409 and refused.json()['code'] == 'FEATURE_NOT_AVAILABLE'
     assert api(client, held['owner'], 'get', '/admin/workflow/payments').status_code == 403

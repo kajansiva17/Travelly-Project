@@ -27,6 +27,7 @@ from app.models.hire_models import Booking, Route, RouteStop, ScheduledTrip
 from app.models.payment_models import Payment
 from app.models import User
 from app.services.payment_providers import provider_for
+from app.services.payment_mode import cash_ok, online_ok, payment_mode
 from app.models.rate_models import ServiceType
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
 from app.schemas.ticket_booking_schemas import HoldRelease, TicketHoldRequest, TicketHoldSettings
@@ -121,6 +122,7 @@ def booking_out(db, booking):
     # Which provider the Pay button talks to and what it must ask first, so the screen never has to guess.
     provider = provider_for(db.get(ServiceType, booking.service_type_id))
     passenger = db.get(User, booking.passenger_user_id)
+    mode = payment_mode(db, booking.vehicle_id, booking.service_type_id)
     return {'id': str(booking.id), 'booking_reference': booking.booking_reference, 'booking_type': booking.booking_type,
             'status': booking.status, 'version': booking.version, 'scheduled_trip_id': str(booking.current_scheduled_trip_id),
             'hold_active': booking.status == 'REQUESTED' and bool(held),
@@ -130,6 +132,7 @@ def booking_out(db, booking):
             'payment_provider': provider.name if provider else None,
             'payment_method': provider.methods[0] if provider else None,
             'payer_details_required': provider.payer_required(passenger) if provider else [],
+            'payment_mode': mode, 'online_accepted': online_ok(mode), 'cash_accepted': cash_ok(mode),
             'latest_payment': None if latest is None else {
                 'id': str(latest.id), 'payment_reference': latest.payment_reference, 'status': latest.status,
                 'amount': format(latest.amount, '.2f'), 'currency': latest.currency, 'provider_name': latest.provider_name,

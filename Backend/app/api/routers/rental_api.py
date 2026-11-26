@@ -33,6 +33,7 @@ from app.api.routers.api import current, require_role, touch, allowed_account
 from app.api.routers.hire_api import commission_gate, odometer_rules, safe_vehicle
 from app.api.routers.rate_api import owned
 from app.api.routers.review_api import locked_authority
+from app.services.payment_mode import cash_ok, mode_of
 from app.core.errors import ApiError
 from app.dependencies.database import get_db
 from app.models import User
@@ -78,6 +79,7 @@ class RentalTerms(RateModel):
     max_days: int = Field(default=14, strict=True, ge=1, le=MAX_DAYS)
     notes: str | None = Field(default=None, max_length=500)   # deposit, fuel and damage rules, shown to the renter
     cash_accepted: StrictBool | None = None
+    payment_mode: Literal['ONLINE_ONLY', 'CASH_ONLY', 'ONLINE_AND_CASH'] | None = None   # wins over cash_accepted
     extras: list[Extra] = Field(default_factory=list, max_length=10)
 
     @field_validator('extras')
@@ -217,7 +219,7 @@ def rental_row(db, vehicle_id, service, *, enabled_only=True):
 def terms_out(row):
     terms = rental_terms(row)
     return {'service_type_id': str(row.service_type_id), 'version': row.version, 'enabled': row.is_enabled, 'currency': row.currency,
-            **(terms_view(terms) if terms else {}), 'cash_accepted': (row.owner_terms.get('cash') or {}).get('accepted') is True}
+            **(terms_view(terms) if terms else {}), 'cash_accepted': (row.owner_terms.get('cash') or {}).get('accepted') is True, 'payment_mode': mode_of(row.owner_terms)}
 
 
 def rental_booking(db, request, booking_id, user, expected, *, party):
@@ -263,8 +265,10 @@ def save_rental(vehicle_id: UUID, body: RentalTerms, request: Request, user=Depe
              'late_hour_rate': str(body.late_hour_rate), 'max_days': body.max_days, 'notes': body.notes,
              'extras': [{'id': str(e.id), 'name': e.name, 'price': str(e.price), 'per': e.per} for e in body.extras]}
     terms = {**(row.owner_terms if row else {}), 'schema_version': 2, 'service_scope': 'RENTAL', 'policy': 'TRAVELLY_RENTAL_2026_11_14', 'rental': saved}
-    if body.cash_accepted is not None:
-        terms['cash'] = {'accepted': body.cash_accepted, 'collection_stage': 'END'}
+    if body.payment_mode is not None or body.cash_accepted is not None:
+        mode = body.payment_mode or ('ONLINE_AND_CASH' if body.cash_accepted else 'ONLINE_ONLY')
+        terms['payment_mode'] = mode
+        terms['cash'] = {'accepted': cash_ok(mode), 'collection_stage': 'END'}
     if row:
         row.is_enabled, row.owner_terms, row.pricing_basis = body.enabled, terms, 'TIME'
         row.base_price = row.price_per_km = row.price_per_hour = None

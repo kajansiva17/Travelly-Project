@@ -28,7 +28,7 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 from app.api.routers.api import current, require_role, touch
 from app.api.routers.refund_api import approve
@@ -41,7 +41,8 @@ from app.models.hire_models import Booking, Notification, Route, ScheduledTrip, 
 from app.models.payment_models import Payment
 from app.models.review_models import Vehicle
 from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
-from app.schemas.scheduled_trip_schemas import DepartureCommit, DepartureProblem, ReplacementAnswer, ReplacementDecision, ReplacementVehicle
+from app.schemas.scheduled_trip_schemas import AdminReplacementAsk, DepartureCommit, DepartureProblem, ReplacementAnswer, ReplacementDecision, ReplacementVehicle
+from app.services.airports import km_between
 from app.services.availability import no_vehicle_conflict
 from app.services import payhere_refunds
 from app.services.refunds import queue_refund
@@ -115,10 +116,17 @@ def departure_out(db, departure):
                         'seat_capacity': vehicle.seat_capacity} if vehicle else None,
             'owner': {'public_user_reference': owner.public_user_reference, 'display_name': owner.display_name or owner.full_name} if owner else None,
             'booked_seats': booked, 'held_seats': held, 'paid_amount': format(paid or 0, '.2f'), 'currency': departure.currency,
-            'cancellation_reason': departure.cancellation_reason}
+            'cancellation_reason': departure.cancellation_reason, 'arrangement': departure.arrangement,
+            'pending_offers': pending_offers(db, departure)}
 
 
 # --------------------------------------------------------------------------- missed deadline -> Admin (D08)
+
+def pending_offers(db, departure):
+    """Replacement offers still waiting for another Owner's answer (Travelly may have asked several at once)."""
+    return db.scalar(select(func.count()).select_from(ScheduledTrip).where(ScheduledTrip.offer_for_scheduled_trip_id == departure.id,
+                                                                           ScheduledTrip.status == 'DRAFT')) or 0
+
 
 def escalate_missed_deadlines(db, moment=None):
     """Minimum-seats departures past their decision deadline without an Owner commitment move to DECISION_REQUIRED and
@@ -230,10 +238,16 @@ def report_problem(trip_id: UUID, body: DepartureProblem, request: Request, user
             reason = 'Owner withdrew a departure with no paid seats: ' + body.reason
         else:
             departure.status = 'DISRUPTED'
+            departure.arrangement = body.arrangement
             for admin_id in admins(db):
-                notify(db, admin_id, departure, 'ADMIN_ACTION', 'Owner cannot run a departure',
-                       f'The Owner reported that {departure.departure_reference} cannot run: {body.reason} '
-                       f'{len(confirmed)} paid booking(s) must be fulfilled or refunded.', action=True)
+                if body.arrangement == 'TRAVELLY':
+                    notify(db, admin_id, departure, 'ADMIN_ACTION', 'Owner cannot run a departure',
+                           f'The Owner reported that {departure.departure_reference} cannot run: {body.reason} '
+                           f'{len(confirmed)} paid booking(s) must be fulfilled or refunded. The Owner asks Travelly to arrange the journey.', action=True)
+                else:
+                    notify(db, admin_id, departure, 'ADMIN_ACTION', 'Owner cannot run a departure',
+                           f'The Owner reported that {departure.departure_reference} cannot run: {body.reason} '
+                           f'{len(confirmed)} paid booking(s) are affected. The Owner is arranging another vehicle, so no action is needed yet.')
             for booking in confirmed:
                 notify(db, booking.passenger_user_id, departure, 'REPLACEMENT', 'We are arranging your journey',
                        f'The operator of departure {departure.departure_reference} reported a problem. Your booking stays '
@@ -244,13 +258,41 @@ def report_problem(trip_id: UUID, body: DepartureProblem, request: Request, user
     return departure_out(db, departure)
 
 
+@router.post('/scheduled-trips/{trip_id}/ask-travelly')
+def ask_travelly(trip_id: UUID, body: DepartureCommit, request: Request, user=Depends(current), db: Session = Depends(get_db)):
+    """The Owner reported a problem and was arranging another vehicle, but now asks Travelly to arrange the journey."""
+    require_role(db, user, 'OWNER')
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id, require_admin=False)
+        departure = owned(db, trip_id, user)
+        if departure.version != body.expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Refresh before asking Travelly.')
+        if departure.status != 'DISRUPTED':
+            raise ApiError(409, 'DEPARTURE_NOT_DISRUPTED', 'Only a departure whose problem was reported can be handed to Travelly.')
+        if departure.replacement_status == 'AWAITING_OTHER_OWNER':
+            raise ApiError(409, 'REPLACEMENT_PENDING', 'Another Owner is still answering a replacement request for this departure.')
+        if departure.departure_at <= now():
+            raise ApiError(409, 'DEPARTURE_STARTED', 'The departure time has passed.')
+        before_version, before_status = departure.version, departure.status
+        departure.arrangement = 'TRAVELLY'
+        touch(departure); departure.updated_by = user.id
+        for admin_id in admins(db):
+            notify(db, admin_id, departure, 'ADMIN_ACTION', 'Owner asks Travelly to arrange a departure',
+                   f'The Owner of {departure.departure_reference} could not arrange another vehicle and asks Travelly to arrange the journey.', action=True)
+        audit(request, db, user, departure, before_version, before_status, 'Owner asked Travelly to arrange the journey.')
+    return departure_out(db, departure)
+
+
 # --------------------------------------------------------------------------- Admin
 
 @router.get('/admin/departures/attention')
 def attention(user=Depends(admin), db: Session = Depends(get_db)):
     if escalate_missed_deadlines(db):
         db.commit()
-    rows = db.scalars(select(ScheduledTrip).where(ScheduledTrip.status.in_(ATTENTION)).order_by(ScheduledTrip.departure_at)).all()
+    # A disrupted departure is the Admin's job only when the Owner asked Travelly to arrange it (older ones have no choice recorded).
+    waiting = or_(ScheduledTrip.status == 'DECISION_REQUIRED',
+                  and_(ScheduledTrip.status == 'DISRUPTED', or_(ScheduledTrip.arrangement.is_(None), ScheduledTrip.arrangement == 'TRAVELLY')))
+    rows = db.scalars(select(ScheduledTrip).where(waiting).order_by(ScheduledTrip.departure_at)).all()
     return {'items': [departure_out(db, row) for row in rows]}
 
 
@@ -310,12 +352,7 @@ def cannot_fulfil(trip_id: UUID, body: DepartureProblem, request: Request, user=
         if run:
             run.status = 'CANCELLED'
             touch(run); run.updated_by = user.id
-        if departure.replacement_status == 'AWAITING_OTHER_OWNER' and departure.replacement_scheduled_trip_id:
-            offer = lock_trip(db, departure.replacement_scheduled_trip_id)
-            if offer and offer.status == 'DRAFT':
-                offer.status = 'CANCELLED'
-                offer.cancellation_reason = 'Travelly closed the original departure as not fulfilled.'
-                touch(offer); offer.updated_by = user.id
+        withdraw_offers(db, departure, user.id, 'Travelly closed the original departure as not fulfilled.')
         departure.status = 'CANCELLED'
         departure.replacement_status = 'FAILED'
         departure.cancellation_reason = body.reason
@@ -366,6 +403,9 @@ def vehicle_fits(db, vehicle, departure, needed, *, other_owner):
             or (other_owner and not vehicle.is_published)):
         return ('REPLACEMENT_VEHICLE_UNAVAILABLE', 'Choose another approved, active vehicle.' if other_owner
                 else 'Choose another approved, active vehicle that you own.')
+    original = db.get(Vehicle, departure.current_vehicle_id)
+    if original is not None and original.air_conditioned is True and vehicle.air_conditioned is not True:
+        return ('REPLACEMENT_NOT_AIR_CONDITIONED', 'The booked vehicle is air-conditioned, so the replacement must be too.')
     seats = len(bookable_seats(db, vehicle.id))
     if seats < needed:
         return ('REPLACEMENT_TOO_SMALL', f'This vehicle has {seats} bookable seats; {needed} passengers are booked.')
@@ -517,7 +557,8 @@ def replacement_vehicle(trip_id: UUID, body: ReplacementVehicle, request: Reques
         touch(departure); departure.updated_by = user.id
         for admin_id in admins(db):
             notify(db, admin_id, departure, 'ADMIN_ACTION', 'Departure resolved with a replacement vehicle',
-                   f'The Owner replaced the vehicle of {departure.departure_reference}. Passengers can accept or reject the change.')
+                   f'The Owner replaced the vehicle of {departure.departure_reference}: {vehicle.public_vehicle_reference} instead of '
+                   f'{previous.public_vehicle_reference}, {moved} seat(s) moved. Passengers can accept or reject the change.')
         audit(request, db, user, departure, before_version, before_status,
               f'Owner replacement vehicle {vehicle.public_vehicle_reference} instead of {previous.public_vehicle_reference}.')
     return {**departure_out(db, departure), 'moved_seats': moved}
@@ -554,6 +595,102 @@ def replacement_options(trip_id: UUID, request: Request, user=Depends(current), 
     return {'scheduled_trip_id': str(departure.id), 'booked_seats': needed, 'items': items}
 
 
+def pickup_of(db, departure):
+    route = db.get(Route, departure.route_id)
+    if route is not None and route.origin_latitude is not None and route.origin_longitude is not None:
+        return float(route.origin_latitude), float(route.origin_longitude)
+    return None
+
+
+def vehicle_distance(vehicle, pickup):
+    """Kilometres from where the vehicle is now (or its base) to the pickup point; None when either is unknown."""
+    if pickup is None:
+        return None
+    if vehicle.current_latitude is not None:
+        where = (vehicle.current_latitude, vehicle.current_longitude)
+    elif vehicle.base_latitude is not None:
+        where = (vehicle.base_latitude, vehicle.base_longitude)
+    else:
+        return None
+    return km_between(where[0], where[1], pickup[0], pickup[1])
+
+
+def candidate_list(db, departure):
+    """Vehicles of other Owners that can take this departure: approved, active, published, enough seats, air-conditioned
+    when the booked vehicle is, and free at that time. Nearest to the pickup first; vehicles without a location last."""
+    needed = booked_count(db, departure)
+    pickup = pickup_of(db, departure)
+    asked = set(db.scalars(select(ScheduledTrip.current_vehicle_id).where(ScheduledTrip.offer_for_scheduled_trip_id == departure.id,
+                                                                          ScheduledTrip.status == 'DRAFT')).all())
+    found = []
+    query = select(Vehicle).where(Vehicle.verification_status == 'APPROVED', Vehicle.availability_status == 'ACTIVE',
+                                  Vehicle.is_published.is_(True), Vehicle.owner_user_id != departure.owner_user_id,
+                                  Vehicle.id != departure.current_vehicle_id).order_by(Vehicle.public_vehicle_reference).limit(300)
+    for vehicle in db.scalars(query):
+        if vehicle_fits(db, vehicle, departure, needed, other_owner=True):
+            continue
+        owner = db.get(User, vehicle.owner_user_id)
+        km = vehicle_distance(vehicle, pickup)
+        found.append({'vehicle_id': str(vehicle.id), **summary(vehicle), 'bookable_seats': len(bookable_seats(db, vehicle.id)),
+                      'owner_name': (owner.display_name or owner.full_name) if owner else None,
+                      'location_label': vehicle.base_location_label, 'distance_km': None if km is None else round(km, 1),
+                      'already_asked': vehicle.id in asked})
+    found.sort(key=lambda item: (item['distance_km'] is None, item['distance_km'] or 0, item['public_vehicle_reference']))
+    return found, needed
+
+
+def admin_departure(db, trip_id):
+    if not db.get(ScheduledTrip, trip_id):
+        raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+    return lock_trip(db, trip_id)
+
+
+@router.get('/admin/scheduled-trips/{trip_id}/replacement-candidates')
+def replacement_candidates(trip_id: UUID, user=Depends(admin), db: Session = Depends(get_db)):
+    departure = db.get(ScheduledTrip, trip_id)
+    if not departure:
+        raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
+    items, needed = candidate_list(db, departure)
+    return {'scheduled_trip_id': str(departure.id), 'booked_seats': needed, 'pending_offers': pending_offers(db, departure), 'items': items}
+
+
+@router.post('/admin/scheduled-trips/{trip_id}/replacement-requests', status_code=201)
+def ask_replacement_owners(trip_id: UUID, body: AdminReplacementAsk, request: Request, user=Depends(admin), db: Session = Depends(get_db)):
+    """Travelly asks the Owners of the chosen vehicles (or of every listed vehicle) to run the departure. All the
+    requests stay open; the first Owner to accept takes the passengers and the others are withdrawn."""
+    if body.send_to_all == bool(body.vehicle_ids):
+        raise ApiError(422, 'VEHICLES_REQUIRED', 'Choose vehicles, or ask every listed vehicle.')
+    with request.app.state.audit.coordinated():
+        locked_authority(db, request, user, user.id)
+        departure = admin_departure(db, trip_id)
+        if departure.version != body.expected_version:
+            raise ApiError(409, 'VERSION_CONFLICT', 'The departure changed. Reload before asking.')
+        waiting_for_admin = departure.status in ATTENTION and (departure.arrangement in (None, 'TRAVELLY') or departure.status == 'DECISION_REQUIRED')
+        run = journey(db, departure)
+        if not waiting_for_admin or (run and run.status != 'READY') or departure.departure_at <= now():
+            raise ApiError(409, 'REPLACEMENT_NOT_ALLOWED', 'A replacement can be asked for only a departure waiting for Travelly, before it starts.')
+        listed, needed = candidate_list(db, departure)
+        chosen = [item for item in listed if body.send_to_all or UUID(item['vehicle_id']) in set(body.vehicle_ids)]
+        chosen = [item for item in chosen if not item['already_asked']]
+        if not chosen:
+            raise ApiError(409, 'NO_VEHICLE_TO_ASK', 'None of these vehicles can be asked now. Reload the list.')
+        before_version, before_status = departure.version, departure.status
+        for item in chosen:
+            vehicle = db.scalar(select(Vehicle).where(Vehicle.id == UUID(item['vehicle_id'])).with_for_update())
+            require_fit(db, vehicle, departure, needed, other_owner=True)
+            offer = make_offer(db, departure, vehicle, user.id, needed)
+            notify(db, vehicle.owner_user_id, offer, 'REPLACEMENT', 'Can you run a departure?',
+                   f'Travelly asks you to run departure {departure.departure_reference} with {vehicle.public_vehicle_reference} '
+                   f'on {departure.departure_at.isoformat()} for {needed} booked passenger(s) at the same seat price. '
+                   'Other Owners may be asked too; the first to accept runs it. Accept or decline.', action=True)
+        departure.replacement_status = 'AWAITING_OTHER_OWNER'
+        touch(departure); departure.updated_by = user.id
+        notify(db, departure.owner_user_id, departure, 'REPLACEMENT', 'Travelly is finding a replacement vehicle',
+               f'Travelly asked {len(chosen)} vehicle Owner(s) to run {departure.departure_reference}. You will be told when one accepts.')
+        audit(request, db, user, departure, before_version, before_status, f'Travelly asked {len(chosen)} vehicle Owner(s) to run the departure.')
+    return {**departure_out(db, departure), 'asked': len(chosen)}
+
+
 def eligible_driver(db, owner_id, driver_id):
     from app.api.routers.scheduled_trip_api import has_role
     driver_id = driver_id or (owner_id if has_role(db, owner_id, 'DRIVER') else None)
@@ -576,17 +713,7 @@ def replacement_request(trip_id: UUID, body: ReplacementVehicle, request: Reques
         vehicle = db.scalar(select(Vehicle).where(Vehicle.id == body.vehicle_id).with_for_update())
         require_fit(db, vehicle, departure, booked_count(db, departure), other_owner=True)
         before_version, before_status = departure.version, departure.status
-        offer = ScheduledTrip(departure_reference='DEP-' + uuid4().hex[:16].upper(), owner_user_id=vehicle.owner_user_id,
-                              service_type_id=departure.service_type_id, route_id=departure.route_id,
-                              original_vehicle_id=vehicle.id, current_vehicle_id=vehicle.id,
-                              departure_at=departure.departure_at, estimated_arrival_at=departure.estimated_arrival_at,
-                              booking_cutoff_at=departure.booking_cutoff_at, fare_per_seat=departure.fare_per_seat,
-                              currency=departure.currency, fulfilment_policy='FIXED_GUARANTEED',
-                              accepted_time_window_minutes=departure.accepted_time_window_minutes,
-                              accepted_replacement_terms=copy.deepcopy(departure.accepted_replacement_terms or {}),
-                              status='DRAFT', replacement_status='NOT_REQUIRED', created_by=user.id, updated_by=user.id)
-        db.add(offer)
-        db.flush()
+        offer = make_offer(db, departure, vehicle, user.id, booked_count(db, departure))
         departure.replacement_scheduled_trip_id = offer.id
         departure.replacement_status = 'AWAITING_OTHER_OWNER'
         touch(departure); departure.updated_by = user.id
@@ -603,6 +730,43 @@ def replacement_request(trip_id: UUID, body: ReplacementVehicle, request: Reques
     return {**departure_out(db, departure), 'replacement_request': request_out(db, departure, offer)}
 
 
+def original_of(db, offer):
+    """The departure that an offer would replace (offers made before several could wait have it through the other link)."""
+    original_id = offer.offer_for_scheduled_trip_id or db.scalar(select(ScheduledTrip.id).where(ScheduledTrip.replacement_scheduled_trip_id == offer.id))
+    return original_id
+
+
+def withdraw_offers(db, departure, actor, reason, keep=None):
+    """Cancel every offer still waiting for an answer about this departure, telling each Owner who was asked."""
+    others = db.scalars(select(ScheduledTrip.id).where(ScheduledTrip.offer_for_scheduled_trip_id == departure.id,
+                                                       ScheduledTrip.status == 'DRAFT').order_by(ScheduledTrip.id)).all()
+    for offer_id in others:
+        if keep is not None and offer_id == keep:
+            continue
+        offer = lock_trip(db, offer_id)
+        if offer and offer.status == 'DRAFT':
+            offer.status = 'CANCELLED'
+            offer.cancellation_reason = reason
+            touch(offer); offer.updated_by = actor
+            notify(db, offer.owner_user_id, offer, 'REPLACEMENT', 'Replacement request closed', reason)
+
+
+def make_offer(db, departure, vehicle, actor, needed):
+    offer = ScheduledTrip(departure_reference='DEP-' + uuid4().hex[:16].upper(), owner_user_id=vehicle.owner_user_id,
+                          service_type_id=departure.service_type_id, route_id=departure.route_id,
+                          original_vehicle_id=vehicle.id, current_vehicle_id=vehicle.id,
+                          departure_at=departure.departure_at, estimated_arrival_at=departure.estimated_arrival_at,
+                          booking_cutoff_at=departure.booking_cutoff_at, fare_per_seat=departure.fare_per_seat,
+                          currency=departure.currency, fulfilment_policy='FIXED_GUARANTEED',
+                          accepted_time_window_minutes=departure.accepted_time_window_minutes,
+                          accepted_replacement_terms=copy.deepcopy(departure.accepted_replacement_terms or {}),
+                          status='DRAFT', replacement_status='NOT_REQUIRED', offer_for_scheduled_trip_id=departure.id,
+                          created_by=actor, updated_by=actor)
+    db.add(offer)
+    db.flush()
+    return offer
+
+
 def request_out(db, departure, offer):
     vehicle = db.get(Vehicle, offer.current_vehicle_id)
     route = db.get(Route, departure.route_id)
@@ -614,20 +778,17 @@ def request_out(db, departure, offer):
             'route': {'route_name': route.route_name, 'origin_name': route.origin_name, 'destination_name': route.destination_name} if route else None,
             'departure_at': offer.departure_at.isoformat(), 'estimated_arrival_at': offer.estimated_arrival_at.isoformat(),
             'fare_per_seat': format(offer.fare_per_seat, '.2f'), 'currency': offer.currency, 'booked_seats': booked_count(db, departure),
-            'answer_pending': departure.replacement_status == 'AWAITING_OTHER_OWNER' and departure.replacement_scheduled_trip_id == offer.id}
+            'answer_pending': departure.replacement_status == 'AWAITING_OTHER_OWNER' and offer.status == 'DRAFT'}
 
 
 @router.get('/owners/me/replacement-requests')
 def my_replacement_requests(user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'OWNER')
+    waiting = select(ScheduledTrip.id).where(ScheduledTrip.replacement_status == 'AWAITING_OTHER_OWNER')
     offers = db.scalars(select(ScheduledTrip).where(ScheduledTrip.owner_user_id == user.id, ScheduledTrip.status == 'DRAFT',
-                                                    ScheduledTrip.id.in_(select(ScheduledTrip.replacement_scheduled_trip_id).where(
-                                                        ScheduledTrip.replacement_status == 'AWAITING_OTHER_OWNER')))
+                                                    ScheduledTrip.offer_for_scheduled_trip_id.in_(waiting))
                         .order_by(ScheduledTrip.departure_at)).all()
-    items = []
-    for offer in offers:
-        original = db.scalar(select(ScheduledTrip).where(ScheduledTrip.replacement_scheduled_trip_id == offer.id))
-        items.append(request_out(db, original, offer))
+    items = [request_out(db, db.get(ScheduledTrip, offer.offer_for_scheduled_trip_id), offer) for offer in offers]
     return {'items': items}
 
 
@@ -641,14 +802,14 @@ def replacement_answer(trip_id: UUID, body: ReplacementAnswer, request: Request,
         offer_row = db.get(ScheduledTrip, trip_id)
         if not offer_row or offer_row.owner_user_id != user.id:
             raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
-        original_id = db.scalar(select(ScheduledTrip.id).where(ScheduledTrip.replacement_scheduled_trip_id == offer_row.id))
+        original_id = original_of(db, offer_row)
         if original_id is None:
             raise ApiError(404, 'DEPARTURE_NOT_FOUND', 'Departure not found.')
         original = lock_trip(db, original_id)       # lock order: the original departure, then the offer
         offer = lock_trip(db, offer_row.id)
         if offer.version != body.expected_version:
             raise ApiError(409, 'VERSION_CONFLICT', 'The request changed. Refresh before answering.')
-        if original.replacement_status != 'AWAITING_OTHER_OWNER' or original.replacement_scheduled_trip_id != offer.id or offer.status != 'DRAFT':
+        if original.replacement_status != 'AWAITING_OTHER_OWNER' or original_of(db, offer) != original.id or offer.status != 'DRAFT':
             raise ApiError(409, 'NO_REPLACEMENT_REQUEST', 'This replacement request is no longer waiting for an answer.')
         before_version, before_status = original.version, original.status
         moment = now()
@@ -656,12 +817,18 @@ def replacement_answer(trip_id: UUID, body: ReplacementAnswer, request: Request,
             offer.status = 'CANCELLED'
             offer.cancellation_reason = body.reason or 'Declined by the Owner.'
             touch(offer); offer.updated_by = user.id
-            original.replacement_status = 'REJECTED'
+            others_waiting = db.scalar(select(func.count()).select_from(ScheduledTrip).where(
+                ScheduledTrip.offer_for_scheduled_trip_id == original.id, ScheduledTrip.status == 'DRAFT', ScheduledTrip.id != offer.id)) or 0
+            if not others_waiting:
+                original.replacement_status = 'REJECTED'
             touch(original); original.updated_by = user.id
             text = f'The other Owner declined to run {original.departure_reference}.' + (f' Reason: {body.reason}' if body.reason else '')
-            notify(db, original.owner_user_id, original, 'REPLACEMENT', 'Replacement declined', text, action=True)
+            if others_waiting:
+                text += f' {others_waiting} other request(s) are still waiting for an answer.'
+            else:
+                notify(db, original.owner_user_id, original, 'REPLACEMENT', 'Replacement declined', text, action=True)
             for admin_id in admins(db):
-                notify(db, admin_id, original, 'ADMIN_ACTION', 'Replacement declined', text, action=True)
+                notify(db, admin_id, original, 'ADMIN_ACTION', 'Replacement declined', text, action=not others_waiting)
             audit(request, db, user, original, before_version, before_status, 'Other Owner declined the replacement request.')
             return {**departure_out(db, original), 'replacement_request': request_out(db, original, offer)}
         run = journey(db, original)
@@ -687,6 +854,8 @@ def replacement_answer(trip_id: UUID, body: ReplacementAnswer, request: Request,
         touch(offer); offer.updated_by = user.id
         original.status = 'CANCELLED'
         original.replacement_status = 'APPROVED'
+        original.replacement_scheduled_trip_id = offer.id
+        withdraw_offers(db, original, user.id, f'Another Owner accepted first, so {original.departure_reference} no longer needs a replacement.', keep=offer.id)
         original.final_operating_owner_user_id = user.id
         original.cancellation_reason = f'Replaced by departure {offer.departure_reference} run by another Owner.'
         touch(original); original.updated_by = user.id

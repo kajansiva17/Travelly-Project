@@ -107,6 +107,15 @@ class DepartureCommit(Strict):
 class DepartureProblem(Strict):
     expected_version: int = Field(ge=1)
     reason: str = Field(min_length=5, max_length=1000)
+    # Who finds the passengers another journey: the Owner (a replacement vehicle of their own choice) or Travelly (the Admin).
+    arrangement: Literal['OWNER', 'TRAVELLY'] = 'TRAVELLY'
+
+
+class AdminReplacementAsk(Strict):
+    """Travelly asks chosen vehicles' Owners (or every listed vehicle's Owner) to run a departure; the first to accept wins."""
+    expected_version: int = Field(ge=1)
+    vehicle_ids: List[UUID] = Field(default_factory=list, max_length=100)
+    send_to_all: bool = False
 
 
 class ReplacementVehicle(Strict):

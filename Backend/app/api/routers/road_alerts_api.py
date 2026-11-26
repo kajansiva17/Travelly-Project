@@ -27,6 +27,7 @@ Rules:
 - Nearby people (15 km from their active trip's live position) get a ROAD_ALERT notification, with `speak` text in
   their language for the speaker.
 """
+import json
 import math
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -78,14 +79,22 @@ NAMES = {
 }
 # Spoken answers to the confirm prompt (owner decision 12 Nov 2026: listen 10 seconds; no answer = not sent).
 YES_WORDS = {'en': ['yes', 'yeah', 'yep', 'send', 'ok', 'okay', 'sure'],
-             'ta': ['ஆம்', 'ஆமா', 'ஆமாம்', 'சரி', 'அனுப்பு', 'ஓம்', 'aam', 'aama', 'aamaa', 'ama', 'sari', 'om', 'anuppu', 'yes', 'ok'],
-             'si': ['ඔව්', 'ඔව', 'හරි', 'යවන්න', 'ow', 'owu', 'hari', 'yes', 'ok']}
+             'ta': ['ஆம்', 'ஆமா', 'ஆமாம்', 'சரி', 'அனுப்பு', 'ஓம்', 'ஓகே', 'aam', 'aama', 'aamaa', 'ama', 'sari', 'seri', 'om', 'anuppu', 'anupu', 'yes', 'ok', 'okay'],
+             'si': ['ඔව්', 'ඔව', 'හරි', 'යවන්න', 'ඔක්කෝම', 'ow', 'owu', 'hari', 'yavanna', 'yes', 'ok', 'okay']}
 NO_WORDS = {'en': ['no', 'nope', 'cancel', 'stop', 'dont', "don't"],
             'ta': ['இல்லை', 'இல்ல', 'வேண்டாம்', 'வேணாம்', 'illa', 'illai', 'venaam', 'vendaam', 'no', 'cancel'],
             'si': ['නැහැ', 'නෑ', 'එපා', 'epa', 'naha', 'nae', 'no', 'cancel']}
 SENT_TEXT = {'en': 'Alert sent.', 'ta': 'எச்சரிக்கை அனுப்பப்பட்டது.', 'si': 'අනතුරු ඇඟවීම යැව්වා.'}
 NOT_SENT_TEXT = {'en': 'Alert not sent.', 'ta': 'எச்சரிக்கை அனுப்பப்படவில்லை.', 'si': 'අනතුරු ඇඟවීම යැව්වේ නැහැ.'}
 CONFIRM_PROMPT = {'en': 'Send a {name} alert?', 'ta': '{name} எச்சரிக்கை அனுப்பவா?', 'si': '{name} අනතුරු ඇඟවීමක් යවන්නද?'}
+# What the app says back so the Driver hears what was understood, then the question (the answer is a yes or no word).
+CONFIRM_DETAIL = {'en': 'I understood: {text} Alert nearby vehicles? Say yes or no.',
+                  'ta': 'நான் புரிந்துகொண்டது: {text} அருகிலுள்ள வாகனங்களுக்கு எச்சரிக்கை அனுப்பவா? ஆம் அல்லது இல்லை என்று சொல்லுங்கள்.',
+                  'si': 'මට තේරුණේ: {text} අවට ඇති වාහනවලට අනතුරු ඇඟවීමක් යවන්නද? ඔව් හෝ නැහැ කියන්න.'}
+LANGS = ('en', 'ta', 'si')
+VOICE_SCHEMA = {'type': 'OBJECT', 'properties': {
+    'alert_type': {'type': 'STRING', 'enum': ['POLICE_PRESENCE', 'SPEED_CHECK', 'ACCIDENT', 'ROADBLOCK', 'ROAD_HAZARD', 'NONE']},
+    'say_en': {'type': 'STRING'}, 'say_ta': {'type': 'STRING'}, 'say_si': {'type': 'STRING'}}, 'required': ['alert_type', 'say_en', 'say_ta', 'say_si']}
 # Voice keywords per alert type (lower case; Tamil and Sinhala as spoken, plus common English loan words).
 KEYWORDS = {
     'SPEED_CHECK': ['speed', 'radar', 'speed check', 'speed gun', 'வேக', 'ஸ்பீட்', 'ரேடார்', 'වේග', 'ස්පීඩ්', 'රේඩාර්'],
@@ -104,6 +113,23 @@ def now():
 
 def lang(user):
     return user.preferred_language if user and user.preferred_language in ('en', 'ta', 'si') else 'en'
+
+
+def summaries(alert):
+    """The Driver's own words, understood and written once in every language (voice alerts); None for button alerts."""
+    try:
+        data = json.loads(alert.description or '')
+    except (TypeError, ValueError):
+        return None
+    if isinstance(data, dict) and all(isinstance(data.get(k), str) and data[k].strip() for k in LANGS):
+        return {k: data[k].strip()[:200] for k in LANGS}
+    return None
+
+
+def texts(alert):
+    """The warning in every language. A listener's language is chosen where it is heard, so it follows the page language."""
+    own = summaries(alert)
+    return {k: own[k] if own else MESSAGES[alert.alert_type][k] for k in LANGS}
 
 
 def km_between(lat1, lon1, lat2, lon2):
@@ -157,8 +183,9 @@ def nearby_trips(db, lat, lon, radius_km, moment):
             if km_between(lat, lon, t.current_latitude, t.current_longitude) <= radius_km]
 
 
-def alert_out(alert, viewer=None, distance=None, my_vote=None, can_vote=False):
+def alert_out(alert, viewer=None, distance=None, my_vote=None, can_vote=False, own_trip=False):
     language = lang(viewer)
+    everyone = texts(alert)
     return {'id': str(alert.id), 'alert_type': alert.alert_type, 'status': alert.status, 'version': alert.version,
             'latitude': format(alert.latitude, '.6f'), 'longitude': format(alert.longitude, '.6f'),
             'travel_direction_degrees': None if alert.travel_direction_degrees is None else format(alert.travel_direction_degrees, '.3f'),
@@ -166,27 +193,34 @@ def alert_out(alert, viewer=None, distance=None, my_vote=None, can_vote=False):
             'reported_at': alert.reported_at.isoformat(), 'expires_at': alert.expires_at.isoformat(),
             'verified_at': alert.verified_at.isoformat() if alert.verified_at else None,
             'distance_km': None if distance is None else round(distance, 1),
-            'language': language, 'name': NAMES[alert.alert_type][language], 'message': MESSAGES[alert.alert_type][language],
+            'language': language, 'name': NAMES[alert.alert_type][language], 'message': everyone[language],
+            'names': NAMES[alert.alert_type], 'messages': everyone,
+            'reported_by_me': bool(viewer and viewer.id == alert.reporter_user_id), 'own_trip': own_trip,
             'my_vote': my_vote, 'can_vote': can_vote}
 
 
 def notify_nearby(db, alert, reporter_id, settings, moment):
+    """Other vehicles near the alert. The reporter and everyone on the reporter's own trip (they were there) are never told."""
     sent = 0
-    seen = set()
+    own = db.get(Trip, alert.trip_id) if alert.trip_id else None
+    seen = (trip_people(db, own) if own else set()) | {reporter_id}
+    everyone = texts(alert)
     for trip, distance in nearby_trips(db, alert.latitude, alert.longitude, settings.road_alert_radius_km, moment):
+        if own and trip.id == own.id:
+            continue
         for person in trip_people(db, trip):
-            if person == reporter_id or person in seen:
+            if person in seen:
                 continue
             seen.add(person)
             user = db.get(User, person)
             language = lang(user)
             db.add(Notification(recipient_user_id=person, trip_id=trip.id, notification_type='ROAD_ALERT', channel='IN_APP',
-                                title=TITLES[language], body=f"{MESSAGES[alert.alert_type][language]} ({distance:.1f} km)",
+                                title=TITLES[language], body=f"{everyone[language]} ({distance:.1f} km)",
                                 action_required=False, status='QUEUED', expires_at=alert.expires_at,
                                 action_payload={'road_alert_id': str(alert.id), 'alert_type': alert.alert_type,
                                                 'latitude': format(alert.latitude, '.6f'), 'longitude': format(alert.longitude, '.6f'),
                                                 'distance_km': round(distance, 1), 'language': language,
-                                                'speak': MESSAGES[alert.alert_type][language]}))
+                                                'speak': everyone[language], 'speak_all': everyone, 'titles': TITLES}))
             sent += 1
     return sent
 
@@ -233,6 +267,29 @@ def record_vote(db, alert, user, vote, settings, moment, trip=None):
 
 # --------------------------------------------------------------------------- report
 
+def understand(request, user, transcript):
+    """An AI service reads what the Driver said (Tamil, Sinhala, English or a mix, with recognition slips) and writes one clear
+    warning sentence in every language. None when no service is available or it saw no road situation: the keywords decide then."""
+    from app.services import ai_assist
+    settings = get_settings()
+    if not ai_assist.ai_allowed(request.app.state.store, settings, user.id):
+        return None
+    prompt = ('A driver in Sri Lanka spoke this to report a road situation to other drivers. It may be Tamil, Sinhala, English or a mix, '
+              'also typed in English letters, and the speech recognition may have made mistakes: "' + ai_assist.masked(transcript) + '". '
+              'Choose alert_type: POLICE_PRESENCE, SPEED_CHECK, ACCIDENT, ROADBLOCK, ROAD_HAZARD, or NONE if it is not a road report. '
+              'Then write say_en, say_ta and say_si: one short, clear warning sentence for other drivers in English, Tamil and Sinhala. '
+              'Keep every useful detail the driver gave (what, where, direction, distance) and never invent anything.')
+    try:
+        data, _ = ai_assist.ask(settings, prompt, VOICE_SCHEMA)
+    except ValueError:
+        return None
+    kind = data.get('alert_type')
+    say = {k: str(data.get('say_' + k) or '').strip()[:200] for k in LANGS}
+    if kind not in KEYWORDS or not all(say.values()):
+        return None
+    return kind, say
+
+
 @router.post('/road-alerts/voice-classify')
 def voice_classify(body: VoiceText, request: Request, user=Depends(current), db: Session = Depends(get_db)):
     require_role(db, user, 'DRIVER')
@@ -240,15 +297,19 @@ def voice_classify(body: VoiceText, request: Request, user=Depends(current), db:
     text_ = ' ' + body.transcript.lower() + ' '
     scores = {kind: sum(len(word) for word in words if word in text_) for kind, words in KEYWORDS.items()}
     ranked = sorted(((score, kind) for kind, score in scores.items() if score), reverse=True)
-    if not ranked:
+    smart = understand(request, user, body.transcript)
+    if smart:
+        best, say = smart
+        confidence = 0.95
+    elif ranked:
+        best, say = ranked[0][1], dict(MESSAGES[ranked[0][1]])
+        confidence = round(ranked[0][0] / sum(score for score, _ in ranked), 4)
+    else:
         return {'alert_type': None, 'confidence': 0, 'candidates': [], 'confirm_prompt': None,
                 'message': 'Not understood. Choose the alert with a button.'}
-    total = sum(score for score, _ in ranked)
-    best = ranked[0][1]
-    confidence = round(ranked[0][0] / total, 4)
-    return {'alert_type': best, 'confidence': confidence,
-            'candidates': [{'alert_type': kind, 'name': NAMES[kind][body.language]} for _, kind in ranked],
-            'confirm_prompt': CONFIRM_PROMPT[body.language].format(name=NAMES[best][body.language]), 'message': None,
+    return {'alert_type': best, 'confidence': confidence, 'summary': say,
+            'candidates': [{'alert_type': kind, 'name': NAMES[kind][body.language]} for _, kind in ranked] if not smart and ranked else [{'alert_type': best, 'name': NAMES[best][body.language]}],
+            'confirm_prompt': CONFIRM_DETAIL[body.language].format(text=say[body.language]), 'message': None,
             'confirm_seconds': get_settings().road_alert_confirm_seconds, 'yes_words': YES_WORDS[body.language],
             'no_words': NO_WORDS[body.language], 'sent_text': SENT_TEXT[body.language], 'not_sent_text': NOT_SENT_TEXT[body.language]}
 
@@ -279,7 +340,8 @@ def report(body: RoadAlertIn, request: Request, user=Depends(current), db: Sessi
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=200, content={**alert_out(alert, user), 'merged': True, 'counted_as_confirmation': bool(counted)})
     alert = RoadAlert(reporter_user_id=user.id, trip_id=trip.id, alert_type=body.alert_type, latitude=body.latitude,
-                      longitude=body.longitude, travel_direction_degrees=body.travel_direction_degrees, description=body.description,
+                      longitude=body.longitude, travel_direction_degrees=body.travel_direction_degrees,
+                      description=json.dumps(body.summaries, ensure_ascii=False) if body.summaries and body.source_input == 'VOICE' else body.description,
                       source_input=body.source_input, status='UNCONFIRMED',
                       confidence_score=body.confidence_score if body.source_input == 'VOICE' else None,
                       reported_at=moment, expires_at=moment + timedelta(minutes=minutes_for(body.alert_type, settings)),
@@ -321,7 +383,7 @@ def nearby(request: Request, user=Depends(current), db: Session = Depends(get_db
             continue
         mine = votes.get(str(alert.id))
         can = trip.driver_user_id == user.id and alert.reporter_user_id != user.id and mine is None
-        items.append(alert_out(alert, user, distance, mine, can))
+        items.append(alert_out(alert, user, distance, mine, can, own_trip=alert.trip_id == trip.id))
     items.sort(key=lambda i: i['distance_km'])
     return {'trip_id': str(trip.id), 'radius_km': settings.road_alert_radius_km, 'items': items, 'note': None}
 

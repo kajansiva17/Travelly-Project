@@ -20,6 +20,8 @@ function explain(error){
   if(code==='VERSION_CONFLICT')return {reload:true,text:t('This departure changed while you were looking. The list was refreshed, so check it and try again.')}
   if(code==='DEPARTURE_NOT_ESCALATED')return {reload:true,text:t('This departure is no longer waiting for a Travelly decision. Someone may already have resolved it. The list was refreshed.')}
   if(code==='DEPARTURE_STARTED')return {reload:true,text:t('This departure has already started, so it can no longer be closed here.')}
+  if(code==='NO_VEHICLE_TO_ASK')return {reload:true,text:t('None of these vehicles can be asked now. The list was refreshed.')}
+  if(code==='REPLACEMENT_NOT_ALLOWED')return {reload:true,text:t('This departure can no longer be given to another vehicle. The list was refreshed.')}
   if(code==='DEPARTURE_NOT_FOUND'||error.status===404)return {reload:true,text:t('This departure no longer exists. The list was refreshed.')}
   if(code==='ADMIN_REQUIRED'||error.status===403)return {text:t('Only an Admin can do this.')}
   if(code==='VALIDATION_ERROR'&&fields.length)return {fields:fieldErrorMap(error),text:t('Please check the highlighted fields.')}
@@ -45,6 +47,40 @@ function CannotFulfil({item,onDone,onProblem}){
         ?<><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Please wait…'):t('Yes, refund everyone')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode('form')}>{t('Back')}</button></>
         :<><button type="button" className="ui-button ui-button-primary" disabled={!ok} onClick={()=>{setErrors({});setMessage('');setMode('confirm')}}>{t('Continue')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMode(null);setReason('');setErrors({})}}>{t('Not yet')}</button></>}</div></div>}
   </div></RateErrors.Provider>
+}
+
+function FindReplacement({item,onSent,onProblem}){
+  const [list,setList]=useState(null),[picked,setPicked]=useState([]),[mode,setMode]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+  useEffect(()=>{let live=true;api(`/admin/scheduled-trips/${item.id}/replacement-candidates`).then(r=>{if(live)setList(r.items||[])}).catch(error=>{if(live){setList([]);setMessage(explain(error).text)}});return ()=>{live=false}},[item.id,item.version])
+  const open=(list||[]).filter(v=>!v.already_asked)
+  const sending=mode==='selected'?open.filter(v=>picked.includes(v.vehicle_id)):open
+  const toggle=id=>setPicked(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id])
+  async function send(){
+    setBusy(true);setMessage('')
+    try{
+      const body=mode==='all'?{expected_version:item.version,send_to_all:true}:{expected_version:item.version,vehicle_ids:sending.map(v=>v.vehicle_id)}
+      const done=await api(`/admin/scheduled-trips/${item.id}/replacement-requests`,{method:'POST',body:JSON.stringify(body)})
+      onSent(t('{value0} request(s) sent. The first Owner to accept runs the departure.',{value0:done.asked}))
+    }catch(error){const out=explain(error);if(out.reload){setMode(null);onProblem(out.text);return}setMessage(out.text);setMode(null)}
+    finally{setBusy(false)}
+  }
+  return <div className="tk-pane">
+    <p className="tk-line"><strong>{t('Ask other Owners to run this departure')}</strong></p>
+    <p className="tk-line">{t('Vehicles that can take everyone who paid. The nearest to the pickup point come first.')}</p>
+    {item.pending_offers>0&&<p className="tk-line" role="status"><Chip tone="info" icon="clock">{t('Waiting')}</Chip> {t('{value0} request(s) are waiting for an answer. The first Owner to accept runs the departure.',{value0:item.pending_offers})}</p>}
+    {message&&<p className="tk-line is-warn" role="status">{message}</p>}
+    {list===null&&<p className="tk-line" role="status">{t('Loading vehicles…')}</p>}
+    {list&&list.length===0&&<p className="tk-line">{t('No other vehicle is free for this departure right now.')}</p>}
+    {list&&list.length>0&&<div style={{maxHeight:260,overflowY:'auto'}}>{list.map(v=><label key={v.vehicle_id} className="tk-line" style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+      <input type="checkbox" name={`candidate-${v.vehicle_id}`} disabled={v.already_asked||Boolean(mode)} checked={v.already_asked||picked.includes(v.vehicle_id)} onChange={()=>toggle(v.vehicle_id)}/>
+      <span><strong>{v.public_vehicle_reference}</strong> · {codeLabel(v.vehicle_type_code)} · {t('{value0} bookable seats',{value0:v.bookable_seats})}{v.air_conditioned?` · ${t('Air-conditioned')}`:''}<br/>
+        {v.owner_name||'—'} · {v.distance_km==null?t('Location unknown'):t('{value0} km from pickup',{value0:v.distance_km})}{v.already_asked&&<> <Chip tone="info">{t('Asked')}</Chip></>}</span></label>)}</div>}
+    {!mode&&open.length>0&&<div className="tk-bar">
+      <button type="button" className="ui-button ui-button-primary" disabled={!picked.some(id=>open.some(v=>v.vehicle_id===id))} onClick={()=>{setMessage('');setMode('selected')}}>{t('Ask selected ({value0})',{value0:open.filter(v=>picked.includes(v.vehicle_id)).length})}</button>
+      <button type="button" className="ui-button ui-button-secondary" onClick={()=>{setMessage('');setMode('all')}}>{t('Ask all listed ({value0})',{value0:open.length})}</button></div>}
+    {mode&&<div className="tk-hold"><p className="tk-line is-warn"><strong>{t('Ask {value0} Owner(s) to run {value1}?',{value0:sending.length,value1:item.departure_reference})}</strong> {t('The first Owner to accept takes the passengers. The other requests are withdrawn.')}</p>
+      <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={send}>{busy?t('Please wait…'):t('Yes, send the requests')}</button><button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={()=>setMode(null)}>{t('Back')}</button></div></div>}
+  </div>
 }
 
 export default function AdminAttention({base,onOpenRefunds}){
@@ -76,6 +112,7 @@ export default function AdminAttention({base,onOpenRefunds}){
             <p className="tk-line">{(result.refunds||[]).some(r=>r.status==='PROCESSING')?t('PayHere refunds wait in Processing. Complete them in the Refunds tab after refunding in the PayHere portal.'):t('Sandbox refunds are already paid. You can follow every refund in the Refunds tab.')}</p>
             <div className="tk-bar"><button type="button" className="ui-button ui-button-primary" onClick={onOpenRefunds}>{t('Open Refunds')}</button></div>
           </div>
-          :<CannotFulfil key={`${x.id}-${x.version}`} item={x} onDone={r=>done(x,r)} onProblem={problem}/>}
+          :<><FindReplacement key={`find-${x.id}-${x.version}`} item={x} onSent={problem} onProblem={problem}/>
+            <CannotFulfil key={`${x.id}-${x.version}`} item={x} onDone={r=>done(x,r)} onProblem={problem}/></>}
       </>}}/>
 }

@@ -141,28 +141,36 @@ async function nextStep() { if (wizard.step <= 5) { const { errors, valid } = ch
     <section className="rate-preview"><h2>{t("Owner example preview")}</h2><p>{t("Enter your own example quantities. This preview is not a search offer or a booking price; live pricing requires a trusted route and availability check.")}</p><form onSubmit={showPreview}><div className="rate-grid">{[['distance_km', 'Total route distance', 'km across the complete ordered itinerary.'], ['night_km', 'Planned night distance', 'km within 22:00–05:00 Sri Lanka time.'], ['waiting_minutes', 'Total planned waiting', 'Minutes before the free allowance is applied.'], ['service_hours', 'Service hours by 24-hour window', 'Use comma-separated hours for multi-day examples, for example 6, 4.'], ['overnight_stays', 'Agreed overnight stays', 'Count of overnight Driver stays.']].map(([name, label, help]) => name === 'service_hours' ? <Field key={name} label={label} help={help}><input required value={example[name]} onChange={e => setExample({ ...example, [name]: e.target.value })}/></Field> : <AmountField key={name} name={name} label={label} help={help} value={example[name]} onChange={value => setExample({ ...example, [name]: value })}/>)}</div>{rule.method === 'DAY_HIRE' && <div className="rate-waiting-periods"><h3>{t("Timing of waiting")}</h3><p>{t("For day-hire waiting, identify when it falls within the service window so overlapping overtime is charged only once.")}</p>{waitingPeriods.map((p, i) => <div className="rate-grid" key={i}>{[['day','Day number','1 is the first pickup-anchored window.'],['start_hour','Waiting starts after service hour','Hours from that window’s start.'],['minutes','Waiting duration','Minutes.']].map(([name,label,help]) => <AmountField key={name} label={label} help={help} value={p[name]} onChange={value => setWaitingPeriods(waitingPeriods.map((v,n) => n===i ? {...v,[name]:value} : v))}/>)}</div>)}<button type="button" className="inline-link" onClick={() => setWaitingPeriods([...waitingPeriods,{day:'',start_hour:'',minutes:''}])}>{t("Add waiting period")}</button></div>}<button className="button outline" disabled={busy}>{t("Calculate example")}</button></form>{preview && <div role="status"><p>{t(preview.message)}</p><table><caption>{codeLabel(preview.method)}{t(" · LKR")}</caption><thead><tr><th scope="col">{t("Charge")}</th><th scope="col">{t("Amount")}</th></tr></thead><tbody>{preview.breakdown.map(row => <tr key={row.code}><th scope="row">{t(row.label)}<small>{row.quantity} × {row.rate}</small></th><td>{row.kind === 'CREDIT' ? '-' : ''}{row.amount}</td></tr>)}</tbody><tfoot><tr><th scope="row">{t("Covered total")}</th><td>{t("LKR ")}{preview.total}</td></tr></tfoot></table>{preview.exclusions.map(text => <p key={text}>{t(text)}</p>)}</div>}</section>
   </RateErrors.Provider>
 }
-// One switch: accept cash at the end of the trip for this vehicle service (Payments contract 03P, D4).
-export function CashSwitch({vehicle,service,saved,onSaved}){
+// The three ways an Owner can let Passengers pay (owner decision, 25 Nov 2026): the same choice for every service, Ticket seats included.
+export const payModeOf=saved=>saved?.payment_mode||(saved?.cash_accepted?'ONLINE_AND_CASH':'ONLINE_ONLY')
+export function PaymentModePicker({value,onChange,disabled=false}){
+  const modes=[['ONLINE_ONLY',t('Online only')],['CASH_ONLY',t('Cash only')],['ONLINE_AND_CASH',t('Online and cash')]]
+  return <div className="pay-mode" role="radiogroup" aria-label={t('How can Passengers pay?')}>
+    {modes.map(([key,label])=><button key={key} type="button" role="radio" aria-checked={value===key} disabled={disabled} className={'pay-mode-btn'+(value===key?' is-on':'')} onClick={()=>onChange(key)}>{label}</button>)}
+  </div>
+}
+// Saves the choice for this vehicle service (Payments contract 03P, D4). A Ticket service has no saved row until the first choice: allowNew.
+export function CashSwitch({vehicle,service,saved,onSaved,allowNew=false}){
   const [state,setState]=useState('idle'),[message,setMessage]=useState('')
-  const ready=saved&&saved.version>0,on=Boolean(saved?.cash_accepted)
+  const ready=allowNew||Boolean(saved&&saved.version>0),mode=payModeOf(saved)
   async function change(next){
+    if(next===mode)return
     setState('saving');setMessage('')
     try{
-      const result=await api(`/vehicles/${vehicle}/services/${service}/payment-options`,{method:'PATCH',body:JSON.stringify({expected_version:saved.version,cash_accepted:next})})
-      onSaved({...saved,version:result.version,cash_accepted:result.cash_accepted});setState('saved')
+      const result=await api(`/vehicles/${vehicle}/services/${service}/payment-options`,{method:'PATCH',body:JSON.stringify({expected_version:saved?.version||1,payment_mode:next})})
+      onSaved({...(saved||{service_type_id:service}),version:result.version,payment_mode:result.payment_mode,cash_accepted:result.cash_accepted});setState('saved')
     }catch(error){
       setState('error');const code=error.code
       if(code==='VERSION_CONFLICT'){setMessage(t('These rates changed in another window. They were reloaded, so try the switch again.'));api(`/vehicles/${vehicle}/services`).then(r=>{const row=(r.items||[]).find(x=>x.service_type_id===service);if(row)onSaved(row)}).catch(()=>{})}
       else if(code==='VEHICLE_SERVICE_NOT_FOUND')setMessage(t('Save this service and its prices first.'))
       else if(code==='VEHICLE_NOT_FOUND'||error.status===404)setMessage(t('We could not find this vehicle. Go back and choose it again.'))
-      else if(code==='CASH_NOT_ALLOWED')setMessage(t('Cash is not available for ticket services. They are paid online only.'))
       else setMessage(error.message||t('The change could not be saved. Please try again.'))
     }
   }
-  return <div className="tk-cash-row"><label className="ui-switch"><input type="checkbox" role="switch" checked={on} disabled={!ready||state==='saving'} onChange={e=>change(e.target.checked)}/><span className="ui-switch-track" aria-hidden="true"/><span>{t('Accept cash payments')}</span></label>
-    <InfoTip>{t('The Passenger can pay you in cash at the end of the trip. You and the Passenger both confirm in the app.')}</InfoTip>
+  return <div className="tk-cash-row pay-mode-row"><span className="pay-mode-title">{t('How can Passengers pay?')} <InfoTip>{t('Online: paid in the app. Cash: the Passenger pays the Driver in cash. A Ticket seat is paid when getting on the bus, a hire at the end of the trip.')}</InfoTip></span>
+    <PaymentModePicker value={mode} disabled={!ready||state==='saving'} onChange={change}/>
     <span className="tk-cash-status" role={state==='error'?'alert':'status'} aria-live="polite">{state==='saving'?t('Saving…'):!ready?t('Save this service and its prices first.'):state==='error'?<span className="is-error">{message}</span>:''}</span>
-    {state==='saved'&&<p className="notice success" role="status">{t('Cash payment setting saved.')}</p>}</div>
+    {state==='saved'&&<p className="notice success" role="status">{t('Payment setting saved.')}</p>}</div>
 }
 // Event hire has packages, not route rates (03EV): its status comes from GET /owners/me/service-readiness and the packages are set in the vehicle's Event packages tab.
 function EventStatus({ vehicle, readiness }) {

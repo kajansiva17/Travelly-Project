@@ -13,7 +13,7 @@ One calendar month (Sri Lanka time) for the whole platform, in the same Travelly
 import io
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from app.models import User, UserRole
 from app.models.hire_models import Booking, Route, ScheduledTrip, Trip
 from app.models.payment_models import Payment
@@ -102,7 +102,7 @@ def build(db, year, month, moment=None):
 
     # 4. Attention (as of today) ----------------------------------------------------------------------
     stuck = db.execute(select(ScheduledTrip, Route).join(Route, Route.id == ScheduledTrip.route_id).where(
-        ScheduledTrip.status.in_(('DECISION_REQUIRED', 'DISRUPTED'))).order_by(ScheduledTrip.departure_at).limit(30)).all()
+        or_(ScheduledTrip.status == 'DECISION_REQUIRED', and_(ScheduledTrip.status == 'DISRUPTED', or_(ScheduledTrip.arrangement.is_(None), ScheduledTrip.arrangement == 'TRAVELLY')))).order_by(ScheduledTrip.departure_at).limit(30)).all()
     departures = [{'reference': d.departure_reference, 'route': f'{r.origin_name} → {r.destination_name}',
                    'departs': local(d.departure_at).strftime('%Y-%m-%d %H:%M'), 'status': label(d.status)} for d, r in stuck]
     books = {b.id: b for b in db.scalars(select(Booking).where(Booking.id.in_({p.booking_id for p in waiting})))} if waiting else {}

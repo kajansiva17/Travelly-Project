@@ -45,9 +45,11 @@ def second_driver(client, ticket, at=NEAR):
         return driver, str(trip.id)
 
 
-def test_the_driver_reports_and_nearby_people_hear_it_in_their_language(client, running):
+def test_other_vehicles_hear_it_in_their_language_but_not_the_reporters_own_trip(client, running, ticket):
     live(client, running)
     language(client, running.ctx.passenger_id, 'ta')
+    other, other_trip = second_driver(client, ticket)
+    language(client, other['id'], 'ta')
     done = report(client, running)
     assert done.status_code == 201, done.text
     body = done.json()
@@ -55,12 +57,18 @@ def test_the_driver_reports_and_nearby_people_hear_it_in_their_language(client, 
     minutes = (datetime.fromisoformat(body['expires_at']) - datetime.fromisoformat(body['reported_at'])).total_seconds() / 60
     assert round(minutes) == 60   # police: one hour
     with client.app.state.sessions() as db:
-        heard = db.scalars(select(Notification).where(Notification.recipient_user_id == UUID(running.ctx.passenger_id),
+        heard = db.scalars(select(Notification).where(Notification.recipient_user_id == UUID(other['id']),
                                                       Notification.notification_type == 'ROAD_ALERT')).all()
+        own = db.scalars(select(Notification).where(Notification.trip_id == UUID(running.trip['id']),
+                                                    Notification.notification_type == 'ROAD_ALERT')).all()
     assert len(heard) == 1 and heard[0].action_payload['language'] == 'ta'
     assert heard[0].action_payload['speak'].startswith('முன்னால் போலீஸ்')
+    assert set(heard[0].action_payload['speak_all']) == {'en', 'ta', 'si'}   # the page language decides what is heard
+    assert own == []   # nobody on the reporter's own trip is told: they were there
     seen = client.get(f"/api/v1/road-alerts?trip_id={running.trip['id']}", headers=bearer(running.ctx.passenger)).json()
-    assert seen['items'][0]['message'].startswith('முன்னால் போலீஸ்') and seen['items'][0]['can_vote'] is False
+    assert seen['items'][0]['message'].startswith('முன்னால் போலீஸ்') and seen['items'][0]['can_vote'] is False and seen['items'][0]['own_trip'] is True
+    mine = client.get(f"/api/v1/road-alerts?trip_id={running.trip['id']}", headers=bearer(running.ctx.owner)).json()['items'][0]
+    assert mine['reported_by_me'] is True and mine['own_trip'] is True
 
 
 def test_reporting_rules(client, running):
@@ -77,10 +85,12 @@ def test_reporting_rules(client, running):
     assert again.status_code == 200 and again.json()['merged'] and not again.json()['counted_as_confirmation']
 
 
-def test_voice_is_understood_in_three_languages_but_never_sent_alone(client, running):
+def test_voice_is_understood_in_three_languages_but_never_sent_alone(client, running, monkeypatch):
+    monkeypatch.setattr('app.api.routers.road_alerts_api.understand', lambda request, user, transcript: None)   # keywords only: no AI call in tests
     owner = running.ctx.owner
     ta = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(owner), json={'transcript': 'முன்னால போலீஸ் நிக்குது', 'language': 'ta'}).json()
-    assert ta['alert_type'] == 'POLICE_PRESENCE' and ta['confirm_prompt'] == 'போலீஸ் எச்சரிக்கை அனுப்பவா?'
+    assert ta['alert_type'] == 'POLICE_PRESENCE' and ta['confirm_prompt'].startswith('நான் புரிந்துகொண்டது: முன்னால் போலீஸ்') and ta['confirm_prompt'].endswith('சொல்லுங்கள்.')
+    assert set(ta['summary']) == {'en', 'ta', 'si'}
     assert ta['confirm_seconds'] == 10 and 'ஆம்' in ta['yes_words'] and 'வேண்டாம்' in ta['no_words'] and ta['not_sent_text']
     si = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(owner), json={'transcript': 'ඉස්සරහ අනතුරක් වෙලා', 'language': 'si'}).json()
     assert si['alert_type'] == 'ACCIDENT'
@@ -90,6 +100,24 @@ def test_voice_is_understood_in_three_languages_but_never_sent_alone(client, run
     assert none['alert_type'] is None
     with client.app.state.sessions() as db:
         assert db.scalar(select(RoadAlert.id).limit(1)) is None   # classifying stores nothing
+
+
+def test_a_voice_alert_is_heard_in_each_listeners_language(client, running, ticket, monkeypatch):
+    said = {'en': 'Police are checking vehicles at the Galle road junction.', 'ta': 'காலி ரோடு சந்திப்பில் போலீஸ் வாகனங்களைச் சோதிக்கிறார்கள்.',
+            'si': 'ගාල්ල පාර හන්දියේ පොලිසිය වාහන පරීක්ෂා කරයි.'}
+    monkeypatch.setattr('app.api.routers.road_alerts_api.understand', lambda request, user, transcript: ('POLICE_PRESENCE', said))
+    live(client, running)
+    other, other_trip = second_driver(client, ticket)
+    language(client, other['id'], 'en')
+    heard = client.post('/api/v1/road-alerts/voice-classify', headers=bearer(running.ctx.owner), json={'transcript': 'galle road police checking', 'language': 'ta'}).json()
+    assert heard['alert_type'] == 'POLICE_PRESENCE' and said['ta'] in heard['confirm_prompt'] and heard['summary'] == said
+    sent = report(client, running, source_input='VOICE', confidence_score='0.9', driver_confirmed=True, summaries=said)
+    assert sent.status_code == 201, sent.text
+    with client.app.state.sessions() as db:
+        note = db.scalar(select(Notification).where(Notification.recipient_user_id == UUID(other['id']), Notification.notification_type == 'ROAD_ALERT'))
+    assert note.action_payload['speak'] == said['en'] and note.action_payload['speak_all']['si'] == said['si']   # each listener's page language picks its own
+    bad = report(client, running, alert_type='ACCIDENT', source_input='VOICE', driver_confirmed=True, summaries={'en': 'only one language'})
+    assert bad.status_code == 422
 
 
 def test_nearby_drivers_confirm_or_deny(client, running, ticket, monkeypatch):
@@ -136,13 +164,14 @@ def test_admin_takes_an_alert_down_and_old_alerts_expire(client, running, ticket
         assert db.get(RoadAlert, UUID(other['id'])).status == 'EXPIRED'
 
 
-def test_notification_list_carries_type_and_payload(client, running):
+def test_notification_list_carries_type_and_payload(client, running, ticket):
     live(client, running)
+    other, other_trip = second_driver(client, ticket)
     alert = report(client, running).json()
-    items = client.get('/api/v1/notifications', headers=bearer(running.ctx.passenger)).json()['items']
+    items = api(client, other, 'get', '/notifications').json()['items']
     road = [i for i in items if i['notification_type'] == 'ROAD_ALERT']
     assert len(road) == 1
     item = road[0]
-    assert item['action_payload']['road_alert_id'] == alert['id'] and item['trip_id'] == running.trip['id']
+    assert item['action_payload']['road_alert_id'] == alert['id'] and item['trip_id'] == other_trip
     assert item['expires_at'] and item['created_at'] and item['read_at'] is None and item['channel']
     assert {'booking_id', 'scheduled_trip_id', 'action_required', 'response_code', 'support_vehicle_id'} <= item.keys()
