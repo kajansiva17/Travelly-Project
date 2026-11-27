@@ -68,7 +68,7 @@ export default function HirePayment({bookingId,passengerUserId,userId,returned,a
   const [summary,setSummary]=useState(null),[error,setError]=useState(null),[mode,setMode]=useState('online')
   const read=useCallback(async()=>{const next=await loadSummary(bookingId);setSummary(next);setError(null);return next},[bookingId])
   useEffect(()=>{setSummary(null);read().catch(setError)},[read])
-  if(error&&!summary)return <div className="tk-pane"><ErrorNotice error={error}/><div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>read().catch(setError)}>{t('Try again')}</button></div></div>
+  if(error&&!summary)return <div className="bc-card pay-card"><ErrorNotice error={error}/><div className="tk-bar"><button type="button" className="ui-button ui-button-secondary" onClick={()=>read().catch(setError)}>{t('Try again')}</button></div></div>
   if(!summary)return <p role="status">{t('Loading payment…')}</p>
   const isPassenger=!asCollector&&passengerUserId===userId,isCollector=asCollector||summary.collector_user_id===userId
   const paid=summary.payment_status==='PAID',cash=summary.cash,awaiting=summary.payment_status==='CASH_AWAITING_CONFIRMATION'
@@ -76,26 +76,26 @@ export default function HirePayment({bookingId,passengerUserId,userId,returned,a
   const reload=()=>read().catch(setError)
   const head=<p className="tk-line">{chip} {summary.amount_due&&!paid&&<strong>{money(summary.currency,summary.amount_due)}</strong>}</p>
 
-  if(paid)return <div className="tk-pane">{head}<p className="tk-line">{t('This booking is paid.')} {summary.latest_payment?.payment_reference&&<strong>{summary.latest_payment.payment_reference}</strong>}</p></div>
-  if(!summary.payment_due&&!awaiting)return <div className="tk-pane">{head}<p className="tk-line">{t('Payment opens when the trip is completed.')}</p><ErrorNotice error={error}/></div>
+  if(paid)return <div className="bc-card pay-card">{head}<p className="tk-line">{t('This booking is paid.')} {summary.latest_payment?.payment_reference&&<strong>{summary.latest_payment.payment_reference}</strong>}</p></div>
+  if(!summary.payment_due&&!awaiting)return <div className="bc-card pay-card">{head}<p className="tk-line">{t('Payment opens when the trip is completed.')}</p><ErrorNotice error={error}/></div>
 
   // cash waiting for the other side
   if(awaiting){
     const myTurn=isPassenger?(cash?.collector_confirmed&&!cash?.passenger_confirmed):(isCollector&&cash?.passenger_confirmed&&!cash?.collector_confirmed)
-    return <div className="tk-pane">{head}<p className="tk-line" role="status">{waitingText(summary,isPassenger,isCollector)}</p><ErrorNotice error={error}/>
+    return <div className="bc-card pay-card">{head}<p className="tk-line" role="status">{waitingText(summary,isPassenger,isCollector)}</p><ErrorNotice error={error}/>
       {myTurn&&<CashConfirm summary={summary} side={isPassenger?'passenger':'collector'} onDone={reload}/>}</div>
   }
 
   // payment due
   if(!isPassenger){
-    return <div className="tk-pane">{head}<p className="tk-line">{isCollector&&summary.cash_accepted?t('Waiting for cash payment…'):isCollector?t('The Passenger pays online. Nothing is needed from you.'):t('The Passenger pays after the trip.')}</p><ErrorNotice error={error}/>
+    return <div className="bc-card pay-card">{head}<p className="tk-line">{isCollector&&summary.cash_accepted?t('Waiting for cash payment…'):isCollector?t('The Passenger pays online. Nothing is needed from you.'):t('The Passenger pays after the trip.')}</p><ErrorNotice error={error}/>
       {isCollector&&summary.cash_accepted&&<CashConfirm summary={summary} side="collector" onDone={reload}/>}</div>
   }
   // The Owner may take online only, cash only, or both (owner decision, 25 Nov 2026).
   const onlineOk=summary.online_accepted!==false,cashOk=Boolean(summary.cash_accepted),choose=onlineOk&&cashOk,payMode=!onlineOk?'cash':mode
   // hand the summary to the shared Pay flow as a booking-shaped object
   const asBooking={id:summary.booking_id,status:summary.booking_status,currency:summary.currency,total_amount:summary.amount_due,payment_status:summary.payment_status,latest_payment:summary.latest_payment,payment_provider:summary.payment_provider,payment_method:summary.payment_method,payer_details_required:summary.payer_details_required}
-  return <div className="tk-pane"><p className="tk-line"><strong>{t('Trip completed. Total: LKR {value0}',{value0:summary.amount_due})}</strong></p>{head}
+  return <div className="bc-card pay-card"><p className="tk-line"><strong>{t('Trip completed. Total: LKR {value0}',{value0:summary.amount_due})}</strong></p>{head}
     {choose&&<div className="tk-bar" role="group" aria-label={t('How do you want to pay?')}><strong className="tk-line">{t('How do you want to pay?')}</strong>
       <Chip tone="info" selected={mode==='online'} onClick={()=>setMode('online')}>{t('Pay online')}</Chip>
       <Chip tone="info" selected={mode==='cash'} onClick={()=>setMode('cash')}>{t('Pay in cash')}</Chip></div>}

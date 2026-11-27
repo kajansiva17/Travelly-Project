@@ -73,7 +73,6 @@ export default function PickupCodePanel({ tripId }) {
                 {t('{value0} attempt(s) remaining.', { value0: data.attempts_left })}
               </p>
             )}
-            <button className="ui-button ui-button-secondary" onClick={load}>{t('Refresh code')}</button>
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import {Link,useLocation} from 'react-router-dom'
 import {api} from '../../services/api'
 import {Header,ErrorNotice,Icon} from '../../components/components'
+import {Thumb} from '../booking/BookingCardParts'
 import Chip from '../../components/ui/Chip'
 import InfoTip from '../../components/ui/InfoTip'
 import SeatMap from '../../components/SeatMap'
@@ -117,14 +118,18 @@ export function ReplacementRequests({active,drivers,me,useFound,chosenDriver,onN
   return <>
     {error&&<p className="tk-line is-warn" role="status">{error.message}</p>}
     {items===null&&!error?<p role="status">{t('Loading requests…')}</p>:items&&items.length
-      ?<div className="tk-rows">{list.slice.map(r=><article className="tk-row" key={r.id}>
-        <div className="tk-row-main"><strong>{r.original_departure_reference} · {route(r)}</strong>
-          <span>{formatDateTime(r.departure_at)} · {r.vehicle?.display_name||r.vehicle?.public_vehicle_reference} · {t('{value0} seats booked',{value0:r.booked_seats})} · {t('LKR {value0} per seat',{value0:r.fare_per_seat})}{r.requested_by?` · ${t('Asked by')} ${r.requested_by}`:''}</span></div>
-        <div className="tk-row-actions">{r.answer_pending
-          ?<><Chip tone="info" icon="clock">{t('Waiting for your answer')}</Chip><button type="button" className="ui-button ui-button-primary" onClick={()=>{setChoice('later');setOpen({item:r,kind:'accept'})}}>{t('Accept')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen({item:r,kind:'decline'})}>{t('Decline')}</button></>
+      ?<div className="rq-list">{items.map(r=><article className="bc-card rq-card" key={r.id}>
+        <Thumb src={r.vehicle?.profile_image_url} icon="car" size={84}/>
+        <div className="bc-body"><strong className="bc-name">{route(r)}</strong>
+          <span className="bc-sub">{r.original_departure_reference}</span>
+          <span className="bc-line"><Icon name="car" size={15}/>{r.vehicle?.display_name||r.vehicle?.public_vehicle_reference}</span>
+          <span className="bc-line"><Icon name="clock" size={15}/>{formatDateTime(r.departure_at)}</span>
+          <span className="bc-line"><Icon name="users" size={15}/>{t('{value0} seats booked',{value0:r.booked_seats})} · {t('LKR {value0} per seat',{value0:r.fare_per_seat})}</span>
+          {r.requested_by&&<span className="bc-line"><Icon name="user" size={15}/>{t('Asked by')} {r.requested_by}</span>}</div>
+        <div className="bc-side rq-actions">{r.answer_pending
+          ?<><Chip tone="info" icon="clock">{t('Waiting for your answer')}</Chip><span className="rq-buttons"><button type="button" className="ui-button ui-button-primary" onClick={()=>{setChoice('later');setOpen({item:r,kind:'accept'})}}>{t('Accept')}</button><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen({item:r,kind:'decline'})}>{t('Decline')}</button></span></>
           :<Chip tone={statusChip(r.status).tone}>{statusChip(r.status).label}</Chip>}</div></article>)}</div>
       :items&&<EmptyState icon="route" title={t('No replacement requests')}>{t('When another Owner asks you to run a departure with your vehicle, it appears here.')}</EmptyState>}
-    <div className="flow-actions">{list.pages>1?list.pager:<span/>}<span/></div>
   </>
 }
 

@@ -1590,3 +1590,363 @@ html[lang="ta"] .bc-name,html[lang="si"] .bc-name{font-size:15px}
 @media (max-width:767px){
   .bc-vehicle{flex-wrap:wrap}.bc-vehicle .bc-side{flex-direction:row;width:100%;justify-content:space-between;align-items:center}
 }
+
+/* One list that scrolls inside the card on desktop (no page numbers); on a phone the page grows as usual. */
+@media (min-width:768px){
+  html body .flow-page .flow-wizard-form > .bk-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}
+  html body .flow-page .flow-wizard-form > .bk-list > *{flex-shrink:0}
+  html body .flow-page .flow-wizard-form > .bk-groups{flex-shrink:0}
+}
+
+/* My vehicles: one card per vehicle with its photo, name, status chips and buttons. */
+html body .vehicle-rows{display:flex;flex-direction:column;gap:10px}
+html body .vh-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:18px;background:linear-gradient(#ffffffe6,#ffffffb3);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12)}
+html body .vh-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+html body .vh-name{margin:0;font-size:18px;line-height:1.25;overflow-wrap:anywhere}
+html body .vh-reg{font-size:13px;color:#4a5f64;letter-spacing:.03em}
+html body .vh-chips{display:flex;flex-wrap:wrap;gap:6px}
+html body .vh-card .vehicle-row-actions{align-self:flex-end;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;flex:none}
+html body .vh-card .vehicle-row-actions .ui-button{min-height:40px;padding:6px 16px;font-size:14px}
+html[lang="ta"] body .vh-name,html[lang="si"] body .vh-name{font-size:16px}
+@media (min-width:768px){html body .flow-page :is(.flow-wizard-form,.flow-card) > .vehicle-rows{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}html body .flow-page :is(.flow-wizard-form,.flow-card) > .vehicle-rows>*{flex-shrink:0}}
+@media (max-width:767px){html body .vh-card{flex-wrap:wrap}html body .vh-card .vehicle-row-actions{width:100%;justify-content:stretch}html body .vh-card .vehicle-row-actions .ui-button{flex:1 1 auto}}
+
+/* Replacement requests: one card per request. */
+html body .rq-list{display:flex;flex-direction:column;gap:10px}
+html body .rq-card{margin:0}
+html body .rq-actions{align-items:flex-end;justify-content:center;gap:10px}
+html body .rq-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+html body .rq-buttons .ui-button{min-height:40px;padding:6px 18px;font-size:14px}
+@media (min-width:768px){html body .flow-page :is(.flow-card) > .rq-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}html body .flow-page .flow-card > .rq-list>*{flex-shrink:0}}
+@media (max-width:767px){html body .rq-card{flex-wrap:wrap}html body .rq-actions{width:100%;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center}}
+
+/* Replacement vehicle on a ticket booking, and the seats beside the boarding code. */
+html body .rv-view{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:18px;background:#fff8e9;border:1px solid #ecd9a8;margin:0 0 12px}
+html body .rv-vehicle.is-new{border-left:4px solid var(--ui-red,#e10b17)}
+html body .rv-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+html body .rv-photo{flex:none;width:150px;height:100px;border:0;padding:0;border-radius:12px;overflow:hidden;cursor:zoom-in;background:#e7eef6}
+html body .rv-photo img{width:100%;height:100%;object-fit:cover;display:block}
+html body .rv-lightbox{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgb(10 20 30 / .82);padding:16px}
+html body .rv-lightbox>div{position:relative;display:grid;place-items:center;max-width:94vw;max-height:94vh}
+html body .rv-lightbox img{max-width:94vw;max-height:88vh;width:auto;height:auto;border-radius:12px;object-fit:contain;display:block}
+html body .rv-close{position:absolute;top:-14px;right:-14px;width:40px;height:40px;border-radius:50%;border:0;display:grid;place-items:center;background:#fff;color:#1d3a40;box-shadow:0 2px 10px rgb(0 0 0 / .35);cursor:pointer}
+html body .rv-seat-row{justify-content:space-between;margin:0}
+html body .rv-decks{display:flex;flex-wrap:wrap;gap:16px}
+html body .rv-grid{display:grid;gap:4px}
+html body .rv-seat{display:grid;place-items:center;height:34px;border-radius:8px;background:#e9eef0;color:#4a5f64;font-size:11px}
+html body .rv-seat.is-mine{background:var(--ui-red,#e10b17);color:#fff;font-weight:700}
+html body .bc-seat-list{list-style:none;margin:6px 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+html body .bc-seat-list li{display:flex;flex-direction:column;padding:6px 12px;border-radius:12px;background:#fff;border:1px solid #e0e6e8;font-size:13px}
+html body .bc-seat-list strong{font-size:16px;color:var(--ui-red,#e10b17)}
+
+/* Replacement: Was / Now side by side, the seat layout as the Owner drew it, Travellers as cards. */
+html body .rv-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+html body .rv-pair .bc-card{margin:0;height:100%}
+html body .rv-map{height:480px;border-radius:16px;background:#fff;border:1px solid #e0e6e8;overflow:hidden}
+html body .rv-map .seat-map{height:100%}
+html body .tb-trav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+html body .tb-trav{margin:0}
+html body .tb-seat{display:flex;flex-direction:column;align-items:center;padding:6px 14px;border-radius:12px;background:#fff1f2;color:var(--ui-red,#e10b17);line-height:1.1}
+html body .tb-seat small{font-size:11px;color:#6a7c80}
+html body .tb-seat strong{font-size:20px}
+@media (max-width:767px){html body .rv-pair{grid-template-columns:minmax(0,1fr)}html body .rv-map{height:auto;overflow:visible}}
+
+/* Saved places: a card per place, and a compact form card with normal-size buttons. */
+html body .sp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin:0 0 12px}
+html body .sp-card{margin:0}
+html body .sp-card .ui-button,html body .sp-quick .ui-button,html body .sp-form .flow-actions .ui-button{min-height:40px;padding:6px 18px;font-size:14px}
+html body .sp-form{padding:14px 16px;border-radius:18px;background:linear-gradient(#ffffffe6,#ffffffb3);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12)}
+html body .sp-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px 14px;align-items:start}
+html body .sp-quick{display:flex;flex-wrap:wrap;gap:8px}
+@media (max-width:767px){html body .sp-pair{grid-template-columns:minmax(0,1fr)}html body .sp-list{grid-template-columns:minmax(0,1fr)}}
+
+/* Completed trip: the review card and the payment card side by side. */
+html body .pay-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start;overflow-y:auto;scrollbar-width:thin}
+html body .pay-split:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+html body .pay-split > *{flex-shrink:0;margin:0}
+html body .rt-card,html body .pay-card{flex-direction:column;align-items:stretch;gap:10px;margin:0;padding:14px 16px}
+html body .rt-title{display:flex;align-items:center;gap:8px;font-size:17px}
+html body .rt-rates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+html body .rt-card textarea{min-height:60px;border-radius:12px}
+html body .rt-card .ui-button,html body .pay-card .ui-button{min-height:40px;padding:6px 18px;font-size:14px}
+html body .rt-card .flow-actions{justify-content:flex-start;gap:8px}
+@media (max-width:767px){html body .pay-split{grid-template-columns:minmax(0,1fr);overflow:visible}html body .rt-rates{grid-template-columns:minmax(0,1fr)}}
+
+/* Decision pop-up for a Passenger (quote to accept, replacement vehicle to review). */
+html body .dh-backdrop{position:fixed;inset:0;z-index:2100;display:grid;place-items:center;background:rgb(10 20 30 / .6);padding:16px;overflow-y:auto}
+html body .dh-modal{width:min(560px,100%);display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:22px;background:linear-gradient(#fffffff2,#f4f8f9f2);box-shadow:0 18px 50px rgb(0 0 0 / .35)}
+html body .dh-head{display:flex;align-items:center;gap:10px;font-size:18px}
+html body .dh-count{margin-left:auto;min-width:24px;height:24px;border-radius:12px;background:var(--ui-red,#e10b17);color:#fff;font-size:13px;display:grid;place-items:center;padding:0 7px}
+html body .dh-modal .bc-card{margin:0;flex-wrap:wrap}
+html body .dh-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+html body .dh-actions .ui-button{min-height:42px;padding:6px 20px;font-size:15px}
+html body .dh-link{margin-left:auto;color:var(--ui-red,#e10b17);font-weight:600}
+
+/* Passenger booking panes as cards: trip note, price + numbered rules, cancel. */
+html body .tp-note{margin:0}
+html body .tp-ico{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:#e8f3f6;color:#0b6f8a}
+html body .tp-note.is-held .tp-ico{background:#e4f6ea;color:#16803c}
+html body .tp-note .bc-sub{white-space:normal;line-height:1.35}
+html body .agreed-itinerary{margin:0;padding:12px 16px;border-radius:18px;background:rgb(255 255 255 / .88);border:1px solid #dde7ec}
+html body .agreed-itinerary>summary{font-weight:700;cursor:pointer}
+html body .agreed-itinerary>p{margin:8px 0;font-size:14px;line-height:1.4}
+html body .ar-list{list-style:none;counter-reset:ar;margin:0;padding:0;display:grid;gap:8px}
+html body .ar-list>li{counter-increment:ar;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;margin:0;font-size:14px;line-height:1.4}
+html body .ar-list>li::before{content:counter(ar);width:24px;height:24px;border-radius:50%;background:#e8eef2;color:#17324d;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+html body .agreed-rate-rules{display:block;margin:0;padding:0;border:0;background:none;box-shadow:none}
+html body .agreed-rate-rules>h3{margin:0 0 10px;font-size:16px}
+html body .pp-pane[hidden]{display:none}
+html body .pp-pane{display:flex;flex-direction:column;gap:10px;min-height:0}
+html body .pp-wrap{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1 1 auto}
+html body .pp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+html body .pp-head h2{margin:0;font-size:18px}
+html body .pp-method{padding:3px 12px;border-radius:999px;background:#e8f3f6;color:#0b6f8a;font-size:13px;font-weight:600}
+html body .pp-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0;flex:1 1 auto}
+html body .pp-card{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;margin:0;min-height:0;overflow-y:auto;scrollbar-width:thin}
+html body .pp-card>h3{margin:0;font-size:16px}
+html body .pp-rows{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+html body .pp-rows>li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid #e3ebef;font-size:14.5px}
+html body .pp-label{display:flex;flex-direction:column;min-width:0}
+html body .pp-label small{color:#6a7a86;font-size:12.5px}
+html body .pp-total{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:#17324d;color:#fff;font-size:16px}
+html body .pp-extras .extra-lines{display:grid;gap:6px;margin:0;padding:0;list-style:none;font-size:13.5px}
+html body .pp-extras .extra-lines>li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:10px;background:#f1f6f8}
+html body .pp-extras .extra-lines-title{margin:4px 0;font-weight:700;font-size:14px}
+html body .pp-accept{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+html body .pp-accept .ui-button{min-height:42px;padding:6px 22px;font-size:15px;width:auto;flex:none}
+html body .cc-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;max-width:720px;padding:16px 18px;margin:0}
+html body .cc-ico{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fde7e9;color:#e10b17}
+html body .cc-body{display:grid;gap:8px;min-width:0}
+html body .cc-body>h3{margin:0;font-size:18px}
+html body .cc-body>p{margin:0;font-size:14px;line-height:1.4;color:#44525e}
+html body .cc-body textarea{width:100%;min-height:72px;max-height:120px;resize:vertical}
+html body .cc-actions{display:flex;justify-content:flex-end}
+html body .cc-go{min-height:42px;padding:6px 22px;font-size:15px;width:auto;flex:none}
+@media (max-width:767px){
+  html body .pp-grid{grid-template-columns:minmax(0,1fr)}
+  html body .pp-card{overflow:visible}
+  html body .cc-card{grid-template-columns:minmax(0,1fr)}
+  html body .pp-accept .ui-button,html body .cc-go{width:100%}
+}
+
+/* My driving: trips grouped by where they stand, as cards that scroll inside the page card. */
+html body .dv-section{display:flex;flex-direction:column;gap:8px}
+html body .dv-list{gap:12px}
+html body .dv-head{display:flex;align-items:center;gap:8px;margin:4px 2px 0;font-size:15px}
+html body .dv-count{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:#e8eef2;color:#17324d;font-size:12.5px;display:grid;place-items:center}
+html body .dv-who{display:flex;align-items:center;gap:6px}
+html body .dv-hint{font-size:13px;color:#44525e;line-height:1.35;white-space:normal}
+html body .dv-card .bc-side .ui-button{min-height:38px;padding:4px 18px;font-size:14.5px}
+@media (min-width:768px){
+  html body .flow-page .flow-wizard-form.dv-pane{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+}
+html body .pp-total,html body .pp-total span,html body .pp-total strong{color:#fff}
+html:not(#a) body .pp-card .pp-total,html:not(#a) body .pp-card .pp-total span,html:not(#a) body .pp-card .pp-total strong{color:#fff !important;opacity:1 !important;-webkit-text-fill-color:#fff}
+html:not(#a) body .pp-card .pp-total strong{font-size:18px;font-weight:700}
+
+/* Payments as cards, grouped by paid / waiting / failed / refunded. */
+html body .pc-hint{font-size:13px;color:#44525e;line-height:1.35;white-space:normal}
+html body .pc-card{border-left:5px solid transparent}
+html body .pc-card.is-paid{border-left-color:#16a34a}
+html body .pc-card.is-failed{border-left-color:#e10b17}
+html body .pc-card.is-waiting{border-left-color:#0b6f8a}
+html body .pc-card.is-refunded{border-left-color:#8a98a3}
+html body .pc-card .bc-side .ui-button{min-height:36px;padding:4px 16px;font-size:14px}
+
+/* Phones: thumbnail + text on the first row, price / status / button on a full-width second row. */
+@media (max-width:767px){
+  html:not(#a) body .pc-card,html:not(#a) body .dv-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start;padding:12px}
+  html:not(#a) body .pc-card>.bc-thumb,html:not(#a) body .dv-card>.bc-thumb{width:52px !important;height:52px !important;grid-row:1}
+  html:not(#a) body .pc-card>.bc-body,html:not(#a) body .dv-card>.bc-body{min-width:0;grid-column:2;grid-row:1;overflow-wrap:anywhere;word-break:normal}
+  html:not(#a) body .pc-card .bc-body *,html:not(#a) body .dv-card .bc-body *{white-space:normal;writing-mode:horizontal-tb}
+  html:not(#a) body .pc-card>.bc-side,html:not(#a) body .dv-card>.bc-side{grid-column:1 / -1;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;width:auto;min-width:0}
+  html:not(#a) body .pc-card>.bc-side .ui-button,html:not(#a) body .dv-card>.bc-side .ui-button{width:auto;flex:none;margin-left:auto}
+}
+
+/* Support: hero card, ticket cards, chat bubbles, composer. */
+html body .su-pane{display:flex;flex-direction:column;gap:10px;min-height:0}
+html body .su-hero{margin:0}
+html body .su-hero-icon{width:52px;height:52px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fde7e9;color:#e10b17}
+html body .su-hero .bc-sub{white-space:normal;line-height:1.35}
+html body .su-card{width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit;border-left:5px solid #8a98a3}
+html body .su-card.is-open,html body .su-head.is-open{border-left-color:#d98a00}
+html body .su-card.is-in_progress,html body .su-head.is-in_progress{border-left-color:#0b6f8a}
+html body .su-card.is-resolved,html body .su-head.is-resolved{border-left-color:#16a34a}
+html body .su-head{margin:0;border-left:5px solid #8a98a3}
+html body .su-last{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.35;white-space:normal}
+html body .su-chips{display:flex;flex-direction:row;gap:6px;align-items:center;flex-wrap:wrap}
+html body .su-top{display:flex}
+html body .su-top .ui-button,html body .su-actions .ui-button,html body .su-hero .ui-button{min-height:40px;padding:4px 20px;font-size:15px;width:auto}
+html body .su-log{display:flex;flex-direction:column;gap:10px;padding:6px 2px;overflow-y:auto;min-height:0;flex:1 1 auto;scrollbar-width:thin}
+html body .su-msg{align-self:flex-start;max-width:min(78%,640px);padding:10px 14px;border-radius:18px 18px 18px 4px;background:#fff;border:1px solid #dde7ec;box-shadow:0 2px 8px rgb(0 0 0 / .05)}
+html body .su-msg.is-mine{align-self:flex-end;border-radius:18px 18px 4px 18px;background:#e3efff;border-color:#c5dcf7}
+html body .su-meta{font-size:12px;color:#5b6b78;margin-bottom:3px}
+html body .su-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.4}
+html body .su-composer,html body .su-form{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0;padding:12px 14px}
+html body .su-composer textarea,html body .su-form textarea{width:100%;resize:vertical;min-height:56px}
+html body .su-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+html body .su-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px}
+@media (min-width:768px){
+  html body .flow-page .flow-wizard-form.su-pane{flex:1 1 auto}
+  html body .flow-page .flow-wizard-form > .su-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}
+  html body .flow-page .flow-wizard-form > .su-list > *{flex-shrink:0}
+}
+@media (max-width:767px){
+  html body .su-log{max-height:none;overflow:visible}
+  html body .su-msg{max-width:92%}
+  html body .su-pair{grid-template-columns:minmax(0,1fr)}
+  html:not(#a) body .su-hero,html:not(#a) body .su-card,html:not(#a) body .su-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start}
+  html:not(#a) body .su-hero>.bc-body,html:not(#a) body .su-card>.bc-body,html:not(#a) body .su-head>.bc-body{min-width:0;overflow-wrap:anywhere}
+  html:not(#a) body .su-hero>.bc-side,html:not(#a) body .su-card>.bc-side,html:not(#a) body .su-head>.bc-side{grid-column:1 / -1;justify-content:flex-end}
+}
+
+/* Admin lists: every row is a card; all rows scroll inside the page card (no pager). */
+html body .ad-rows{display:flex;flex-direction:column;gap:8px}
+html body .ad-row .bc-sub{white-space:normal;line-height:1.35}
+html body .ad-side{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:wrap}
+html body .ad-side .ui-button{min-height:38px;padding:4px 18px;font-size:14.5px;width:auto}
+@media (min-width:768px){
+  html body .flow-page .tk-pane.ad-pane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:4px;scrollbar-width:thin}
+  html body .flow-page .tk-pane.ad-pane>*{flex-shrink:0}
+}
+@media (max-width:767px){
+  html:not(#a) body .ad-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start}
+  html:not(#a) body .ad-row>.bc-body{min-width:0;overflow-wrap:anywhere}
+  html:not(#a) body .ad-row>.bc-side{grid-column:1 / -1;justify-content:flex-end}
+}
+
+/* Compact list cards so more rows fit at once; the in-card scrollbar is hidden (wheel / touch still scroll). */
+@media (min-width:768px){
+  html:not(#a) body .flow-page :is(.ad-pane,.bk-list,.su-list,.pc-list,.dv-list,.vehicle-rows,.rq-list){scrollbar-width:none;-ms-overflow-style:none}
+  html:not(#a) body .flow-page :is(.ad-pane,.bk-list,.su-list,.pc-list,.dv-list,.vehicle-rows,.rq-list)::-webkit-scrollbar{display:none;width:0;height:0}
+  html:not(#a) body .flow-page :is(.ad-rows,.su-list,.pc-list,.dv-list,.rq-list) .bc-card{padding:8px 14px;gap:10px;min-height:0}
+  html:not(#a) body .flow-page :is(.ad-rows,.su-list,.pc-list,.dv-list,.rq-list) .bc-thumb{width:48px !important;height:48px !important}
+  html:not(#a) body .flow-page :is(.ad-rows,.su-list,.pc-list,.dv-list,.rq-list) .bc-body{gap:1px}
+}
+
+/* Admin: departure needing attention. Facts as cards, vehicle candidates as selectable cards, two columns. */
+html body .at-cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;align-items:start}
+html body .at-left,html body .at-right{display:flex;flex-direction:column;gap:12px;min-width:0}
+html body .at-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+html body .at-fact{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:14px;background:rgb(255 255 255 / .9);border:1px solid #e3ebef;min-width:0}
+html body .at-fact small{font-size:12px;color:#5b6b78}
+html body .at-fact strong{font-size:14.5px;line-height:1.3;overflow-wrap:anywhere;white-space:normal}
+html body .at-block{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;margin:0}
+html body .at-block.is-danger{border-left:5px solid #e10b17}
+html body .at-title{margin:0;font-size:16px}
+html body .at-block .tk-line{margin:0;line-height:1.4}
+html body .at-block .tk-bar{display:flex;flex-wrap:wrap;gap:8px}
+html body .at-block .ui-button{min-height:40px;padding:4px 20px;font-size:15px;width:auto}
+html body .at-cands{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+html body .at-cand{position:relative;margin:0;cursor:pointer;border:2px solid transparent;padding:10px 14px 10px 40px}
+html body .at-cand.is-on{border-color:#16a34a;background:#f1fbf4}
+html body .at-cand.is-off{opacity:.75;cursor:default}
+html body .at-check{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px}
+html body .at-tags{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:900px){
+  html body .at-cols{grid-template-columns:minmax(0,1fr)}
+}
+@media (min-width:768px){
+  html:not(#a) body .flow-page .tk-pane.tk-detail{scrollbar-width:none}
+  html:not(#a) body .flow-page .tk-pane.tk-detail::-webkit-scrollbar{display:none}
+}
+
+/* Phones: the departure detail grows with its content, so everything below the facts can be reached. */
+@media (max-width:767px){
+  html:not(#a) body .flow-page .tk-pane.tk-detail,html:not(#a) body .flow-page .tk-pane.ad-pane{height:auto !important;max-height:none !important;min-height:0 !important;overflow:visible !important;flex:none !important;display:block}
+  html:not(#a) body .at-cols,html:not(#a) body .at-left,html:not(#a) body .at-right{height:auto;max-height:none;overflow:visible}
+  html:not(#a) body .at-cols{display:flex;flex-direction:column;gap:12px}
+  html:not(#a) body .at-right{order:0}
+}
+
+/* Phones: vehicle candidate cards keep a readable text column. */
+@media (max-width:767px){
+  html:not(#a) body .at-cand{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start;padding:12px 12px 12px 38px}
+  html:not(#a) body .at-cand>.bc-thumb{width:52px !important;height:52px !important;grid-column:1;grid-row:1}
+  html:not(#a) body .at-cand>.bc-body{grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere}
+  html:not(#a) body .at-cand .bc-body *,html:not(#a) body .at-cand .at-tags *{writing-mode:horizontal-tb;white-space:normal}
+  html:not(#a) body .at-cand .at-tags .ui-chip,html:not(#a) body .at-cand .at-tags>*{width:auto;max-width:100%}
+  html:not(#a) body .at-cand>.bc-side{grid-column:1 / -1;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;justify-content:flex-start;width:auto;min-width:0}
+  html:not(#a) body .at-block{padding:12px}
+  html:not(#a) body .at-block .tk-bar{flex-direction:column;align-items:stretch}
+  html:not(#a) body .at-block .tk-bar .ui-button{width:100%}
+}
+
+/* Ticket booking: each tab is a short page. */
+html body .tb-cancel{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:14px 16px;margin:0;max-width:720px}
+html body .tb-cancel .tk-hold{display:flex;flex-direction:column;gap:8px;border:0;background:none;padding:0;box-shadow:none}
+html body .tb-cancel .ui-button{min-height:40px;padding:4px 20px;font-size:15px;width:auto}
+
+/* People, payments, availability and maintenance as cards: one card per person, payment, day or record. */
+html body .pl-card{flex-wrap:wrap;border-left:5px solid transparent}
+html body .pl-card.is-live,html body .pl-card.is-paid,html body .pl-card.is-success{border-left-color:#16a34a}
+html body .pl-card.is-failed,html body .pl-card.is-danger{border-left-color:#e10b17}
+html body .pl-card.is-waiting,html body .pl-card.is-warning{border-left-color:#d98a00}
+html body .pl-card.is-info{border-left-color:#0b6f8a}
+html body .pl-card.is-muted{border-left-color:#8a98a3}
+html body .pl-photo{flex:none;width:auto;min-height:0;padding:0;border:0;border-radius:50%;background:none;box-shadow:none;cursor:zoom-in}
+html body .pl-ico{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:linear-gradient(#fff,#e7efef);color:var(--ui-red,#e10b17);box-shadow:0 2px 8px rgb(45 71 76 / .16)}
+html body .pl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+html body .pl-side{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;max-width:48%}
+html body .pl-side .ui-button,html body .pl-copy{min-height:36px;padding:4px 16px;font-size:14px;width:auto;flex:none}
+html body .pl-extra{flex:1 1 100%;order:9}
+html body .pl-payform{display:flex;flex-direction:column;gap:8px}
+html body .pl-payform>.ui-button{align-self:flex-end;width:auto}
+html body .pl-payform.is-row{flex-direction:row;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+html body .pl-payform.is-row input{flex:1 1 220px;min-width:0}
+html body .pl-payform.is-row .ui-button{min-height:36px;padding:4px 16px;font-size:14px;width:auto}
+html body .pl-ref{margin:0 0 10px}
+html body .pl-ref-code{font-size:17px;letter-spacing:.3px;overflow-wrap:anywhere}
+html body .pl-find{margin:0 0 10px;cursor:pointer;gap:10px;padding:10px 14px;font-weight:600}
+html body .pl-find input{accent-color:#e10b17;width:20px;height:20px;flex:none}
+html body .pl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:0 0 10px}
+html body .pl-stat{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:16px;background:linear-gradient(#ffffffe6,#ffffffb3);border:1px solid #ffffffcc;box-shadow:0 3px 12px rgb(45 71 76 / .12)}
+html body .pl-stat-text{display:flex;flex-direction:column;min-width:0}
+html body .pl-stat-text em{font-style:normal;font-size:12.5px;color:#5a6e72}
+html body .pl-stat-text strong{font-size:18px;color:#1d3a40;overflow-wrap:anywhere}
+html body .pl-stat.is-success .pl-ico{color:#16a34a}
+html body .pl-stat.is-warning .pl-ico{color:#d98a00}
+html body .pl-empty{margin:0 0 10px}
+html body .pl-fieldset{border:0;padding:0;margin:0;min-width:0}
+html body .pl-formcard{align-items:flex-start;max-width:700px;padding:16px;margin:0}
+html body .pl-formbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+html body .pl-formactions{display:flex;justify-content:flex-end}
+html body .pl-formactions .ui-button{width:auto;min-width:170px}
+html body .pl-search{align-items:flex-end;margin:0 0 10px}
+html body .pl-search-field{flex:1;min-width:0}
+html body .pl-search-go{width:auto;flex:none;min-height:44px;padding:0 26px}
+html body .av-vehicle{margin:0 0 10px}
+html body .av-bar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+html body .av-from{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:#34494e}
+html body .av-from input{width:190px}
+html body .av-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+html body .av-day{flex-direction:column;justify-content:center;gap:4px;margin:0;padding:12px 6px;text-align:center;cursor:pointer;border:2px solid #ffffffcc;font:inherit;color:#1d3a40}
+html body .av-day.is-picked{border-color:#e10b17}
+html body .av-day.is-off{background:#fff1f1;cursor:not-allowed}
+html body .av-day:disabled:not(.is-off){opacity:.55;cursor:not-allowed}
+html body .av-num{font-size:26px;font-weight:800;line-height:1.1}
+html body .av-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+html body .av-foot .ui-button{width:auto;min-width:170px}
+@media (min-width:768px){
+  html body .flow-page .flow-wizard-form>:is(.pl-stats,.pl-ref,.pl-find,.pl-empty,.pl-formcard,.pl-search,.av-bar,.av-vehicle,.av-days,.av-foot){flex-shrink:0}
+  html body .flow-page .tk-pane.mt-pane{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto}
+  html body .flow-page .tk-pane.mt-pane>*{flex-shrink:0}
+  html:not(#a) body .flow-page :is(.pl-list,.mt-pane){scrollbar-width:none;-ms-overflow-style:none}
+  html:not(#a) body .flow-page :is(.pl-list,.mt-pane)::-webkit-scrollbar{display:none;width:0;height:0}
+  html:not(#a) body .flow-page .pl-list .bc-card{padding:8px 14px;gap:10px;min-height:0}
+  html:not(#a) body .flow-page .pl-list .bc-thumb{width:48px !important;height:48px !important}
+}
+@media (max-width:767px){
+  html:not(#a) body .pl-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:start;padding:12px}
+  html:not(#a) body .pl-card>.bc-thumb,html:not(#a) body .pl-card>.pl-photo,html:not(#a) body .pl-card>.pl-ico{grid-column:1;grid-row:1;width:52px;height:52px}
+  html:not(#a) body .pl-card>.pl-photo .bc-thumb{width:52px !important;height:52px !important}
+  html:not(#a) body .pl-card>.bc-body{min-width:0;grid-column:2;grid-row:1;overflow-wrap:anywhere;word-break:normal}
+  html:not(#a) body .pl-card .bc-body *{white-space:normal;writing-mode:horizontal-tb}
+  html:not(#a) body .pl-card>.pl-side{grid-column:1 / -1;max-width:none;justify-content:flex-end;width:auto;min-width:0}
+  html:not(#a) body .pl-card>.pl-extra{grid-column:1 / -1}
+  html:not(#a) body .pl-ref,html:not(#a) body .pl-search,html:not(#a) body .pl-formcard{flex-wrap:wrap}
+  html:not(#a) body .pl-search-go{width:100%}
+  html:not(#a) body .av-days{grid-template-columns:repeat(4,minmax(0,1fr))}
+  html:not(#a) body .av-foot{flex-direction:column;align-items:stretch}
+  html:not(#a) body .av-foot .ui-button{width:100%}
+}

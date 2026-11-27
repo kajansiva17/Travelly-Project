@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession, publicRead } from '../../services/api'
 import { fieldErrorMap } from '../../services/fieldErrors.js'
-import { Header, ErrorNotice } from '../../components/components'
+import { Header, ErrorNotice, Icon } from '../../components/components'
 import { FlowShell } from '../booking/flow/FlowParts'
 import { Field, PlaceSearch } from '../owner/OwnerRates'
 import { Button } from '../../components/ui'
@@ -66,15 +66,16 @@ export default function SavedPlaces() {
     {notice && <p role="status">{notice}</p>}
     {items === null && !error && <p role="status">{t('Loading…')}</p>}
     {items && !items.length && <p className="flow-note" role="status">{t('No saved places yet.')}</p>}
-    {items && items.map(item => <section key={item.id} className="dash-row" style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', padding: '10px 0' }}>
-      <div><strong>{item.name}</strong><div>{item.place.label}</div></div>
+    {items && items.length > 0 && <div className="sp-list">{items.map(item => <article key={item.id} className="bc-card sp-card">
+      <span className="bc-thumb is-round" style={{ width: 48, height: 48 }}><Icon name="pin" size={22}/></span>
+      <div className="bc-body"><strong className="bc-name">{item.name}</strong><span className="bc-line">{item.place.label}</span></div>
       <Button variant="secondary" onClick={() => remove(item.id)}>{t('Remove')}</Button>
-    </section>)}
+    </article>)}</div>}
     {full ? <p className="flow-note" role="status">{t('You can keep up to {limit} saved places. Remove one to add another.', { limit })}</p>
-      : <form className="flow-fields" onSubmit={add}>
-        <Field label="Name"><input name="name" maxLength={30} value={name} onChange={event => setName(event.target.value)} placeholder={t('Home')} aria-invalid={Boolean(fieldMsg.name)}/></Field>
+      : <form className="flow-fields sp-form" onSubmit={add}>
+        <div className="sp-pair"><Field label="Name"><input name="name" maxLength={30} value={name} onChange={event => setName(event.target.value)} placeholder={t('Home')} aria-invalid={Boolean(fieldMsg.name)}/></Field>
+        <PlaceSearch label="Place" value={found} onChange={setFound}/></div>
         {fieldMsg.name && <small className="field-error" role="alert">{fieldMsg.name}</small>}
-        <PlaceSearch label="Place" value={found} onChange={setFound}/>
         <div className="sp-quick">
           <Button type="button" variant="secondary" disabled={locating} onClick={useHere}>{locating ? t('Locating you…') : t('Use my current location')}</Button>
           <Button type="button" variant="secondary" onClick={() => setMapOpen(open => !open)}>{mapOpen ? t('Hide map') : t('Pick on map')}</Button>

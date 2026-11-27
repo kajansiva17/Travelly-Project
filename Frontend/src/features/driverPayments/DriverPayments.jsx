@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { t } from '../../i18n/language.js'
 import { api, hasSession } from '../../services/api'
 import { Header, ErrorNotice } from '../../components/components'
-import { FlowShell, usePaged, useRowCount } from '../booking/flow/FlowParts'
+import { FlowShell } from '../booking/flow/FlowParts'
+import { EmptyCard, PersonCard, StatStrip } from '../people/PeopleParts'
+import { DriverReportPane } from '../reports/DriverReport'
 import { Field, Compact } from '../owner/OwnerRates'
 import Chip from '../../components/ui/Chip'
 import { displayTime } from '../../hooks/workspaceData'
@@ -60,52 +62,40 @@ export function PayDriverPanel({ tripId }) {
   </section>
 }
 
-/* Owner: sidebar > Pay Drivers. Completed trips that had a separate Driver and are not paid yet, and what was already paid.
-   The Owner may pay days after the trip; record it here whenever it is paid. */
-export function OwnerDriverPayments() {
-  const [due, setDue] = useState(null), [paid, setPaid] = useState(null), [error, setError] = useState(null), [tab, setTab] = useState(0), [openId, setOpenId] = useState(null)
-  const rows = useRowCount(66)
+/* Owner: My drivers > Pay Drivers tab. Completed trips that had a separate Driver and are not paid yet, and what was already paid.
+   The Owner may pay days after the trip; record it here whenever it is paid. Shown inside the My drivers page, so the tab bar stays. */
+export function PayDriversPane() {
+  const [due, setDue] = useState(null), [paid, setPaid] = useState(null), [error, setError] = useState(null), [sub, setSub] = useState(0), [openId, setOpenId] = useState(null)
   const load = () => Promise.all([api('/owners/me/driver-payments/due'), api('/owners/me/driver-payments')])
     .then(([d, p]) => { setDue(d); setPaid(p); setOpenId(null); setError(null) }).catch(setError)
   useEffect(() => { if (hasSession()) load() }, [])
-  const dueItems = due?.items || [], paidItems = paid?.items || []
-  const { slice, pager } = usePaged(tab === 0 ? dueItems : paidItems, Math.max(2, Math.min(rows, 4)))
-  if (!hasSession()) return <Navigate to="/login" replace/>
-  const loading = (due === null || paid === null) && !error, totals = paid?.totals
-  return <><Header/><FlowShell heading={t('Pay Drivers')} title={tab === 0 ? t('Drivers to pay') : t('Paid')} icon="wallet"
-    info={t('Completed trips that had a separate Driver. Pay the Driver now or days later, then record it here. Cash counts after the Driver confirms it.')}
-    tabs={[{ label: dueItems.length ? `${t('Drivers to pay')} (${dueItems.length})` : t('Drivers to pay'), icon: 'clock', active: tab === 0, onClick: () => setTab(0) },
-      { label: t('Paid'), icon: 'check', active: tab === 1, onClick: () => setTab(1) }]}>
-    <Compact.Provider value={true}>
-      <ErrorNotice error={error}/>
-      {loading && <p role="status">{t('Loading…')}</p>}
-      {tab === 1 && totals && <p className="flow-note"><strong>{t('Confirmed')}</strong>: {t('LKR')} {totals.confirmed_total} · <strong>{t('Waiting for the Driver')}</strong>: {t('LKR')} {totals.waiting_total}</p>}
-      {!loading && !error && !slice.length && <p className="flow-note" role="status">{tab === 0 ? t('Nothing is waiting to be paid to a Driver.') : t('No Driver payments recorded yet.')}</p>}
-      <div className="vehicle-rows">{tab === 0 ? slice.map(item => <article className="trip-vehicle-card" key={item.trip_id}>
-        <h2>{item.trip_reference}</h2>
-        <p>{item.driver?.name} · {displayTime(item.trip_date)}</p>
-        {item.declined_note && <p role="status">{t('The Driver said the cash was not received: {value0}', { value0: item.declined_note })}</p>}
-        {openId === item.trip_id
-          ? <><PayForm tripId={item.trip_id} onDone={load}/>
-              <span className="vehicle-row-actions"><button type="button" className="ui-button ui-button-secondary" onClick={() => setOpenId(null)}>{t('Cancel')}</button></span></>
-          : <span className="vehicle-row-actions"><button type="button" className="ui-button ui-button-primary" onClick={() => setOpenId(item.trip_id)}>{t('Pay Driver')}</button></span>}
-      </article>) : slice.map(p => <article className="trip-vehicle-card" key={p.id}>
-        <h2>{t('LKR')} {p.amount}</h2>
-        <p>{p.trip_reference} · {p.other_party?.name} · {t('Paid on')} {p.paid_on}</p>
-        <p>{methodLabel(p.method)}{p.reference ? ` · ${p.reference}` : ''}{' '}
-          {p.status === 'CONFIRMED' ? <Chip tone="success">{t('Confirmed')}</Chip> : <Chip tone="muted">{t('Waiting for the Driver to confirm the cash.')}</Chip>}</p>
-      </article>)}</div>{(tab === 0 ? dueItems : paidItems).length > 0 && pager}
-    </Compact.Provider>
-  </FlowShell></>
+  const dueItems = due?.items || [], paidItems = paid?.items || [], loading = (due === null || paid === null) && !error, totals = paid?.totals
+  const shown = sub === 0 ? dueItems : paidItems
+  return <>
+    <ErrorNotice error={error}/>
+    <div className="bk-groups" role="tablist"><Chip selected={sub === 0} onClick={() => setSub(0)}>{t('Drivers to pay')} ({dueItems.length})</Chip><Chip selected={sub === 1} onClick={() => setSub(1)}>{t('Paid')} ({paidItems.length})</Chip></div>
+    {sub === 1 && totals && <StatStrip items={[{ icon: 'check', tone: 'success', label: t('Confirmed'), value: `${t('LKR')} ${totals.confirmed_total}` }, { icon: 'clock', tone: 'warning', label: t('Waiting for the Driver'), value: `${t('LKR')} ${totals.waiting_total}` }]}/>}
+    {loading && <p role="status">{t('Loading…')}</p>}
+    {!loading && !error && !shown.length && <EmptyCard icon="wallet" title={sub === 0 ? t('Nothing is waiting to be paid to a Driver.') : t('No Driver payments recorded yet.')}/>}
+    {shown.length > 0 && <div className="bk-list pl-list">{sub === 0 ? dueItems.map(item => <PersonCard key={item.trip_id} name={item.driver?.name || t('Driver')} photo={item.driver?.profile_image_url} icon="wallet"
+      lines={[item.trip_reference, displayTime(item.trip_date), item.declined_note && t('The Driver said the cash was not received: {value0}', { value0: item.declined_note })]}
+      chips={item.declined_note ? <Chip tone="danger">{t('Cash not received')}</Chip> : <Chip tone="warning">{t('To pay')}</Chip>}
+      actions={openId === item.trip_id ? null : <button type="button" className="ui-button ui-button-primary" onClick={() => setOpenId(item.trip_id)}>{t('Pay Driver')}</button>}
+      extra={openId === item.trip_id ? <div className="pl-payform"><PayForm tripId={item.trip_id} onDone={load}/><button type="button" className="ui-button ui-button-secondary" onClick={() => setOpenId(null)}>{t('Cancel')}</button></div> : null}/>)
+      : paidItems.map(p => <PersonCard key={p.id} name={p.other_party?.name || t('Driver')} photo={p.other_party?.profile_image_url} icon="wallet" tone={p.status === 'CONFIRMED' ? 'paid' : 'waiting'}
+        lines={[`${p.trip_reference} · ${t('Paid on')} ${p.paid_on}`, `${methodLabel(p.method)}${p.reference ? ` · ${p.reference}` : ''}`]}
+        actions={<><strong className="bc-price">{t('LKR')} {p.amount}</strong>{p.status === 'CONFIRMED' ? <Chip tone="success">{t('Confirmed')}</Chip> : <Chip tone="muted">{t('Waiting for the Driver to confirm the cash.')}</Chip>}</>}/>)}</div>}
+  </>
 }
 
-/* Driver: sidebar > Earnings. What your Owners recorded they paid you. Cash counts only after you confirm it. */
-export default function DriverEarnings() {
-  const [data, setData] = useState(null), [error, setError] = useState(null), [busy, setBusy] = useState(false)
-  const [askId, setAskId] = useState(null), [note, setNote] = useState('')
-  const rows = useRowCount(66)
+const EARN_GROUPS = [['Waiting for you', 'PENDING_DRIVER', 'warning'], ['Confirmed', 'CONFIRMED', 'success'], ['Not received', 'DECLINED', 'danger']]
+
+/* Driver: sidebar > Earnings. What your Owners recorded they paid you, in groups, with the Monthly report as a tab beside it.
+   Cash counts only after you confirm it. */
+export default function DriverEarnings({ initialTab = 0 }) {
+  const [data, setData] = useState(null), [error, setError] = useState(null), [busy, setBusy] = useState(false), [tab, setTab] = useState(initialTab)
+  const [askId, setAskId] = useState(null), [note, setNote] = useState(''), [group, setGroup] = useState(0), [picked, setPicked] = useState(false)
   const items = data?.items || []
-  const { slice, pager } = usePaged(items, Math.max(2, Math.min(rows, 4)))
   const load = () => api('/drivers/me/payments').then(setData).catch(setError)
   useEffect(() => { if (hasSession()) load() }, [])
   async function run(fn) {
@@ -115,29 +105,29 @@ export default function DriverEarnings() {
   const confirm = p => run(() => post(`/driver-payments/${p.id}/confirm`))
   const decline = p => run(() => post(`/driver-payments/${p.id}/decline`, { note: note.trim() }))
   if (!hasSession()) return <Navigate to="/login" replace/>
-  const totals = data?.totals
-  return <><Header/><FlowShell heading={t('Earnings')} title={t('Payments from your Owners')} icon="wallet"
-    info={t('Owners record what they paid you for each completed trip. Cash counts only after you confirm it.')}>
+  const totals = data?.totals, inGroup = i => items.filter(p => p.status === EARN_GROUPS[i][1])
+  const active = picked ? group : Math.max(0, EARN_GROUPS.findIndex((_, i) => inGroup(i).length)), shown = inGroup(active)
+  return <><Header/><FlowShell heading={t('Earnings')} title={tab === 0 ? t('Payments from your Owners') : t('Monthly report')} icon={tab === 0 ? 'wallet' : 'chart'}
+    info={tab === 0 ? t('Owners record what they paid you for each completed trip. Cash counts only after you confirm it.') : t('Your trips and the payments your Owners recorded for one month.')}
+    tabs={[{ label: t('Payments'), icon: 'wallet', active: tab === 0, onClick: () => setTab(0) }, { label: t('Monthly report'), icon: 'chart', active: tab === 1, onClick: () => setTab(1) }]}>
     <Compact.Provider value={true}>
-      <ErrorNotice error={error}/>
-      <p><Link className="ui-button ui-button-secondary" to="/driver/reports">{t('Monthly report')}</Link></p>
-      {totals && <p className="flow-note"><strong>{t('Confirmed')}</strong>: {t('LKR')} {totals.confirmed_total} · <strong>{t('Waiting for you')}</strong>: {t('LKR')} {totals.waiting_total}</p>}
-      {data === null && !error && <p role="status">{t('Loading…')}</p>}
-      {data && !items.length && <p className="flow-note" role="status">{t('No payments yet.')}</p>}
-      <div className="vehicle-rows">{slice.map(p => <article className="trip-vehicle-card" key={p.id}>
-        <h2>{t('LKR')} {p.amount}</h2>
-        <p>{p.trip_reference} · {p.other_party?.name} · {t('Paid on')} {p.paid_on}</p>
-        <p>{methodLabel(p.method)}{p.reference ? ` · ${p.reference}` : ''}{' '}
-          {p.status === 'CONFIRMED' ? <Chip tone="success">{t('Confirmed')}</Chip> : <Chip tone="muted">{t('Waiting for your confirmation')}</Chip>}</p>
-        {p.status === 'PENDING_DRIVER' && (askId === p.id
-          ? <span className="vehicle-row-actions">
-              <input aria-label={t('Tell the Owner what happened')} placeholder={t('Tell the Owner what happened')} maxLength={300} value={note} onChange={e => setNote(e.target.value)}/>
-              <button type="button" className="ui-button ui-button-primary" disabled={busy || !note.trim()} onClick={() => decline(p)}>{t('Send')}</button>
-              <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => { setAskId(null); setNote('') }}>{t('Cancel')}</button></span>
-          : <span className="vehicle-row-actions">
-              <button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={() => confirm(p)}>{t('Cash received')}</button>
-              <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => setAskId(p.id)}>{t('Not received')}</button></span>)}
-      </article>)}</div>{items.length > 0 && pager}
+      {tab === 0 && <div className="flow-wizard-form booking-pane">
+        <ErrorNotice error={error}/>
+        {totals && <StatStrip items={[{ icon: 'check', tone: 'success', label: t('Confirmed'), value: `${t('LKR')} ${totals.confirmed_total}` }, { icon: 'clock', tone: 'warning', label: t('Waiting for you'), value: `${t('LKR')} ${totals.waiting_total}` }]}/>}
+        <div className="bk-groups" role="tablist">{EARN_GROUPS.map(([label], i) => <Chip key={label} selected={active === i} onClick={() => { setGroup(i); setPicked(true) }}>{t(label)} ({inGroup(i).length})</Chip>)}</div>
+        {data === null && !error && <p role="status">{t('Loading…')}</p>}
+        {data && !shown.length && <EmptyCard icon="wallet" title={items.length ? t('Nothing in this tab yet.') : t('No payments yet.')}>{!items.length && t('When an Owner records a payment for a completed trip, it shows up here.')}</EmptyCard>}
+        {shown.length > 0 && <div className="bk-list pl-list">{shown.map(p => <PersonCard key={p.id} name={p.other_party?.name || t('Owner')} photo={p.other_party?.profile_image_url} icon="wallet" tone={p.status === 'CONFIRMED' ? 'paid' : p.status === 'DECLINED' ? 'failed' : 'waiting'}
+          lines={[`${p.trip_reference} · ${t('Paid on')} ${p.paid_on}`, `${methodLabel(p.method)}${p.reference ? ` · ${p.reference}` : ''}`]}
+          actions={<><strong className="bc-price">{t('LKR')} {p.amount}</strong>{p.status === 'CONFIRMED' ? <Chip tone="success">{t('Confirmed')}</Chip> : p.status === 'DECLINED' ? <Chip tone="danger">{t('Not received')}</Chip> : <Chip tone="warning">{t('Waiting for your confirmation')}</Chip>}</>}
+          extra={p.status === 'PENDING_DRIVER' ? (askId === p.id
+            ? <div className="pl-payform is-row"><input aria-label={t('Tell the Owner what happened')} placeholder={t('Tell the Owner what happened')} maxLength={300} value={note} onChange={e => setNote(e.target.value)}/>
+                <button type="button" className="ui-button ui-button-primary" disabled={busy || !note.trim()} onClick={() => decline(p)}>{t('Send')}</button>
+                <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => { setAskId(null); setNote('') }}>{t('Cancel')}</button></div>
+            : <div className="pl-payform is-row"><button type="button" className="ui-button ui-button-primary" disabled={busy} onClick={() => confirm(p)}>{t('Cash received')}</button>
+                <button type="button" className="ui-button ui-button-secondary" disabled={busy} onClick={() => setAskId(p.id)}>{t('Not received')}</button></div>) : null}/>)}</div>}
+      </div>}
+      {tab === 1 && <DriverReportPane/>}
     </Compact.Provider>
   </FlowShell></>
 }

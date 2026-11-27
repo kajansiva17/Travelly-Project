@@ -590,6 +590,45 @@ def hide_booking(booking_id: UUID, user=Depends(current), db: Session = Depends(
     return {'id': str(row.id), 'hidden': True}
 
 
+def replacement_view(db, row):
+    """What a Passenger needs to judge a replacement vehicle on a ticket booking: the old and new vehicle (photos, facts), the Owner
+    who now runs it, and the seat layout with the Passenger's own seats marked."""
+    change = row.pending_change or {}
+    if row.booking_type != 'TICKET_HIRE' or change.get('kind') != 'REPLACEMENT_VEHICLE' or not change.get('scheduled_trip_id'):
+        return None
+    from app.models.seat_models import VehicleSeat
+    target = db.get(ScheduledTrip, UUID(change['scheduled_trip_id']))
+    vehicle = db.get(Vehicle, target.current_vehicle_id) if target else None
+    if vehicle is None:
+        return None
+
+    def facts(v):
+        return {'name': v.display_name or ' '.join(x for x in (v.make, v.model) if x) or v.public_vehicle_reference,
+                'registration': str(v.registration_number), 'vehicle_type_code': v.vehicle_type_code, 'colour': v.colour,
+                'air_conditioned': v.air_conditioned, 'seat_capacity': v.seat_capacity, 'profile_image_url': v.profile_image_url}
+
+    def person(user_id):
+        u = db.get(User, user_id) if user_id else None
+        return {'name': u.display_name or u.full_name, 'profile_image_url': u.profile_image_url} if u else None
+    previous_ref = (change.get('previous_vehicle') or {}).get('public_vehicle_reference')
+    previous = db.scalar(select(Vehicle).where(Vehicle.public_vehicle_reference == previous_ref)) if previous_ref else None
+    version = db.scalar(select(func.max(VehicleSeat.layout_version)).where(VehicleSeat.vehicle_id == vehicle.id, VehicleSeat.is_active.is_(True)))
+    mine = {s['to_seat'] for s in change.get('seats', [])}
+    layout = [] if version is None else [
+        {'code': s.seat_code, 'deck': s.deck_number, 'row': s.row_number, 'column': s.column_number, 'type': s.seat_type,
+         'bookable': s.is_bookable, 'mine': s.seat_code in mine}
+        for s in db.scalars(select(VehicleSeat).where(VehicleSeat.vehicle_id == vehicle.id, VehicleSeat.is_active.is_(True),
+                                                      VehicleSeat.layout_version == version)
+                            .order_by(VehicleSeat.deck_number, VehicleSeat.row_number, VehicleSeat.column_number)).all()]
+    return {'status': change.get('status'), 'operator_changed': bool(change.get('operator_changed')),
+            'refund_if_rejected_percent': change.get('refund_if_rejected_percent', 100),
+            'previous_vehicle': facts(previous) if previous else None,
+            'previous_owner': person(row.requested_owner_user_id) if row.requested_owner_user_id else None,
+            'vehicle': {**facts(vehicle), 'photos': public_photos(vehicle)[:8]}, 'owner': person(target.owner_user_id),
+            'seats': [{k: v for k, v in s.items() if k in ('full_name', 'from_seat', 'to_seat')} for s in change.get('seats', [])],
+            'layout': layout}
+
+
 @router.get('/bookings/{booking_id}')
 def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depends(get_db)):
     row = visible_booking(db, booking_id, user)
@@ -608,6 +647,8 @@ def booking_detail(booking_id: UUID, user=Depends(current), db: Session = Depend
         # The seats and Travellers of a ticket booking, for the Passenger who booked it and the Owner who runs it.
         from app.models.seat_models import BookingTraveller, ScheduledTripSeat, VehicleSeat
         result['scheduled_trip_id'] = str(row.current_scheduled_trip_id) if row.current_scheduled_trip_id else None
+        result['replacement'] = replacement_view(db, row)
+        result['pending_change'] = row.pending_change
         result['travellers'] = [] if user.id not in (row.owner_user_id, row.passenger_user_id) else [
             {'full_name': t.full_name, 'is_primary': t.is_primary, 'traveller_status': t.traveller_status, 'seat_code': seat.seat_code}
             for t, _, seat in db.execute(select(BookingTraveller, ScheduledTripSeat, VehicleSeat)

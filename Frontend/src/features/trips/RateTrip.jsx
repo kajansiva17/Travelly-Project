@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { t } from '../../i18n/language.js'
 import { api } from '../../services/api'
-import { ErrorNotice } from '../../components/components'
+import { ErrorNotice, Icon } from '../../components/components'
 import { Button, FormField } from '../../components/ui'
 
 export const stars = count => '★'.repeat(count) + '☆'.repeat(5 - count)
@@ -52,8 +52,8 @@ export default function RateTrip({ tripId }) {
   // after a delete the same trip can be reviewed again (state.can_review is true and there is no review)
   if (state.review && !editing) {
     const review = state.review
-    return <section className="flow-wizard-form" aria-label={t('Your review')}>
-      <strong>{t('Your review')}</strong>
+    return <section className="bc-card rt-card" aria-label={t('Your review')}>
+      <strong className="rt-title"><Icon name="star" size={18}/>{t('Your review')}</strong>
       <p aria-label={t('{value0} out of 5', { value0: review.rating })} style={{ margin: 0, fontSize: 22, color: '#f5a623' }}>{stars(review.rating)}</p>
       {review.driver_rating && <p className="flow-note">{t('Driver')}{': '}{stars(review.driver_rating)}</p>}
       {review.comment && <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{review.comment}</p>}
@@ -69,13 +69,13 @@ export default function RateTrip({ tripId }) {
       </>}
     </section>
   }
-  return <form className="flow-wizard-form" onSubmit={submit}>
-    <strong>{editing ? t('Edit your review') : t('Rate this trip')}</strong>
+  return <form className="bc-card rt-card" onSubmit={submit}>
+    <strong className="rt-title"><Icon name="star" size={18}/>{editing ? t('Edit your review') : t('Rate this trip')}</strong>
     <ErrorNotice error={error}/>
-    <FormField label={t('How was the vehicle and the service?')}>{() => <Stars value={rating} onChange={setRating} label={t('How was the vehicle and the service?')}/>}</FormField>
-    {state.has_driver && <FormField label={t('How was the Driver?')}>{() => <Stars value={driver} onChange={setDriver} label={t('How was the Driver?')}/>}</FormField>}
+    <div className="rt-rates"><FormField label={t('How was the vehicle and the service?')}>{() => <Stars value={rating} onChange={setRating} label={t('How was the vehicle and the service?')}/>}</FormField>
+    {state.has_driver && <FormField label={t('How was the Driver?')}>{() => <Stars value={driver} onChange={setDriver} label={t('How was the Driver?')}/>}</FormField>}</div>
     <FormField label={t('Comment (optional)')}>
-      {({ id }) => <textarea id={id} rows={3} maxLength={500} value={comment} onChange={event => setComment(event.target.value)}/>}
+      {({ id }) => <textarea id={id} rows={2} maxLength={500} value={comment} onChange={event => setComment(event.target.value)}/>}
     </FormField>
     <div className="flow-actions"><Button type="submit" disabled={busy || !rating}>{busy ? t('Submitting…') : editing ? t('Save changes') : t('Submit review')}</Button>
       {editing && <Button type="button" variant="secondary" onClick={() => setEditing(false)}>{t('Cancel')}</Button>}</div>

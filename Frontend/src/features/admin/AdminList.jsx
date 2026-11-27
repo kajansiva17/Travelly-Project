@@ -2,7 +2,8 @@ import { t } from '../../i18n/language.js'
 import {useState} from 'react'
 import {Header,ErrorNotice} from '../../components/components'
 import {Compact} from '../owner/OwnerRates'
-import {FlowShell,usePaged,useRowCount} from '../booking/flow/FlowParts'
+import {FlowShell,usePaged} from '../booking/flow/FlowParts'
+import {Thumb} from '../booking/BookingCardParts'
 import Chip from '../../components/ui/Chip'
 import {Notice,Empty} from '../ticketing/TicketParts'
 import {CODE_LABELS,codeLabel} from '../../i18n/codeLabels.js'
@@ -12,7 +13,6 @@ import {CODE_LABELS,codeLabel} from '../../i18n/codeLabels.js'
 //   row(item) -> { title, meta, status, tone, actions }     detail(item) -> node
 export default function AdminList({heading,title,icon='document',info,tabs,notice,error,filters,filterCols=3,items,empty,row,detail,detailTitle,detailLabel,custom,footer}){
   const [open,setOpen]=useState(null)
-  const list=usePaged(items||[],Math.max(2,useRowCount(filters?84:64)))
   // The opened record is re-read from the latest items, so details never show a stale version after a save.
   const keyOf=i=>row?(row(i).key??i.id):i.id
   const current=open&&items?(items.find(i=>keyOf(i)===keyOf(open))||open):open
@@ -25,14 +25,15 @@ export default function AdminList({heading,title,icon='document',info,tabs,notic
         ?<><div className="tk-pane tk-detail">{detail(current)}</div><div className="flow-actions"><button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(null)}>{t('Back to list')}</button></div></>
         :<>
           {filters&&<div className="tk-grid" style={{'--cols':filterCols}}>{filters}</div>}
-          <div className="tk-pane">
+          <div className="tk-pane ad-pane">
             {items===null&&!error?<p role="status">{t('Loading…')}</p>:(items||[]).length
-              ?<div className="tk-rows">{list.slice.map((item,i)=>{const r=row(item);return <article className="tk-row" key={r.key||item.id||i}>
-                <div className="tk-row-main"><strong>{r.title}</strong>{r.meta&&<span>{r.meta}</span>}</div>
-                <div className="tk-row-actions">{r.status&&<Chip tone={r.tone||'muted'}>{r.status}</Chip>}{r.actions}{detail&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(item)}>{t(detailLabel||'Details')}</button>}</div></article>})}</div>
+              ?<div className="tk-rows ad-rows">{(items||[]).map((item,i)=>{const r=row(item);return <article className="bc-card ad-row" key={r.key||item.id||i}>
+                <Thumb icon={icon} round size={44}/>
+                <div className="bc-body"><strong className="bc-name">{r.title}</strong>{r.meta&&<span className="bc-sub">{r.meta}</span>}</div>
+                <div className="bc-side ad-side">{r.status&&<Chip tone={r.tone||'muted'}>{r.status}</Chip>}{r.actions}{detail&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>setOpen(item)}>{t(detailLabel||'Details')}</button>}</div></article>})}</div>
               :items!==null&&<Empty>{empty}</Empty>}
           </div>
-          <div className="flow-actions">{footer||<span/>}{list.pages>1?list.pager:null}</div>
+          <div className="flow-actions">{footer||<span/>}<span/></div>
         </>}
     </Compact.Provider>
   </FlowShell></>

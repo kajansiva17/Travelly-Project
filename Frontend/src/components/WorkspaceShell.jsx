@@ -13,6 +13,7 @@ import {NOTIFICATION_POLL_MS} from '../features/notifications/unread.js'
 import LiveLocationSender from '../features/live/LiveLocationSender'
 import IncomingRides from '../features/live/IncomingRides'
 import ChatHost from '../features/trips/ChatHost'
+import DecisionHost from '../features/booking/DecisionHost'
 import NotificationPanel from '../features/notifications/NotificationPanel'
 import {bellOpened} from '../features/trips/chatEvents'
 
@@ -91,6 +92,7 @@ export default function WorkspaceShell({role:fixedRole}){
    <LiveLocationSender enabled={Boolean(access.user)&&authorized&&(allowed.includes('OWNER')||allowed.includes('DRIVER'))}/>
    <IncomingRides role={role}/>
    <ChatHost enabled={Boolean(access.user)&&authorized}/>
+   <DecisionHost enabled={Boolean(access.user)&&authorized}/>
    {panelOpen&&<NotificationPanel role={role} seeAll={notificationPath} onClose={()=>setPanelOpen(false)}/>}
    <div className="workspace-topbar" ref={header}>
     <Header dashboard workspaceHeader>

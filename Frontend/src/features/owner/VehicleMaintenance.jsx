@@ -2,6 +2,7 @@ import { t } from '../../i18n/language.js'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {api} from '../../services/api'
 import Chip from '../../components/ui/Chip'
+import {Icon} from '../../components/components'
 import InfoTip from '../../components/ui/InfoTip'
 import {Field,RateErrors} from './OwnerRates'
 import {Pager} from '../booking/flow/FlowParts'
@@ -175,21 +176,20 @@ export default function VehicleMaintenance({vehicle,Footer}){
   if(!records)return <p role="status">{t('Loading maintenance…')}</p>
 
   const totals=records.totals||{}
-  return <div className="tk-pane">
+  return <div className="tk-pane mt-pane">
     {sub}
     {result&&<p className={`tk-line${result.tone==='warn'?' is-warn':''}`} role="status">{result.tone==='ok'?'✓ ':''}{result.text}</p>}
     {view==='summary'&&<>
       {sumError&&<p className="tk-line is-warn" role="status">{explain(sumError).text}</p>}
       {summary?.estimate_note&&<p className="tk-line">{t(summary.estimate_note)}</p>}
       {summary&&summary.items?.length>0
-        ?<><div className="tk-rows">{taskPage.slice.map(item=>{const [tone,label,icon]=STATUS[item.status]||['muted',codeEnglish(item.status)]
+        ?<><div className="bk-list pl-list mt-list">{(summary.items||[]).map(item=>{const [tone,label,icon]=STATUS[item.status]||['muted',codeEnglish(item.status)]
           const left=item.remaining_km!=null?`${kmText(Math.abs(Number(item.remaining_km)))} ${Number(item.remaining_km)<0?t('overdue'):t('left')}`:null
           const due=item.estimated_due_date?`${t('Due about')} ${dateOnly(item.estimated_due_date)}`:item.next_due_odometer_km!=null&&item.estimate_note?t('Estimated date unavailable'):null
           const cal=item.genuine_calendar_due_date?`${t('Due date')} ${dateOnly(item.genuine_calendar_due_date)}`:null
           const meta=[left,due,cal].filter(Boolean).join(' · ')||(item.status==='NOT_RECORDED'?t('No record yet'):item.status==='NO_LIMIT_SET'?t('Done, but no next limit was given'):'')
-          return <article className="tk-row" key={item.task}><div className="tk-row-main"><strong>{typeLabel(item.task)}</strong><span>{meta}</span></div>
-            <div className="tk-row-actions"><Chip tone={tone} icon={icon}>{t(label)}</Chip>{canAdd&&(records.allowed_record_types||[]).includes(item.task)&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>addFor(item.task)}>{t('Record')}</button>}</div></article>})}</div>
-          {taskPage.pages>1&&<div className="tk-bar">{taskPage.pager}</div>}</>
+          return <article className={'bc-card pl-card is-'+tone} key={item.task}><span className="pl-ico"><Icon name={tone==='danger'?'alert':tone==='success'?'check':'settings'} size={22}/></span><div className="bc-body"><strong className="bc-name">{typeLabel(item.task)}</strong>{meta&&<span className="bc-sub">{meta}</span>}</div>
+            <div className="bc-side pl-side"><Chip tone={tone} icon={icon}>{t(label)}</Chip>{canAdd&&(records.allowed_record_types||[]).includes(item.task)&&<button type="button" className="ui-button ui-button-secondary" onClick={()=>addFor(item.task)}>{t('Record')}</button>}</div></article>})}</div></>
         :summary&&<Empty>{canAdd?t('No maintenance tasks to show yet. Add a service record to start tracking when each task is due.'):t('No maintenance tasks to show yet.')}</Empty>}
       {!summary&&!sumError&&<p role="status">{t('Loading maintenance…')}</p>}
     </>}
@@ -198,12 +198,11 @@ export default function VehicleMaintenance({vehicle,Footer}){
         <span className="tk-grow"/>
         <select aria-label={t('Type of record')} name="records-filter" value={filter} onChange={e=>{setFilter(e.target.value);recordPage.setPage(0)}} style={{minWidth:200}}><option value="">{t('All types')}</option>{(records.allowed_record_types||[]).map(x=><option key={x} value={x}>{typeLabel(x)}</option>)}</select></div>
       {list.length
-        ?<><div className="tk-rows">{recordPage.slice.map(item=>{
+        ?<><div className="bk-list pl-list mt-list">{list.map(item=>{
           const reading=item.odometer_km!=null?kmText(item.odometer_km):item.start_odometer_km!=null?`${kmText(item.start_odometer_km)} → ${kmText(item.end_odometer_km)}`:null
           const meta=[formatDateTime(item.recorded_at),reading,item.service_provider,item.quantity!=null?`${Number(item.quantity)} ${item.unit||'L'}`:null,item.charging_kwh!=null?`${Number(item.charging_kwh)} kWh`:null].filter(Boolean).join(' · ')
-          return <article className="tk-row" key={item.id}><div className="tk-row-main"><strong>{typeLabel(item.record_type)}{item.amount!=null&&` · ${moneyText(item.currency,item.amount)}`}</strong><span>{meta}</span></div>
-            <div className="tk-row-actions">{item.review_status==='NEEDS_REVIEW'&&<><Chip tone="danger" icon="alert">{t('Needs review')}</Chip><InfoTip>{t('This reading was lower than the vehicle’s newer reading. It is saved but did not change the odometer.')}</InfoTip></>}</div></article>})}</div>
-          {recordPage.pages>1&&<div className="tk-bar">{recordPage.pager}</div>}</>
+          return <article className={'bc-card pl-card'+(item.review_status==='NEEDS_REVIEW'?' is-danger':'')} key={item.id}><span className="pl-ico"><Icon name={['FUEL_PURCHASE','EV_CHARGING'].includes(item.record_type)?'wallet':item.record_type==='ODOMETER_UPDATE'||item.record_type==='PERSONAL_EXTRA_USE'?'route':'settings'} size={22}/></span><div className="bc-body"><strong className="bc-name">{typeLabel(item.record_type)}</strong>{meta&&<span className="bc-sub">{meta}</span>}</div>
+            <div className="bc-side pl-side">{item.amount!=null&&<strong className="bc-price">{moneyText(item.currency,item.amount)}</strong>}{item.review_status==='NEEDS_REVIEW'&&<><Chip tone="danger" icon="alert">{t('Needs review')}</Chip><InfoTip>{t('This reading was lower than the vehicle’s newer reading. It is saved but did not change the odometer.')}</InfoTip></>}</div></article>})}</div></>
         :<Empty>{records.items?.length?t('No records of this type.'):t('No records yet. Add the first service, fuel or odometer record for this vehicle.')}</Empty>}
     </>}
     {view==='add'&&<AddRecord data={records} startType={startType} Footer={Footer} onSaved={saved} onCancel={()=>setView('summary')}/>}

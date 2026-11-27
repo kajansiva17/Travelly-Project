@@ -64,7 +64,9 @@ def boarding_code(booking_id: UUID, user=Depends(current), db: Session = Depends
     if not rows or not any(inventory.seat_status == 'BOOKED' for _, inventory, _ in rows):
         raise ApiError(409, 'SEATS_NOT_CONFIRMED', 'The boarding code opens after the seats are paid for.')
     return {'qr_token': ticket_token(booking.id), 'pin': ticket_pin(booking.id), 'travellers': len(rows),
-            'boarded': sum(1 for traveller, _, _ in rows if traveller.traveller_status in ('BOARDED', 'COMPLETED'))}
+            'boarded': sum(1 for traveller, _, _ in rows if traveller.traveller_status in ('BOARDED', 'COMPLETED')),
+            # The seat of each Traveller, shown beside the QR code so the Driver and the Passenger see who sits where.
+            'seats': [{'full_name': traveller.full_name, 'seat_code': seat.seat_code} for traveller, _, seat in rows]}
 
 
 @router.post('/scheduled-trips/{trip_id}/boarding-checks')

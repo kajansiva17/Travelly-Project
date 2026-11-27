@@ -38,6 +38,7 @@ export default function TicketBoardingCode({ bookingId }) {
       <QRImage token={data.qr_token}/>
       <div className="pickup-code-side">
         <p className="pickup-pin" aria-label={t('Six digit PIN')}>{data.pin}</p>
+        {data.seats?.length > 0 && <ul className="bc-seat-list">{data.seats.map((x, i) => <li key={i}><strong>{t('Seat')} {x.seat_code}</strong><span>{x.full_name}</span></li>)}</ul>}
         <p className="flow-note">{t('Show the QR code to the Driver. If it will not scan, read out the six digits.')}</p>
         <p className="flow-note">{t('Boarded: {value0} of {value1}', { value0: data.boarded, value1: data.travellers })}</p>
       </div>

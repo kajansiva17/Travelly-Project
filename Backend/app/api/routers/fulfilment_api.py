@@ -633,6 +633,7 @@ def candidate_list(db, departure):
         km = vehicle_distance(vehicle, pickup)
         found.append({'vehicle_id': str(vehicle.id), **summary(vehicle), 'bookable_seats': len(bookable_seats(db, vehicle.id)),
                       'owner_name': (owner.display_name or owner.full_name) if owner else None,
+                      'profile_image_url': vehicle.profile_image_url, 'owner_image_url': owner.profile_image_url if owner else None,
                       'location_label': vehicle.base_location_label, 'distance_km': None if km is None else round(km, 1),
                       'same_owner': vehicle.owner_user_id == departure.owner_user_id, 'already_asked': vehicle.id in asked})
     found.sort(key=lambda item: (item['distance_km'] is None, item['distance_km'] or 0, item['public_vehicle_reference']))

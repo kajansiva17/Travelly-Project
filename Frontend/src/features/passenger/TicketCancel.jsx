@@ -22,7 +22,7 @@ const reasons=['Plans changed','Booked by mistake','Found another option','Illne
 
 export const REFUND_STATUS={PENDING:['info','Waiting for Admin approval'],PROCESSING:['info','Being refunded'],PAID:['success','Refunded'],FAILED:['danger','Refund declined']}
 
-export default function TicketCancel({booking,departureAt,refresh,onDone,onClose}){
+export default function TicketCancel({booking,departureAt,refresh,onDone,onClose,onBlocked}){
   const [phase,setPhase]=useState('review'),[reason,setReason]=useState('Plans changed'),[other,setOther]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(null),[errors,setErrors]=useState({})
   const unpaidCash=booking.payment_status==='CASH_AWAITING_CONFIRMATION'   // a seat to be paid on the bus: nothing was paid, so nothing is refunded
   const band=refundBand(departureAt||booking.itinerary?.departure_at,booking.total_amount)
@@ -43,7 +43,7 @@ export default function TicketCancel({booking,departureAt,refresh,onDone,onClose
       setPhase('review')
       if(code==='VERSION_CONFLICT'){refresh().catch(()=>{});setMessage(t('This booking changed while you were looking. It was refreshed. Check the refund below and confirm again.'))}
       else if(code==='TICKET_NOT_CANCELLABLE'){refresh().catch(()=>{});setMessage(t('This ticket cannot be cancelled. It may already be cancelled, or it is not paid yet. A held seat can be released instead.'))}
-      else if(code==='DEPARTURE_STARTED')setMessage(t('This departure has already started, so the ticket can no longer be cancelled.'))
+      else if(code==='DEPARTURE_STARTED'){setMessage(t('This departure has already started, so the ticket can no longer be cancelled.'));onBlocked&&onBlocked()}
       else if(code==='BOOKING_NOT_FOUND'||error.status===404)setMessage(t('We could not find this booking.'))
       else if(code==='VALIDATION_ERROR'&&fields.length){setErrors(Object.fromEntries(fields.map(f=>[f.field==='reason'?(reason==='Other'?'other':'reason'):f.field,f.message])))}
       else setMessage(error.message||t('The ticket could not be cancelled. Please try again.'))

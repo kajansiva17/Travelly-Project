@@ -10,7 +10,7 @@ test('workspace eligibility requires current account and both approved role repr
  assert.deepEqual(eligibleWorkspaces(null,roles),[])
 })
 test('role menus retain every required destination and bottom account controls',()=>{
- const expected={PASSENGER:11,OWNER:14,DRIVER:13,ADMIN:14}
+ const expected={PASSENGER:12,OWNER:14,DRIVER:13,ADMIN:14}
  for(const [role,length] of Object.entries(expected)){const menu=workspaceMenu(role);assert.equal(menu.length,length);assert.equal(new Set(menu.map(m=>m.label)).size,length);assert.deepEqual(new Set(menu.filter(m=>m.bottom).map(m=>m.label)),new Set(['Profile','Settings']));assert.ok(menu.every(m=>m.path.startsWith('/')))}
 })
 test('workspace query is an allowlisted UI selection and preserves existing URL parts',()=>{

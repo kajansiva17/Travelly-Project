@@ -50,8 +50,7 @@ import {legacyApplicationRole,onboardingPath} from './features/auth/onboardingJo
 import {useWorkspace} from './context/workspaceContext'
 import {accountPath,canDriveAsOwner} from './routes/workspaceRoutes'
 import {OwnerDashboard,DriverDashboard,AdminDashboard,OwnerOperations,WorkspaceBookings,WorkspaceSettings,WorkspacePlaceholder} from './components/RoleDashboards'
-import DriverEarnings, { OwnerDriverPayments } from './features/driverPayments/DriverPayments'
-import DriverReport from './features/reports/DriverReport'
+import DriverEarnings from './features/driverPayments/DriverPayments'
 import GoOnline from './features/live/GoOnline'
 import NearbyNow from './features/live/NearbyNow'
 import SavedPlaces from './features/passenger/SavedPlaces'
@@ -237,11 +236,11 @@ export default function App() {
           <Route element={<WorkspaceShell/>}>
             <Route path="/dashboard" element={<PassengerEntry/>}/>
             <Route path="/account" element={<AccountEntry/>}/>
-            <Route path="/bookings" element={<WorkspaceBookings/>}/>
+            <Route path="/bookings" element={<WorkspaceBookings scope="private"/>}/>
             <Route path="/nearby-now" element={<NearbyNow/>}/>
             <Route path="/bookings/:bookingId" element={<BookingPage/>}/>
             <Route path="/trips/:tripId/operation" element={<DriverTripPage/>}/>
-            <Route path="/passenger/bookings" element={<WorkspaceBookings/>}/>
+            <Route path="/passenger/bookings" element={<WorkspaceBookings scope="other"/>}/>
             <Route path="/passenger/favourites" element={<FavouriteVehicles/>}/>
             <Route path="/passenger/saved-places" element={<SavedPlaces/>}/>
             <Route path="/passenger/payments" element={<PassengerPayments/>}/>
@@ -259,7 +258,7 @@ export default function App() {
             {travelRoutes('/owner')}
             <Route path="/owner/replacement-requests" element={<OwnerReplacementRequests/>}/>
             <Route path="/owner/drivers" element={<MyDrivers/>}/>
-            <Route path="/owner/driver-payments" element={<OwnerDriverPayments/>}/>
+            <Route path="/owner/driver-payments" element={<MyDrivers initialTab={3}/>}/>
             <Route path="/owner/go-online" element={<GoOnline/>}/>
             <Route path="/owner/driving" element={<DrivingGate><OwnerDriving/></DrivingGate>}/>
             <Route path="/owner/driving/trips/:tripId" element={<DrivingGate><DriverTripPage/></DrivingGate>}/>
@@ -305,7 +304,7 @@ export default function App() {
             <Route path="/driver/availability" element={<Availability/>}/>
             <Route path="/driver/earnings" element={<DriverEarnings/>}/>
             <Route path="/driver/go-online" element={<GoOnline/>}/>
-            <Route path="/driver/reports" element={<DriverReport/>}/>
+            <Route path="/driver/reports" element={<DriverEarnings initialTab={1}/>}/>
             <Route path="/driver/road-alerts" element={<RoadAlerts/>}/>
             <Route path="/driver/settings" element={<WorkspaceSettings/>}/>
             <Route path="/driver/support" element={<Support/>}/>

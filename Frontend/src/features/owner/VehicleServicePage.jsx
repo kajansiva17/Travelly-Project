@@ -4,7 +4,9 @@ import {createPortal} from 'react-dom'
 import {Link,Navigate,useSearchParams} from 'react-router-dom'
 import {api,hasSession} from '../../services/api'
 import {Header,ErrorNotice} from '../../components/components'
-import {Field,Compact} from './OwnerRates'
+import {Compact} from './OwnerRates'
+import Chip from '../../components/ui/Chip'
+import {EmptyCard} from '../people/PeopleParts'
 import {FlowShell} from '../booking/flow/FlowParts'
 import VehicleMaintenance from './VehicleMaintenance'
 import EventPackages from './EventPackages'
@@ -32,8 +34,9 @@ export default function VehicleServicePage({kind,driver=false}){
   return <><Header/><FlowShell heading={t(spec.heading)} icon={spec.icon} title={vehicle?vehicle.label:t(spec.heading)} info={t(spec.info)}><Compact.Provider value={true}>
     <ErrorNotice error={error}/>
     {rows===null&&!error&&<p role="status">{t("Loading vehicles…")}</p>}
-    {rows&&rows.length===0&&<p>{driver?t("No vehicle is assigned to you yet."):t("No vehicles in this list yet.")} {!driver&&<Link to="/owner/vehicles">{t("Open My vehicles")}</Link>}</p>}
-    {rows&&rows.length>1&&<Field label="Vehicle"><select value={vehicle?.id||''} onChange={e=>setParams(e.target.value?{vehicle:e.target.value}:{},{replace:true})}><option value="">{t("Choose a vehicle")}</option>{rows.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select></Field>}
+    {rows&&rows.length===0&&<EmptyCard icon="car" title={driver?t("No vehicle is assigned to you yet."):t("No vehicles in this list yet.")}>{driver?t("When an Owner assigns you a vehicle, its records show up here."):<Link to="/owner/vehicles">{t("Open My vehicles")}</Link>}</EmptyCard>}
+    {rows&&rows.length>1&&<div className="bk-groups" role="tablist" aria-label={t("Vehicle")}>{rows.map(r=><Chip key={r.id} selected={vehicle?.id===r.id} onClick={()=>setParams({vehicle:r.id},{replace:true})}>{r.label}</Chip>)}</div>}
+    {rows&&rows.length>1&&!vehicle&&<EmptyCard icon="car" title={t("Choose a vehicle")}/>}
     {vehicle&&<div className="flow-wizard-form"><Body key={vehicle.id} vehicle={vehicle} Footer={Footer} readOnly={driver}/></div>}
     <div className="flow-actions"><span className="footer-slot" ref={setSlot}/></div>
   </Compact.Provider></FlowShell></>
